@@ -1,5 +1,5 @@
 import { Elysia } from 'elysia';
-import { Opcode, encode, decode } from '@uncorded/protocol';
+import { Opcode, CloseCode, encode, decode } from '@uncorded/protocol';
 import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { user } from '../db/schema.js';
@@ -29,7 +29,6 @@ function resetHeartbeatTimeout(ws: { raw: object; terminate: () => void }): void
   const ctx = getCtx(ws);
   if (ctx.heartbeatTimeout) clearTimeout(ctx.heartbeatTimeout);
   ctx.heartbeatTimeout = setTimeout(() => {
-    console.log(`[gateway] Heartbeat timeout for user ${ctx.userId}`);
     ws.terminate();
   }, HEARTBEAT_TIMEOUT);
 }
@@ -44,7 +43,7 @@ export const gateway = new Elysia().ws('/gateway', {
 
   async message(ws, raw) {
     if (typeof raw === 'string') {
-      ws.close(4001, 'Expected binary MessagePack');
+      ws.close(CloseCode.NOT_BINARY, 'Expected binary MessagePack');
       return;
     }
 
@@ -52,7 +51,7 @@ export const gateway = new Elysia().ws('/gateway', {
     try {
       frame = decode(raw as Uint8Array);
     } catch {
-      ws.close(4002, 'Invalid MessagePack frame');
+      ws.close(CloseCode.INVALID_FRAME, 'Invalid MessagePack frame');
       return;
     }
 
@@ -61,7 +60,7 @@ export const gateway = new Elysia().ws('/gateway', {
     switch (frame.op) {
       case Opcode.IDENTIFY: {
         if (ctx.userId) {
-          ws.close(4003, 'Already identified');
+          ws.close(CloseCode.ALREADY_IDENTIFIED, 'Already identified');
           return;
         }
 
@@ -78,7 +77,7 @@ export const gateway = new Elysia().ws('/gateway', {
 
       case Opcode.HEARTBEAT: {
         if (!ctx.userId) {
-          ws.close(4006, 'Not identified');
+          ws.close(CloseCode.NOT_IDENTIFIED, 'Not identified');
           return;
         }
         resetHeartbeatTimeout(ws);

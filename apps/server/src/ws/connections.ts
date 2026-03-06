@@ -1,6 +1,5 @@
 /** Loose WS type — Elysia's ws.raw generic varies, so we use a structural type */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AnyServerWebSocket = { send(data: string | Buffer): any };
+export type AnyServerWebSocket = { send(data: string | Buffer): number };
 import { eq } from 'drizzle-orm';
 import { encode } from '@uncorded/protocol';
 import type { GatewayFrame } from '@uncorded/protocol';

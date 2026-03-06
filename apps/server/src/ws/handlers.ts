@@ -1,5 +1,5 @@
 import { eq, inArray } from 'drizzle-orm';
-import { Opcode, encode } from '@uncorded/protocol';
+import { Opcode, CloseCode, encode } from '@uncorded/protocol';
 import { db } from '../db/index.js';
 import { user, session as sessionTable, servers, channels, members } from '../db/schema.js';
 import { addConnection, type AnyServerWebSocket } from './connections.js';
@@ -14,7 +14,7 @@ export async function handleIdentify(
 ): Promise<IdentifyResult> {
   const token = (data as { token?: string } | null)?.token;
   if (!token || typeof token !== 'string') {
-    return { success: false, closeCode: 4004, closeReason: 'Missing token in IDENTIFY' };
+    return { success: false, closeCode: CloseCode.MISSING_TOKEN, closeReason: 'Missing token in IDENTIFY' };
   }
 
   // Validate session
@@ -25,7 +25,7 @@ export async function handleIdentify(
     .limit(1);
 
   if (!sessionRow || new Date(sessionRow.expiresAt) < new Date()) {
-    return { success: false, closeCode: 4005, closeReason: 'Invalid session' };
+    return { success: false, closeCode: CloseCode.INVALID_SESSION, closeReason: 'Invalid session' };
   }
 
   const userId = sessionRow.userId;

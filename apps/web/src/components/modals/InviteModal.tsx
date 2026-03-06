@@ -1,4 +1,4 @@
-import { createSignal, onMount, Show } from 'solid-js';
+import { createSignal, onMount, onCleanup, Show } from 'solid-js';
 import { api, ApiRequestError } from '../../lib/api.js';
 import Modal from './Modal.js';
 
@@ -51,12 +51,20 @@ const InviteModal = (props: Props) => {
 
   onMount(() => generateInvite());
 
+  let copiedTimer: ReturnType<typeof setTimeout> | undefined;
+  onCleanup(() => clearTimeout(copiedTimer));
+
   const handleCopy = async () => {
     const inv = invite();
     if (!inv) return;
-    await navigator.clipboard.writeText(inv.code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(inv.code);
+      setCopied(true);
+      clearTimeout(copiedTimer);
+      copiedTimer = setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError('Failed to copy');
+    }
   };
 
   const handleGenerateAdvanced = () => {

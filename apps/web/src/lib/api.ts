@@ -1,6 +1,5 @@
 import type { ApiError } from '@uncorded/shared';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_BASE } from './config.js';
 
 export class ApiRequestError extends Error {
   status: number;

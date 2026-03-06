@@ -1,8 +1,12 @@
-import { For } from 'solid-js';
+import { createSignal, For, Show } from 'solid-js';
 import { readyData } from '../lib/gateway-store.js';
 import { selectedServerId, setSelectedServerId } from '../stores/app-store.js';
+import CreateServerModal from './modals/CreateServerModal.js';
+import JoinServerModal from './modals/JoinServerModal.js';
 
 const ServerSidebar = () => {
+  const [modal, setModal] = createSignal<'create' | 'join' | null>(null);
+
   return (
     <div class="flex h-full w-[72px] shrink-0 flex-col items-center gap-2 overflow-y-auto bg-bg-server-bar py-3">
       {/* Home button */}
@@ -64,8 +68,14 @@ const ServerSidebar = () => {
         }}
       </For>
 
-      {/* Add server button */}
-      <button class="flex h-12 w-12 items-center justify-center rounded-full bg-bg-tertiary text-success transition-all hover:rounded-xl hover:bg-success hover:text-white">
+      <div class="mx-auto h-px w-8 bg-border" />
+
+      {/* Create server button */}
+      <button
+        onClick={() => setModal('create')}
+        title="Create a Server"
+        class="flex h-12 w-12 items-center justify-center rounded-full bg-bg-tertiary text-success transition-all hover:rounded-xl hover:bg-success hover:text-white"
+      >
         <svg
           xmlns="http://www.w3.org/2000/svg"
           class="h-6 w-6"
@@ -77,6 +87,36 @@ const ServerSidebar = () => {
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
         </svg>
       </button>
+
+      {/* Join server button */}
+      <button
+        onClick={() => setModal('join')}
+        title="Join a Server"
+        class="flex h-12 w-12 items-center justify-center rounded-full bg-bg-tertiary text-brand transition-all hover:rounded-xl hover:bg-brand hover:text-white"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-5 w-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
+          />
+        </svg>
+      </button>
+
+      {/* Modals */}
+      <Show when={modal() === 'create'}>
+        <CreateServerModal onClose={() => setModal(null)} />
+      </Show>
+      <Show when={modal() === 'join'}>
+        <JoinServerModal onClose={() => setModal(null)} />
+      </Show>
     </div>
   );
 };

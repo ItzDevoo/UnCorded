@@ -45,4 +45,8 @@ function clearReadyPayload() {
   setReadyData(reconcile({ data: null }));
 }
 
-export { gatewayStatus, readyData, setGatewayStatus, setReadyPayload, clearReadyPayload };
+function addServer(server: ReadyServer) {
+  setReadyData('data', 'servers', (prev) => [...prev, server]);
+}
+
+export { gatewayStatus, readyData, setGatewayStatus, setReadyPayload, clearReadyPayload, addServer };

@@ -1,4 +1,4 @@
-import { For, Show } from 'solid-js';
+import { createSignal, For, Show } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
 import { useSession, signOut } from '../lib/auth.js';
 import {
@@ -8,6 +8,7 @@ import {
   setSelectedChannelId,
 } from '../stores/app-store.js';
 import type { ReadyChannel } from '../lib/gateway-store.js';
+import InviteModal from './modals/InviteModal.js';
 
 const POLICY_STYLES: Record<ReadyChannel['storagePolicy'], { class: string; label: string }> = {
   ephemeral: { class: 'bg-warning', label: 'Ephemeral' },
@@ -18,6 +19,7 @@ const POLICY_STYLES: Record<ReadyChannel['storagePolicy'], { class: string; labe
 const ChannelSidebar = () => {
   const session = useSession();
   const navigate = useNavigate();
+  const [showInvite, setShowInvite] = createSignal(false);
 
   const handleLogout = async () => {
     await signOut();
@@ -27,10 +29,32 @@ const ChannelSidebar = () => {
   return (
     <div class="flex h-full w-60 shrink-0 flex-col bg-bg-secondary">
       {/* Server name header */}
-      <div class="flex h-12 shrink-0 items-center border-b border-border px-4">
+      <div class="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
         <span class="truncate font-semibold text-text-primary">
           {currentServer()?.name ?? 'UnCorded'}
         </span>
+        <Show when={currentServer()}>
+          <button
+            onClick={() => setShowInvite(true)}
+            title="Invite People"
+            class="rounded p-1 text-text-muted transition-colors hover:bg-bg-hover hover:text-text-primary"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+              />
+            </svg>
+          </button>
+        </Show>
       </div>
 
       {/* Channel list */}
@@ -101,6 +125,13 @@ const ChannelSidebar = () => {
           </svg>
         </button>
       </div>
+
+      {/* Invite modal */}
+      <Show when={showInvite() && currentServer()}>
+        {(server) => (
+          <InviteModal serverId={server().id} onClose={() => setShowInvite(false)} />
+        )}
+      </Show>
     </div>
   );
 };

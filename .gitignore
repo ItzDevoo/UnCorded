@@ -20,6 +20,9 @@ dist/
 Thumbs.db
 Desktop.ini
 
+# Claude Code
+.claude/
+
 # IDE
 .idea/
 *.swp

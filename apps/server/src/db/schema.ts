@@ -175,7 +175,7 @@ export const messages = pgTable(
     editedAt: timestamp('edited_at', { mode: 'date' }),
     createdAt: createdAt(),
   },
-  (t) => [index('messages_channel_created_idx').on(t.channelId, t.createdAt)],
+  (t) => [index('messages_channel_created_idx').on(t.channelId, t.createdAt.desc())],
 );
 
 export const attachments = pgTable('attachments', {
@@ -223,8 +223,12 @@ export const roles = pgTable('roles', {
 export const memberRoles = pgTable(
   'member_roles',
   {
-    userId: text('user_id').notNull(),
-    serverId: text('server_id').notNull(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    serverId: text('server_id')
+      .notNull()
+      .references(() => servers.id, { onDelete: 'cascade' }),
     roleId: text('role_id')
       .notNull()
       .references(() => roles.id, { onDelete: 'cascade' }),

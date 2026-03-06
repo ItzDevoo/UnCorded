@@ -14,7 +14,7 @@ export const userRoutes = new Elysia({ prefix: '/api/users' })
       session: session.session,
     };
   })
-  .get('/@me', async ({ user: sessionUser }) => {
+  .get('/@me', async ({ user: sessionUser, set }) => {
     const [dbUser] = await db
       .select()
       .from(user)
@@ -22,7 +22,8 @@ export const userRoutes = new Elysia({ prefix: '/api/users' })
       .limit(1);
 
     if (!dbUser) {
-      throw new Error('User not found');
+      set.status = 404;
+      return { code: 'NOT_FOUND', message: 'User not found' };
     }
 
     return {
@@ -86,7 +87,8 @@ export const userRoutes = new Elysia({ prefix: '/api/users' })
       .returning();
 
     if (!updated) {
-      throw new Error('User not found');
+      set.status = 404;
+      return { code: 'NOT_FOUND', message: 'User not found' };
     }
 
     return {

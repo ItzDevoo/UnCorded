@@ -115,6 +115,7 @@ export function connectGateway(sessionToken: string): void {
 export function disconnectGateway(): void {
   intentionalClose = true;
   clearTimers();
+  listeners.clear();
   if (ws) {
     ws.close();
     ws = null;

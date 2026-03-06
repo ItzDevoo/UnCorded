@@ -70,7 +70,7 @@ export async function handleIdentify(
     type: string;
     position: number;
     topic: string | null;
-    storagePolicy: string;
+    storagePolicy: 'ephemeral' | 'extended' | 'persistent';
   }[] = [];
 
   if (serverIds.length > 0) {

@@ -65,7 +65,7 @@ const serverChannelRoutes = new Elysia({ prefix: '/api/servers/:serverId/channel
     return serverChannels;
   });
 
-const channelIdRoutes = new Elysia({ prefix: '/api/channels/:id' })
+const channelIdRoutes = new Elysia({ prefix: '/api/channels/:channelId' })
   .resolve(async ({ status, request }) => {
     const session = await getSession(request.headers);
     if (!session) {
@@ -80,7 +80,7 @@ const channelIdRoutes = new Elysia({ prefix: '/api/channels/:id' })
     const [channel] = await db
       .select()
       .from(channels)
-      .where(eq(channels.id, params.id))
+      .where(eq(channels.id, params.channelId))
       .limit(1);
 
     if (!channel) {
@@ -115,7 +115,7 @@ const channelIdRoutes = new Elysia({ prefix: '/api/channels/:id' })
     const [updated] = await db
       .update(channels)
       .set(updates)
-      .where(eq(channels.id, params.id))
+      .where(eq(channels.id, params.channelId))
       .returning();
 
     return updated;
@@ -124,7 +124,7 @@ const channelIdRoutes = new Elysia({ prefix: '/api/channels/:id' })
     const [channel] = await db
       .select()
       .from(channels)
-      .where(eq(channels.id, params.id))
+      .where(eq(channels.id, params.channelId))
       .limit(1);
 
     if (!channel) {
@@ -135,7 +135,7 @@ const channelIdRoutes = new Elysia({ prefix: '/api/channels/:id' })
     const server = await requireOwner(sessionUser.id, channel.serverId, set);
     if (!server) return { code: 'FORBIDDEN', message: 'Not the server owner' };
 
-    await db.delete(channels).where(eq(channels.id, params.id));
+    await db.delete(channels).where(eq(channels.id, params.channelId));
 
     set.status = 204;
   });

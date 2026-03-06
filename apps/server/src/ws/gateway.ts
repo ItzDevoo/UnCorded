@@ -1,9 +1,9 @@
 import { Elysia } from 'elysia';
 import { Opcode, CloseCode, encode, decode } from '@uncorded/protocol';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { user } from '../db/schema.js';
-import { removeConnection, getConnections } from './connections.js';
+import { user, channels, members } from '../db/schema.js';
+import { removeConnection, getConnections, broadcastToServer } from './connections.js';
 import { handleIdentify } from './handlers.js';
 
 const HEARTBEAT_INTERVAL = 30_000;
@@ -81,6 +81,46 @@ export const gateway = new Elysia().ws('/gateway', {
           return;
         }
         resetHeartbeatTimeout(ws);
+        break;
+      }
+
+      case Opcode.TYPING_START: {
+        if (!ctx.userId) {
+          ws.close(CloseCode.NOT_IDENTIFIED, 'Not identified');
+          return;
+        }
+
+        const d = frame.d as Record<string, unknown> | null;
+        if (!d || typeof d.channelId !== 'string') break;
+
+        const [ch] = await db
+          .select({ serverId: channels.serverId })
+          .from(channels)
+          .where(eq(channels.id, d.channelId))
+          .limit(1);
+        if (!ch) break;
+
+        const [mem] = await db
+          .select({ userId: members.userId })
+          .from(members)
+          .where(and(eq(members.userId, ctx.userId), eq(members.serverId, ch.serverId)))
+          .limit(1);
+        if (!mem) break;
+
+        const [usr] = await db
+          .select({ username: user.username })
+          .from(user)
+          .where(eq(user.id, ctx.userId))
+          .limit(1);
+
+        await broadcastToServer(
+          ch.serverId,
+          {
+            op: Opcode.TYPING_START,
+            d: { channelId: d.channelId, userId: ctx.userId, username: usr?.username ?? null },
+          },
+          ctx.userId,
+        );
         break;
       }
 

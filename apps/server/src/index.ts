@@ -4,6 +4,10 @@ import { rateLimit } from 'elysia-rate-limit';
 import { env } from './env.js';
 import { betterAuthPlugin } from './middleware/auth.js';
 import { userRoutes } from './routes/user.js';
+import { serverRoutes } from './routes/server.js';
+import { channelRoutes } from './routes/channel.js';
+import { memberRoutes } from './routes/member.js';
+import { inviteRoutes } from './routes/invite.js';
 
 const app = new Elysia()
   .use(
@@ -20,6 +24,10 @@ const app = new Elysia()
     }),
   )
   .use(userRoutes)
+  .use(serverRoutes)
+  .use(channelRoutes)
+  .use(memberRoutes)
+  .use(inviteRoutes)
   .get('/health', () => ({ status: 'ok' }))
   .onError(({ code, error, set }) => {
     if (code === 'NOT_FOUND') {

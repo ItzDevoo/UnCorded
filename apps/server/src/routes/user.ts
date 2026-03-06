@@ -8,7 +8,9 @@ import { getSession } from '../middleware/auth.js';
 export const userRoutes = new Elysia({ prefix: '/api/users' })
   .resolve(async ({ status, request }) => {
     const session = await getSession(request.headers);
-    if (!session) return status(401);
+    if (!session) {
+      return status(401, { code: 'UNAUTHORIZED', message: 'Authentication required' });
+    }
     return {
       user: session.user,
       session: session.session,

@@ -46,6 +46,8 @@ export const friendshipStatusEnum = pgEnum('friendship_status', [
   'blocked',
 ]);
 
+export const purchaseItemEnum = pgEnum('purchase_item', ['custom_avatar', 'extended_expiry']);
+
 export const purchaseStatusEnum = pgEnum('purchase_status', ['active', 'cancelled']);
 
 export const reportCategoryEnum = pgEnum('report_category', [
@@ -289,7 +291,7 @@ export const purchases = pgTable('purchases', {
   userId: text('user_id')
     .notNull()
     .references(() => user.id),
-  item: text('item').notNull(), // 'custom_avatar' | 'extended_expiry'
+  item: purchaseItemEnum('item').notNull(),
   stripeSubscriptionId: text('stripe_subscription_id'),
   stripeCustomerId: text('stripe_customer_id'),
   status: purchaseStatusEnum('status').default('active').notNull(),

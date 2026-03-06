@@ -23,10 +23,11 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   });
 
   if (!res.ok) {
-    const body = (await res.json().catch(() => ({
-      code: 'UNKNOWN',
-      message: 'Request failed',
-    }))) as ApiError;
+    const raw: unknown = await res.json().catch(() => null);
+    const body: ApiError =
+      raw !== null && typeof raw === 'object' && 'code' in raw && 'message' in raw
+        ? (raw as ApiError)
+        : { code: 'UNKNOWN', message: 'Request failed' };
     throw new ApiRequestError(res.status, body);
   }
 

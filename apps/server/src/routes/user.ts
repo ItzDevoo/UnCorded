@@ -6,8 +6,8 @@ import { user } from '../db/schema.js';
 import { getSession } from '../middleware/auth.js';
 
 export const userRoutes = new Elysia({ prefix: '/api/users' })
-  .resolve(async ({ status, request: { headers } }) => {
-    const session = await getSession(new Headers(headers as HeadersInit));
+  .resolve(async ({ status, request }) => {
+    const session = await getSession(request.headers);
     if (!session) return status(401);
     return {
       user: session.user,
@@ -48,7 +48,7 @@ export const userRoutes = new Elysia({ prefix: '/api/users' })
       };
     }
 
-    const updates: Record<string, unknown> = {};
+    const updates: Partial<typeof user.$inferInsert> = {};
 
     if (parsed.data.username !== undefined) {
       const [existing] = await db

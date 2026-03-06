@@ -15,6 +15,13 @@
       "when": 1772776837768,
       "tag": "0001_cloudy_scarecrow",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772778942449,
+      "tag": "0002_material_killraven",
+      "breakpoints": true
     }
   ]
 }

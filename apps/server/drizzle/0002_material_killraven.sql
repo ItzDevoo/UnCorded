@@ -1,0 +1,2 @@
+CREATE TYPE "public"."purchase_item" AS ENUM('custom_avatar', 'extended_expiry');--> statement-breakpoint
+ALTER TABLE "purchases" ALTER COLUMN "item" SET DATA TYPE "public"."purchase_item" USING "item"::"public"."purchase_item";

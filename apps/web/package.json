@@ -10,8 +10,12 @@
     "lint": "eslint src/"
   },
   "dependencies": {
+    "@solidjs/router": "^0.15",
+    "@tailwindcss/vite": "^4",
     "@uncorded/protocol": "workspace:*",
-    "@uncorded/shared": "workspace:*"
+    "@uncorded/shared": "workspace:*",
+    "better-auth": "^1",
+    "tailwindcss": "^4"
   },
   "devDependencies": {
     "solid-js": "^1",

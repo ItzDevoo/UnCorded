@@ -8,7 +8,7 @@ import { userRoutes } from './routes/user.js';
 const app = new Elysia()
   .use(
     cors({
-      origin: env.CORS_ORIGIN ?? env.APP_URL,
+      origin: env.CORS_ORIGIN ?? 'http://localhost:5173',
       credentials: true,
     }),
   )

@@ -1,5 +1,6 @@
 import { createSignal, Show } from 'solid-js';
 import { A, useNavigate } from '@solidjs/router';
+import { USERNAME_MIN, USERNAME_MAX, PASSWORD_MIN } from '@uncorded/shared';
 import { signUp } from '../lib/auth.js';
 import AuthLayout from '../components/AuthLayout.js';
 
@@ -64,8 +65,8 @@ const Register = () => {
           <input
             type="text"
             required
-            minLength={2}
-            maxLength={32}
+            minLength={USERNAME_MIN}
+            maxLength={USERNAME_MAX}
             value={username()}
             onInput={(e) => setUsername(e.currentTarget.value)}
             class="w-full rounded-lg border border-border bg-bg-input px-3 py-2 text-text-primary outline-none focus:ring-2 focus:ring-brand"
@@ -78,7 +79,7 @@ const Register = () => {
           <input
             type="password"
             required
-            minLength={8}
+            minLength={PASSWORD_MIN}
             value={password()}
             onInput={(e) => setPassword(e.currentTarget.value)}
             class="w-full rounded-lg border border-border bg-bg-input px-3 py-2 text-text-primary outline-none focus:ring-2 focus:ring-brand"

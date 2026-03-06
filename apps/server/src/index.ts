@@ -8,15 +8,15 @@ import { userRoutes } from './routes/user.js';
 const app = new Elysia()
   .use(
     cors({
-      origin: env.CORS_ORIGIN ?? 'http://localhost:5173',
+      origin: env.CORS_ORIGIN ?? env.APP_URL,
       credentials: true,
     }),
   )
   .use(betterAuthPlugin)
   .use(
     rateLimit({
-      max: 300,
-      duration: 60_000,
+      max: env.RATE_LIMIT_MAX,
+      duration: env.RATE_LIMIT_WINDOW_MS,
     }),
   )
   .use(userRoutes)

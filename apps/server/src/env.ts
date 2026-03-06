@@ -24,6 +24,8 @@ const envSchema = z.object({
   // Optional with defaults
   PORT: z.coerce.number().default(3000),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  RATE_LIMIT_MAX: z.coerce.number().default(300),
+  RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60_000),
 
   // OAuth — optional (social login disabled without them)
   DISCORD_CLIENT_ID: optionalString,

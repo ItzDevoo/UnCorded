@@ -8,6 +8,7 @@ import { serverRoutes } from './routes/server.js';
 import { channelRoutes } from './routes/channel.js';
 import { memberRoutes } from './routes/member.js';
 import { inviteRoutes } from './routes/invite.js';
+import { gateway } from './ws/gateway.js';
 
 const app = new Elysia()
   .use(
@@ -28,6 +29,7 @@ const app = new Elysia()
   .use(channelRoutes)
   .use(memberRoutes)
   .use(inviteRoutes)
+  .use(gateway)
   .get('/health', () => ({ status: 'ok' }))
   .onError(({ code, error, set }) => {
     if (code === 'NOT_FOUND') {

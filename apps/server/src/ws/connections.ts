@@ -1,0 +1,65 @@
+/** Loose WS type — Elysia's ws.raw generic varies, so we use a structural type */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyServerWebSocket = { send(data: string | Buffer): any };
+import { eq } from 'drizzle-orm';
+import { encode } from '@uncorded/protocol';
+import type { GatewayFrame } from '@uncorded/protocol';
+import { db } from '../db/index.js';
+import { members } from '../db/schema.js';
+
+/** userId → set of active WebSocket connections (supports multiple tabs) */
+export const clients = new Map<string, Set<AnyServerWebSocket>>();
+
+export function addConnection(userId: string, ws: AnyServerWebSocket): void {
+  let set = clients.get(userId);
+  if (!set) {
+    set = new Set();
+    clients.set(userId, set);
+  }
+  set.add(ws);
+}
+
+export function removeConnection(userId: string, ws: AnyServerWebSocket): void {
+  const set = clients.get(userId);
+  if (!set) return;
+  set.delete(ws);
+  if (set.size === 0) clients.delete(userId);
+}
+
+export function getConnections(userId: string): Set<AnyServerWebSocket> | undefined {
+  return clients.get(userId);
+}
+
+export function sendToUser(userId: string, frame: GatewayFrame): void {
+  const set = clients.get(userId);
+  if (!set) return;
+  const buf = Buffer.from(encode(frame));
+  for (const ws of set) {
+    ws.send(buf);
+  }
+}
+
+export async function broadcastToServer(
+  serverId: string,
+  frame: GatewayFrame,
+  excludeUserId?: string,
+): Promise<void> {
+  const memberRows = await db
+    .select({ userId: members.userId })
+    .from(members)
+    .where(eq(members.serverId, serverId));
+
+  const buf = Buffer.from(encode(frame));
+  for (const row of memberRows) {
+    if (row.userId === excludeUserId) continue;
+    const set = clients.get(row.userId);
+    if (!set) continue;
+    for (const ws of set) {
+      ws.send(buf);
+    }
+  }
+}
+
+export function getConnectedCount(): number {
+  return clients.size;
+}

@@ -12,10 +12,10 @@ export async function handleIdentify(
   ws: AnyServerWebSocket,
   data: unknown,
 ): Promise<IdentifyResult> {
-  const token = (data as { token?: string } | null)?.token;
-  if (!token || typeof token !== 'string') {
+  if (!data || typeof data !== 'object' || !('token' in data) || typeof (data as Record<string, unknown>).token !== 'string') {
     return { success: false, closeCode: CloseCode.MISSING_TOKEN, closeReason: 'Missing token in IDENTIFY' };
   }
+  const token = (data as Record<string, unknown>).token as string;
 
   // Validate session
   const [sessionRow] = await db

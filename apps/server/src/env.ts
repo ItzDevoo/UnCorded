@@ -1,0 +1,60 @@
+import { z } from 'zod';
+
+const optionalUrl = z
+  .string()
+  .transform((s) => (s === '' ? undefined : s))
+  .pipe(z.string().url().optional());
+
+const optionalString = z
+  .string()
+  .transform((s) => (s === '' ? undefined : s))
+  .pipe(z.string().optional());
+
+const envSchema = z.object({
+  // Required
+  DATABASE_URL: z.string().url(),
+  BETTER_AUTH_SECRET: z.string().min(32),
+  BETTER_AUTH_URL: z.string().url(),
+  APP_URL: z
+    .string()
+    .transform((s) => (s === '' ? 'http://localhost:3000' : s))
+    .pipe(z.string().url()),
+  CORS_ORIGIN: optionalUrl,
+
+  // Optional with defaults
+  PORT: z.coerce.number().default(3000),
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+
+  // OAuth — optional (social login disabled without them)
+  DISCORD_CLIENT_ID: optionalString,
+  DISCORD_CLIENT_SECRET: optionalString,
+  GOOGLE_CLIENT_ID: optionalString,
+  GOOGLE_CLIENT_SECRET: optionalString,
+
+  // Redis — optional for now (needed later for presence/pubsub)
+  UPSTASH_REDIS_URL: optionalString,
+  UPSTASH_REDIS_TOKEN: optionalString,
+
+  // R2 — optional until file uploads are implemented
+  R2_ACCOUNT_ID: optionalString,
+  R2_ACCESS_KEY_ID: optionalString,
+  R2_SECRET_ACCESS_KEY: optionalString,
+  R2_BUCKET_NAME: optionalString,
+  R2_PUBLIC_URL: optionalUrl,
+
+  // Stripe — optional until billing is implemented
+  STRIPE_SECRET_KEY: optionalString,
+  STRIPE_WEBHOOK_SECRET: optionalString,
+  STRIPE_AVATAR_PRICE_ID: optionalString,
+  STRIPE_EXPIRY_PRICE_ID: optionalString,
+});
+
+const parsed = envSchema.safeParse(process.env);
+
+if (!parsed.success) {
+  console.error('Invalid environment variables:');
+  console.error(parsed.error.flatten().fieldErrors);
+  process.exit(1);
+}
+
+export const env = parsed.data;

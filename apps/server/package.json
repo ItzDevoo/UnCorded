@@ -6,13 +6,24 @@
   "scripts": {
     "dev": "bun run --env-file=../../.env --hot src/index.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src/"
+    "lint": "eslint src/",
+    "db:migrate": "bun run --env-file=../../.env src/db/migrate.ts",
+    "db:generate": "bun run --env-file=../../.env bunx drizzle-kit generate"
   },
   "dependencies": {
+    "@elysiajs/cors": "^1",
+    "@neondatabase/serverless": "^1",
     "@uncorded/protocol": "workspace:*",
-    "@uncorded/shared": "workspace:*"
+    "@uncorded/shared": "workspace:*",
+    "better-auth": "^1",
+    "drizzle-orm": "^0.45",
+    "elysia": "^1",
+    "elysia-rate-limit": "^4",
+    "nanoid": "^5",
+    "zod": "^3"
   },
   "devDependencies": {
-    "@types/bun": "^1"
+    "@types/bun": "^1",
+    "drizzle-kit": "^0.31"
   }
 }

@@ -18,6 +18,7 @@ export interface ReadyChannel {
   type: string;
   position: number;
   topic: string | null;
+  storagePolicy: 'ephemeral' | 'extended' | 'persistent';
 }
 
 export interface ReadyServer {

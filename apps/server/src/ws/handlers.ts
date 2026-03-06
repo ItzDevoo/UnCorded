@@ -70,6 +70,7 @@ export async function handleIdentify(
     type: string;
     position: number;
     topic: string | null;
+    storagePolicy: string;
   }[] = [];
 
   if (serverIds.length > 0) {
@@ -81,6 +82,7 @@ export async function handleIdentify(
         type: channels.type,
         position: channels.position,
         topic: channels.topic,
+        storagePolicy: channels.storagePolicy,
       })
       .from(channels)
       .where(inArray(channels.serverId, serverIds));

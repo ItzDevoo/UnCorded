@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Turborepo
+.turbo/
+
+# Build output
+dist/
+
+# TypeScript
+*.tsbuildinfo
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.idea/
+*.swp
+*.swo
+.vscode/settings.json

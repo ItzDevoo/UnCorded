@@ -1,0 +1,21 @@
+{
+  "name": "@uncorded/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@uncorded/protocol": "workspace:*",
+    "@uncorded/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "solid-js": "^1",
+    "vite": "^6",
+    "vite-plugin-solid": "^2"
+  }
+}

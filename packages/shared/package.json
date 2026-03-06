@@ -1,0 +1,17 @@
+{
+  "name": "@uncorded/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "nanoid": "^5",
+    "zod": "^3"
+  }
+}

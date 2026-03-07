@@ -5,6 +5,8 @@ import { fetchMessages, getMessages } from '../stores/message-store.js';
 import MessageBubble from './MessageBubble.js';
 import MessageInput from './MessageInput.js';
 
+const SCROLL_BOTTOM_THRESHOLD = 100;
+
 const ChatArea = () => {
   let scrollRef!: HTMLDivElement;
   let isAtBottom = true;
@@ -53,7 +55,7 @@ const ChatArea = () => {
   function handleScroll() {
     if (!scrollRef) return;
     isAtBottom =
-      scrollRef.scrollTop + scrollRef.clientHeight >= scrollRef.scrollHeight - 100;
+      scrollRef.scrollTop + scrollRef.clientHeight >= scrollRef.scrollHeight - SCROLL_BOTTOM_THRESHOLD;
   }
 
   function loadMore() {

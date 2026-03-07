@@ -36,6 +36,7 @@ interface MessageStoreState {
 }
 
 const LIMIT = 50;
+const TYPING_TIMEOUT_MS = 6000;
 
 const [store, setStore] = createStore<MessageStoreState>({
   channels: {},
@@ -76,27 +77,22 @@ export async function fetchMessages(channelId: string) {
 }
 
 export function addMessage(channelId: string, message: Message) {
-  setStore(
-    'channels',
-    channelId,
-    produce((ch) => {
-      if (!ch) {
-        // Channel not loaded yet — bootstrap it
-        return;
-      }
-      if (ch.messages.some((m) => m.id === message.id)) return;
-      ch.messages.push(message);
-    }),
-  );
-
-  // If channel wasn't in store, create it with this message
   if (!store.channels[channelId]) {
     setStore('channels', channelId, {
       messages: [message],
       loading: false,
       hasMore: true,
     });
+    return;
   }
+  setStore(
+    'channels',
+    channelId,
+    produce((ch) => {
+      if (ch.messages.some((m) => m.id === message.id)) return;
+      ch.messages.push(message);
+    }),
+  );
 }
 
 export function updateMessage(
@@ -142,45 +138,45 @@ export function getTypingUsers(channelId: string): TypingUser[] {
 }
 
 export function addTypingUser(channelId: string, userId: string, username: string) {
+  if (!store.typing[channelId]) {
+    setStore('typing', channelId, [
+      { userId, username, expiresAt: Date.now() + TYPING_TIMEOUT_MS },
+    ]);
+    return;
+  }
   setStore(
     'typing',
     channelId,
     produce((users) => {
-      if (!users) return;
       const existing = users.find((t) => t.userId === userId);
       if (existing) {
-        existing.expiresAt = Date.now() + 6000;
+        existing.expiresAt = Date.now() + TYPING_TIMEOUT_MS;
       } else {
-        users.push({ userId, username, expiresAt: Date.now() + 6000 });
+        users.push({ userId, username, expiresAt: Date.now() + TYPING_TIMEOUT_MS });
       }
     }),
   );
-
-  // Initialize if not present
-  if (!store.typing[channelId]) {
-    setStore('typing', channelId, [{ userId, username, expiresAt: Date.now() + 6000 }]);
-  }
 }
 
 // --- WS listeners (run once on import) ---
 
 /* eslint-disable solid/reactivity -- these are event handlers, not tracked scopes */
-onGatewayEvent(Opcode.MESSAGE_CREATE, (data) => {
+const unsubCreate = onGatewayEvent(Opcode.MESSAGE_CREATE, (data) => {
   const d = data as Message;
   addMessage(d.channelId, d);
 });
 
-onGatewayEvent(Opcode.MESSAGE_UPDATE, (data) => {
+const unsubUpdate = onGatewayEvent(Opcode.MESSAGE_UPDATE, (data) => {
   const d = data as { id: string; channelId: string; content: string; editedAt: string | null };
   updateMessage(d.channelId, d.id, { content: d.content, editedAt: d.editedAt });
 });
 
-onGatewayEvent(Opcode.MESSAGE_DELETE, (data) => {
+const unsubDelete = onGatewayEvent(Opcode.MESSAGE_DELETE, (data) => {
   const d = data as { id: string; channelId: string };
   removeMessage(d.channelId, d.id);
 });
 
-onGatewayEvent(Opcode.TYPING_START, (data) => {
+const unsubTyping = onGatewayEvent(Opcode.TYPING_START, (data) => {
   const d = data as { channelId: string; userId: string; username: string };
   addTypingUser(d.channelId, d.userId, d.username);
 });
@@ -188,7 +184,7 @@ onGatewayEvent(Opcode.TYPING_START, (data) => {
 
 // --- Typing cleanup interval ---
 
-setInterval(() => {
+const cleanupInterval = setInterval(() => {
   const now = Date.now();
   for (const channelId of Object.keys(store.typing)) {
     const users = store.typing[channelId];
@@ -206,5 +202,17 @@ setInterval(() => {
     }
   }
 }, 1000);
+
+// --- HMR cleanup ---
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    clearInterval(cleanupInterval);
+    unsubCreate();
+    unsubUpdate();
+    unsubDelete();
+    unsubTyping();
+  });
+}
 
 export { sendFrame };

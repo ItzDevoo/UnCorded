@@ -1,8 +1,11 @@
-import { createSignal } from 'solid-js';
+import { createSignal, Show } from 'solid-js';
 import { Opcode } from '@uncorded/protocol';
 import { api } from '../lib/api.js';
 import { sendFrame } from '../lib/gateway.js';
 import { getTypingUsers } from '../stores/message-store.js';
+
+const TYPING_THROTTLE_MS = 5000;
+const TEXTAREA_MAX_HEIGHT = 200;
 
 const MessageInput = (props: { channelId: string }) => {
   let textareaRef!: HTMLTextAreaElement;
@@ -13,7 +16,7 @@ const MessageInput = (props: { channelId: string }) => {
 
   function resetHeight() {
     textareaRef.style.height = 'auto';
-    textareaRef.style.height = Math.min(textareaRef.scrollHeight, 200) + 'px';
+    textareaRef.style.height = Math.min(textareaRef.scrollHeight, TEXTAREA_MAX_HEIGHT) + 'px';
   }
 
   function handleInput(e: InputEvent & { currentTarget: HTMLTextAreaElement }) {
@@ -23,7 +26,7 @@ const MessageInput = (props: { channelId: string }) => {
     // Throttled typing indicator
     const now = Date.now();
     const last = lastTypingSent[props.channelId] ?? 0;
-    if (now - last > 5000) {
+    if (now - last > TYPING_THROTTLE_MS) {
       lastTypingSent[props.channelId] = now;
       sendFrame({ op: Opcode.TYPING_START, d: { channelId: props.channelId } });
     }
@@ -75,20 +78,22 @@ const MessageInput = (props: { channelId: string }) => {
           placeholder="Send a message..."
           rows={1}
           class="block w-full resize-none bg-transparent px-4 py-3 text-sm text-text-primary placeholder:text-text-muted outline-none"
-          style={{ "max-height": "200px" }}
+          style={{ "max-height": `${TEXTAREA_MAX_HEIGHT}px` }}
         />
       </div>
       <div class="h-5 px-2 pt-1">
-        {typingText() && (
-          <span class="text-xs text-text-muted">
-            {typingText()}
-            <span class="typing-dots">
-              <span class="dot" />
-              <span class="dot" />
-              <span class="dot" />
+        <Show when={typingText()}>
+          {(text) => (
+            <span class="text-xs text-text-muted">
+              {text()}
+              <span class="typing-dots">
+                <span class="dot" />
+                <span class="dot" />
+                <span class="dot" />
+              </span>
             </span>
-          </span>
-        )}
+          )}
+        </Show>
       </div>
     </div>
   );

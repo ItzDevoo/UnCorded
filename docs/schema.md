@@ -4,6 +4,7 @@ All IDs are nanoid (TEXT). Managed by Drizzle ORM.
 Reference: C:\Nexis\apps\server\src\db\schema.ts for implementation patterns.
 
 ## Enums
+
 - user_status: online | idle | dnd | offline
 - channel_type: text | category
 - friendship_status: pending | accepted | blocked
@@ -14,6 +15,7 @@ Reference: C:\Nexis\apps\server\src\db\schema.ts for implementation patterns.
 ## Tables
 
 ### users
+
 id, name (required, Better Auth), email (unique), email_verified (bool, Better Auth),
 image (nullable, Better Auth), username (unique, nullable — Better Auth username plugin),
 display_username (Better Auth username plugin),
@@ -27,9 +29,11 @@ created_at, updated_at
 -- Better Auth also auto-manages: session, account, verification tables (do not define manually)
 
 ### servers
+
 id, name, icon_url, owner_id -> users (no cascade — ownership must be transferred before user deletion), created_at
 
 ### channels
+
 id, server_id -> servers (cascade), name,
 type (channel_type, default text),
 file_sharing_enabled (bool, default true),
@@ -38,6 +42,7 @@ position (int, default 0), topic, created_at
 -- file sharing in channels requires Supporter+ tier to upload/seed
 
 ### messages
+
 id, channel_id (TEXT, no FK), author_id -> users,
 content, edited_at, created_at
 -- No FK on channel_id: DM messages reference dm_channels, not channels.
@@ -46,6 +51,7 @@ content, edited_at, created_at
 INDEX: (channel_id, created_at DESC)
 
 ### file_receipts
+
 id, channel_id (TEXT), sender_id -> users,
 file_name, file_size (bigint bytes), content_type,
 magnet_uri (TEXT — WebTorrent magnet link, persists in chat),
@@ -57,31 +63,39 @@ created_at
 -- info_hash enables swarm coordination and deduplication.
 
 ### members
+
 (user_id, server_id) PK, nickname, joined_at
 
 ### roles
+
 id, server_id -> servers (cascade), name, color,
 permissions (bigint bitfield, default 0), position (int, default 0)
 
 ### member_roles
+
 (user_id, server_id, role_id) PK
 user_id -> users, server_id -> servers, role_id -> roles (cascade)
 
 ### friendships
+
 (user_id, friend_id) PK, status (friendship_status, default pending), created_at
 
 ### dm_channels
+
 id, created_at
 
 ### dm_members
+
 (channel_id, user_id) PK
 
 ### invites
+
 code (PK, nanoid 8 chars), server_id -> servers (cascade),
 creator_id -> users, uses (int, default 0),
 max_uses (nullable, null = unlimited), expires_at (nullable)
 
 ### subscriptions
+
 id, user_id -> users,
 tier (subscription_tier enum: supporter | server_owner),
 stripe_subscription_id, stripe_customer_id,
@@ -89,6 +103,7 @@ status (subscription_status, default active),
 current_period_end (timestamp), created_at
 
 ### reports
+
 id, reporter_id -> users,
 message_id -> messages (nullable),
 file_receipt_id -> file_receipts (nullable),
@@ -98,6 +113,7 @@ resolved (bool, default false),
 created_at
 
 ## Migration Notes
+
 - Schema pivot from V1 (R2 ephemeral storage) to V2 (WebTorrent P2P)
 - Dropped: attachments table, storage_policy enum, purchase_item enum, purchases table
 - Added: file_receipts table, subscription_tier enum, subscriptions table

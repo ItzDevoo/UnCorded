@@ -1,14 +1,13 @@
-import { createSignal, For, Show } from 'solid-js';
-import { api, ApiRequestError } from '../../lib/api.js';
-import { addServer } from '../../lib/gateway-store.js';
-import { setSelectedServerId } from '../../stores/app-store.js';
-import Modal from './Modal.js';
+import { createSignal, Show } from "solid-js";
+import { api, ApiRequestError } from "../../lib/api.js";
+import { addServer } from "../../lib/gateway-store.js";
+import { setSelectedServerId } from "../../stores/app-store.js";
+import Modal from "./Modal.js";
 
 interface InvitePreview {
   code: string;
   server: { name: string; iconUrl: string | null };
   memberCount: number;
-  storagePolicies: string[];
 }
 
 interface AcceptResponse {
@@ -20,37 +19,31 @@ interface AcceptResponse {
   };
 }
 
-const POLICY_COLORS: Record<string, string> = {
-  ephemeral: 'bg-warning',
-  extended: 'bg-brand',
-  persistent: 'bg-success',
-};
-
 interface Props {
   onClose: () => void;
 }
 
 const JoinServerModal = (props: Props) => {
-  const [code, setCode] = createSignal('');
+  const [code, setCode] = createSignal("");
   const [preview, setPreview] = createSignal<InvitePreview | null>(null);
   const [loading, setLoading] = createSignal(false);
-  const [error, setError] = createSignal('');
+  const [error, setError] = createSignal("");
 
   const handlePreview = async (e: Event) => {
     e.preventDefault();
     const trimmed = code().trim();
     if (!trimmed) return;
 
-    setError('');
+    setError("");
     setLoading(true);
     try {
       const data = await api<InvitePreview>(`/api/invites/${encodeURIComponent(trimmed)}`);
       setPreview(data);
     } catch (err) {
       if (err instanceof ApiRequestError) {
-        setError(err.status === 404 ? 'Invite not found' : err.body.message);
+        setError(err.status === 404 ? "Invite not found" : err.body.message);
       } else {
-        setError('Failed to fetch invite');
+        setError("Failed to fetch invite");
       }
     } finally {
       setLoading(false);
@@ -61,11 +54,11 @@ const JoinServerModal = (props: Props) => {
     const p = preview();
     if (!p) return;
 
-    setError('');
+    setError("");
     setLoading(true);
     try {
       const data = await api<AcceptResponse>(`/api/invites/${encodeURIComponent(p.code)}/accept`, {
-        method: 'POST',
+        method: "POST",
       });
 
       addServer({
@@ -79,9 +72,9 @@ const JoinServerModal = (props: Props) => {
       props.onClose();
     } catch (err) {
       if (err instanceof ApiRequestError) {
-        setError(err.status === 409 ? 'You are already a member of this server' : err.body.message);
+        setError(err.status === 409 ? "You are already a member of this server" : err.body.message);
       } else {
-        setError('Failed to join server');
+        setError("Failed to join server");
       }
     } finally {
       setLoading(false);
@@ -119,7 +112,7 @@ const JoinServerModal = (props: Props) => {
                 disabled={loading() || !code().trim()}
                 class="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover disabled:opacity-50"
               >
-                {loading() ? 'Looking up...' : 'Preview'}
+                {loading() ? "Looking up..." : "Preview"}
               </button>
             </div>
           </form>
@@ -142,22 +135,8 @@ const JoinServerModal = (props: Props) => {
               <div>
                 <div class="font-semibold text-text-primary">{p().server.name}</div>
                 <div class="text-sm text-text-muted">
-                  {p().memberCount} {p().memberCount === 1 ? 'member' : 'members'}
+                  {p().memberCount} {p().memberCount === 1 ? "member" : "members"}
                 </div>
-              </div>
-            </div>
-
-            <div class="mb-4">
-              <div class="mb-1 text-xs font-medium uppercase text-text-muted">Storage Policies</div>
-              <div class="flex gap-2">
-                <For each={p().storagePolicies}>
-                  {(policy) => (
-                    <span class="flex items-center gap-1.5 rounded-full bg-bg-tertiary px-2.5 py-1 text-xs text-text-secondary">
-                      <span class={`h-2 w-2 rounded-full ${POLICY_COLORS[policy] ?? 'bg-text-muted'}`} />
-                      {policy}
-                    </span>
-                  )}
-                </For>
               </div>
             </div>
 
@@ -168,7 +147,7 @@ const JoinServerModal = (props: Props) => {
                 type="button"
                 onClick={() => {
                   setPreview(null);
-                  setError('');
+                  setError("");
                 }}
                 class="rounded-lg px-4 py-2 text-sm text-text-secondary hover:text-text-primary"
               >
@@ -180,7 +159,7 @@ const JoinServerModal = (props: Props) => {
                 disabled={loading()}
                 class="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover disabled:opacity-50"
               >
-                {loading() ? 'Joining...' : 'Join Server'}
+                {loading() ? "Joining..." : "Join Server"}
               </button>
             </div>
           </div>

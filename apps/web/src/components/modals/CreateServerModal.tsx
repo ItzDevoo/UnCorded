@@ -1,9 +1,9 @@
-import { createSignal } from 'solid-js';
-import { createServerSchema } from '@uncorded/shared';
-import { api, ApiRequestError } from '../../lib/api.js';
-import { addServer, type ReadyServer } from '../../lib/gateway-store.js';
-import { setSelectedServerId } from '../../stores/app-store.js';
-import Modal from './Modal.js';
+import { createSignal } from "solid-js";
+import { createServerSchema } from "@uncorded/shared";
+import { api, ApiRequestError } from "../../lib/api.js";
+import { addServer, type ReadyServer } from "../../lib/gateway-store.js";
+import { setSelectedServerId } from "../../stores/app-store.js";
+import Modal from "./Modal.js";
 
 interface CreateServerResponse {
   id: string;
@@ -15,7 +15,7 @@ interface CreateServerResponse {
     serverId: string;
     name: string;
     type: string;
-    storagePolicy: 'ephemeral' | 'extended' | 'persistent';
+    fileSharingEnabled: boolean;
     position: number;
     topic: string | null;
   }[];
@@ -26,14 +26,14 @@ interface Props {
 }
 
 const CreateServerModal = (props: Props) => {
-  const [name, setName] = createSignal('');
-  const [iconUrl, setIconUrl] = createSignal('');
+  const [name, setName] = createSignal("");
+  const [iconUrl, setIconUrl] = createSignal("");
   const [loading, setLoading] = createSignal(false);
-  const [error, setError] = createSignal('');
+  const [error, setError] = createSignal("");
 
   const handleSubmit = async (e: Event) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     const body = {
       name: name().trim(),
@@ -42,14 +42,14 @@ const CreateServerModal = (props: Props) => {
 
     const result = createServerSchema.safeParse(body);
     if (!result.success) {
-      setError(result.error.issues[0]?.message ?? 'Invalid input');
+      setError(result.error.issues[0]?.message ?? "Invalid input");
       return;
     }
 
     setLoading(true);
     try {
-      const server = await api<CreateServerResponse>('/api/servers', {
-        method: 'POST',
+      const server = await api<CreateServerResponse>("/api/servers", {
+        method: "POST",
         body: JSON.stringify(body),
       });
 
@@ -65,7 +65,7 @@ const CreateServerModal = (props: Props) => {
           type: ch.type,
           position: ch.position,
           topic: ch.topic,
-          storagePolicy: ch.storagePolicy,
+          fileSharingEnabled: ch.fileSharingEnabled,
         })),
       };
 
@@ -76,7 +76,7 @@ const CreateServerModal = (props: Props) => {
       if (err instanceof ApiRequestError) {
         setError(err.body.message);
       } else {
-        setError('Failed to create server');
+        setError("Failed to create server");
       }
     } finally {
       setLoading(false);
@@ -123,7 +123,7 @@ const CreateServerModal = (props: Props) => {
             disabled={loading() || !name().trim()}
             class="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover disabled:opacity-50"
           >
-            {loading() ? 'Creating...' : 'Create'}
+            {loading() ? "Creating..." : "Create"}
           </button>
         </div>
       </form>

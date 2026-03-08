@@ -1,8 +1,8 @@
-import { eq, inArray } from 'drizzle-orm';
-import { Opcode, CloseCode, encode } from '@uncorded/protocol';
-import { db } from '../db/index.js';
-import { user, session as sessionTable, servers, channels, members } from '../db/schema.js';
-import { addConnection, type AnyServerWebSocket } from './connections.js';
+import { eq, inArray } from "drizzle-orm";
+import { Opcode, CloseCode, encode } from "@uncorded/protocol";
+import { db } from "../db/index.js";
+import { user, session as sessionTable, servers, channels, members } from "../db/schema.js";
+import { addConnection, type AnyServerWebSocket } from "./connections.js";
 
 type IdentifyResult =
   | { success: true; userId: string }
@@ -12,8 +12,17 @@ export async function handleIdentify(
   ws: AnyServerWebSocket,
   data: unknown,
 ): Promise<IdentifyResult> {
-  if (!data || typeof data !== 'object' || !('token' in data) || typeof (data as Record<string, unknown>).token !== 'string') {
-    return { success: false, closeCode: CloseCode.MISSING_TOKEN, closeReason: 'Missing token in IDENTIFY' };
+  if (
+    !data ||
+    typeof data !== "object" ||
+    !("token" in data) ||
+    typeof (data as Record<string, unknown>).token !== "string"
+  ) {
+    return {
+      success: false,
+      closeCode: CloseCode.MISSING_TOKEN,
+      closeReason: "Missing token in IDENTIFY",
+    };
   }
   const token = (data as Record<string, unknown>).token as string;
 
@@ -25,7 +34,7 @@ export async function handleIdentify(
     .limit(1);
 
   if (!sessionRow || new Date(sessionRow.expiresAt) < new Date()) {
-    return { success: false, closeCode: CloseCode.INVALID_SESSION, closeReason: 'Invalid session' };
+    return { success: false, closeCode: CloseCode.INVALID_SESSION, closeReason: "Invalid session" };
   }
 
   const userId = sessionRow.userId;
@@ -34,7 +43,7 @@ export async function handleIdentify(
   addConnection(userId, ws);
 
   // Set user online
-  await db.update(user).set({ status: 'online' }).where(eq(user.id, userId));
+  await db.update(user).set({ status: "online" }).where(eq(user.id, userId));
 
   // Load user record
   const [dbUser] = await db
@@ -70,7 +79,7 @@ export async function handleIdentify(
     type: string;
     position: number;
     topic: string | null;
-    storagePolicy: 'ephemeral' | 'extended' | 'persistent';
+    fileSharingEnabled: boolean;
   }[] = [];
 
   if (serverIds.length > 0) {
@@ -82,7 +91,7 @@ export async function handleIdentify(
         type: channels.type,
         position: channels.position,
         topic: channels.topic,
-        storagePolicy: channels.storagePolicy,
+        fileSharingEnabled: channels.fileSharingEnabled,
       })
       .from(channels)
       .where(inArray(channels.serverId, serverIds));
@@ -99,10 +108,11 @@ export async function handleIdentify(
     list.push(ch);
   }
 
-  const readyServers = userServers.map((s) => ({
-    ...s,
-    channels: (channelsByServer.get(s.id) ?? []).sort((a, b) => a.position - b.position),
-  }));
+  const readyServers = userServers.map((s) =>
+    Object.assign(s, {
+      channels: (channelsByServer.get(s.id) ?? []).toSorted((a, b) => a.position - b.position),
+    }),
+  );
 
   // Send READY
   ws.send(

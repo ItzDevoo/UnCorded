@@ -1,7 +1,7 @@
-import { createSignal } from 'solid-js';
-import { createStore, reconcile } from 'solid-js/store';
+import { createSignal } from "solid-js";
+import { createStore, reconcile } from "solid-js/store";
 
-export type GatewayStatus = 'disconnected' | 'connecting' | 'connected';
+export type GatewayStatus = "disconnected" | "connecting" | "connected";
 
 export interface ReadyUser {
   id: string;
@@ -18,7 +18,7 @@ export interface ReadyChannel {
   type: string;
   position: number;
   topic: string | null;
-  storagePolicy: 'ephemeral' | 'extended' | 'persistent';
+  fileSharingEnabled: boolean;
 }
 
 export interface ReadyServer {
@@ -34,7 +34,7 @@ export interface ReadyData {
   servers: ReadyServer[];
 }
 
-const [gatewayStatus, setGatewayStatus] = createSignal<GatewayStatus>('disconnected');
+const [gatewayStatus, setGatewayStatus] = createSignal<GatewayStatus>("disconnected");
 const [readyData, setReadyData] = createStore<{ data: ReadyData | null }>({ data: null });
 
 function setReadyPayload(data: ReadyData) {
@@ -46,7 +46,14 @@ function clearReadyPayload() {
 }
 
 function addServer(server: ReadyServer) {
-  setReadyData('data', 'servers', (prev) => [...prev, server]);
+  setReadyData("data", "servers", (prev) => [...prev, server]);
 }
 
-export { gatewayStatus, readyData, setGatewayStatus, setReadyPayload, clearReadyPayload, addServer };
+export {
+  gatewayStatus,
+  readyData,
+  setGatewayStatus,
+  setReadyPayload,
+  clearReadyPayload,
+  addServer,
+};

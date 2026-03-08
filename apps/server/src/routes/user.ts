@@ -1,31 +1,27 @@
-import { Elysia } from 'elysia';
-import { eq } from 'drizzle-orm';
-import { updateUserSchema } from '@uncorded/shared';
-import { db } from '../db/index.js';
-import { user } from '../db/schema.js';
-import { getSession } from '../middleware/auth.js';
+import { Elysia } from "elysia";
+import { eq } from "drizzle-orm";
+import { updateUserSchema } from "@uncorded/shared";
+import { db } from "../db/index.js";
+import { user } from "../db/schema.js";
+import { getSession } from "../middleware/auth.js";
 
-export const userRoutes = new Elysia({ prefix: '/api/users' })
+export const userRoutes = new Elysia({ prefix: "/api/users" })
   .resolve(async ({ status, request }) => {
     const session = await getSession(request.headers);
     if (!session) {
-      return status(401, { code: 'UNAUTHORIZED', message: 'Authentication required' });
+      return status(401, { code: "UNAUTHORIZED", message: "Authentication required" });
     }
     return {
       user: session.user,
       session: session.session,
     };
   })
-  .get('/@me', async ({ user: sessionUser, set }) => {
-    const [dbUser] = await db
-      .select()
-      .from(user)
-      .where(eq(user.id, sessionUser.id))
-      .limit(1);
+  .get("/@me", async ({ user: sessionUser, set }) => {
+    const [dbUser] = await db.select().from(user).where(eq(user.id, sessionUser.id)).limit(1);
 
     if (!dbUser) {
       set.status = 404;
-      return { code: 'NOT_FOUND', message: 'User not found' };
+      return { code: "NOT_FOUND", message: "User not found" };
     }
 
     return {
@@ -35,19 +31,18 @@ export const userRoutes = new Elysia({ prefix: '/api/users' })
       email: dbUser.email,
       avatarUrl: dbUser.avatarUrl,
       status: dbUser.status,
-      hasExtendedExpiry: dbUser.hasExtendedExpiry,
-      hasCustomAvatar: dbUser.hasCustomAvatar,
+      subscriptionTier: dbUser.subscriptionTier,
       createdAt: dbUser.createdAt.toISOString(),
       updatedAt: dbUser.updatedAt.toISOString(),
     };
   })
-  .patch('/@me', async ({ user: sessionUser, body, set }) => {
+  .patch("/@me", async ({ user: sessionUser, body, set }) => {
     const parsed = updateUserSchema.safeParse(body);
     if (!parsed.success) {
       set.status = 400;
       return {
-        code: 'VALIDATION_ERROR',
-        message: parsed.error.issues[0]?.message ?? 'Invalid input',
+        code: "VALIDATION_ERROR",
+        message: parsed.error.issues[0]?.message ?? "Invalid input",
       };
     }
 
@@ -62,7 +57,7 @@ export const userRoutes = new Elysia({ prefix: '/api/users' })
 
       if (existing && existing.id !== sessionUser.id) {
         set.status = 409;
-        return { code: 'USERNAME_TAKEN', message: 'Username is already taken' };
+        return { code: "USERNAME_TAKEN", message: "Username is already taken" };
       }
 
       updates.username = parsed.data.username;
@@ -79,7 +74,7 @@ export const userRoutes = new Elysia({ prefix: '/api/users' })
 
     if (Object.keys(updates).length === 0) {
       set.status = 400;
-      return { code: 'NO_CHANGES', message: 'No fields to update' };
+      return { code: "NO_CHANGES", message: "No fields to update" };
     }
 
     const [updated] = await db
@@ -90,7 +85,7 @@ export const userRoutes = new Elysia({ prefix: '/api/users' })
 
     if (!updated) {
       set.status = 404;
-      return { code: 'NOT_FOUND', message: 'User not found' };
+      return { code: "NOT_FOUND", message: "User not found" };
     }
 
     return {
@@ -100,8 +95,7 @@ export const userRoutes = new Elysia({ prefix: '/api/users' })
       email: updated.email,
       avatarUrl: updated.avatarUrl,
       status: updated.status,
-      hasExtendedExpiry: updated.hasExtendedExpiry,
-      hasCustomAvatar: updated.hasCustomAvatar,
+      subscriptionTier: updated.subscriptionTier,
       createdAt: updated.createdAt.toISOString(),
       updatedAt: updated.updatedAt.toISOString(),
     };

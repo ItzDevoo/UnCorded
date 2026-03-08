@@ -1,20 +1,13 @@
-import { createSignal, For, Show } from 'solid-js';
-import { useNavigate } from '@solidjs/router';
-import { useSession, signOut } from '../lib/auth.js';
+import { createSignal, For, Show } from "solid-js";
+import { useNavigate } from "@solidjs/router";
+import { useSession, signOut } from "../lib/auth.js";
 import {
   currentServer,
   currentChannels,
   selectedChannelId,
   setSelectedChannelId,
-} from '../stores/app-store.js';
-import type { ReadyChannel } from '../lib/gateway-store.js';
-import InviteModal from './modals/InviteModal.js';
-
-const POLICY_STYLES: Record<ReadyChannel['storagePolicy'], { class: string; label: string }> = {
-  ephemeral: { class: 'bg-warning', label: 'Ephemeral' },
-  extended: { class: 'bg-brand', label: 'Extended' },
-  persistent: { class: 'bg-success', label: 'Persistent' },
-};
+} from "../stores/app-store.js";
+import InviteModal from "./modals/InviteModal.js";
 
 const ChannelSidebar = () => {
   const session = useSession();
@@ -23,7 +16,7 @@ const ChannelSidebar = () => {
 
   const handleLogout = async () => {
     await signOut();
-    navigate('/login', { replace: true });
+    navigate("/login", { replace: true });
   };
 
   return (
@@ -31,7 +24,7 @@ const ChannelSidebar = () => {
       {/* Server name header */}
       <div class="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
         <span class="truncate font-semibold text-text-primary">
-          {currentServer()?.name ?? 'UnCorded'}
+          {currentServer()?.name ?? "UnCorded"}
         </span>
         <Show when={currentServer()}>
           <button
@@ -63,26 +56,23 @@ const ChannelSidebar = () => {
         <For each={currentChannels()}>
           {(channel) => {
             const isActive = () => selectedChannelId() === channel.id;
-            const policy = () => POLICY_STYLES[channel.storagePolicy];
             return (
               <button
                 onClick={() => setSelectedChannelId(channel.id)}
                 class="mt-0.5 flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-sm transition-colors"
                 classList={{
-                  'bg-bg-active text-text-primary': isActive(),
-                  'text-text-secondary hover:bg-bg-hover hover:text-text-primary': !isActive(),
+                  "bg-bg-active text-text-primary": isActive(),
+                  "text-text-secondary hover:bg-bg-hover hover:text-text-primary": !isActive(),
                 }}
               >
                 <span class="truncate">
                   <span class="text-text-muted">#</span> {channel.name}
                 </span>
-                <Show when={policy()}>
-                  {(p) => (
-                    <span
-                      class={`ml-auto h-2 w-2 shrink-0 rounded-full ${p().class}`}
-                      title={p().label}
-                    />
-                  )}
+                <Show when={channel.fileSharingEnabled}>
+                  <span
+                    class="ml-auto h-2 w-2 shrink-0 rounded-full bg-success"
+                    title="File sharing enabled"
+                  />
                 </Show>
               </button>
             );
@@ -93,11 +83,11 @@ const ChannelSidebar = () => {
       {/* User panel */}
       <div class="flex shrink-0 items-center gap-2 border-t border-border bg-bg-primary/50 px-2 py-2">
         <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-white">
-          {session()?.data?.user?.name?.charAt(0)?.toUpperCase() ?? '?'}
+          {session()?.data?.user?.name?.charAt(0)?.toUpperCase() ?? "?"}
         </div>
         <div class="min-w-0 flex-1">
           <div class="truncate text-sm font-medium text-text-primary">
-            {session()?.data?.user?.username ?? session()?.data?.user?.name ?? 'User'}
+            {session()?.data?.user?.username ?? session()?.data?.user?.name ?? "User"}
           </div>
           <div class="flex items-center gap-1">
             <div class="h-2 w-2 rounded-full bg-success" />
@@ -128,9 +118,7 @@ const ChannelSidebar = () => {
 
       {/* Invite modal */}
       <Show when={showInvite() && currentServer()}>
-        {(server) => (
-          <InviteModal serverId={server().id} onClose={() => setShowInvite(false)} />
-        )}
+        {(server) => <InviteModal serverId={server().id} onClose={() => setShowInvite(false)} />}
       </Show>
     </div>
   );

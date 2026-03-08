@@ -17,31 +17,53 @@ Reference: C:\t3Code\apps\web for proven component patterns and styling approach
 
 ## Color System
 
-All colors defined as CSS custom properties in `index.css`. Components reference tokens, never raw color values.
+Railway-inspired green-tinted dark palette. All surfaces carry the brand hue (~150° green) at low saturation for visual cohesion. Colors defined as CSS custom properties in `index.css` using OKLCH. Components reference tokens, never raw color values.
+
+### Design Principles
+
+- Backgrounds at hue ~150° with low chroma (subtle, not sickly)
+- Borders and muted colors share the green hue at low saturation
+- Text has very slight green warmth (not pure neutral)
+- Brand green appears at full saturation for actions, low saturation for tints
+- Shadows remain neutral (tinted shadows look artificial)
 
 ### Semantic Tokens
 
-| Token                | Purpose                          | Example                  |
-| -------------------- | -------------------------------- | ------------------------ |
-| `--background`       | Page/app background              | Dark: neutral-950        |
-| `--foreground`       | Primary text                     | Dark: neutral-100        |
-| `--card`             | Card/panel backgrounds           | Slightly lighter than bg |
-| `--primary`          | Brand actions, active states     | Purple/blue accent       |
-| `--secondary`        | Subtle backgrounds, hover states | White 4% alpha           |
-| `--muted`            | Disabled text, placeholders      | Subdued foreground       |
-| `--muted-foreground` | Secondary text                   |                          |
-| `--destructive`      | Delete, error, danger            | Red                      |
-| `--border`           | Dividers, input borders          | White 6% alpha (dark)    |
-| `--ring`             | Focus ring color                 | Matches primary          |
-| `--info`             | Informational badges/alerts      | Blue                     |
-| `--success`          | Success states                   | Emerald/green            |
-| `--warning`          | Warnings, caution                | Amber                    |
+| Token                    | Purpose                  | OKLCH Value                |
+| ------------------------ | ------------------------ | -------------------------- |
+| `--background`           | Page/app background      | `oklch(0.178 0.02 155)`   |
+| `--foreground`           | Primary text             | `oklch(0.955 0.008 155)`  |
+| `--card`                 | Card/panel backgrounds   | `oklch(0.21 0.018 155)`   |
+| `--card-foreground`      | Card text                | `oklch(0.955 0.008 155)`  |
+| `--popover`              | Popover/dropdown bg      | `oklch(0.21 0.018 155)`   |
+| `--popover-foreground`   | Popover text             | `oklch(0.955 0.008 155)`  |
+| `--primary`              | Brand green              | `oklch(0.66 0.17 155)`    |
+| `--primary-foreground`   | Text on primary          | `oklch(1 0 0)` (white)    |
+| `--secondary`            | Subtle bg elements       | `oklch(0.24 0.014 155)`   |
+| `--secondary-foreground` | Text on secondary        | `oklch(0.91 0.008 155)`   |
+| `--muted`                | Muted backgrounds        | `oklch(0.27 0.012 155)`   |
+| `--muted-foreground`     | Subdued text             | `oklch(0.62 0.008 155)`   |
+| `--accent`               | Hover backgrounds        | `oklch(0.27 0.014 155)`   |
+| `--accent-foreground`    | Text on accent           | `oklch(0.955 0.008 155)`  |
+| `--destructive`          | Danger/delete            | `oklch(0.55 0.2 25)`      |
+| `--destructive-foreground` | Text for destructive   | `oklch(0.78 0.12 25)`     |
+| `--border`               | Borders, dividers        | `oklch(0.29 0.012 155)`   |
+| `--input`                | Input field bg           | `oklch(0.25 0.014 155)`   |
+| `--ring`                 | Focus ring (= primary)   | `oklch(0.66 0.17 155)`    |
+| `--success`              | Success states           | `oklch(0.66 0.17 155)`    |
+| `--success-foreground`   | Success text             | `oklch(0.78 0.12 155)`    |
+| `--warning`              | Warning states           | `oklch(0.75 0.16 75)`     |
+| `--warning-foreground`   | Warning text             | `oklch(0.85 0.1 75)`      |
+| `--info`                 | Info states              | `oklch(0.65 0.16 255)`    |
+| `--info-foreground`      | Info text                | `oklch(0.78 0.1 255)`     |
+| `--sidebar`              | Server bar (darker)      | `oklch(0.16 0.022 155)`   |
+| `--sidebar-foreground`   | Sidebar text             | `oklch(0.955 0.008 155)`  |
 
 ### Rules
 
 - Never use raw Tailwind colors (`text-red-500`) in components — always use tokens (`text-destructive`).
-- Both dark and light themes define the same token names with adjusted values.
-- Dark mode selector: `@custom-variant dark (&:is(.dark, .dark *))` — apply `.dark` class to root element.
+- Dark mode is the only mode. All values defined in `:root` directly.
+- `@custom-variant dark (&:is(.dark, .dark *))` pattern available for future light mode.
 
 ---
 
@@ -358,12 +380,12 @@ Mobile-first approach. Single primary breakpoint:
 ## Utility Function
 
 ```typescript
-// lib/utils.ts
-import { cx, type CxOptions } from "cva";
+// lib/cn.ts
+import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
-export function cn(...inputs: CxOptions) {
-  return twMerge(cx(inputs));
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
 }
 ```
 

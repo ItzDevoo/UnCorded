@@ -27,10 +27,10 @@ const Modal = (props: ModalProps) => {
         onClick={() => props.onClose()}
       >
         <div
-          class="w-full max-w-md rounded-xl border border-border bg-bg-secondary p-6"
+          class="w-full max-w-md rounded-xl border border-border bg-card p-6"
           onClick={(e) => e.stopPropagation()}
         >
-          <h2 id={titleId} class="mb-4 text-xl font-semibold text-text-primary">
+          <h2 id={titleId} class="mb-4 text-xl font-semibold text-foreground">
             {props.title}
           </h2>
           {props.children}

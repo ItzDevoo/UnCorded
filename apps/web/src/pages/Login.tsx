@@ -33,27 +33,27 @@ const Login = () => {
 
   return (
     <AuthLayout>
-      <h2 class="mb-6 text-center text-lg font-bold tracking-tight text-brand">UnCorded</h2>
-      <h1 class="mb-2 text-center text-2xl font-bold text-text-primary">Welcome back</h1>
-      <p class="mb-6 text-center text-sm text-text-secondary">Sign in to continue to UnCorded</p>
+      <h2 class="mb-6 text-center text-lg font-bold tracking-tight text-primary">UnCorded</h2>
+      <h1 class="mb-2 text-center text-2xl font-bold text-foreground">Welcome back</h1>
+      <p class="mb-6 text-center text-sm text-secondary-foreground">Sign in to continue to UnCorded</p>
 
       <Show when={error()}>
-        <div class="mb-4 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error()}</div>
+        <div class="mb-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error()}</div>
       </Show>
 
       <form onSubmit={handleSubmit} class="space-y-4">
         <div>
-          <label class="mb-1 block text-xs font-medium uppercase text-text-secondary">Email</label>
+          <label class="mb-1 block text-xs font-medium uppercase text-secondary-foreground">Email</label>
           <input
             type="email"
             required
             value={email()}
             onInput={(e) => setEmail(e.currentTarget.value)}
-            class="w-full rounded-lg border border-border bg-bg-input px-3 py-2 text-text-primary outline-none focus:ring-2 focus:ring-brand"
+            class="w-full rounded-lg border border-border bg-input px-3 py-2 text-foreground outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
         <div>
-          <label class="mb-1 block text-xs font-medium uppercase text-text-secondary">
+          <label class="mb-1 block text-xs font-medium uppercase text-secondary-foreground">
             Password
           </label>
           <input
@@ -61,21 +61,21 @@ const Login = () => {
             required
             value={password()}
             onInput={(e) => setPassword(e.currentTarget.value)}
-            class="w-full rounded-lg border border-border bg-bg-input px-3 py-2 text-text-primary outline-none focus:ring-2 focus:ring-brand"
+            class="w-full rounded-lg border border-border bg-input px-3 py-2 text-foreground outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
         <button
           type="submit"
           disabled={loading()}
-          class="w-full rounded-lg bg-brand py-2 font-medium text-white transition-colors hover:bg-brand-hover disabled:opacity-50"
+          class="w-full rounded-lg bg-primary py-2 font-medium text-white transition-colors hover:bg-primary/80 disabled:opacity-50"
         >
           {loading() ? "Signing in..." : "Log In"}
         </button>
       </form>
 
-      <p class="mt-6 text-center text-sm text-text-secondary">
+      <p class="mt-6 text-center text-sm text-secondary-foreground">
         Need an account?{" "}
-        <A href="/register" class="text-brand hover:underline">
+        <A href="/register" class="text-primary hover:underline">
           Register
         </A>
       </p>

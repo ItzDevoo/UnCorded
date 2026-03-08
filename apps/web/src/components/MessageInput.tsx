@@ -71,7 +71,7 @@ const MessageInput = (props: { channelId: ChannelId }) => {
 
   return (
     <div class="shrink-0 px-4 pb-4">
-      <div class="rounded-lg bg-bg-input">
+      <div class="rounded-lg bg-input">
         <textarea
           ref={textareaRef}
           value={content()}
@@ -79,14 +79,14 @@ const MessageInput = (props: { channelId: ChannelId }) => {
           onKeyDown={handleKeyDown}
           placeholder="Send a message..."
           rows={1}
-          class="block w-full resize-none bg-transparent px-4 py-3 text-sm text-text-primary placeholder:text-text-muted outline-none"
+          class="block w-full resize-none bg-transparent px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none"
           style={{ "max-height": `${TEXTAREA_MAX_HEIGHT}px` }}
         />
       </div>
       <div class="h-5 px-2 pt-1">
         <Show when={typingText()}>
           {(text) => (
-            <span class="text-xs text-text-muted">
+            <span class="text-xs text-muted-foreground">
               {text()}
               <span class="typing-dots">
                 <span class="dot" />

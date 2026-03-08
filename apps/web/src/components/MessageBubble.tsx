@@ -26,18 +26,18 @@ const MessageBubble = (props: { message: Message; isOwn: boolean }) => {
     props.message.author.displayName || props.message.author.username || "Unknown";
 
   return (
-    <div class={`group flex gap-3 px-4 py-1 hover:bg-bg-hover ${props.isOwn ? "bg-brand/5" : ""}`}>
-      <div class="mt-0.5 h-8 w-8 shrink-0 rounded-full bg-bg-active" />
+    <div class={`group flex gap-3 px-4 py-1 hover:bg-accent ${props.isOwn ? "bg-primary/5" : ""}`}>
+      <div class="mt-0.5 h-8 w-8 shrink-0 rounded-full bg-muted" />
       <div class="min-w-0 flex-1">
         <div class="flex items-baseline gap-2">
-          <span class={`text-sm font-semibold ${props.isOwn ? "text-brand" : "text-text-primary"}`}>
+          <span class={`text-sm font-semibold ${props.isOwn ? "text-primary" : "text-foreground"}`}>
             {displayName()}
           </span>
-          <span class="text-xs text-text-muted">{formatTimestamp(props.message.createdAt)}</span>
+          <span class="text-xs text-muted-foreground">{formatTimestamp(props.message.createdAt)}</span>
         </div>
-        <p class="break-words text-sm text-text-secondary">
+        <p class="break-words text-sm text-secondary-foreground">
           {props.message.content}
-          {props.message.editedAt && <span class="ml-1 text-xs text-text-muted">(edited)</span>}
+          {props.message.editedAt && <span class="ml-1 text-xs text-muted-foreground">(edited)</span>}
         </p>
       </div>
     </div>

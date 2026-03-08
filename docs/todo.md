@@ -89,7 +89,7 @@ Reference: C:\Nexis (monorepo patterns, auth, WS gateway), C:\t3Code (tooling, U
 - [x] Update Drizzle schema to match docs/schema.md (P2P pivot)
   - [x] Drop: attachments, purchases, storage_policy/purchase_item/purchase_status enums
   - [x] Add: file_receipts, subscriptions, subscription_tier/subscription_status enums
-  - [x] Change: channels.storage_policy → file_sharing_enabled, users.has_* → subscription_tier
+  - [x] Change: channels.storage*policy → file_sharing_enabled, users.has*\* → subscription_tier
   - [x] Update all referencing code (routes, WS handlers, shared schemas, frontend types/UI)
   - [x] Generate and apply migration (0003_schema_pivot_p2p.sql)
 - [x] Remove ESLint + Prettier configs and dependencies
@@ -109,15 +109,18 @@ Reference: C:\Nexis (monorepo patterns, auth, WS gateway), C:\t3Code (tooling, U
 - [x] Update route handlers, WS payloads, and stores to use branded types at response boundaries
 - [x] Verify: `bun run typecheck` passes with zero errors, `bun run lint` passes with zero warnings
 
-### Day 3: Typed Errors + Dev Runner
+### Day 3: Typed Errors + Dev Runner + Carryover Fixes
 
-- [ ] Create typed error hierarchy in `@uncorded/shared` (UnCordedError base, AuthError, GatewayError, ValidationError, PermissionError, NotFoundError)
-- [ ] Replace raw `throw new Error()` calls in server with typed errors
-- [ ] Map typed errors to HTTP status codes in route error handlers
-- [ ] Create `scripts/dev-runner.ts` (single-command TUI: builds protocol → starts server → starts web)
-- [ ] Add port allocation logic (base ports + offset support)
-- [ ] Update root `package.json` scripts for dev modes
-- [ ] Verify: `bun run dev` launches full stack with TUI
+- [x] Thread branded types into frontend (app-store, MessageInput, InviteModal, ChatArea, CreateServerModal, JoinServerModal)
+- [x] Zod validation for WS payloads (IDENTIFY + TYPING_START)
+- [x] Reports FK onDelete set null (migration 0004)
+- [x] Create typed error hierarchy in `@uncorded/shared` (AppError base, UnauthorizedError, ForbiddenError, SessionExpiredError, ValidationError, NotFoundError, ConflictError, RateLimitError)
+- [x] Central `.onError()` handler catches AppError subclasses
+- [x] Replace inline `set.status` + return error patterns with `throw` in all route handlers
+- [x] Convert permission helpers (requireMember, requireOwner) to throw; add isMember() non-throwing helper
+- [x] Create `scripts/dev.ts` dev runner (colored prefixed output for server + web)
+- [x] Update root `package.json` scripts (dev, dev:server, dev:web)
+- [x] Verify: typecheck (0 errors), lint (0 warnings), fmt clean
 
 ### Day 4: UI Foundation + Virtual Scrolling
 

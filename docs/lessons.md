@@ -85,3 +85,9 @@ This applies to any module that registers global listeners or timers at the top 
 **[W2.5 D2]** — When importing branded type constructor functions (e.g., `userId()` from protocol), watch for name collisions with local variables. In handlers.ts, `const userId = sessionRow.userId` shadowed the imported `userId()` function. Rename the local variable (e.g., `identifiedUserId`) to avoid the shadow.
 
 **[W2.5 D2]** — Oxlint's `oxc/no-map-spread` warns against `arr.map(x => ({ ...x, id: brand(x.id) }))` because spread in map creates unnecessary allocations. Use `Object.assign(x, { id: brand(x.id) })` instead — mutates in-place, which is fine for data from DB queries that aren't reused.
+
+**[W2.5 D3]** — Elysia's `.onError()` DOES catch errors thrown from route handler bodies. The pattern `throw new AppError(...)` in route handlers is caught by the global `.onError()` and converted to `{ code, message }` with the correct status code. This means routes no longer need `set` for error responses — just throw. However, `.resolve()` blocks must still use `return status(401, ...)` because throwing inside resolve doesn't short-circuit the same way.
+
+**[W2.5 D3]** — When refactoring permission helpers from `requireMember(userId, serverId, set)` (returns null + mutates set) to `requireMember(userId, serverId)` (throws), the invite accept route needs special handling. It used requireMember inversely — checked if user IS already a member, then returned 409. After refactoring, use a separate non-throwing `isMember()` helper for this inverse check pattern.
+
+**[W2.5 D3]** — Branded type signals in SolidJS: `createSignal<ServerId | null>(null)` requires all callers to pass branded types. Raw strings from API responses must be branded at the call site — e.g., `setSelectedServerId(serverId(data.server.id))`, not `setSelectedServerId(data.server.id)`. This caught two bugs in CreateServerModal and JoinServerModal where raw strings were being passed.

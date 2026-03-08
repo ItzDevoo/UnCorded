@@ -6,12 +6,40 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Week 2.5 Day 2 — Review Fixes + Strict TS + Branded Types
+## Current Status: Week 2.5 Day 3 — Typed Errors + Dev Runner + Carryover Fixes
+
+---
+
+### Week 2.5 Day 3 — 2026-03-08
+**What was done:**
+- Carryover fixes from code review:
+  - Branded types threaded into frontend: `app-store.ts` signals use `ServerId | null` / `ChannelId | null`, `MessageInput` prop typed as `ChannelId`, `InviteModal` prop typed as `ServerId`, `ChatArea` and modals updated
+  - WS payload validation: replaced `as Record<string, unknown>` casts with Zod schemas (`identifySchema`, `typingStartSchema`) in handlers.ts and gateway.ts
+  - Reports FK: added `{ onDelete: "set null" }` to `messageId` and `fileReceiptId` references in reports table, migration 0004 written
+- Typed error hierarchy created in `@uncorded/shared`:
+  - `AppError` base class with `_tag`, `statusCode`, `code`, `message`
+  - `UnauthorizedError` (401), `ForbiddenError` (403), `SessionExpiredError` (401)
+  - `ValidationError` (400), `NotFoundError` (404), `ConflictError` (409), `RateLimitError` (429)
+- Central error handler in `apps/server/src/index.ts` catches `AppError` subclasses
+- All route handlers converted from inline `set.status = X; return { code, message }` to `throw new XError(...)`:
+  - user.ts (4 sites), server.ts (5 sites), channel.ts (5 sites), message.ts (8 sites), invite.ts (4 sites), member.ts (5 sites)
+- Permission helpers refactored:
+  - `requireMember()` and `requireOwner()` now throw instead of returning null + mutating `set`
+  - `set` parameter removed from both
+  - New `isMember()` non-throwing helper for inverse checks (invite accept)
+- Dev runner script `scripts/dev.ts`:
+  - Spawns server and web dev processes in parallel
+  - Prefixes output with colored labels: `[server]` (cyan), `[web]` (magenta)
+  - Ctrl+C kills all child processes gracefully
+- Root package.json updated: `dev` → `bun run scripts/dev.ts`, added `dev:server` and `dev:web`
+- All checks pass: typecheck (0 errors), lint (0 warnings), fmt clean
 
 ---
 
 ### Week 2.5 Day 2 — 2026-03-08
+
 **What was done:**
+
 - Review fixes applied:
   - `MessageInput.tsx`: moved `lastTypingSent` to module level (explicit shared state if mounted multiple times)
   - `MessageBubble.tsx`: extracted `ONE_MINUTE_MS`, `ONE_HOUR_MS`, `ONE_DAY_MS` constants
@@ -42,7 +70,9 @@ This is the real state of the codebase — not what is planned, but what works.
 ---
 
 ### Week 2.5 Day 1 — 2026-03-08
+
 **What was done:**
+
 - Drizzle schema migrated to match P2P pivot (docs/schema.md)
   - Dropped: `attachments` table, `purchases` table, `storage_policy`/`purchase_item`/`purchase_status` enums
   - Added: `file_receipts` table (magnet URI, info hash, metadata), `subscriptions` table (Stripe tiers), `subscription_tier`/`subscription_status` enums

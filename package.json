@@ -7,7 +7,9 @@
   ],
   "type": "module",
   "scripts": {
-    "dev": "turbo dev",
+    "dev": "bun run scripts/dev.ts",
+    "dev:server": "turbo dev --filter @uncorded/server",
+    "dev:web": "turbo dev --filter @uncorded/web",
     "build": "turbo build",
     "typecheck": "turbo typecheck",
     "lint": "oxlint",

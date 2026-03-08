@@ -1,4 +1,4 @@
-import { Show, onMount, onCleanup, createUniqueId, type JSX } from 'solid-js';
+import { Show, onMount, onCleanup, createUniqueId, type JSX } from "solid-js";
 
 interface ModalProps {
   isOpen: boolean;
@@ -11,11 +11,11 @@ const Modal = (props: ModalProps) => {
   const titleId = createUniqueId();
 
   const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') props.onClose();
+    if (e.key === "Escape") props.onClose();
   };
 
-  onMount(() => document.addEventListener('keydown', handleKeyDown));
-  onCleanup(() => document.removeEventListener('keydown', handleKeyDown));
+  onMount(() => document.addEventListener("keydown", handleKeyDown));
+  onCleanup(() => document.removeEventListener("keydown", handleKeyDown));
 
   return (
     <Show when={props.isOpen}>
@@ -30,7 +30,9 @@ const Modal = (props: ModalProps) => {
           class="w-full max-w-md rounded-xl border border-border bg-bg-secondary p-6"
           onClick={(e) => e.stopPropagation()}
         >
-          <h2 id={titleId} class="mb-4 text-xl font-semibold text-text-primary">{props.title}</h2>
+          <h2 id={titleId} class="mb-4 text-xl font-semibold text-text-primary">
+            {props.title}
+          </h2>
           {props.children}
         </div>
       </div>

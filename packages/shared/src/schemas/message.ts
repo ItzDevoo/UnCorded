@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const createMessageSchema = z.object({
   content: z.string().max(4000).optional(),

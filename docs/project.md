@@ -13,6 +13,7 @@ UnCorded is a real-time chat app built on radical transparency. Files transfer d
 ## Core Philosophy
 
 ### Radical Transparency
+
 - Users always know where their files go — the answer is always "directly to the other person"
 - Every charge explains WHY it costs money
 - Profit margins shown on subscriptions — "Our cost: $X / Our profit: $Y"
@@ -20,6 +21,7 @@ UnCorded is a real-time chat app built on radical transparency. Files transfer d
 - Cancel anytime
 
 ### P2P-First File Sharing
+
 - Files transfer directly between users via WebTorrent (BitTorrent over WebRTC)
 - Our server handles signaling only — never stores, sees, or processes user files
 - Magnet URIs persist in chat as lightweight text — the file is available as long as any seeder is online
@@ -27,6 +29,7 @@ UnCorded is a real-time chat app built on radical transparency. Files transfer d
 - When no seeders are online, the magnet link remains but the file is unavailable until someone comes back
 
 ### Privacy Stance
+
 - "We don't sell your data. We make money from subscriptions. That's it."
 - Files never touch our servers — there's nothing to hand over if requested. That's a feature.
 - DMs are always P2P. No server involvement beyond signaling.
@@ -46,6 +49,7 @@ UnCorded is a real-time chat app built on radical transparency. Files transfer d
 ## File Sharing Model — WebTorrent P2P
 
 ### How It Works
+
 - User shares a file in a channel or DM
 - Desktop app: creates a torrent, generates a magnet URI, stores the URI as a message, begins seeding from local seed folder
 - Web app (DMs only): creates torrent in-memory, seeds while tab is open, both users must be online
@@ -54,11 +58,13 @@ UnCorded is a real-time chat app built on radical transparency. Files transfer d
 - File availability depends on at least one seeder being online
 
 ### NAT Traversal
+
 - STUN (free, public servers like Google's) — helps users discover their public IP for direct connections
 - TURN (self-hosted relay) — fallback when direct P2P fails (~15-20% of connections, higher on mobile)
 - TURN access is restricted to paid users (Supporter+). Free users get P2P-only — if NAT blocks them, they see a clear message explaining why and how to upgrade
 
 ### CSAM Compliance
+
 - Client-side perceptual hashing (PhotoDNA or Meta's PDQ) runs before any file enters the torrent
 - Match against NCMEC hash database → block share, report to NCMEC, flag account
 - Register with NCMEC CyberTipline (free)
@@ -70,12 +76,14 @@ UnCorded is a real-time chat app built on radical transparency. Files transfer d
 ## Pricing Model — Subscription Tiers
 
 ### Free (Web Only)
+
 - Chat in any server, join servers, send/receive messages
 - File sharing in DMs only (P2P, both users must be online)
 - Can download files from server channels they're in (P2P only, no TURN fallback)
 - No desktop app, no seeding, no file sharing in server channels
 
 ### Supporter — $5/mo
+
 - Everything in Free
 - Desktop app with persistent seed folder
 - Can share and seed files in server channels
@@ -83,6 +91,7 @@ UnCorded is a real-time chat app built on radical transparency. Files transfer d
 - Transparency receipt: "You're paying for: desktop app updates, TURN relay infrastructure, signaling server capacity. Our cost: ~$X. Our margin: ~$Y."
 
 ### Server Owner — $10/mo base (scales with traffic)
+
 - Everything in Supporter
 - Can create and manage servers
 - Channel policies, moderation tools, invite management
@@ -107,6 +116,7 @@ Cancel anytime. No tricks.
 ```
 
 ### Payment Stack
+
 - Stripe — subscription management, customer portal, webhooks
 - Stripe Tax — global tax compliance
 
@@ -115,6 +125,7 @@ Cancel anytime. No tricks.
 ## V1 Scope (What We Are Building Now)
 
 ### Phase 1 — Web App (current)
+
 - Text channels + DMs
 - Real-time messaging (WebSocket + MessagePack)
 - WebRTC signaling through existing WebSocket gateway
@@ -128,6 +139,7 @@ Cancel anytime. No tricks.
 - Terms of Service, Privacy Policy, DMCA policy pages
 
 ### Phase 2 — Desktop App
+
 - Electron-based desktop application (follows t3Code patterns)
 - Embeds ElysiaJS server as child process
 - Persistent seed folder for file sharing

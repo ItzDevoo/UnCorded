@@ -6,6 +6,7 @@ Updated by the coding agent at the end of every session.
 Reference: C:\Nexis\docs\lessons.md for patterns learned during Nexis build.
 
 ## Format
+
 **[Week X Day Y]** — What went wrong or what was decided and why.
 
 ---
@@ -53,6 +54,7 @@ Reference: C:\Nexis\docs\lessons.md for patterns learned during Nexis build.
 **[W2 D4-5]** — SolidJS `solid/reactivity` lint rule: `onGatewayEvent` callbacks that call store mutation functions (e.g. `addMessage`) trigger the warning because the linter sees reactive store access inside a non-tracked scope. These are event handlers, not reactive computations — suppress with `/* eslint-disable solid/reactivity -- event handlers */`.
 
 **[W2 D4-5]** — Module-level side effects (setInterval, event listeners) accumulate on Vite HMR reloads. Fix: store return values (interval IDs, unsubscribe functions) and clean them up in `import.meta.hot.dispose()`. Pattern:
+
 ```
 const intervalId = setInterval(...);
 const unsub = onGatewayEvent(...);
@@ -63,8 +65,17 @@ if (import.meta.hot) {
   });
 }
 ```
+
 This applies to any module that registers global listeners or timers at the top level.
 
 **[W2 D4-5]** — Solid `produce()` on a store path that doesn't exist yet gets `undefined` as the draft. The `if (!ch) return` guard inside produce silently does nothing, and the fallback code after may race with it. Fix: check existence before calling produce and initialize first if missing. Cleaner than a two-phase produce-then-check pattern.
 
 **[W2 D1-2]** — CORRECTED: The `as never` pattern (`set.status = 401; return { code, message } as never`) does NOT short-circuit Elysia's resolve at runtime. Elysia merges the returned object into context, replacing user/session with undefined, crashing all downstream handlers. The correct pattern is `return status(401, { code, message })` using the `status` function from resolve context. This both short-circuits AND sends a JSON body. The original `return status(401)` worked for short-circuiting but sent an empty body — adding the second argument fixes both issues.
+
+**[W2.5 D1]** — `drizzle-kit generate` uses a TUI with interactive prompts (arrow keys, Enter) for rename/create/drop decisions during schema migrations. This cannot be automated via piped input on Windows. Workaround: write the migration SQL manually and update `drizzle/meta/_journal.json` by hand, then run `db:migrate`. The SQL migration file with `statement-breakpoint` comments works correctly with drizzle-orm's migrator.
+
+**[W2.5 D1]** — Oxlint warns on SolidJS `let ref!: HTMLElement` declarations as "no-unassigned-vars" because it doesn't know about SolidJS's `ref={el => ref = el}` JSX pattern. Fix: suppress with `// oxlint-disable-next-line eslint(no-unassigned-vars) -- SolidJS ref pattern`.
+
+**[W2.5 D1]** — Oxfmt changes single quotes to double quotes by default (different from Prettier's `singleQuote: true`). This is fine — the entire codebase was reformatted in one pass. No need to configure around it.
+
+**[W2.5 D1]** — Oxlint's `unicorn/no-array-sort` and `unicorn/no-array-reverse` prefer non-mutating alternatives: use `.toSorted()` and `.toReversed()` instead of `.sort()` and `.reverse()`. These are ES2023 methods, safe with our `target: ES2023` tsconfig.

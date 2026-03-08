@@ -1,22 +1,23 @@
-import { createSignal, Show } from 'solid-js';
-import { Opcode } from '@uncorded/protocol';
-import { api } from '../lib/api.js';
-import { sendFrame } from '../lib/gateway.js';
-import { getTypingUsers } from '../stores/message-store.js';
+import { createSignal, Show } from "solid-js";
+import { Opcode } from "@uncorded/protocol";
+import { api } from "../lib/api.js";
+import { sendFrame } from "../lib/gateway.js";
+import { getTypingUsers } from "../stores/message-store.js";
 
 const TYPING_THROTTLE_MS = 5000;
 const TEXTAREA_MAX_HEIGHT = 200;
 
 const MessageInput = (props: { channelId: string }) => {
+  // oxlint-disable-next-line no-unassigned-vars -- SolidJS ref pattern, assigned via JSX ref={}
   let textareaRef!: HTMLTextAreaElement;
-  const [content, setContent] = createSignal('');
+  const [content, setContent] = createSignal("");
   const [sending, setSending] = createSignal(false);
 
   const lastTypingSent: Record<string, number> = {};
 
   function resetHeight() {
-    textareaRef.style.height = 'auto';
-    textareaRef.style.height = Math.min(textareaRef.scrollHeight, TEXTAREA_MAX_HEIGHT) + 'px';
+    textareaRef.style.height = "auto";
+    textareaRef.style.height = Math.min(textareaRef.scrollHeight, TEXTAREA_MAX_HEIGHT) + "px";
   }
 
   function handleInput(e: InputEvent & { currentTarget: HTMLTextAreaElement }) {
@@ -39,11 +40,11 @@ const MessageInput = (props: { channelId: string }) => {
     setSending(true);
     try {
       await api(`/api/channels/${props.channelId}/messages`, {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify({ content: text }),
       });
-      setContent('');
-      textareaRef.style.height = 'auto';
+      setContent("");
+      textareaRef.style.height = "auto";
     } finally {
       setSending(false);
     }
@@ -51,7 +52,7 @@ const MessageInput = (props: { channelId: string }) => {
   }
 
   function handleKeyDown(e: KeyboardEvent) {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       send();
     }
@@ -64,7 +65,7 @@ const MessageInput = (props: { channelId: string }) => {
     if (users.length === 0) return null;
     if (users.length === 1) return `${users[0]?.username} is typing`;
     if (users.length === 2) return `${users[0]?.username} and ${users[1]?.username} are typing`;
-    return 'Several people are typing';
+    return "Several people are typing";
   };
 
   return (

@@ -1,14 +1,14 @@
-import { Opcode, CloseCode, encode, decode } from '@uncorded/protocol';
-import type { GatewayFrame } from '@uncorded/protocol';
-import { API_BASE } from './config.js';
+import { Opcode, CloseCode, encode, decode } from "@uncorded/protocol";
+import type { GatewayFrame } from "@uncorded/protocol";
+import { API_BASE } from "./config.js";
 import {
   setGatewayStatus,
   setReadyPayload,
   clearReadyPayload,
   type ReadyData,
-} from './gateway-store.js';
+} from "./gateway-store.js";
 
-const WS_URL = API_BASE.replace(/^http/, 'ws') + '/gateway';
+const WS_URL = API_BASE.replace(/^http/, "ws") + "/gateway";
 
 const MAX_RECONNECT_DELAY = 30_000;
 const BASE_RECONNECT_DELAY = 1_000;
@@ -59,7 +59,7 @@ function handleMessage(event: MessageEvent) {
     }
     case Opcode.READY: {
       reconnectAttempts = 0;
-      setGatewayStatus('connected');
+      setGatewayStatus("connected");
       setReadyPayload(frame.d as ReadyData);
       dispatch(Opcode.READY, frame.d);
       break;
@@ -72,7 +72,7 @@ function handleMessage(event: MessageEvent) {
 
 function handleClose(event: CloseEvent) {
   clearTimers();
-  setGatewayStatus('disconnected');
+  setGatewayStatus("disconnected");
   ws = null;
 
   if (intentionalClose) return;
@@ -94,15 +94,15 @@ function connect() {
     ws = null;
   }
 
-  setGatewayStatus('connecting');
+  setGatewayStatus("connecting");
   ws = new WebSocket(WS_URL);
-  ws.binaryType = 'arraybuffer';
+  ws.binaryType = "arraybuffer";
 
-  ws.onmessage = handleMessage;
-  ws.onclose = handleClose;
-  ws.onerror = () => {
+  ws.addEventListener("message", handleMessage);
+  ws.addEventListener("close", handleClose);
+  ws.addEventListener("error", () => {
     // onerror is always followed by onclose, so no-op here
-  };
+  });
 }
 
 export function connectGateway(sessionToken: string): void {
@@ -120,7 +120,7 @@ export function disconnectGateway(): void {
     ws.close();
     ws = null;
   }
-  setGatewayStatus('disconnected');
+  setGatewayStatus("disconnected");
   clearReadyPayload();
 }
 

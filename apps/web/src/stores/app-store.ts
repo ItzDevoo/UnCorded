@@ -1,5 +1,5 @@
-import { createSignal, createMemo, createEffect } from 'solid-js';
-import { readyData, type ReadyServer, type ReadyChannel } from '../lib/gateway-store.js';
+import { createSignal, createMemo, createEffect } from "solid-js";
+import { readyData, type ReadyServer, type ReadyChannel } from "../lib/gateway-store.js";
 
 const [selectedServerId, setSelectedServerId] = createSignal<string | null>(null);
 const [selectedChannelId, setSelectedChannelId] = createSignal<string | null>(null);
@@ -11,7 +11,7 @@ const currentServer = createMemo<ReadyServer | null>(() => {
 
 const currentChannels = createMemo<ReadyChannel[]>(() => {
   const server = currentServer();
-  return server?.channels.slice().sort((a, b) => a.position - b.position) ?? [];
+  return server?.channels.toSorted((a, b) => a.position - b.position) ?? [];
 });
 
 // Auto-select first server on READY if none selected

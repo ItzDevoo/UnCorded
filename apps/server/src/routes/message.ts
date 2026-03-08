@@ -1,12 +1,12 @@
-import { Elysia } from 'elysia';
-import { eq, and, lt, gt, desc, or } from 'drizzle-orm';
-import { createMessageSchema, updateMessageSchema } from '@uncorded/shared';
-import { Opcode } from '@uncorded/protocol';
-import { db } from '../db/index.js';
-import { messages, channels, servers, user } from '../db/schema.js';
-import { getSession } from '../middleware/auth.js';
-import { requireMember } from '../helpers/permissions.js';
-import { broadcastToServer } from '../ws/connections.js';
+import { Elysia } from "elysia";
+import { eq, and, lt, gt, desc, or } from "drizzle-orm";
+import { createMessageSchema, updateMessageSchema } from "@uncorded/shared";
+import { Opcode } from "@uncorded/protocol";
+import { db } from "../db/index.js";
+import { messages, channels, servers, user } from "../db/schema.js";
+import { getSession } from "../middleware/auth.js";
+import { requireMember } from "../helpers/permissions.js";
+import { broadcastToServer } from "../ws/connections.js";
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
@@ -51,11 +51,11 @@ async function fetchMessageWithAuthor(messageId: string) {
   return row ?? null;
 }
 
-export const messageRoutes = new Elysia({ prefix: '/api/channels/:channelId/messages' })
+export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/messages" })
   .resolve(async ({ status, request }) => {
     const session = await getSession(request.headers);
     if (!session) {
-      return status(401, { code: 'UNAUTHORIZED', message: 'Authentication required' });
+      return status(401, { code: "UNAUTHORIZED", message: "Authentication required" });
     }
     return {
       user: session.user,
@@ -64,25 +64,25 @@ export const messageRoutes = new Elysia({ prefix: '/api/channels/:channelId/mess
   })
 
   // POST / — Create message
-  .post('/', async ({ user: sessionUser, params, body, set }) => {
+  .post("/", async ({ user: sessionUser, params, body, set }) => {
     const serverId = await getChannelServerId(params.channelId, set);
-    if (!serverId) return { code: 'NOT_FOUND', message: 'Channel not found' };
+    if (!serverId) return { code: "NOT_FOUND", message: "Channel not found" };
 
     const member = await requireMember(sessionUser.id, serverId, set);
-    if (!member) return { code: 'FORBIDDEN', message: 'Not a server member' };
+    if (!member) return { code: "FORBIDDEN", message: "Not a server member" };
 
     const parsed = createMessageSchema.safeParse(body);
     if (!parsed.success) {
       set.status = 400;
       return {
-        code: 'VALIDATION_ERROR',
-        message: parsed.error.issues[0]?.message ?? 'Invalid input',
+        code: "VALIDATION_ERROR",
+        message: parsed.error.issues[0]?.message ?? "Invalid input",
       };
     }
 
     if (!parsed.data.content || parsed.data.content.trim().length === 0) {
       set.status = 400;
-      return { code: 'VALIDATION_ERROR', message: 'Message content is required' };
+      return { code: "VALIDATION_ERROR", message: "Message content is required" };
     }
 
     const [inserted] = await db
@@ -96,7 +96,7 @@ export const messageRoutes = new Elysia({ prefix: '/api/channels/:channelId/mess
 
     if (!inserted) {
       set.status = 500;
-      return { code: 'INTERNAL_ERROR', message: 'Failed to create message' };
+      return { code: "INTERNAL_ERROR", message: "Failed to create message" };
     }
 
     const messageWithAuthor = await fetchMessageWithAuthor(inserted.id);
@@ -111,12 +111,12 @@ export const messageRoutes = new Elysia({ prefix: '/api/channels/:channelId/mess
   })
 
   // GET / — List messages with cursor pagination
-  .get('/', async ({ user: sessionUser, params, query, set }) => {
+  .get("/", async ({ user: sessionUser, params, query, set }) => {
     const serverId = await getChannelServerId(params.channelId, set);
-    if (!serverId) return { code: 'NOT_FOUND', message: 'Channel not found' };
+    if (!serverId) return { code: "NOT_FOUND", message: "Channel not found" };
 
     const member = await requireMember(sessionUser.id, serverId, set);
-    if (!member) return { code: 'FORBIDDEN', message: 'Not a server member' };
+    if (!member) return { code: "FORBIDDEN", message: "Not a server member" };
 
     const before = query.before as string | undefined;
     const after = query.after as string | undefined;
@@ -177,23 +177,23 @@ export const messageRoutes = new Elysia({ prefix: '/api/channels/:channelId/mess
       .limit(limit);
 
     // Reverse for oldest-first display order
-    return { messages: rows.reverse() };
+    return { messages: rows.toReversed() };
   })
 
   // PATCH /:messageId — Edit message
-  .patch('/:messageId', async ({ user: sessionUser, params, body, set }) => {
+  .patch("/:messageId", async ({ user: sessionUser, params, body, set }) => {
     const serverId = await getChannelServerId(params.channelId, set);
-    if (!serverId) return { code: 'NOT_FOUND', message: 'Channel not found' };
+    if (!serverId) return { code: "NOT_FOUND", message: "Channel not found" };
 
     const member = await requireMember(sessionUser.id, serverId, set);
-    if (!member) return { code: 'FORBIDDEN', message: 'Not a server member' };
+    if (!member) return { code: "FORBIDDEN", message: "Not a server member" };
 
     const parsed = updateMessageSchema.safeParse(body);
     if (!parsed.success) {
       set.status = 400;
       return {
-        code: 'VALIDATION_ERROR',
-        message: parsed.error.issues[0]?.message ?? 'Invalid input',
+        code: "VALIDATION_ERROR",
+        message: parsed.error.issues[0]?.message ?? "Invalid input",
       };
     }
 
@@ -206,12 +206,12 @@ export const messageRoutes = new Elysia({ prefix: '/api/channels/:channelId/mess
 
     if (!existing) {
       set.status = 404;
-      return { code: 'NOT_FOUND', message: 'Message not found' };
+      return { code: "NOT_FOUND", message: "Message not found" };
     }
 
     if (existing.authorId !== sessionUser.id) {
       set.status = 403;
-      return { code: 'FORBIDDEN', message: 'Only the author can edit this message' };
+      return { code: "FORBIDDEN", message: "Only the author can edit this message" };
     }
 
     const editedAt = new Date();
@@ -236,12 +236,12 @@ export const messageRoutes = new Elysia({ prefix: '/api/channels/:channelId/mess
   })
 
   // DELETE /:messageId — Delete message
-  .delete('/:messageId', async ({ user: sessionUser, params, set }) => {
+  .delete("/:messageId", async ({ user: sessionUser, params, set }) => {
     const serverId = await getChannelServerId(params.channelId, set);
-    if (!serverId) return { code: 'NOT_FOUND', message: 'Channel not found' };
+    if (!serverId) return { code: "NOT_FOUND", message: "Channel not found" };
 
     const member = await requireMember(sessionUser.id, serverId, set);
-    if (!member) return { code: 'FORBIDDEN', message: 'Not a server member' };
+    if (!member) return { code: "FORBIDDEN", message: "Not a server member" };
 
     // Fetch message
     const [existing] = await db
@@ -252,7 +252,7 @@ export const messageRoutes = new Elysia({ prefix: '/api/channels/:channelId/mess
 
     if (!existing) {
       set.status = 404;
-      return { code: 'NOT_FOUND', message: 'Message not found' };
+      return { code: "NOT_FOUND", message: "Message not found" };
     }
 
     // Author or server owner can delete
@@ -265,7 +265,7 @@ export const messageRoutes = new Elysia({ prefix: '/api/channels/:channelId/mess
 
       if (!server || server.ownerId !== sessionUser.id) {
         set.status = 403;
-        return { code: 'FORBIDDEN', message: 'Cannot delete this message' };
+        return { code: "FORBIDDEN", message: "Cannot delete this message" };
       }
     }
 

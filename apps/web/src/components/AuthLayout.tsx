@@ -1,4 +1,4 @@
-import type { ParentComponent } from 'solid-js';
+import type { ParentComponent } from "solid-js";
 
 const AuthLayout: ParentComponent = (props) => {
   return (

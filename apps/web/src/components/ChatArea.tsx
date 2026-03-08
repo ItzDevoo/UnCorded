@@ -1,13 +1,14 @@
-import { createMemo, createEffect, Show, For, on } from 'solid-js';
-import { selectedChannelId, currentChannels } from '../stores/app-store.js';
-import { readyData } from '../lib/gateway-store.js';
-import { fetchMessages, getMessages } from '../stores/message-store.js';
-import MessageBubble from './MessageBubble.js';
-import MessageInput from './MessageInput.js';
+import { createMemo, createEffect, Show, For, on } from "solid-js";
+import { selectedChannelId, currentChannels } from "../stores/app-store.js";
+import { readyData } from "../lib/gateway-store.js";
+import { fetchMessages, getMessages } from "../stores/message-store.js";
+import MessageBubble from "./MessageBubble.js";
+import MessageInput from "./MessageInput.js";
 
 const SCROLL_BOTTOM_THRESHOLD = 100;
 
 const ChatArea = () => {
+  // oxlint-disable-next-line no-unassigned-vars -- SolidJS ref pattern, assigned via JSX ref={}
   let scrollRef!: HTMLDivElement;
   let isAtBottom = true;
 
@@ -55,7 +56,8 @@ const ChatArea = () => {
   function handleScroll() {
     if (!scrollRef) return;
     isAtBottom =
-      scrollRef.scrollTop + scrollRef.clientHeight >= scrollRef.scrollHeight - SCROLL_BOTTOM_THRESHOLD;
+      scrollRef.scrollTop + scrollRef.clientHeight >=
+      scrollRef.scrollHeight - SCROLL_BOTTOM_THRESHOLD;
   }
 
   function loadMore() {
@@ -79,10 +81,7 @@ const ChatArea = () => {
             >
               <Show when={hasMore() && !loading()}>
                 <div class="flex justify-center py-2">
-                  <button
-                    onClick={loadMore}
-                    class="text-xs text-brand hover:underline"
-                  >
+                  <button onClick={loadMore} class="text-xs text-brand hover:underline">
                     Load older messages
                   </button>
                 </div>
@@ -109,17 +108,14 @@ const ChatArea = () => {
                 <div class="py-2">
                   <For each={messages()}>
                     {(msg) => (
-                      <MessageBubble
-                        message={msg}
-                        isOwn={msg.author.id === currentUserId()}
-                      />
+                      <MessageBubble message={msg} isOwn={msg.author.id === currentUserId()} />
                     )}
                   </For>
                 </div>
               </Show>
             </div>
 
-            <MessageInput channelId={channelId() ?? ''} />
+            <MessageInput channelId={channelId() ?? ""} />
           </>
         )}
       </Show>

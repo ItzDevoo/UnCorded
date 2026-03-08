@@ -6,14 +6,36 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Week 2 Complete — Architectural Pivot to P2P
+## Current Status: Week 2.5 Day 1 — Schema Migration + Tooling Migration
+
+---
+
+### Week 2.5 Day 1 — 2026-03-08
+**What was done:**
+- Drizzle schema migrated to match P2P pivot (docs/schema.md)
+  - Dropped: `attachments` table, `purchases` table, `storage_policy`/`purchase_item`/`purchase_status` enums
+  - Added: `file_receipts` table (magnet URI, info hash, metadata), `subscriptions` table (Stripe tiers), `subscription_tier`/`subscription_status` enums
+  - Changed: `channels.storage_policy` → `channels.file_sharing_enabled` (boolean), `users.has_extended_expiry` + `has_custom_avatar` → `users.subscription_tier` (enum)
+  - Updated all referencing code: shared Zod schemas, server routes (user, channel, server, invite), WS handlers (READY payload), Better Auth config, frontend types (ReadyChannel), UI components (ChannelSidebar badges, CreateServerModal, JoinServerModal)
+  - Migration 0003_schema_pivot_p2p.sql applied to Neon DB
+- ESLint + Prettier removed, Oxlint + Oxfmt installed
+  - Deleted: `eslint.config.js`, `prettier.config.js`, all ESLint/Prettier deps
+  - Created: `.oxlintrc.json` (plugins: eslint, oxc, typescript, unicorn), `.oxfmtrc.json`
+  - Updated root scripts: `lint` → `oxlint`, `fmt` → `oxfmt .`
+  - Removed per-package `lint` scripts (oxlint runs from root)
+  - Removed `lint` task from turbo.json pipeline
+  - Formatted entire codebase with oxfmt (double quotes, consistent style)
+  - Fixed all oxlint warnings: toReversed/toSorted for non-mutating array ops, addEventListener over on-handlers, SolidJS ref suppressions
+- All checks pass: typecheck (0 errors), lint (0 warnings/errors), fmt (no changes)
 
 ---
 
 ### Architectural Pivot — 2026-03-07
+
 **Decision:** Pivoted from server-side ephemeral file storage (Cloudflare R2 + TTL + cron job) to P2P file sharing via WebTorrent (BitTorrent over WebRTC DataChannels).
 
 **What this means:**
+
 - Files NEVER touch our servers — all transfers are direct P2P between users
 - WebTorrent handles torrent creation, magnet URIs, and swarm coordination in the browser
 - Existing WebSocket gateway becomes the WebRTC signaling relay
@@ -22,6 +44,7 @@ This is the real state of the codebase — not what is planned, but what works.
 - TURN relay restricted to paid users — honest monetization tied to real infrastructure cost
 
 **What carries forward unchanged:**
+
 - All auth (Better Auth, login/register, sessions)
 - All server/channel/member/invite CRUD (routes + UI)
 - All messaging (REST API + WS real-time + chat UI + typing indicators)
@@ -29,6 +52,7 @@ This is the real state of the codebase — not what is planned, but what works.
 - App shell, modals, sidebar components
 
 **What's dropped:**
+
 - R2 file storage, presigned uploads, TTL logic, expiry cron job, FILE_EXPIRED opcode
 - storage_policy enum (replaced by file_sharing_enabled boolean)
 - a-la-carte purchases (custom_avatar, extended_expiry) — replaced by subscription tiers
@@ -39,7 +63,9 @@ This is the real state of the codebase — not what is planned, but what works.
 ---
 
 ### Week 2 Day 4-5 (cont.) — 2026-03-06
+
 **What works:**
+
 - Message list UI with real-time updates wired to WebSocket events
   - `message-store.ts`: SolidJS store for messages per channel, typing indicators, WS listeners for MESSAGE_CREATE/UPDATE/DELETE/TYPING_START
   - `fetchMessages(channelId)`: GET with cursor pagination (`?before=<oldestId>&limit=50`), deduplication, `hasMore` detection
@@ -58,7 +84,9 @@ This is the real state of the codebase — not what is planned, but what works.
 ---
 
 ### Week 2 Day 6-7 (cont.) — 2026-03-06
+
 **What works:**
+
 - Server creation modal (CreateServerModal)
   - Form with name (required) + icon URL (optional), validated with `createServerSchema` from shared
   - POST /api/servers, injects new server into readyData store via `addServer()`, auto-selects it
@@ -83,7 +111,9 @@ This is the real state of the codebase — not what is planned, but what works.
 ---
 
 ### Week 2 Day 6-7 — 2026-03-06
+
 **What works:**
+
 - Server list sidebar renders real servers from gateway READY payload
   - Server icons (image if iconUrl, first-letter fallback), active indicator pill, click to select
   - Home button + add server placeholder retained
@@ -104,7 +134,9 @@ This is the real state of the codebase — not what is planned, but what works.
 ---
 
 ### Week 2 Day 4-5 — 2026-03-06
+
 **What works:**
+
 - Message CRUD routes at `/api/channels/:channelId/messages`
   - POST `/` — create message with content validation (max 4000 chars), returns message + author info, broadcasts MESSAGE_CREATE to server
   - GET `/` — cursor-based pagination (before/after messageId + limit, default 50, max 100), composite cursor on createdAt + id for tiebreaking, returns oldest-first with author info joined
@@ -119,7 +151,9 @@ This is the real state of the codebase — not what is planned, but what works.
 ---
 
 ### Week 2 Day 2-3 (cont.) — 2026-03-06
+
 **What works:**
+
 - Client-side WebSocket manager (`apps/web/src/lib/gateway.ts`)
   - `connectGateway(token)` / `disconnectGateway()` — full lifecycle control
   - HELLO → IDENTIFY → READY handshake (mirrors server protocol)
@@ -137,7 +171,9 @@ This is the real state of the codebase — not what is planned, but what works.
 ---
 
 ### Week 2 Day 2-3 — 2026-03-06
+
 **What works:**
+
 - WebSocket gateway at `/gateway` with full connection lifecycle
 - HELLO → IDENTIFY → READY handshake: server sends HELLO with heartbeat interval, client sends IDENTIFY with session token, server validates session in DB and sends READY with user profile + servers + channels (nested, sorted by position)
 - Heartbeat monitoring: 30s client interval, 45s server timeout → terminate on miss
@@ -152,7 +188,9 @@ This is the real state of the codebase — not what is planned, but what works.
 ---
 
 ### Week 2 Day 1-2 — 2026-03-06
+
 **What works:**
+
 - Server CRUD: POST /api/servers (creates server + "general" channel + member in transaction), GET (list with channelCount subquery), GET /:id, PATCH /:id, DELETE /:id
 - Channel CRUD: POST /api/servers/:serverId/channels (auto-position via max(position)+1), GET (ordered by position), PATCH /api/channels/:id, DELETE /api/channels/:id
 - Member routes: GET /api/servers/:serverId/members (joins user table for profile info), DELETE /@me (leave, blocked for owner), DELETE /:userId (kick, owner only)
@@ -165,7 +203,9 @@ This is the real state of the codebase — not what is planned, but what works.
 ---
 
 ### Quick Fixes — 2026-03-06
+
 **What was done:**
+
 - Added `purchaseItemEnum` to Drizzle schema — `purchases.item` is now a proper PG enum (migration 0002 applied)
 - Fixed auth resolve to use `request.headers` directly instead of HeadersInit cast
 - Typed PATCH /@me update object as `Partial<typeof user.$inferInsert>`
@@ -177,7 +217,9 @@ This is the real state of the codebase — not what is planned, but what works.
 ---
 
 ### Week 1 Day 5-7 — 2026-03-06
+
 **What works:**
+
 - SolidJS + Vite + Tailwind v4 scaffold with @tailwindcss/vite plugin
 - Dark theme via @theme block in index.css (bg-primary/secondary/tertiary, text colors, brand, etc.)
 - @solidjs/router with lazy-loaded pages: /, /login, /register, /app
@@ -196,16 +238,20 @@ This is the real state of the codebase — not what is planned, but what works.
 - All checks pass: typecheck (0 errors), lint (0 errors), build succeeds
 
 **Backend fix from Day 3-4:**
+
 - Reverted Better Auth middleware from `.all('/api/auth/*')` back to `.mount(auth.handler)` — the `.all()` approach consumed the request body before Better Auth could read it, causing "Body already used" errors on POST requests (registration, login). The `.mount()` approach passes the raw Request without body parsing.
 - CORS origin defaults to http://localhost:5173 for Vite dev server
 
 **Known issues:**
+
 - None
 
 ---
 
 ### Week 1 Day 3-4 — 2026-03-06
+
 **What works:**
+
 - ElysiaJS server scaffold with plugin architecture
 - Zod-validated env config with sensible defaults for empty env vars
 - Drizzle ORM schema: all 17 tables from schema.md migrated to Neon
@@ -218,7 +264,9 @@ This is the real state of the codebase — not what is planned, but what works.
 ---
 
 ### Week 1 Day 1-2 — 2026-03-05
+
 **What works:**
+
 - Bun monorepo with workspaces
 - Turborepo pipelines (build, typecheck, lint, dev)
 - packages/shared: createId, Zod schemas, shared types

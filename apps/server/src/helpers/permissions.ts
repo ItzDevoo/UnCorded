@@ -1,6 +1,6 @@
-import { and, eq } from 'drizzle-orm';
-import { db } from '../db/index.js';
-import { members, servers } from '../db/schema.js';
+import { and, eq } from "drizzle-orm";
+import { db } from "../db/index.js";
+import { members, servers } from "../db/schema.js";
 
 /**
  * Verify user is a member of the server. Returns member row or null (sets 403).
@@ -32,11 +32,7 @@ export async function requireOwner(
   serverId: string,
   set: { status?: number | string },
 ) {
-  const [server] = await db
-    .select()
-    .from(servers)
-    .where(eq(servers.id, serverId))
-    .limit(1);
+  const [server] = await db.select().from(servers).where(eq(servers.id, serverId)).limit(1);
 
   if (!server) {
     set.status = 404;

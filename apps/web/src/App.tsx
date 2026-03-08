@@ -1,11 +1,11 @@
-import { lazy, Show } from 'solid-js';
-import { Router, Route, Navigate } from '@solidjs/router';
-import { useSession } from './lib/auth.js';
-import AppLayout from './components/AppLayout.js';
+import { lazy, Show } from "solid-js";
+import { Router, Route, Navigate } from "@solidjs/router";
+import { useSession } from "./lib/auth.js";
+import AppLayout from "./components/AppLayout.js";
 
-const Login = lazy(() => import('./pages/Login.js'));
-const Register = lazy(() => import('./pages/Register.js'));
-const Home = lazy(() => import('./pages/Home.js'));
+const Login = lazy(() => import("./pages/Login.js"));
+const Register = lazy(() => import("./pages/Register.js"));
+const Home = lazy(() => import("./pages/Home.js"));
 
 const RootRedirect = () => {
   const session = useSession();

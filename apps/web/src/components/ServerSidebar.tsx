@@ -1,11 +1,11 @@
-import { createSignal, For, Show } from 'solid-js';
-import { readyData } from '../lib/gateway-store.js';
-import { selectedServerId, setSelectedServerId } from '../stores/app-store.js';
-import CreateServerModal from './modals/CreateServerModal.js';
-import JoinServerModal from './modals/JoinServerModal.js';
+import { createSignal, For, Show } from "solid-js";
+import { readyData } from "../lib/gateway-store.js";
+import { selectedServerId, setSelectedServerId } from "../stores/app-store.js";
+import CreateServerModal from "./modals/CreateServerModal.js";
+import JoinServerModal from "./modals/JoinServerModal.js";
 
 const ServerSidebar = () => {
-  const [modal, setModal] = createSignal<'create' | 'join' | null>(null);
+  const [modal, setModal] = createSignal<"create" | "join" | null>(null);
 
   return (
     <div class="flex h-full w-[72px] shrink-0 flex-col items-center gap-2 overflow-y-auto bg-bg-server-bar py-3">
@@ -39,16 +39,16 @@ const ServerSidebar = () => {
               <div
                 class="absolute left-0 w-1 rounded-r-full bg-brand transition-all"
                 classList={{
-                  'h-10': isActive(),
-                  'h-2 group-hover:h-5': !isActive(),
+                  "h-10": isActive(),
+                  "h-2 group-hover:h-5": !isActive(),
                 }}
               />
               <button
                 onClick={() => setSelectedServerId(server.id)}
                 class="flex h-12 w-12 items-center justify-center transition-all"
                 classList={{
-                  'rounded-xl bg-brand text-white': isActive(),
-                  'rounded-2xl bg-bg-tertiary text-text-primary hover:rounded-xl hover:bg-brand hover:text-white':
+                  "rounded-xl bg-brand text-white": isActive(),
+                  "rounded-2xl bg-bg-tertiary text-text-primary hover:rounded-xl hover:bg-brand hover:text-white":
                     !isActive(),
                 }}
                 title={server.name}
@@ -72,7 +72,7 @@ const ServerSidebar = () => {
 
       {/* Create server button */}
       <button
-        onClick={() => setModal('create')}
+        onClick={() => setModal("create")}
         title="Create a Server"
         class="flex h-12 w-12 items-center justify-center rounded-full bg-bg-tertiary text-success transition-all hover:rounded-xl hover:bg-success hover:text-white"
       >
@@ -90,7 +90,7 @@ const ServerSidebar = () => {
 
       {/* Join server button */}
       <button
-        onClick={() => setModal('join')}
+        onClick={() => setModal("join")}
         title="Join a Server"
         class="flex h-12 w-12 items-center justify-center rounded-full bg-bg-tertiary text-brand transition-all hover:rounded-xl hover:bg-brand hover:text-white"
       >
@@ -111,10 +111,10 @@ const ServerSidebar = () => {
       </button>
 
       {/* Modals */}
-      <Show when={modal() === 'create'}>
+      <Show when={modal() === "create"}>
         <CreateServerModal onClose={() => setModal(null)} />
       </Show>
-      <Show when={modal() === 'join'}>
+      <Show when={modal() === "join"}>
         <JoinServerModal onClose={() => setModal(null)} />
       </Show>
     </div>

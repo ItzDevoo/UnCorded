@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const createInviteSchema = z.object({
   maxUses: z.number().int().min(1).nullable().optional(),

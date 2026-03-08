@@ -1,18 +1,18 @@
-import { createSignal, Show } from 'solid-js';
-import { A, useNavigate } from '@solidjs/router';
-import { signIn } from '../lib/auth.js';
-import AuthLayout from '../components/AuthLayout.js';
+import { createSignal, Show } from "solid-js";
+import { A, useNavigate } from "@solidjs/router";
+import { signIn } from "../lib/auth.js";
+import AuthLayout from "../components/AuthLayout.js";
 
 const Login = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = createSignal('');
-  const [password, setPassword] = createSignal('');
-  const [error, setError] = createSignal('');
+  const [email, setEmail] = createSignal("");
+  const [password, setPassword] = createSignal("");
+  const [error, setError] = createSignal("");
   const [loading, setLoading] = createSignal(false);
 
   const handleSubmit = async (e: SubmitEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
     try {
       const result = await signIn.email({
@@ -20,12 +20,12 @@ const Login = () => {
         password: password(),
       });
       if (result.error) {
-        setError(result.error.message ?? 'Sign in failed');
+        setError(result.error.message ?? "Sign in failed");
       } else {
-        navigate('/app', { replace: true });
+        navigate("/app", { replace: true });
       }
     } catch {
-      setError('Something went wrong');
+      setError("Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -69,12 +69,12 @@ const Login = () => {
           disabled={loading()}
           class="w-full rounded-lg bg-brand py-2 font-medium text-white transition-colors hover:bg-brand-hover disabled:opacity-50"
         >
-          {loading() ? 'Signing in...' : 'Log In'}
+          {loading() ? "Signing in..." : "Log In"}
         </button>
       </form>
 
       <p class="mt-6 text-center text-sm text-text-secondary">
-        Need an account?{' '}
+        Need an account?{" "}
         <A href="/register" class="text-brand hover:underline">
           Register
         </A>

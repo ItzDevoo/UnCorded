@@ -1,8 +1,8 @@
-import { createStore, produce } from 'solid-js/store';
-import { Opcode } from '@uncorded/protocol';
-import { onGatewayEvent, sendFrame } from '../lib/gateway.js';
-import { api } from '../lib/api.js';
-import { readyData } from '../lib/gateway-store.js';
+import { createStore, produce } from "solid-js/store";
+import { Opcode } from "@uncorded/protocol";
+import { onGatewayEvent, sendFrame } from "../lib/gateway.js";
+import { api } from "../lib/api.js";
+import { readyData } from "../lib/gateway-store.js";
 
 export interface Message {
   id: string;
@@ -49,20 +49,18 @@ export async function fetchMessages(channelId: string) {
 
   // Initialize channel entry if needed
   if (!existing) {
-    setStore('channels', channelId, { messages: [], loading: true, hasMore: true });
+    setStore("channels", channelId, { messages: [], loading: true, hasMore: true });
   } else {
-    setStore('channels', channelId, 'loading', true);
+    setStore("channels", channelId, "loading", true);
   }
 
   const oldest = store.channels[channelId]?.messages[0];
   const query = oldest ? `?before=${oldest.id}&limit=${LIMIT}` : `?limit=${LIMIT}`;
 
   try {
-    const res = await api<{ messages: Message[] }>(
-      `/api/channels/${channelId}/messages${query}`,
-    );
+    const res = await api<{ messages: Message[] }>(`/api/channels/${channelId}/messages${query}`);
     setStore(
-      'channels',
+      "channels",
       channelId,
       produce((ch) => {
         if (!ch) return;
@@ -72,13 +70,13 @@ export async function fetchMessages(channelId: string) {
       }),
     );
   } catch {
-    setStore('channels', channelId, 'loading', false);
+    setStore("channels", channelId, "loading", false);
   }
 }
 
 export function addMessage(channelId: string, message: Message) {
   if (!store.channels[channelId]) {
-    setStore('channels', channelId, {
+    setStore("channels", channelId, {
       messages: [message],
       loading: false,
       hasMore: true,
@@ -86,7 +84,7 @@ export function addMessage(channelId: string, message: Message) {
     return;
   }
   setStore(
-    'channels',
+    "channels",
     channelId,
     produce((ch) => {
       if (ch.messages.some((m) => m.id === message.id)) return;
@@ -101,7 +99,7 @@ export function updateMessage(
   updates: { content: string; editedAt: string | null },
 ) {
   setStore(
-    'channels',
+    "channels",
     channelId,
     produce((ch) => {
       if (!ch) return;
@@ -116,7 +114,7 @@ export function updateMessage(
 
 export function removeMessage(channelId: string, messageId: string) {
   setStore(
-    'channels',
+    "channels",
     channelId,
     produce((ch) => {
       if (!ch) return;
@@ -132,20 +130,18 @@ export function getMessages(channelId: string): ChannelMessages | undefined {
 export function getTypingUsers(channelId: string): TypingUser[] {
   const selfId = readyData.data?.user.id;
   const now = Date.now();
-  return (store.typing[channelId] ?? []).filter(
-    (t) => t.expiresAt > now && t.userId !== selfId,
-  );
+  return (store.typing[channelId] ?? []).filter((t) => t.expiresAt > now && t.userId !== selfId);
 }
 
 export function addTypingUser(channelId: string, userId: string, username: string) {
   if (!store.typing[channelId]) {
-    setStore('typing', channelId, [
+    setStore("typing", channelId, [
       { userId, username, expiresAt: Date.now() + TYPING_TIMEOUT_MS },
     ]);
     return;
   }
   setStore(
-    'typing',
+    "typing",
     channelId,
     produce((users) => {
       const existing = users.find((t) => t.userId === userId);
@@ -190,7 +186,7 @@ const cleanupInterval = setInterval(() => {
     const users = store.typing[channelId];
     if (users && users.some((t) => t.expiresAt <= now)) {
       setStore(
-        'typing',
+        "typing",
         channelId,
         produce((arr) => {
           if (!arr) return;

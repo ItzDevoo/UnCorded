@@ -1,13 +1,13 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 const optionalUrl = z
   .string()
-  .transform((s) => (s === '' ? undefined : s))
+  .transform((s) => (s === "" ? undefined : s))
   .pipe(z.string().url().optional());
 
 const optionalString = z
   .string()
-  .transform((s) => (s === '' ? undefined : s))
+  .transform((s) => (s === "" ? undefined : s))
   .pipe(z.string().optional());
 
 const envSchema = z.object({
@@ -17,13 +17,13 @@ const envSchema = z.object({
   BETTER_AUTH_URL: z.string().url(),
   APP_URL: z
     .string()
-    .transform((s) => (s === '' ? 'http://localhost:3000' : s))
+    .transform((s) => (s === "" ? "http://localhost:3000" : s))
     .pipe(z.string().url()),
   CORS_ORIGIN: optionalUrl,
 
   // Optional with defaults
   PORT: z.coerce.number().default(3000),
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   RATE_LIMIT_MAX: z.coerce.number().default(300),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60_000),
 
@@ -54,7 +54,7 @@ const envSchema = z.object({
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
-  console.error('Invalid environment variables:');
+  console.error("Invalid environment variables:");
   console.error(parsed.error.flatten().fieldErrors);
   process.exit(1);
 }

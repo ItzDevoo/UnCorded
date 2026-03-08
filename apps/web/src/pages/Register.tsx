@@ -1,20 +1,20 @@
-import { createSignal, Show } from 'solid-js';
-import { A, useNavigate } from '@solidjs/router';
-import { USERNAME_MIN, USERNAME_MAX, PASSWORD_MIN } from '@uncorded/shared';
-import { signUp } from '../lib/auth.js';
-import AuthLayout from '../components/AuthLayout.js';
+import { createSignal, Show } from "solid-js";
+import { A, useNavigate } from "@solidjs/router";
+import { USERNAME_MIN, USERNAME_MAX, PASSWORD_MIN } from "@uncorded/shared";
+import { signUp } from "../lib/auth.js";
+import AuthLayout from "../components/AuthLayout.js";
 
 const Register = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = createSignal('');
-  const [username, setUsername] = createSignal('');
-  const [password, setPassword] = createSignal('');
-  const [error, setError] = createSignal('');
+  const [email, setEmail] = createSignal("");
+  const [username, setUsername] = createSignal("");
+  const [password, setPassword] = createSignal("");
+  const [error, setError] = createSignal("");
   const [loading, setLoading] = createSignal(false);
 
   const handleSubmit = async (e: SubmitEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
     try {
       const result = await signUp.email({
@@ -24,12 +24,12 @@ const Register = () => {
         username: username(),
       });
       if (result.error) {
-        setError(result.error.message ?? 'Registration failed');
+        setError(result.error.message ?? "Registration failed");
       } else {
-        navigate('/app', { replace: true });
+        navigate("/app", { replace: true });
       }
     } catch {
-      setError('Something went wrong');
+      setError("Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -90,12 +90,12 @@ const Register = () => {
           disabled={loading()}
           class="w-full rounded-lg bg-brand py-2 font-medium text-white transition-colors hover:bg-brand-hover disabled:opacity-50"
         >
-          {loading() ? 'Creating account...' : 'Register'}
+          {loading() ? "Creating account..." : "Register"}
         </button>
       </form>
 
       <p class="mt-6 text-center text-sm text-text-secondary">
-        Already have an account?{' '}
+        Already have an account?{" "}
         <A href="/login" class="text-brand hover:underline">
           Log In
         </A>

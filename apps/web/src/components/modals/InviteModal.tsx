@@ -1,6 +1,6 @@
-import { createSignal, onMount, onCleanup, Show } from 'solid-js';
-import { api, ApiRequestError } from '../../lib/api.js';
-import Modal from './Modal.js';
+import { createSignal, onMount, onCleanup, Show } from "solid-js";
+import { api, ApiRequestError } from "../../lib/api.js";
+import Modal from "./Modal.js";
 
 interface InviteResponse {
   code: string;
@@ -19,14 +19,14 @@ interface Props {
 const InviteModal = (props: Props) => {
   const [invite, setInvite] = createSignal<InviteResponse | null>(null);
   const [loading, setLoading] = createSignal(false);
-  const [error, setError] = createSignal('');
+  const [error, setError] = createSignal("");
   const [copied, setCopied] = createSignal(false);
   const [showAdvanced, setShowAdvanced] = createSignal(false);
-  const [maxUses, setMaxUses] = createSignal('');
-  const [expiresIn, setExpiresIn] = createSignal('');
+  const [maxUses, setMaxUses] = createSignal("");
+  const [expiresIn, setExpiresIn] = createSignal("");
 
   const generateInvite = async (options?: { maxUses?: number; expiresAt?: string }) => {
-    setError('');
+    setError("");
     setLoading(true);
     try {
       const body: Record<string, unknown> = {};
@@ -34,7 +34,7 @@ const InviteModal = (props: Props) => {
       if (options?.expiresAt) body.expiresAt = options.expiresAt;
 
       const data = await api<InviteResponse>(`/api/servers/${props.serverId}/invites`, {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify(body),
       });
       setInvite(data);
@@ -42,7 +42,7 @@ const InviteModal = (props: Props) => {
       if (err instanceof ApiRequestError) {
         setError(err.body.message);
       } else {
-        setError('Failed to create invite');
+        setError("Failed to create invite");
       }
     } finally {
       setLoading(false);
@@ -63,7 +63,7 @@ const InviteModal = (props: Props) => {
       clearTimeout(copiedTimer);
       copiedTimer = setTimeout(() => setCopied(false), 2000);
     } catch {
-      setError('Failed to copy');
+      setError("Failed to copy");
     }
   };
 
@@ -102,7 +102,7 @@ const InviteModal = (props: Props) => {
                   onClick={handleCopy}
                   class="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover"
                 >
-                  {copied() ? 'Copied!' : 'Copy'}
+                  {copied() ? "Copied!" : "Copy"}
                 </button>
               </div>
 
@@ -111,7 +111,7 @@ const InviteModal = (props: Props) => {
                 onClick={() => setShowAdvanced((v) => !v)}
                 class="mb-3 text-xs text-text-muted hover:text-text-secondary"
               >
-                {showAdvanced() ? 'Hide advanced' : 'Advanced options'}
+                {showAdvanced() ? "Hide advanced" : "Advanced options"}
               </button>
 
               <Show when={showAdvanced()}>
@@ -148,7 +148,7 @@ const InviteModal = (props: Props) => {
                     disabled={loading()}
                     class="rounded-lg bg-bg-active px-3 py-1.5 text-sm text-text-primary hover:bg-bg-hover disabled:opacity-50"
                   >
-                    {loading() ? 'Generating...' : 'Generate New'}
+                    {loading() ? "Generating..." : "Generate New"}
                   </button>
                 </div>
               </Show>

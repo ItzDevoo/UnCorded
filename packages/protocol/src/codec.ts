@@ -1,5 +1,5 @@
-import { encode as msgpackEncode, decode as msgpackDecode } from '@msgpack/msgpack';
-import type { Opcode } from './opcodes.js';
+import { encode as msgpackEncode, decode as msgpackDecode } from "@msgpack/msgpack";
+import type { Opcode } from "./opcodes.js";
 
 export interface GatewayFrame {
   op: Opcode;

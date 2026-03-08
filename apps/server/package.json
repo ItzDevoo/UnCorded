@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "bun run --env-file=../../.env --hot src/index.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src/",
     "db:migrate": "bun run --env-file=../../.env src/db/migrate.ts",
     "db:generate": "bun run --env-file=../../.env bunx drizzle-kit generate"
   },

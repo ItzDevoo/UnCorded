@@ -1,0 +1,22 @@
+import { splitProps, type JSX } from "solid-js";
+import { cn } from "../../lib/cn.js";
+
+type InputProps = JSX.InputHTMLAttributes<HTMLInputElement>;
+
+const Input = (props: InputProps) => {
+  const [local, rest] = splitProps(props, ["class"]);
+
+  return (
+    <input
+      data-slot="input"
+      class={cn(
+        "h-9 w-full rounded-lg border border-border bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring disabled:opacity-50 outline-none aria-[invalid=true]:border-destructive",
+        local.class,
+      )}
+      {...rest}
+    />
+  );
+};
+
+export { Input };
+export type { InputProps };

@@ -84,27 +84,27 @@ const InviteModal = (props: Props) => {
         when={!loading() || invite()}
         fallback={
           <div class="flex justify-center py-6">
-            <div class="h-8 w-8 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+            <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           </div>
         }
       >
-        {error() && <p class="mb-3 text-sm text-danger">{error()}</p>}
+        {error() && <p class="mb-3 text-sm text-destructive">{error()}</p>}
 
         <Show when={invite()}>
           {(inv) => (
             <>
-              <label class="mb-1 block text-sm font-medium text-text-secondary">Invite Code</label>
+              <label class="mb-1 block text-sm font-medium text-secondary-foreground">Invite Code</label>
               <div class="mb-4 flex gap-2">
                 <input
                   type="text"
                   value={inv().code}
                   readOnly
-                  class="flex-1 rounded-lg bg-bg-input px-3 py-2 text-sm text-text-primary outline-none"
+                  class="flex-1 rounded-lg bg-input px-3 py-2 text-sm text-foreground outline-none"
                 />
                 <button
                   type="button"
                   onClick={handleCopy}
-                  class="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover"
+                  class="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/80"
                 >
                   {copied() ? "Copied!" : "Copy"}
                 </button>
@@ -113,15 +113,15 @@ const InviteModal = (props: Props) => {
               <button
                 type="button"
                 onClick={() => setShowAdvanced((v) => !v)}
-                class="mb-3 text-xs text-text-muted hover:text-text-secondary"
+                class="mb-3 text-xs text-muted-foreground hover:text-secondary-foreground"
               >
                 {showAdvanced() ? "Hide advanced" : "Advanced options"}
               </button>
 
               <Show when={showAdvanced()}>
-                <div class="mb-4 space-y-3 rounded-lg bg-bg-tertiary p-3">
+                <div class="mb-4 space-y-3 rounded-lg bg-secondary p-3">
                   <div>
-                    <label class="mb-1 block text-xs font-medium text-text-secondary">
+                    <label class="mb-1 block text-xs font-medium text-secondary-foreground">
                       Max Uses
                     </label>
                     <input
@@ -130,11 +130,11 @@ const InviteModal = (props: Props) => {
                       onInput={(e) => setMaxUses(e.currentTarget.value)}
                       placeholder="Unlimited"
                       min="1"
-                      class="w-full rounded-lg bg-bg-input px-3 py-1.5 text-sm text-text-primary placeholder:text-text-muted outline-none focus:ring-2 focus:ring-brand"
+                      class="w-full rounded-lg bg-input px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring"
                     />
                   </div>
                   <div>
-                    <label class="mb-1 block text-xs font-medium text-text-secondary">
+                    <label class="mb-1 block text-xs font-medium text-secondary-foreground">
                       Expires In (hours)
                     </label>
                     <input
@@ -143,14 +143,14 @@ const InviteModal = (props: Props) => {
                       onInput={(e) => setExpiresIn(e.currentTarget.value)}
                       placeholder="Never"
                       min="1"
-                      class="w-full rounded-lg bg-bg-input px-3 py-1.5 text-sm text-text-primary placeholder:text-text-muted outline-none focus:ring-2 focus:ring-brand"
+                      class="w-full rounded-lg bg-input px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring"
                     />
                   </div>
                   <button
                     type="button"
                     onClick={handleGenerateAdvanced}
                     disabled={loading()}
-                    class="rounded-lg bg-bg-active px-3 py-1.5 text-sm text-text-primary hover:bg-bg-hover disabled:opacity-50"
+                    class="rounded-lg bg-muted px-3 py-1.5 text-sm text-foreground hover:bg-accent disabled:opacity-50"
                   >
                     {loading() ? "Generating..." : "Generate New"}
                   </button>
@@ -165,7 +165,7 @@ const InviteModal = (props: Props) => {
         <button
           type="button"
           onClick={() => props.onClose()}
-          class="rounded-lg px-4 py-2 text-sm text-text-secondary hover:text-text-primary"
+          class="rounded-lg px-4 py-2 text-sm text-secondary-foreground hover:text-foreground"
         >
           Done
         </button>

@@ -48,6 +48,8 @@ process.on("SIGTERM", () => {
 
 console.log(`${DIM}Starting UnCorded dev environment...${RESET}\n`);
 
+const streamPromises: Promise<void>[] = [];
+
 for (const service of services) {
   const proc = Bun.spawn(["bun", "run", "--filter", service.filter, "dev"], {
     cwd: import.meta.dir + "/..",
@@ -60,20 +62,22 @@ for (const service of services) {
 
   // Stream stdout — sequential reads are intentional (streaming)
   // oxlint-disable-next-line no-await-in-loop
-  (async () => {
+  const stdoutPromise = (async () => {
     for await (const chunk of proc.stdout) {
       prefixLines(chunk, service.name, service.color);
     }
-  })();
+  })().catch(console.error);
 
   // Stream stderr — sequential reads are intentional (streaming)
   // oxlint-disable-next-line no-await-in-loop
-  (async () => {
+  const stderrPromise = (async () => {
     for await (const chunk of proc.stderr) {
       prefixLines(chunk, service.name, service.color);
     }
-  })();
+  })().catch(console.error);
+
+  streamPromises.push(stdoutPromise as Promise<void>, stderrPromise as Promise<void>);
 }
 
-// Wait for all processes
-await Promise.all(procs.map((p) => p.exited));
+// Wait for all processes and stream readers
+await Promise.all([...procs.map((p) => p.exited), ...streamPromises]);

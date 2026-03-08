@@ -1,22 +1,22 @@
 import { createSignal, Show } from "solid-js";
-import { serverId, userId } from "@uncorded/protocol";
+import { serverId, userId, type ServerId, type UserId, type InviteCode } from "@uncorded/protocol";
 import { api, ApiRequestError } from "../../lib/api.js";
 import { addServer } from "../../lib/gateway-store.js";
 import { setSelectedServerId } from "../../stores/app-store.js";
 import Modal from "./Modal.js";
 
 interface InvitePreview {
-  code: string;
+  code: InviteCode;
   server: { name: string; iconUrl: string | null };
   memberCount: number;
 }
 
 interface AcceptResponse {
   server: {
-    id: string;
+    id: ServerId;
     name: string;
     iconUrl: string | null;
-    ownerId: string;
+    ownerId: UserId;
   };
 }
 
@@ -88,30 +88,30 @@ const JoinServerModal = (props: Props) => {
         when={preview()}
         fallback={
           <form onSubmit={handlePreview}>
-            <label class="mb-1 block text-sm font-medium text-text-secondary">Invite Code</label>
+            <label class="mb-1 block text-sm font-medium text-secondary-foreground">Invite Code</label>
             <input
               type="text"
               value={code()}
               onInput={(e) => setCode(e.currentTarget.value)}
               placeholder="abc12345"
-              class="mb-4 w-full rounded-lg bg-bg-input px-3 py-2 text-sm text-text-primary placeholder:text-text-muted outline-none focus:ring-2 focus:ring-brand"
+              class="mb-4 w-full rounded-lg bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring"
               autofocus
             />
 
-            {error() && <p class="mb-3 text-sm text-danger">{error()}</p>}
+            {error() && <p class="mb-3 text-sm text-destructive">{error()}</p>}
 
             <div class="flex justify-end gap-3">
               <button
                 type="button"
                 onClick={props.onClose}
-                class="rounded-lg px-4 py-2 text-sm text-text-secondary hover:text-text-primary"
+                class="rounded-lg px-4 py-2 text-sm text-secondary-foreground hover:text-foreground"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading() || !code().trim()}
-                class="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover disabled:opacity-50"
+                class="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/80 disabled:opacity-50"
               >
                 {loading() ? "Looking up..." : "Preview"}
               </button>
@@ -121,8 +121,8 @@ const JoinServerModal = (props: Props) => {
       >
         {(p) => (
           <div>
-            <div class="mb-4 flex items-center gap-3 rounded-lg bg-bg-tertiary p-3">
-              <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-bg-active text-lg font-bold text-text-primary">
+            <div class="mb-4 flex items-center gap-3 rounded-lg bg-secondary p-3">
+              <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted text-lg font-bold text-foreground">
                 {p().server.iconUrl ? (
                   <img
                     src={p().server.iconUrl ?? undefined}
@@ -134,14 +134,14 @@ const JoinServerModal = (props: Props) => {
                 )}
               </div>
               <div>
-                <div class="font-semibold text-text-primary">{p().server.name}</div>
-                <div class="text-sm text-text-muted">
+                <div class="font-semibold text-foreground">{p().server.name}</div>
+                <div class="text-sm text-muted-foreground">
                   {p().memberCount} {p().memberCount === 1 ? "member" : "members"}
                 </div>
               </div>
             </div>
 
-            {error() && <p class="mb-3 text-sm text-danger">{error()}</p>}
+            {error() && <p class="mb-3 text-sm text-destructive">{error()}</p>}
 
             <div class="flex justify-end gap-3">
               <button
@@ -150,7 +150,7 @@ const JoinServerModal = (props: Props) => {
                   setPreview(null);
                   setError("");
                 }}
-                class="rounded-lg px-4 py-2 text-sm text-text-secondary hover:text-text-primary"
+                class="rounded-lg px-4 py-2 text-sm text-secondary-foreground hover:text-foreground"
               >
                 Back
               </button>
@@ -158,7 +158,7 @@ const JoinServerModal = (props: Props) => {
                 type="button"
                 onClick={handleJoin}
                 disabled={loading()}
-                class="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover disabled:opacity-50"
+                class="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/80 disabled:opacity-50"
               >
                 {loading() ? "Joining..." : "Join Server"}
               </button>

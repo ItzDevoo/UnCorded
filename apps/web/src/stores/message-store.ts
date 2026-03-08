@@ -1,6 +1,8 @@
 import { createStore, produce } from "solid-js/store";
+import { z } from "zod";
 import { Opcode } from "@uncorded/protocol";
 import type { MessageId, ChannelId, UserId } from "@uncorded/protocol";
+import { channelId, messageId, userId } from "@uncorded/protocol";
 import { onGatewayEvent } from "../lib/gateway.js";
 import { api } from "../lib/api.js";
 import { readyData } from "../lib/gateway-store.js";
@@ -45,25 +47,62 @@ const [store, setStore] = createStore<MessageStoreState>({
   typing: {},
 });
 
-export async function fetchMessages(channelId: string) {
-  const existing = store.channels[channelId];
+// --- Zod schemas for WS event validation ---
+
+const authorSchema = z.object({
+  id: z.string(),
+  username: z.string().nullable(),
+  displayName: z.string().nullable(),
+  avatarUrl: z.string().nullable(),
+});
+
+const messageCreateSchema = z.object({
+  id: z.string(),
+  channelId: z.string(),
+  content: z.string(),
+  editedAt: z.string().nullable(),
+  createdAt: z.string(),
+  author: authorSchema,
+});
+
+const messageUpdateSchema = z.object({
+  id: z.string(),
+  channelId: z.string(),
+  content: z.string(),
+  editedAt: z.string().nullable(),
+});
+
+const messageDeleteSchema = z.object({
+  id: z.string(),
+  channelId: z.string(),
+});
+
+const typingStartSchema = z.object({
+  channelId: z.string(),
+  userId: z.string(),
+  username: z.string(),
+});
+
+export async function fetchMessages(cId: ChannelId) {
+  const key = cId as string;
+  const existing = store.channels[key];
   if (existing?.loading) return;
 
   // Initialize channel entry if needed
   if (!existing) {
-    setStore("channels", channelId, { messages: [], loading: true, hasMore: true });
+    setStore("channels", key, { messages: [], loading: true, hasMore: true });
   } else {
-    setStore("channels", channelId, "loading", true);
+    setStore("channels", key, "loading", true);
   }
 
-  const oldest = store.channels[channelId]?.messages[0];
+  const oldest = store.channels[key]?.messages[0];
   const query = oldest ? `?before=${oldest.id}&limit=${LIMIT}` : `?limit=${LIMIT}`;
 
   try {
-    const res = await api<{ messages: Message[] }>(`/api/channels/${channelId}/messages${query}`);
+    const res = await api<{ messages: Message[] }>(`/api/channels/${cId}/messages${query}`);
     setStore(
       "channels",
-      channelId,
+      key,
       produce((ch) => {
         if (!ch) return;
         ch.messages = [...res.messages, ...ch.messages];
@@ -72,13 +111,14 @@ export async function fetchMessages(channelId: string) {
       }),
     );
   } catch {
-    setStore("channels", channelId, "loading", false);
+    setStore("channels", key, "loading", false);
   }
 }
 
-export function addMessage(channelId: string, message: Message) {
-  if (!store.channels[channelId]) {
-    setStore("channels", channelId, {
+export function addMessage(cId: ChannelId, message: Message) {
+  const key = cId as string;
+  if (!store.channels[key]) {
+    setStore("channels", key, {
       messages: [message],
       loading: false,
       hasMore: true,
@@ -87,7 +127,7 @@ export function addMessage(channelId: string, message: Message) {
   }
   setStore(
     "channels",
-    channelId,
+    key,
     produce((ch) => {
       if (ch.messages.some((m) => m.id === message.id)) return;
       ch.messages.push(message);
@@ -96,16 +136,17 @@ export function addMessage(channelId: string, message: Message) {
 }
 
 export function updateMessage(
-  channelId: string,
-  messageId: string,
+  cId: ChannelId,
+  mId: MessageId,
   updates: { content: string; editedAt: string | null },
 ) {
+  const key = cId as string;
   setStore(
     "channels",
-    channelId,
+    key,
     produce((ch) => {
       if (!ch) return;
-      const msg = ch.messages.find((m) => m.id === messageId);
+      const msg = ch.messages.find((m) => m.id === mId);
       if (msg) {
         msg.content = updates.content;
         msg.editedAt = updates.editedAt;
@@ -114,43 +155,47 @@ export function updateMessage(
   );
 }
 
-export function removeMessage(channelId: string, messageId: string) {
+export function removeMessage(cId: ChannelId, mId: MessageId) {
+  const key = cId as string;
   setStore(
     "channels",
-    channelId,
+    key,
     produce((ch) => {
       if (!ch) return;
-      ch.messages = ch.messages.filter((m) => m.id !== messageId);
+      ch.messages = ch.messages.filter((m) => m.id !== mId);
     }),
   );
 }
 
-export function getMessages(channelId: string): ChannelMessages | undefined {
-  return store.channels[channelId];
+export function getMessages(cId: ChannelId): ChannelMessages | undefined {
+  return store.channels[cId as string];
 }
 
-export function getTypingUsers(channelId: string): TypingUser[] {
+export function getTypingUsers(cId: ChannelId): TypingUser[] {
   const selfId = readyData.data?.user.id;
   const now = Date.now();
-  return (store.typing[channelId] ?? []).filter((t) => t.expiresAt > now && t.userId !== selfId);
+  return (store.typing[cId as string] ?? []).filter(
+    (t) => t.expiresAt > now && t.userId !== selfId,
+  );
 }
 
-export function addTypingUser(channelId: string, userId: string, username: string) {
-  if (!store.typing[channelId]) {
-    setStore("typing", channelId, [
-      { userId, username, expiresAt: Date.now() + TYPING_TIMEOUT_MS },
+export function addTypingUser(cId: ChannelId, uId: UserId, username: string) {
+  const key = cId as string;
+  if (!store.typing[key]) {
+    setStore("typing", key, [
+      { userId: uId, username, expiresAt: Date.now() + TYPING_TIMEOUT_MS },
     ]);
     return;
   }
   setStore(
     "typing",
-    channelId,
+    key,
     produce((users) => {
-      const existing = users.find((t) => t.userId === userId);
+      const existing = users.find((t) => t.userId === uId);
       if (existing) {
         existing.expiresAt = Date.now() + TYPING_TIMEOUT_MS;
       } else {
-        users.push({ userId, username, expiresAt: Date.now() + TYPING_TIMEOUT_MS });
+        users.push({ userId: uId, username, expiresAt: Date.now() + TYPING_TIMEOUT_MS });
       }
     }),
   );
@@ -160,23 +205,59 @@ export function addTypingUser(channelId: string, userId: string, username: strin
 
 /* eslint-disable solid/reactivity -- these are event handlers, not tracked scopes */
 const unsubCreate = onGatewayEvent(Opcode.MESSAGE_CREATE, (data) => {
-  const d = data as Message;
-  addMessage(d.channelId, d);
+  const parsed = messageCreateSchema.safeParse(data);
+  if (!parsed.success) {
+    console.warn("Invalid MESSAGE_CREATE payload:", parsed.error.issues);
+    return;
+  }
+  const d = parsed.data;
+  const msg: Message = {
+    id: messageId(d.id),
+    channelId: channelId(d.channelId),
+    content: d.content,
+    editedAt: d.editedAt,
+    createdAt: d.createdAt,
+    author: {
+      id: userId(d.author.id),
+      username: d.author.username,
+      displayName: d.author.displayName,
+      avatarUrl: d.author.avatarUrl,
+    },
+  };
+  addMessage(msg.channelId, msg);
 });
 
 const unsubUpdate = onGatewayEvent(Opcode.MESSAGE_UPDATE, (data) => {
-  const d = data as { id: string; channelId: string; content: string; editedAt: string | null };
-  updateMessage(d.channelId, d.id, { content: d.content, editedAt: d.editedAt });
+  const parsed = messageUpdateSchema.safeParse(data);
+  if (!parsed.success) {
+    console.warn("Invalid MESSAGE_UPDATE payload:", parsed.error.issues);
+    return;
+  }
+  const d = parsed.data;
+  updateMessage(channelId(d.channelId), messageId(d.id), {
+    content: d.content,
+    editedAt: d.editedAt,
+  });
 });
 
 const unsubDelete = onGatewayEvent(Opcode.MESSAGE_DELETE, (data) => {
-  const d = data as { id: string; channelId: string };
-  removeMessage(d.channelId, d.id);
+  const parsed = messageDeleteSchema.safeParse(data);
+  if (!parsed.success) {
+    console.warn("Invalid MESSAGE_DELETE payload:", parsed.error.issues);
+    return;
+  }
+  const d = parsed.data;
+  removeMessage(channelId(d.channelId), messageId(d.id));
 });
 
 const unsubTyping = onGatewayEvent(Opcode.TYPING_START, (data) => {
-  const d = data as { channelId: string; userId: string; username: string };
-  addTypingUser(d.channelId, d.userId, d.username);
+  const parsed = typingStartSchema.safeParse(data);
+  if (!parsed.success) {
+    console.warn("Invalid TYPING_START payload:", parsed.error.issues);
+    return;
+  }
+  const d = parsed.data;
+  addTypingUser(channelId(d.channelId), userId(d.userId), d.username);
 });
 /* eslint-enable solid/reactivity */
 
@@ -184,12 +265,12 @@ const unsubTyping = onGatewayEvent(Opcode.TYPING_START, (data) => {
 
 const cleanupInterval = setInterval(() => {
   const now = Date.now();
-  for (const channelId of Object.keys(store.typing)) {
-    const users = store.typing[channelId];
+  for (const chId of Object.keys(store.typing)) {
+    const users = store.typing[chId];
     if (users && users.some((t) => t.expiresAt <= now)) {
       setStore(
         "typing",
-        channelId,
+        chId,
         produce((arr) => {
           if (!arr) return;
           const filtered = arr.filter((t) => t.expiresAt > now);

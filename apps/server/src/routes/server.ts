@@ -5,6 +5,7 @@ import {
   updateServerSchema,
   ValidationError,
   NotFoundError,
+  InternalError,
 } from "@uncorded/shared";
 import { serverId, userId, channelId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
@@ -39,8 +40,7 @@ export const serverRoutes = new Elysia({ prefix: "/api/servers" })
       .returning();
 
     if (!server) {
-      set.status = 500;
-      return { code: "INTERNAL_ERROR", message: "Failed to create server" };
+      throw new InternalError("Failed to create server");
     }
 
     const [channel] = await db

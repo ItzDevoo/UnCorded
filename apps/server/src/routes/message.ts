@@ -6,6 +6,7 @@ import {
   ValidationError,
   NotFoundError,
   ForbiddenError,
+  InternalError,
 } from "@uncorded/shared";
 import { Opcode, messageId, channelId, userId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
@@ -98,8 +99,7 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
       .returning();
 
     if (!inserted) {
-      set.status = 500;
-      return { code: "INTERNAL_ERROR", message: "Failed to create message" };
+      throw new InternalError("Failed to create message");
     }
 
     const messageWithAuthor = await fetchMessageWithAuthor(inserted.id);

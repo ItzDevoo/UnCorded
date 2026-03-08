@@ -4,3 +4,4 @@ export { ValidationError } from "./validation.js";
 export { NotFoundError } from "./not-found.js";
 export { ConflictError } from "./conflict.js";
 export { RateLimitError } from "./rate-limit.js";
+export { InternalError } from "./internal.js";

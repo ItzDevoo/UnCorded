@@ -1,7 +1,7 @@
 # Frontend — apps/web
 
 SolidJS + Vite + Tailwind CSS v4.
-Read C:\UnCorded\Docs\CLAUDE.md and Project/CLAUDE.md first.
+Read docs/CLAUDE.md and apps/CLAUDE.md first.
 
 ## Structure
 - src/components/ — reusable UI components

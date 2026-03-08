@@ -1,6 +1,12 @@
 import { Elysia } from "elysia";
 import { eq, and, lt, gt, desc, or } from "drizzle-orm";
-import { createMessageSchema, updateMessageSchema } from "@uncorded/shared";
+import {
+  createMessageSchema,
+  updateMessageSchema,
+  ValidationError,
+  NotFoundError,
+  ForbiddenError,
+} from "@uncorded/shared";
 import { Opcode, messageId, channelId, userId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { messages, channels, servers, user } from "../db/schema.js";
@@ -11,8 +17,8 @@ import { broadcastToServer } from "../ws/connections.js";
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
 
-/** Look up channel and return its serverId, or null if not found (sets 404). */
-async function getChannelServerId(chanId: string, set: { status?: number | string }) {
+/** Look up channel and return its serverId, or throw NotFoundError. */
+async function getChannelServerId(chanId: string): Promise<string> {
   const [channel] = await db
     .select({ serverId: channels.serverId })
     .from(channels)
@@ -20,8 +26,7 @@ async function getChannelServerId(chanId: string, set: { status?: number | strin
     .limit(1);
 
   if (!channel) {
-    set.status = 404;
-    return null;
+    throw new NotFoundError("Channel");
   }
 
   return channel.serverId;
@@ -71,24 +76,16 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
 
   // POST / — Create message
   .post("/", async ({ user: sessionUser, params, body, set }) => {
-    const serverId = await getChannelServerId(params.channelId, set);
-    if (!serverId) return { code: "NOT_FOUND", message: "Channel not found" };
-
-    const member = await requireMember(sessionUser.id, serverId, set);
-    if (!member) return { code: "FORBIDDEN", message: "Not a server member" };
+    const serverId = await getChannelServerId(params.channelId);
+    await requireMember(sessionUser.id, serverId);
 
     const parsed = createMessageSchema.safeParse(body);
     if (!parsed.success) {
-      set.status = 400;
-      return {
-        code: "VALIDATION_ERROR",
-        message: parsed.error.issues[0]?.message ?? "Invalid input",
-      };
+      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
     }
 
     if (!parsed.data.content || parsed.data.content.trim().length === 0) {
-      set.status = 400;
-      return { code: "VALIDATION_ERROR", message: "Message content is required" };
+      throw new ValidationError("Message content is required");
     }
 
     const [inserted] = await db
@@ -117,12 +114,9 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
   })
 
   // GET / — List messages with cursor pagination
-  .get("/", async ({ user: sessionUser, params, query, set }) => {
-    const serverId = await getChannelServerId(params.channelId, set);
-    if (!serverId) return { code: "NOT_FOUND", message: "Channel not found" };
-
-    const member = await requireMember(sessionUser.id, serverId, set);
-    if (!member) return { code: "FORBIDDEN", message: "Not a server member" };
+  .get("/", async ({ user: sessionUser, params, query }) => {
+    const serverId = await getChannelServerId(params.channelId);
+    await requireMember(sessionUser.id, serverId);
 
     const before = query.before as string | undefined;
     const after = query.after as string | undefined;
@@ -195,20 +189,13 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
   })
 
   // PATCH /:messageId — Edit message
-  .patch("/:messageId", async ({ user: sessionUser, params, body, set }) => {
-    const serverId = await getChannelServerId(params.channelId, set);
-    if (!serverId) return { code: "NOT_FOUND", message: "Channel not found" };
-
-    const member = await requireMember(sessionUser.id, serverId, set);
-    if (!member) return { code: "FORBIDDEN", message: "Not a server member" };
+  .patch("/:messageId", async ({ user: sessionUser, params, body }) => {
+    const serverId = await getChannelServerId(params.channelId);
+    await requireMember(sessionUser.id, serverId);
 
     const parsed = updateMessageSchema.safeParse(body);
     if (!parsed.success) {
-      set.status = 400;
-      return {
-        code: "VALIDATION_ERROR",
-        message: parsed.error.issues[0]?.message ?? "Invalid input",
-      };
+      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
     }
 
     // Fetch message and verify ownership
@@ -219,13 +206,11 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
       .limit(1);
 
     if (!existing) {
-      set.status = 404;
-      return { code: "NOT_FOUND", message: "Message not found" };
+      throw new NotFoundError("Message");
     }
 
     if (existing.authorId !== sessionUser.id) {
-      set.status = 403;
-      return { code: "FORBIDDEN", message: "Only the author can edit this message" };
+      throw new ForbiddenError("Only the author can edit this message");
     }
 
     const editedAt = new Date();
@@ -251,11 +236,8 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
 
   // DELETE /:messageId — Delete message
   .delete("/:messageId", async ({ user: sessionUser, params, set }) => {
-    const serverId = await getChannelServerId(params.channelId, set);
-    if (!serverId) return { code: "NOT_FOUND", message: "Channel not found" };
-
-    const member = await requireMember(sessionUser.id, serverId, set);
-    if (!member) return { code: "FORBIDDEN", message: "Not a server member" };
+    const serverId = await getChannelServerId(params.channelId);
+    await requireMember(sessionUser.id, serverId);
 
     // Fetch message
     const [existing] = await db
@@ -265,8 +247,7 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
       .limit(1);
 
     if (!existing) {
-      set.status = 404;
-      return { code: "NOT_FOUND", message: "Message not found" };
+      throw new NotFoundError("Message");
     }
 
     // Author or server owner can delete
@@ -278,8 +259,7 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
         .limit(1);
 
       if (!server || server.ownerId !== sessionUser.id) {
-        set.status = 403;
-        return { code: "FORBIDDEN", message: "Cannot delete this message" };
+        throw new ForbiddenError("Cannot delete this message");
       }
     }
 

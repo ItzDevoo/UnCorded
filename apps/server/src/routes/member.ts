@@ -1,5 +1,6 @@
 import { Elysia } from "elysia";
 import { eq, and } from "drizzle-orm";
+import { ForbiddenError, ValidationError, NotFoundError } from "@uncorded/shared";
 import { userId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { members, servers, user } from "../db/schema.js";
@@ -17,9 +18,8 @@ export const memberRoutes = new Elysia({ prefix: "/api/servers/:serverId/members
       session: session.session,
     };
   })
-  .get("/", async ({ user: sessionUser, params, set }) => {
-    const member = await requireMember(sessionUser.id, params.serverId, set);
-    if (!member) return { code: "FORBIDDEN", message: "Not a server member" };
+  .get("/", async ({ user: sessionUser, params }) => {
+    await requireMember(sessionUser.id, params.serverId);
 
     const memberList = await db
       .select({
@@ -38,8 +38,7 @@ export const memberRoutes = new Elysia({ prefix: "/api/servers/:serverId/members
     return memberList.map((m) => Object.assign(m, { userId: userId(m.userId) }));
   })
   .delete("/@me", async ({ user: sessionUser, params, set }) => {
-    const member = await requireMember(sessionUser.id, params.serverId, set);
-    if (!member) return { code: "FORBIDDEN", message: "Not a server member" };
+    await requireMember(sessionUser.id, params.serverId);
 
     const [server] = await db
       .select({ ownerId: servers.ownerId })
@@ -48,11 +47,9 @@ export const memberRoutes = new Elysia({ prefix: "/api/servers/:serverId/members
       .limit(1);
 
     if (server?.ownerId === sessionUser.id) {
-      set.status = 403;
-      return {
-        code: "OWNER_CANNOT_LEAVE",
-        message: "Server owner cannot leave. Transfer ownership or delete the server.",
-      };
+      throw new ForbiddenError(
+        "Server owner cannot leave. Transfer ownership or delete the server.",
+      );
     }
 
     await db
@@ -62,16 +59,21 @@ export const memberRoutes = new Elysia({ prefix: "/api/servers/:serverId/members
     set.status = 204;
   })
   .delete("/:userId", async ({ user: sessionUser, params, set }) => {
-    const server = await requireOwner(sessionUser.id, params.serverId, set);
-    if (!server) return { code: "FORBIDDEN", message: "Not the server owner" };
+    await requireOwner(sessionUser.id, params.serverId);
 
     if (params.userId === sessionUser.id) {
-      set.status = 400;
-      return { code: "CANNOT_KICK_SELF", message: "Cannot kick yourself" };
+      throw new ValidationError("Cannot kick yourself");
     }
 
-    const member = await requireMember(params.userId, params.serverId, set);
-    if (!member) return { code: "NOT_FOUND", message: "Member not found" };
+    const [member] = await db
+      .select()
+      .from(members)
+      .where(and(eq(members.userId, params.userId), eq(members.serverId, params.serverId)))
+      .limit(1);
+
+    if (!member) {
+      throw new NotFoundError("Member");
+    }
 
     await db
       .delete(members)

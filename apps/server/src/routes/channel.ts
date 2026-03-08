@@ -1,6 +1,11 @@
 import { Elysia } from "elysia";
 import { eq, max } from "drizzle-orm";
-import { createChannelSchema, updateChannelSchema } from "@uncorded/shared";
+import {
+  createChannelSchema,
+  updateChannelSchema,
+  ValidationError,
+  NotFoundError,
+} from "@uncorded/shared";
 import { channelId, serverId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { channels } from "../db/schema.js";
@@ -19,16 +24,11 @@ const serverChannelRoutes = new Elysia({ prefix: "/api/servers/:serverId/channel
     };
   })
   .post("/", async ({ user: sessionUser, params, body, set }) => {
-    const server = await requireOwner(sessionUser.id, params.serverId, set);
-    if (!server) return { code: "FORBIDDEN", message: "Not the server owner" };
+    await requireOwner(sessionUser.id, params.serverId);
 
     const parsed = createChannelSchema.safeParse(body);
     if (!parsed.success) {
-      set.status = 400;
-      return {
-        code: "VALIDATION_ERROR",
-        message: parsed.error.issues[0]?.message ?? "Invalid input",
-      };
+      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
     }
 
     const [maxPos] = await db
@@ -51,11 +51,12 @@ const serverChannelRoutes = new Elysia({ prefix: "/api/servers/:serverId/channel
       .returning();
 
     set.status = 201;
-    return channel ? { ...channel, id: channelId(channel.id), serverId: serverId(channel.serverId) } : channel;
+    return channel
+      ? { ...channel, id: channelId(channel.id), serverId: serverId(channel.serverId) }
+      : channel;
   })
-  .get("/", async ({ user: sessionUser, params, set }) => {
-    const member = await requireMember(sessionUser.id, params.serverId, set);
-    if (!member) return { code: "FORBIDDEN", message: "Not a server member" };
+  .get("/", async ({ user: sessionUser, params }) => {
+    await requireMember(sessionUser.id, params.serverId);
 
     const serverChannels = await db
       .select()
@@ -79,7 +80,7 @@ const channelIdRoutes = new Elysia({ prefix: "/api/channels/:channelId" })
       session: session.session,
     };
   })
-  .patch("/", async ({ user: sessionUser, params, body, set }) => {
+  .patch("/", async ({ user: sessionUser, params, body }) => {
     const [channel] = await db
       .select()
       .from(channels)
@@ -87,20 +88,14 @@ const channelIdRoutes = new Elysia({ prefix: "/api/channels/:channelId" })
       .limit(1);
 
     if (!channel) {
-      set.status = 404;
-      return { code: "NOT_FOUND", message: "Channel not found" };
+      throw new NotFoundError("Channel");
     }
 
-    const server = await requireOwner(sessionUser.id, channel.serverId, set);
-    if (!server) return { code: "FORBIDDEN", message: "Not the server owner" };
+    await requireOwner(sessionUser.id, channel.serverId);
 
     const parsed = updateChannelSchema.safeParse(body);
     if (!parsed.success) {
-      set.status = 400;
-      return {
-        code: "VALIDATION_ERROR",
-        message: parsed.error.issues[0]?.message ?? "Invalid input",
-      };
+      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
     }
 
     const updates: Partial<typeof channels.$inferInsert> = {};
@@ -112,8 +107,7 @@ const channelIdRoutes = new Elysia({ prefix: "/api/channels/:channelId" })
     if (parsed.data.position !== undefined) updates.position = parsed.data.position;
 
     if (Object.keys(updates).length === 0) {
-      set.status = 400;
-      return { code: "NO_CHANGES", message: "No fields to update" };
+      throw new ValidationError("No fields to update");
     }
 
     const [updated] = await db
@@ -122,7 +116,9 @@ const channelIdRoutes = new Elysia({ prefix: "/api/channels/:channelId" })
       .where(eq(channels.id, params.channelId))
       .returning();
 
-    return updated ? { ...updated, id: channelId(updated.id), serverId: serverId(updated.serverId) } : updated;
+    return updated
+      ? { ...updated, id: channelId(updated.id), serverId: serverId(updated.serverId) }
+      : updated;
   })
   .delete("/", async ({ user: sessionUser, params, set }) => {
     const [channel] = await db
@@ -132,12 +128,10 @@ const channelIdRoutes = new Elysia({ prefix: "/api/channels/:channelId" })
       .limit(1);
 
     if (!channel) {
-      set.status = 404;
-      return { code: "NOT_FOUND", message: "Channel not found" };
+      throw new NotFoundError("Channel");
     }
 
-    const server = await requireOwner(sessionUser.id, channel.serverId, set);
-    if (!server) return { code: "FORBIDDEN", message: "Not the server owner" };
+    await requireOwner(sessionUser.id, channel.serverId);
 
     await db.delete(channels).where(eq(channels.id, params.channelId));
 

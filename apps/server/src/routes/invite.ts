@@ -1,11 +1,16 @@
 import { Elysia } from "elysia";
 import { eq, and, or, gt, isNull, sql, count } from "drizzle-orm";
-import { createInviteSchema } from "@uncorded/shared";
+import {
+  createInviteSchema,
+  ValidationError,
+  NotFoundError,
+  ConflictError,
+} from "@uncorded/shared";
 import { inviteCode, serverId, userId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { invites, servers, members } from "../db/schema.js";
 import { getSession } from "../middleware/auth.js";
-import { requireMember } from "../helpers/permissions.js";
+import { requireMember, isMember } from "../helpers/permissions.js";
 
 export const serverInviteRoutes = new Elysia({ prefix: "/api/servers/:serverId/invites" })
   .resolve(async ({ status, request }) => {
@@ -19,16 +24,11 @@ export const serverInviteRoutes = new Elysia({ prefix: "/api/servers/:serverId/i
     };
   })
   .post("/", async ({ user: sessionUser, params, body, set }) => {
-    const member = await requireMember(sessionUser.id, params.serverId, set);
-    if (!member) return { code: "FORBIDDEN", message: "Not a server member" };
+    await requireMember(sessionUser.id, params.serverId);
 
     const parsed = createInviteSchema.safeParse(body);
     if (!parsed.success) {
-      set.status = 400;
-      return {
-        code: "VALIDATION_ERROR",
-        message: parsed.error.issues[0]?.message ?? "Invalid input",
-      };
+      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
     }
 
     const [invite] = await db
@@ -53,12 +53,11 @@ export const serverInviteRoutes = new Elysia({ prefix: "/api/servers/:serverId/i
   });
 
 export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
-  .get("/", async ({ params, set }) => {
+  .get("/", async ({ params }) => {
     const [invite] = await db.select().from(invites).where(eq(invites.code, params.code)).limit(1);
 
     if (!invite) {
-      set.status = 404;
-      return { code: "NOT_FOUND", message: "Invite not found" };
+      throw new NotFoundError("Invite");
     }
 
     const [server] = await db
@@ -71,8 +70,7 @@ export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
       .limit(1);
 
     if (!server) {
-      set.status = 404;
-      return { code: "NOT_FOUND", message: "Server not found" };
+      throw new NotFoundError("Server");
     }
 
     const [memberCount] = await db
@@ -99,7 +97,7 @@ export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
       session: session.session,
     };
   })
-  .post("/accept", async ({ user: sessionUser, params, set }) => {
+  .post("/accept", async ({ user: sessionUser, params }) => {
     const [invite] = await db
       .select()
       .from(invites)
@@ -113,18 +111,13 @@ export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
       .limit(1);
 
     if (!invite) {
-      set.status = 404;
-      return { code: "NOT_FOUND", message: "Invite not found or expired" };
+      throw new NotFoundError("Invite not found or expired");
     }
 
-    const existingMember = await requireMember(sessionUser.id, invite.serverId, set);
-    if (existingMember) {
-      set.status = 409;
-      return { code: "ALREADY_MEMBER", message: "Already a member of this server" };
+    const alreadyMember = await isMember(sessionUser.id, invite.serverId);
+    if (alreadyMember) {
+      throw new ConflictError("ALREADY_MEMBER", "Already a member of this server");
     }
-
-    // Reset status from requireMember's 403
-    set.status = 200;
 
     await db.insert(members).values({
       userId: sessionUser.id,

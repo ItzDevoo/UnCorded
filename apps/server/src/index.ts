@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { rateLimit } from "elysia-rate-limit";
+import { AppError } from "@uncorded/shared";
 import { env } from "./env.js";
 import { betterAuthPlugin } from "./middleware/auth.js";
 import { userRoutes } from "./routes/user.js";
@@ -34,6 +35,11 @@ const app = new Elysia()
   .use(gateway)
   .get("/health", () => ({ status: "ok" }))
   .onError(({ code, error, set }) => {
+    if (error instanceof AppError) {
+      set.status = error.statusCode;
+      return { code: error.code, message: error.message };
+    }
+
     if (code === "NOT_FOUND") {
       set.status = 404;
       return { code: "NOT_FOUND", message: "Route not found" };

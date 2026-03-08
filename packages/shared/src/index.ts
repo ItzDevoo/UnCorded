@@ -5,3 +5,4 @@ export * from "./schemas/channel.js";
 export * from "./schemas/message.js";
 export * from "./schemas/invite.js";
 export * from "./types/index.js";
+export * from "./errors/index.js";

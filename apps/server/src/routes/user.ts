@@ -1,6 +1,6 @@
 import { Elysia } from "elysia";
 import { eq } from "drizzle-orm";
-import { updateUserSchema } from "@uncorded/shared";
+import { updateUserSchema, NotFoundError, ValidationError, ConflictError } from "@uncorded/shared";
 import { userId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { user } from "../db/schema.js";
@@ -17,12 +17,11 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
       session: session.session,
     };
   })
-  .get("/@me", async ({ user: sessionUser, set }) => {
+  .get("/@me", async ({ user: sessionUser }) => {
     const [dbUser] = await db.select().from(user).where(eq(user.id, sessionUser.id)).limit(1);
 
     if (!dbUser) {
-      set.status = 404;
-      return { code: "NOT_FOUND", message: "User not found" };
+      throw new NotFoundError("User");
     }
 
     return {
@@ -37,14 +36,10 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
       updatedAt: dbUser.updatedAt.toISOString(),
     };
   })
-  .patch("/@me", async ({ user: sessionUser, body, set }) => {
+  .patch("/@me", async ({ user: sessionUser, body }) => {
     const parsed = updateUserSchema.safeParse(body);
     if (!parsed.success) {
-      set.status = 400;
-      return {
-        code: "VALIDATION_ERROR",
-        message: parsed.error.issues[0]?.message ?? "Invalid input",
-      };
+      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
     }
 
     const updates: Partial<typeof user.$inferInsert> = {};
@@ -57,8 +52,7 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
         .limit(1);
 
       if (existing && existing.id !== sessionUser.id) {
-        set.status = 409;
-        return { code: "USERNAME_TAKEN", message: "Username is already taken" };
+        throw new ConflictError("USERNAME_TAKEN", "Username is already taken");
       }
 
       updates.username = parsed.data.username;
@@ -74,8 +68,7 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
     }
 
     if (Object.keys(updates).length === 0) {
-      set.status = 400;
-      return { code: "NO_CHANGES", message: "No fields to update" };
+      throw new ValidationError("No fields to update");
     }
 
     const [updated] = await db
@@ -85,8 +78,7 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
       .returning();
 
     if (!updated) {
-      set.status = 404;
-      return { code: "NOT_FOUND", message: "User not found" };
+      throw new NotFoundError("User");
     }
 
     return {

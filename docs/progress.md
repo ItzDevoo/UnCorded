@@ -6,7 +6,45 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Week 2.5 Day 3 — Typed Errors + Dev Runner + Carryover Fixes
+## Current Status: Week 2.5 Day 4 — Color System + UI Foundation + Virtual Scrolling
+
+---
+
+### Week 2.5 Day 4 — 2026-03-08
+**What was done:**
+- Green-tinted color system (Railway-inspired approach):
+  - Rewrote `apps/web/src/index.css` with OKLCH semantic tokens at hue ~155°
+  - All surfaces carry brand green at low chroma for visual cohesion
+  - Token system: background, foreground, card, primary, secondary, muted, accent, destructive, success, warning, info, sidebar
+  - Radius scale: 0.625rem base with sm/md/lg/xl/2xl derived sizes
+  - Base layer sets `border-border` and `bg-background text-foreground` globally
+- Migrated all 12 component files from old tokens (bg-bg-primary, text-text-primary, bg-brand, etc.) to new semantic tokens (bg-background, text-foreground, bg-primary, etc.)
+- Fixed all 8 review issues:
+  - Branded types in modal response interfaces (CreateServerModal: ServerId/UserId/ChannelId, JoinServerModal: ServerId/UserId/InviteCode)
+  - Created `InternalError` class (500, "INTERNAL_ERROR") in `packages/shared/src/errors/internal.ts`
+  - Replaced inline 500 returns with `throw new InternalError()` in server.ts and message.ts
+  - Added `options?: { cause?: unknown }` to all error subclass constructors
+  - Message-store functions now use branded params (ChannelId, MessageId, UserId) with string keys for store paths
+  - Added Zod validation schemas for all 4 WS event handlers (MESSAGE_CREATE, MESSAGE_UPDATE, MESSAGE_DELETE, TYPING_START) — parse + warn + early return on failure, brand at parse boundary
+  - Dev runner stream readers: collected IIFE promises with `.catch(console.error)`, included in final `Promise.all()`
+- UI primitives created in `apps/web/src/components/ui/`:
+  - `cn()` utility (clsx + tailwind-merge) in `lib/cn.ts`
+  - `button.tsx`: CVA with 6 variants (default, secondary, ghost, outline, destructive, link) and 5 sizes
+  - `input.tsx`: styled with focus-visible ring, error state via aria-invalid
+  - `badge.tsx`: CVA with 6 variants (default, success, warning, destructive, info, outline)
+  - `card.tsx`: compound Card/CardHeader/CardTitle/CardDescription/CardContent/CardFooter
+  - `dialog.tsx`: Dialog/DialogOverlay/DialogContent/DialogHeader/DialogFooter/DialogTitle/DialogDescription with a11y
+  - `tooltip.tsx`: CSS-positioned hover tooltip with delay, 4 sides
+  - All primitives have `data-slot` attributes
+- Virtual scrolling:
+  - `VirtualMessageList.tsx` using `@tanstack/solid-virtual` createVirtualizer
+  - Dynamic row heights via measureElement, overscan 5
+  - Auto-scroll to bottom on new messages (100px threshold)
+  - Load more when scrolled to top
+  - `ChatArea.tsx` updated to use VirtualMessageList instead of `<For>` list
+- Dependencies added: zod, class-variance-authority, tailwind-merge, clsx, @tanstack/solid-virtual
+- Updated docs/ui-standards.md with new OKLCH color palette and cn() utility
+- All checks pass: typecheck (0 errors), lint (0 warnings)
 
 ---
 

@@ -91,3 +91,11 @@ This applies to any module that registers global listeners or timers at the top 
 **[W2.5 D3]** — When refactoring permission helpers from `requireMember(userId, serverId, set)` (returns null + mutates set) to `requireMember(userId, serverId)` (throws), the invite accept route needs special handling. It used requireMember inversely — checked if user IS already a member, then returned 409. After refactoring, use a separate non-throwing `isMember()` helper for this inverse check pattern.
 
 **[W2.5 D3]** — Branded type signals in SolidJS: `createSignal<ServerId | null>(null)` requires all callers to pass branded types. Raw strings from API responses must be branded at the call site — e.g., `setSelectedServerId(serverId(data.server.id))`, not `setSelectedServerId(data.server.id)`. This caught two bugs in CreateServerModal and JoinServerModal where raw strings were being passed.
+
+**[W2.5 D4]** — SolidJS store `Record<string, T>` paths require plain strings, not branded types. When using branded IDs as store keys, cast to `string` at the store boundary: `const key = channelId as string`. Keep branded types in function signatures for type safety, but store internals use strings.
+
+**[W2.5 D4]** — Zod validation at WS event boundaries catches malformed payloads early and prevents branded type contamination. Pattern: `safeParse(data)` → on failure `console.warn` + early return → on success brand the validated strings via constructor functions. This moves the branding to the parse boundary rather than trusting `data as T` casts.
+
+**[W2.5 D4]** — `bun add zod` in a workspace package installs the latest (v4), but if `@uncorded/shared` depends on `zod@^3`, you get version conflicts. Always pin to the same major: `bun add zod@3`.
+
+**[W2.5 D4]** — Railway-style brand-tinted dark palettes: use OKLCH for perceptually uniform color mixing. Keep brand hue consistent across all background/border/muted tokens at low chroma (0.008–0.02), full chroma only for primary/ring/success. Shadows stay neutral — tinted shadows look artificial.

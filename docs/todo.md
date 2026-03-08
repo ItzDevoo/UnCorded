@@ -122,28 +122,36 @@ Reference: C:\Nexis (monorepo patterns, auth, WS gateway), C:\t3Code (tooling, U
 - [x] Update root `package.json` scripts (dev, dev:server, dev:web)
 - [x] Verify: typecheck (0 errors), lint (0 warnings), fmt clean
 
-### Day 4: UI Foundation + Virtual Scrolling
+### Day 4: Color System + UI Foundation + Virtual Scrolling + Review Fixes
 
-- [ ] Create `components/ui/` directory with primitives (button.tsx, input.tsx, card.tsx, badge.tsx, modal.tsx)
-- [ ] Implement `cn()` utility (CVA + tailwind-merge)
-- [ ] Add `data-slot` attributes to all UI primitives
-- [ ] Refactor existing components to use UI primitives (modals, forms, buttons)
-- [ ] Install `@tanstack/solid-virtual`
-- [ ] Replace message list `<For>` with virtual scrolling
-- [ ] Add `.plans/` directory with initial plan files
-- [ ] Verify: all components render correctly, virtual scroll works
+- [x] Green-tinted color system (Railway-inspired, OKLCH, hue ~150°)
+  - [x] Rewrite `index.css` with full semantic token system (--background, --foreground, --primary, etc.)
+  - [x] @theme inline block mapping CSS vars → Tailwind utilities
+  - [x] Radius scale (0.625rem base with sm/md/lg/xl/2xl)
+  - [x] Base layer: `border-border` on all elements, `bg-background text-foreground` on body
+- [x] Migrate all component token references (12 files)
+  - [x] bg-bg-primary → bg-background, bg-bg-secondary → bg-card, bg-bg-tertiary → bg-secondary
+  - [x] bg-bg-server-bar → bg-sidebar, bg-bg-input → bg-input, bg-bg-hover → bg-accent
+  - [x] text-text-primary → text-foreground, text-text-secondary → text-secondary-foreground
+  - [x] text-text-muted → text-muted-foreground, bg-brand → bg-primary, text-brand → text-primary
+  - [x] bg-danger → bg-destructive, text-danger → text-destructive
+- [x] Update docs/ui-standards.md with new color palette
+- [x] Fix all 8 review issues:
+  - [x] #1-2: Branded types in CreateServerModal + JoinServerModal response interfaces
+  - [x] #3-4: InternalError class + throw in server.ts and message.ts
+  - [x] #5: message-store branded params (ChannelId, MessageId, UserId)
+  - [x] #6: Client-side Zod validation for all WS event handlers
+  - [x] #7: Dev runner stream readers collected and error-handled
+  - [x] #8: cause parameter on all error subclass constructors
+- [x] UI primitives (button, input, badge, card, dialog, tooltip)
+  - [x] cn() utility (clsx + tailwind-merge)
+  - [x] CVA variants, data-slot attributes, focus-visible rings
+- [x] Virtual scrolling (@tanstack/solid-virtual)
+  - [x] VirtualMessageList with dynamic heights, auto-scroll, load-more
+  - [x] ChatArea updated to use VirtualMessageList
+- [x] Verify: typecheck (0 errors), lint (0 warnings)
 
-### Day 5: CSS Token System + Polish
-
-- [ ] Refactor `index.css` to use full semantic token system (--background, --foreground, --primary, etc.)
-- [ ] Replace all raw Tailwind color classes with token references
-- [ ] Add DM Sans font import
-- [ ] Add custom scrollbar styling
-- [ ] Add `.no-transitions` class for theme switching
-- [ ] Update existing components to follow ui-standards.md (radius, spacing, shadows)
-- [ ] Verify: all UI matches standards, dark theme consistent
-
-**Milestone: Codebase modernized — Oxlint/Oxfmt, strict TS, branded types, typed errors, dev runner TUI, UI primitives, virtual scrolling.**
+**Milestone: Codebase modernized — Oxlint/Oxfmt, strict TS, branded types, typed errors, dev runner TUI, UI primitives, virtual scrolling, green-tinted design system.**
 
 ---
 

@@ -1,5 +1,5 @@
 import { eq, inArray } from "drizzle-orm";
-import { Opcode, CloseCode, encode } from "@uncorded/protocol";
+import { Opcode, CloseCode, encode, userId, serverId, channelId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { user, session as sessionTable, servers, channels, members } from "../db/schema.js";
 import { addConnection, type AnyServerWebSocket } from "./connections.js";
@@ -37,16 +37,16 @@ export async function handleIdentify(
     return { success: false, closeCode: CloseCode.INVALID_SESSION, closeReason: "Invalid session" };
   }
 
-  const userId = sessionRow.userId;
+  const identifiedUserId = sessionRow.userId;
 
   // Register connection
-  addConnection(userId, ws);
+  addConnection(identifiedUserId, ws);
 
   // Set user online
-  await db.update(user).set({ status: "online" }).where(eq(user.id, userId));
+  await db.update(user).set({ status: "online" }).where(eq(user.id, identifiedUserId));
 
   // Load user record
-  const [dbUser] = await db
+  const [dbUserRow] = await db
     .select({
       id: user.id,
       username: user.username,
@@ -55,8 +55,12 @@ export async function handleIdentify(
       status: user.status,
     })
     .from(user)
-    .where(eq(user.id, userId))
+    .where(eq(user.id, identifiedUserId))
     .limit(1);
+
+  const dbUser = dbUserRow
+    ? { ...dbUserRow, id: userId(dbUserRow.id) }
+    : null;
 
   // Load user's servers
   const userServers = await db
@@ -68,7 +72,7 @@ export async function handleIdentify(
     })
     .from(servers)
     .innerJoin(members, eq(members.serverId, servers.id))
-    .where(eq(members.userId, userId));
+    .where(eq(members.userId, identifiedUserId));
 
   // Load channels for those servers
   const serverIds = userServers.map((s) => s.id);
@@ -110,7 +114,11 @@ export async function handleIdentify(
 
   const readyServers = userServers.map((s) =>
     Object.assign(s, {
-      channels: (channelsByServer.get(s.id) ?? []).toSorted((a, b) => a.position - b.position),
+      id: serverId(s.id),
+      ownerId: userId(s.ownerId),
+      channels: (channelsByServer.get(s.id) ?? [])
+        .toSorted((a, b) => a.position - b.position)
+        .map((ch) => Object.assign(ch, { id: channelId(ch.id), serverId: serverId(ch.serverId) })),
     }),
   );
 
@@ -127,5 +135,5 @@ export async function handleIdentify(
     ),
   );
 
-  return { success: true, userId };
+  return { success: true, userId: identifiedUserId };
 }

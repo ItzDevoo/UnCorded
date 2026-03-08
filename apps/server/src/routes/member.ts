@@ -1,5 +1,6 @@
 import { Elysia } from "elysia";
 import { eq, and } from "drizzle-orm";
+import { userId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { members, servers, user } from "../db/schema.js";
 import { getSession } from "../middleware/auth.js";
@@ -34,7 +35,7 @@ export const memberRoutes = new Elysia({ prefix: "/api/servers/:serverId/members
       .innerJoin(user, eq(user.id, members.userId))
       .where(eq(members.serverId, params.serverId));
 
-    return memberList;
+    return memberList.map((m) => Object.assign(m, { userId: userId(m.userId) }));
   })
   .delete("/@me", async ({ user: sessionUser, params, set }) => {
     const member = await requireMember(sessionUser.id, params.serverId, set);

@@ -79,3 +79,9 @@ This applies to any module that registers global listeners or timers at the top 
 **[W2.5 D1]** — Oxfmt changes single quotes to double quotes by default (different from Prettier's `singleQuote: true`). This is fine — the entire codebase was reformatted in one pass. No need to configure around it.
 
 **[W2.5 D1]** — Oxlint's `unicorn/no-array-sort` and `unicorn/no-array-reverse` prefer non-mutating alternatives: use `.toSorted()` and `.toReversed()` instead of `.sort()` and `.reverse()`. These are ES2023 methods, safe with our `target: ES2023` tsconfig.
+
+**[W2.5 D2]** — `exactOptionalPropertyTypes` means `{ x?: string }` does NOT accept explicit `undefined` assignment. Patterns like `foo({ maxUses: maybeUndefined })` break — instead build the object conditionally: `const opts = {}; if (val !== undefined) opts.maxUses = val;`.
+
+**[W2.5 D2]** — When importing branded type constructor functions (e.g., `userId()` from protocol), watch for name collisions with local variables. In handlers.ts, `const userId = sessionRow.userId` shadowed the imported `userId()` function. Rename the local variable (e.g., `identifiedUserId`) to avoid the shadow.
+
+**[W2.5 D2]** — Oxlint's `oxc/no-map-spread` warns against `arr.map(x => ({ ...x, id: brand(x.id) }))` because spread in map creates unnecessary allocations. Use `Object.assign(x, { id: brand(x.id) })` instead — mutates in-place, which is fine for data from DB queries that aren't reused.

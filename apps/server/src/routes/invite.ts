@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 import { eq, and, or, gt, isNull, sql, count } from "drizzle-orm";
 import { createInviteSchema } from "@uncorded/shared";
+import { inviteCode, serverId, userId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { invites, servers, members } from "../db/schema.js";
 import { getSession } from "../middleware/auth.js";
@@ -41,7 +42,14 @@ export const serverInviteRoutes = new Elysia({ prefix: "/api/servers/:serverId/i
       .returning();
 
     set.status = 201;
-    return invite;
+    return invite
+      ? {
+          ...invite,
+          code: inviteCode(invite.code),
+          serverId: serverId(invite.serverId),
+          creatorId: userId(invite.creatorId),
+        }
+      : invite;
   });
 
 export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
@@ -73,7 +81,7 @@ export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
       .where(eq(members.serverId, invite.serverId));
 
     return {
-      code: invite.code,
+      code: inviteCode(invite.code),
       server: {
         name: server.name,
         iconUrl: server.iconUrl,
@@ -134,7 +142,11 @@ export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
       .where(eq(servers.id, invite.serverId))
       .limit(1);
 
-    return { server };
+    return {
+      server: server
+        ? { ...server, id: serverId(server.id), ownerId: userId(server.ownerId) }
+        : server,
+    };
   });
 
 export const inviteRoutes = new Elysia().use(serverInviteRoutes).use(inviteCodeRoutes);

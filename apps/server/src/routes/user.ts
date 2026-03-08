@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 import { eq } from "drizzle-orm";
 import { updateUserSchema } from "@uncorded/shared";
+import { userId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { user } from "../db/schema.js";
 import { getSession } from "../middleware/auth.js";
@@ -25,7 +26,7 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
     }
 
     return {
-      id: dbUser.id,
+      id: userId(dbUser.id),
       username: dbUser.username,
       displayName: dbUser.displayName,
       email: dbUser.email,
@@ -89,7 +90,7 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
     }
 
     return {
-      id: updated.id,
+      id: userId(updated.id),
       username: updated.username,
       displayName: updated.displayName,
       email: updated.email,

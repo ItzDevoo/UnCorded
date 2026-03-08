@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 import { eq, max } from "drizzle-orm";
 import { createChannelSchema, updateChannelSchema } from "@uncorded/shared";
+import { channelId, serverId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { channels } from "../db/schema.js";
 import { getSession } from "../middleware/auth.js";
@@ -50,7 +51,7 @@ const serverChannelRoutes = new Elysia({ prefix: "/api/servers/:serverId/channel
       .returning();
 
     set.status = 201;
-    return channel;
+    return channel ? { ...channel, id: channelId(channel.id), serverId: serverId(channel.serverId) } : channel;
   })
   .get("/", async ({ user: sessionUser, params, set }) => {
     const member = await requireMember(sessionUser.id, params.serverId, set);
@@ -62,7 +63,9 @@ const serverChannelRoutes = new Elysia({ prefix: "/api/servers/:serverId/channel
       .where(eq(channels.serverId, params.serverId))
       .orderBy(channels.position);
 
-    return serverChannels;
+    return serverChannels.map((ch) =>
+      Object.assign(ch, { id: channelId(ch.id), serverId: serverId(ch.serverId) }),
+    );
   });
 
 const channelIdRoutes = new Elysia({ prefix: "/api/channels/:channelId" })
@@ -119,7 +122,7 @@ const channelIdRoutes = new Elysia({ prefix: "/api/channels/:channelId" })
       .where(eq(channels.id, params.channelId))
       .returning();
 
-    return updated;
+    return updated ? { ...updated, id: channelId(updated.id), serverId: serverId(updated.serverId) } : updated;
   })
   .delete("/", async ({ user: sessionUser, params, set }) => {
     const [channel] = await db

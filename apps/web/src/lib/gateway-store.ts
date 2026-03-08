@@ -1,10 +1,11 @@
 import { createSignal } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
+import type { UserId, ServerId, ChannelId } from "@uncorded/protocol";
 
 export type GatewayStatus = "disconnected" | "connecting" | "connected";
 
 export interface ReadyUser {
-  id: string;
+  id: UserId;
   username: string | null;
   displayName: string | null;
   avatarUrl: string | null;
@@ -12,8 +13,8 @@ export interface ReadyUser {
 }
 
 export interface ReadyChannel {
-  id: string;
-  serverId: string;
+  id: ChannelId;
+  serverId: ServerId;
   name: string;
   type: string;
   position: number;
@@ -22,10 +23,10 @@ export interface ReadyChannel {
 }
 
 export interface ReadyServer {
-  id: string;
+  id: ServerId;
   name: string;
   iconUrl: string | null;
-  ownerId: string;
+  ownerId: UserId;
   channels: ReadyChannel[];
 }
 

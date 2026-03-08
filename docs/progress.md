@@ -6,7 +6,38 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Week 2.5 Day 1 — Schema Migration + Tooling Migration
+## Current Status: Week 2.5 Day 2 — Review Fixes + Strict TS + Branded Types
+
+---
+
+### Week 2.5 Day 2 — 2026-03-08
+**What was done:**
+- Review fixes applied:
+  - `MessageInput.tsx`: moved `lastTypingSent` to module level (explicit shared state if mounted multiple times)
+  - `MessageBubble.tsx`: extracted `ONE_MINUTE_MS`, `ONE_HOUR_MS`, `ONE_DAY_MS` constants
+  - `message-store.ts`: removed unused `sendFrame` re-export, added comments linking TYPING_THROTTLE_MS (5s) and TYPING_TIMEOUT_MS (6s)
+- TypeScript strictness tightened in `tsconfig.base.json`:
+  - Added `exactOptionalPropertyTypes: true` — prevents assigning `undefined` to optional properties
+  - Added `noImplicitOverride: true`
+  - Changed `target` from `ESNext` to `ES2023`
+  - Fixed `InviteModal.tsx` — build options object conditionally instead of passing `undefined` values
+- Branded ID types added to `@uncorded/protocol`:
+  - New file `packages/protocol/src/branded.ts` with 10 branded types: UserId, ServerId, ChannelId, MessageId, InviteCode, FileReceiptId, DmChannelId, SubscriptionId, ReportId, RoleId
+  - Each type has a cast constructor function (e.g., `userId(raw)`) for branding at boundaries
+  - Exported from `packages/protocol/src/index.ts`
+- Server routes branded at response boundaries:
+  - `user.ts`: `id: userId(dbUser.id)` in GET/PATCH responses
+  - `server.ts`: `serverId()`, `userId()` on all server responses
+  - `channel.ts`: `channelId()`, `serverId()` on all channel responses
+  - `message.ts`: `messageId()`, `channelId()`, `userId()` on messages + broadcasts
+  - `invite.ts`: `inviteCode()`, `serverId()`, `userId()` on invite responses
+  - `member.ts`: `userId()` on member list
+  - `handlers.ts` (WS READY): all IDs in user, servers, and channels branded
+- Frontend types updated:
+  - `gateway-store.ts`: `ReadyUser.id` → `UserId`, `ReadyServer.id` → `ServerId`, etc.
+  - `message-store.ts`: `Message.id` → `MessageId`, `Message.channelId` → `ChannelId`, etc.
+  - `CreateServerModal.tsx`, `JoinServerModal.tsx`: brand raw API response IDs at parse boundary
+- All checks pass: typecheck (0 errors), lint (0 warnings/errors)
 
 ---
 

@@ -100,14 +100,14 @@ Reference: C:\Nexis (monorepo patterns, auth, WS gateway), C:\t3Code (tooling, U
 - [x] Run oxlint on entire codebase, fix all warnings/errors
 - [x] Verify: `bun run typecheck`, `bun run lint`, and `bun run fmt` pass cleanly
 
-### Day 2: TypeScript Strictness + Branded Types
+### Day 2: Review Fixes + TypeScript Strictness + Branded Types
 
-- [ ] Create `tsconfig.base.json` with strict flags (noUncheckedIndexedAccess, exactOptionalPropertyTypes)
-- [ ] Update per-package tsconfigs to extend base
-- [ ] Fix all new type errors from stricter checks
-- [ ] Add branded ID types to `@uncorded/protocol` (UserId, ServerId, ChannelId, MessageId, etc.)
-- [ ] Update route handlers, WS payloads, and stores to use branded types
-- [ ] Verify: `bun run typecheck` passes with zero errors
+- [x] Review fixes: MessageInput throttle to module level, MessageBubble constants, unused sendFrame re-export, typing throttle/timeout comments
+- [x] Add strict TS flags to `tsconfig.base.json` (exactOptionalPropertyTypes, noImplicitOverride, target ES2023)
+- [x] Fix all new type errors from stricter checks (InviteModal exactOptionalPropertyTypes)
+- [x] Add branded ID types to `@uncorded/protocol` (UserId, ServerId, ChannelId, MessageId, InviteCode, etc.)
+- [x] Update route handlers, WS payloads, and stores to use branded types at response boundaries
+- [x] Verify: `bun run typecheck` passes with zero errors, `bun run lint` passes with zero warnings
 
 ### Day 3: Typed Errors + Dev Runner
 

@@ -1,4 +1,5 @@
 import { createSignal, Show } from "solid-js";
+import { serverId, userId } from "@uncorded/protocol";
 import { api, ApiRequestError } from "../../lib/api.js";
 import { addServer } from "../../lib/gateway-store.js";
 import { setSelectedServerId } from "../../stores/app-store.js";
@@ -62,10 +63,10 @@ const JoinServerModal = (props: Props) => {
       });
 
       addServer({
-        id: data.server.id,
+        id: serverId(data.server.id),
         name: data.server.name,
         iconUrl: data.server.iconUrl,
-        ownerId: data.server.ownerId,
+        ownerId: userId(data.server.ownerId),
         channels: [],
       });
       setSelectedServerId(data.server.id);

@@ -68,10 +68,12 @@ const InviteModal = (props: Props) => {
   };
 
   const handleGenerateAdvanced = () => {
+    const options: { maxUses?: number; expiresAt?: string } = {};
     const uses = maxUses().trim() ? parseInt(maxUses(), 10) : undefined;
     const hours = expiresIn().trim() ? parseInt(expiresIn(), 10) : undefined;
-    const expiresAt = hours ? new Date(Date.now() + hours * 3600_000).toISOString() : undefined;
-    generateInvite({ maxUses: uses, expiresAt });
+    if (uses !== undefined) options.maxUses = uses;
+    if (hours !== undefined) options.expiresAt = new Date(Date.now() + hours * 3600_000).toISOString();
+    generateInvite(options);
   };
 
   return (

@@ -1,5 +1,6 @@
 import { createSignal } from "solid-js";
 import { createServerSchema } from "@uncorded/shared";
+import { serverId, userId, channelId } from "@uncorded/protocol";
 import { api, ApiRequestError } from "../../lib/api.js";
 import { addServer, type ReadyServer } from "../../lib/gateway-store.js";
 import { setSelectedServerId } from "../../stores/app-store.js";
@@ -54,13 +55,13 @@ const CreateServerModal = (props: Props) => {
       });
 
       const readyServer: ReadyServer = {
-        id: server.id,
+        id: serverId(server.id),
         name: server.name,
         iconUrl: server.iconUrl,
-        ownerId: server.ownerId,
+        ownerId: userId(server.ownerId),
         channels: server.channels.map((ch) => ({
-          id: ch.id,
-          serverId: ch.serverId,
+          id: channelId(ch.id),
+          serverId: serverId(ch.serverId),
           name: ch.name,
           type: ch.type,
           position: ch.position,

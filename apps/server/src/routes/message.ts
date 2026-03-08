@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import { eq, and, lt, gt, desc, or } from "drizzle-orm";
 import { createMessageSchema, updateMessageSchema } from "@uncorded/shared";
-import { Opcode } from "@uncorded/protocol";
+import { Opcode, messageId, channelId, userId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { messages, channels, servers, user } from "../db/schema.js";
 import { getSession } from "../middleware/auth.js";
@@ -12,11 +12,11 @@ const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
 
 /** Look up channel and return its serverId, or null if not found (sets 404). */
-async function getChannelServerId(channelId: string, set: { status?: number | string }) {
+async function getChannelServerId(chanId: string, set: { status?: number | string }) {
   const [channel] = await db
     .select({ serverId: channels.serverId })
     .from(channels)
-    .where(eq(channels.id, channelId))
+    .where(eq(channels.id, chanId))
     .limit(1);
 
   if (!channel) {
@@ -28,7 +28,7 @@ async function getChannelServerId(channelId: string, set: { status?: number | st
 }
 
 /** Fetch a single message with author info. */
-async function fetchMessageWithAuthor(messageId: string) {
+async function fetchMessageWithAuthor(msgId: string) {
   const [row] = await db
     .select({
       id: messages.id,
@@ -45,10 +45,16 @@ async function fetchMessageWithAuthor(messageId: string) {
     })
     .from(messages)
     .innerJoin(user, eq(user.id, messages.authorId))
-    .where(eq(messages.id, messageId))
+    .where(eq(messages.id, msgId))
     .limit(1);
 
-  return row ?? null;
+  if (!row) return null;
+  return {
+    ...row,
+    id: messageId(row.id),
+    channelId: channelId(row.channelId),
+    author: { ...row.author, id: userId(row.author.id) },
+  };
 }
 
 export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/messages" })
@@ -177,7 +183,15 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
       .limit(limit);
 
     // Reverse for oldest-first display order
-    return { messages: rows.toReversed() };
+    return {
+      messages: rows.toReversed().map((row) =>
+        Object.assign(row, {
+          id: messageId(row.id),
+          channelId: channelId(row.channelId),
+          author: Object.assign(row.author, { id: userId(row.author.id) }),
+        }),
+      ),
+    };
   })
 
   // PATCH /:messageId — Edit message
@@ -225,8 +239,8 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
     await broadcastToServer(serverId, {
       op: Opcode.MESSAGE_UPDATE,
       d: {
-        id: params.messageId,
-        channelId: params.channelId,
+        id: messageId(params.messageId),
+        channelId: channelId(params.channelId),
         content: parsed.data.content,
         editedAt,
       },
@@ -273,7 +287,7 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
 
     await broadcastToServer(serverId, {
       op: Opcode.MESSAGE_DELETE,
-      d: { id: params.messageId, channelId: params.channelId },
+      d: { id: messageId(params.messageId), channelId: channelId(params.channelId) },
     });
 
     set.status = 204;

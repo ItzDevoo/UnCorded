@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 import { eq, sql, and } from "drizzle-orm";
 import { createServerSchema, updateServerSchema } from "@uncorded/shared";
+import { serverId, userId, channelId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { servers, channels, members } from "../db/schema.js";
 import { getSession } from "../middleware/auth.js";
@@ -56,10 +57,13 @@ export const serverRoutes = new Elysia({ prefix: "/api/servers" })
       serverId: server.id,
     });
 
-    const result = { ...server, channels: [channel] };
-
     set.status = 201;
-    return result;
+    return {
+      ...server,
+      id: serverId(server.id),
+      ownerId: userId(server.ownerId),
+      channels: [channel ? { ...channel, id: channelId(channel.id), serverId: serverId(channel.serverId) } : channel],
+    };
   })
   .get("/", async ({ user: sessionUser }) => {
     const channelCount = db
@@ -82,7 +86,9 @@ export const serverRoutes = new Elysia({ prefix: "/api/servers" })
         and(eq(members.serverId, servers.id), eq(members.userId, sessionUser.id)),
       );
 
-    return userServers;
+    return userServers.map((s) =>
+      Object.assign(s, { id: serverId(s.id), ownerId: userId(s.ownerId) }),
+    );
   })
   .get("/:serverId", async ({ user: sessionUser, params, set }) => {
     const member = await requireMember(sessionUser.id, params.serverId, set);
@@ -99,7 +105,7 @@ export const serverRoutes = new Elysia({ prefix: "/api/servers" })
       return { code: "NOT_FOUND", message: "Server not found" };
     }
 
-    return server;
+    return { ...server, id: serverId(server.id), ownerId: userId(server.ownerId) };
   })
   .patch("/:serverId", async ({ user: sessionUser, params, body, set }) => {
     const server = await requireOwner(sessionUser.id, params.serverId, set);
@@ -130,7 +136,7 @@ export const serverRoutes = new Elysia({ prefix: "/api/servers" })
       .where(eq(servers.id, params.serverId))
       .returning();
 
-    return updated;
+    return updated ? { ...updated, id: serverId(updated.id), ownerId: userId(updated.ownerId) } : updated;
   })
   .delete("/:serverId", async ({ user: sessionUser, params, set }) => {
     const server = await requireOwner(sessionUser.id, params.serverId, set);

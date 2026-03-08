@@ -1,10 +1,13 @@
 import { Elysia } from "elysia";
+import { z } from "zod";
 import { Opcode, CloseCode, encode, decode } from "@uncorded/protocol";
 import { eq, and } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { user, channels, members } from "../db/schema.js";
 import { removeConnection, getConnections, broadcastToServer } from "./connections.js";
 import { handleIdentify } from "./handlers.js";
+
+const typingStartSchema = z.object({ channelId: z.string() });
 
 const HEARTBEAT_INTERVAL = 30_000;
 const HEARTBEAT_TIMEOUT = 45_000;
@@ -90,8 +93,9 @@ export const gateway = new Elysia().ws("/gateway", {
           return;
         }
 
-        const d = frame.d as Record<string, unknown> | null;
-        if (!d || typeof d.channelId !== "string") break;
+        const parsed = typingStartSchema.safeParse(frame.d);
+        if (!parsed.success) break;
+        const d = parsed.data;
 
         const [ch] = await db
           .select({ serverId: channels.serverId })

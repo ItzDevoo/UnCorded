@@ -1,18 +1,19 @@
 import { createSignal, onMount, onCleanup, Show } from "solid-js";
+import type { ServerId, InviteCode, UserId } from "@uncorded/protocol";
 import { api, ApiRequestError } from "../../lib/api.js";
 import Modal from "./Modal.js";
 
 interface InviteResponse {
-  code: string;
-  serverId: string;
-  creatorId: string;
+  code: InviteCode;
+  serverId: ServerId;
+  creatorId: UserId;
   uses: number;
   maxUses: number | null;
   expiresAt: string | null;
 }
 
 interface Props {
-  serverId: string;
+  serverId: ServerId;
   onClose: () => void;
 }
 
@@ -72,7 +73,8 @@ const InviteModal = (props: Props) => {
     const uses = maxUses().trim() ? parseInt(maxUses(), 10) : undefined;
     const hours = expiresIn().trim() ? parseInt(expiresIn(), 10) : undefined;
     if (uses !== undefined) options.maxUses = uses;
-    if (hours !== undefined) options.expiresAt = new Date(Date.now() + hours * 3600_000).toISOString();
+    if (hours !== undefined)
+      options.expiresAt = new Date(Date.now() + hours * 3600_000).toISOString();
     generateInvite(options);
   };
 

@@ -69,7 +69,7 @@ const JoinServerModal = (props: Props) => {
         ownerId: userId(data.server.ownerId),
         channels: [],
       });
-      setSelectedServerId(data.server.id);
+      setSelectedServerId(serverId(data.server.id));
       props.onClose();
     } catch (err) {
       if (err instanceof ApiRequestError) {

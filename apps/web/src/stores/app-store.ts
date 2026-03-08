@@ -1,8 +1,9 @@
 import { createSignal, createMemo, createEffect } from "solid-js";
+import type { ServerId, ChannelId } from "@uncorded/protocol";
 import { readyData, type ReadyServer, type ReadyChannel } from "../lib/gateway-store.js";
 
-const [selectedServerId, setSelectedServerId] = createSignal<string | null>(null);
-const [selectedChannelId, setSelectedChannelId] = createSignal<string | null>(null);
+const [selectedServerId, setSelectedServerId] = createSignal<ServerId | null>(null);
+const [selectedChannelId, setSelectedChannelId] = createSignal<ChannelId | null>(null);
 
 const currentServer = createMemo<ReadyServer | null>(() => {
   const id = selectedServerId();

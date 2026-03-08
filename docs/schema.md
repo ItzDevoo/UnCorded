@@ -105,8 +105,8 @@ current_period_end (timestamp), created_at
 ### reports
 
 id, reporter_id -> users,
-message_id -> messages (nullable),
-file_receipt_id -> file_receipts (nullable),
+message_id -> messages (nullable, on delete set null),
+file_receipt_id -> file_receipts (nullable, on delete set null),
 category (report_category),
 details (text, nullable),
 resolved (bool, default false),

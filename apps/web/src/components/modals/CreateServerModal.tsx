@@ -71,7 +71,7 @@ const CreateServerModal = (props: Props) => {
       };
 
       addServer(readyServer);
-      setSelectedServerId(server.id);
+      setSelectedServerId(serverId(server.id));
       props.onClose();
     } catch (err) {
       if (err instanceof ApiRequestError) {

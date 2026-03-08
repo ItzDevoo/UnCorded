@@ -1,8 +1,11 @@
 import { eq, inArray } from "drizzle-orm";
+import { z } from "zod";
 import { Opcode, CloseCode, encode, userId, serverId, channelId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { user, session as sessionTable, servers, channels, members } from "../db/schema.js";
 import { addConnection, type AnyServerWebSocket } from "./connections.js";
+
+const identifySchema = z.object({ token: z.string() });
 
 type IdentifyResult =
   | { success: true; userId: string }
@@ -12,19 +15,15 @@ export async function handleIdentify(
   ws: AnyServerWebSocket,
   data: unknown,
 ): Promise<IdentifyResult> {
-  if (
-    !data ||
-    typeof data !== "object" ||
-    !("token" in data) ||
-    typeof (data as Record<string, unknown>).token !== "string"
-  ) {
+  const parsed = identifySchema.safeParse(data);
+  if (!parsed.success) {
     return {
       success: false,
       closeCode: CloseCode.MISSING_TOKEN,
       closeReason: "Missing token in IDENTIFY",
     };
   }
-  const token = (data as Record<string, unknown>).token as string;
+  const token = parsed.data.token;
 
   // Validate session
   const [sessionRow] = await db
@@ -58,9 +57,7 @@ export async function handleIdentify(
     .where(eq(user.id, identifiedUserId))
     .limit(1);
 
-  const dbUser = dbUserRow
-    ? { ...dbUserRow, id: userId(dbUserRow.id) }
-    : null;
+  const dbUser = dbUserRow ? { ...dbUserRow, id: userId(dbUserRow.id) } : null;
 
   // Load user's servers
   const userServers = await db

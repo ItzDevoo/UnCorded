@@ -1,5 +1,5 @@
 import { createSignal, Show } from "solid-js";
-import { Opcode } from "@uncorded/protocol";
+import { Opcode, type ChannelId } from "@uncorded/protocol";
 import { api } from "../lib/api.js";
 import { sendFrame } from "../lib/gateway.js";
 import { getTypingUsers } from "../stores/message-store.js";
@@ -10,7 +10,7 @@ const TEXTAREA_MAX_HEIGHT = 200;
 
 const lastTypingSent: Record<string, number> = {};
 
-const MessageInput = (props: { channelId: string }) => {
+const MessageInput = (props: { channelId: ChannelId }) => {
   // oxlint-disable-next-line no-unassigned-vars -- SolidJS ref pattern, assigned via JSX ref={}
   let textareaRef!: HTMLTextAreaElement;
   const [content, setContent] = createSignal("");

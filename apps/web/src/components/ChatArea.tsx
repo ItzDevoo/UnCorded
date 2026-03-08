@@ -1,4 +1,5 @@
 import { createMemo, createEffect, Show, For, on } from "solid-js";
+import type { ChannelId } from "@uncorded/protocol";
 import { selectedChannelId, currentChannels } from "../stores/app-store.js";
 import { readyData } from "../lib/gateway-store.js";
 import { fetchMessages, getMessages } from "../stores/message-store.js";
@@ -115,7 +116,7 @@ const ChatArea = () => {
               </Show>
             </div>
 
-            <MessageInput channelId={channelId() ?? ""} />
+            <MessageInput channelId={channelId() as ChannelId} />
           </>
         )}
       </Show>

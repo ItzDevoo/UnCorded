@@ -301,8 +301,10 @@ export const reports = pgTable("reports", {
   reporterId: text("reporter_id")
     .notNull()
     .references(() => user.id),
-  messageId: text("message_id").references(() => messages.id),
-  fileReceiptId: text("file_receipt_id").references(() => fileReceipts.id),
+  messageId: text("message_id").references(() => messages.id, { onDelete: "set null" }),
+  fileReceiptId: text("file_receipt_id").references(() => fileReceipts.id, {
+    onDelete: "set null",
+  }),
   category: reportCategoryEnum("category").notNull(),
   details: text("details"),
   resolved: boolean("resolved").default(false).notNull(),

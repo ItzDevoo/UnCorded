@@ -1,13 +1,17 @@
 import type { Message } from "../stores/message-store.js";
 
+const ONE_MINUTE_MS = 60_000;
+const ONE_HOUR_MS = 3_600_000;
+const ONE_DAY_MS = 86_400_000;
+
 function formatTimestamp(iso: string): string {
   const date = new Date(iso);
   const now = Date.now();
   const diff = now - date.getTime();
 
-  if (diff < 60_000) return "just now";
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
-  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
+  if (diff < ONE_MINUTE_MS) return "just now";
+  if (diff < ONE_HOUR_MS) return `${Math.floor(diff / ONE_MINUTE_MS)}m ago`;
+  if (diff < ONE_DAY_MS) return `${Math.floor(diff / ONE_HOUR_MS)}h ago`;
 
   return date.toLocaleDateString(undefined, {
     month: "short",

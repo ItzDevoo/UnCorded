@@ -4,16 +4,17 @@ import { api } from "../lib/api.js";
 import { sendFrame } from "../lib/gateway.js";
 import { getTypingUsers } from "../stores/message-store.js";
 
+// Must be less than TYPING_TIMEOUT_MS (6s) in message-store so indicators don't flicker
 const TYPING_THROTTLE_MS = 5000;
 const TEXTAREA_MAX_HEIGHT = 200;
+
+const lastTypingSent: Record<string, number> = {};
 
 const MessageInput = (props: { channelId: string }) => {
   // oxlint-disable-next-line no-unassigned-vars -- SolidJS ref pattern, assigned via JSX ref={}
   let textareaRef!: HTMLTextAreaElement;
   const [content, setContent] = createSignal("");
   const [sending, setSending] = createSignal(false);
-
-  const lastTypingSent: Record<string, number> = {};
 
   function resetHeight() {
     textareaRef.style.height = "auto";

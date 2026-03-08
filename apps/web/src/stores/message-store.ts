@@ -1,17 +1,18 @@
 import { createStore, produce } from "solid-js/store";
 import { Opcode } from "@uncorded/protocol";
-import { onGatewayEvent, sendFrame } from "../lib/gateway.js";
+import type { MessageId, ChannelId, UserId } from "@uncorded/protocol";
+import { onGatewayEvent } from "../lib/gateway.js";
 import { api } from "../lib/api.js";
 import { readyData } from "../lib/gateway-store.js";
 
 export interface Message {
-  id: string;
-  channelId: string;
+  id: MessageId;
+  channelId: ChannelId;
   content: string;
   editedAt: string | null;
   createdAt: string;
   author: {
-    id: string;
+    id: UserId;
     username: string | null;
     displayName: string | null;
     avatarUrl: string | null;
@@ -36,6 +37,7 @@ interface MessageStoreState {
 }
 
 const LIMIT = 50;
+// Must exceed TYPING_THROTTLE_MS (5s) so indicators don't flicker between sends
 const TYPING_TIMEOUT_MS = 6000;
 
 const [store, setStore] = createStore<MessageStoreState>({
@@ -211,4 +213,3 @@ if (import.meta.hot) {
   });
 }
 
-export { sendFrame };

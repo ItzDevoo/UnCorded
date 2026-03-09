@@ -107,3 +107,17 @@ This applies to any module that registers global listeners or timers at the top 
 **[W2.5 D5]** — When migrating from a custom Modal wrapper to a compound Dialog component, keep `open={true}` on Dialog since the parent component controls visibility (only renders the modal when needed). Use `onOpenChange={() => props.onClose()}` for backdrop click and Escape key dismiss.
 
 **[W2.5 D5]** — TypeScript index signatures can't use branded types. `Record<ChannelId, number>` won't work because branded types aren't valid index types. Use `Record<string, number>` with a documenting comment instead.
+
+**[W3 D1-2]** — When adding multiple switch cases in gateway.ts that all do membership checks, use unique variable prefixes (e.g., `sigCh`, `fsCh`, `faCh`) to avoid redeclaration errors within the same switch scope. Each case block shares the function scope for `const`/`let` declarations.
+
+**[W3 D1-2]** — On Windows, `netstat -ano | findstr :<port>` output includes LISTENING/ESTABLISHED/TIME_WAIT rows. Only parse LISTENING rows to find the process that owns the port. The PID is always the last whitespace-separated token.
+
+**[W3 D1-2]** — After killing a process on a port, add a brief delay (~500ms) before rechecking port availability. The OS needs time to release the socket, especially on Windows where TIME_WAIT can linger.
+
+**[W3 D3-4]** — WebTorrent's constructor does NOT accept `rtcConfig` directly. STUN/TURN config must be set via `@thaunknown/simple-peer`'s static `Peer.config` property before creating the WebTorrent instance. This is because WebTorrent creates simple-peer instances internally for all WebRTC connections.
+
+**[W3 D3-4]** — WebTorrent's `TorrentFile.getBlob()` is callback-based, not Promise-based: `file.getBlob((err, blob) => ...)`. Wrap in a Promise for async/await usage. Same applies to `getBuffer()` and `getBlobURL()`.
+
+**[W3 D3-4]** — When splitting a shared payload type into request/broadcast variants (e.g., `FileSharePayload` → `FileShareRequest` + `FileShareBroadcast`), the request type contains what the client sends (no server-generated fields), and the broadcast type adds server-enriched fields (senderId, fileReceiptId). The server gateway handler bridges the two by inserting the DB record and adding the extra fields before broadcasting.
+
+**[W3 D3-4]** — WebRTC signaling handlers should validate target user membership, not just sender membership. Without this check, any authenticated user in a server could send signaling frames to users who aren't members of the same server, which is a security gap.

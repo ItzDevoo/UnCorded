@@ -6,12 +6,75 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Week 2.5 Day 5 — Component Adoption + Polish + Review Fixes
+## Current Status: Week 3 Day 3-4 — WebTorrent Integration + Review Fixes
+
+---
+
+### Week 3 Day 3-4 — 2026-03-09
+**What was done:**
+- Carryover review fixes from Day 1-2:
+  - Fix #1: Target user membership validation in WebRTC signaling handlers — sender AND target must be members of the same server before forwarding signaling frames
+  - Fix #2: Split `FileSharePayload` into `FileShareRequest` (client sends) + `FileShareBroadcast` (server broadcasts with senderId + fileReceiptId) in `packages/protocol/src/signaling.ts`
+  - Fix #3: Configurable STUN servers in `apps/web/src/lib/rtc-config.ts` — reads `VITE_STUN_SERVERS` env var (JSON array), falls back to Google public STUN
+- WebTorrent integration:
+  - Installed `webtorrent` + `@types/webtorrent` in apps/web
+  - Created `apps/web/src/lib/torrent-client.ts` — singleton WebTorrent client manager:
+    - `initTorrentClient()` / `destroyTorrentClient()` — lifecycle with HMR cleanup
+    - `seedFile(file)` — creates torrent from File, returns magnetUri + infoHash
+    - `downloadFromMagnet(magnetUri, onProgress)` — downloads via WebRTC, converts to File[]
+    - `stopSeeding(infoHash)` — removes active torrent
+    - `getActiveTorrents()` — lists all active torrents with progress/speed/peers
+    - STUN config applied via simple-peer's `Peer.config` before client creation
+  - Created `apps/web/src/stores/file-store.ts` — SolidJS file sharing store:
+    - Follows message-store.ts pattern: `createStore` + `produce` + Zod schemas + `onGatewayEvent` + HMR cleanup
+    - Store: `receipts` (channelId → FileReceipt[]), `transfers` (infoHash → TransferProgress), `seeders` (fileReceiptId → userId[])
+    - `shareFile(channelId, file)` — seeds via torrent-client, sends FILE_SHARE frame
+    - `downloadFile(magnetUri, fileName)` — downloads via torrent-client, triggers browser save
+    - `getReceipts(channelId)`, `getTransferProgress(infoHash)`, `getSeeders(fileReceiptId)`
+    - WS listeners: FILE_SHARE → addReceipt with branded types, FILE_AVAILABILITY_UPDATE → updateSeeders
+- All checks pass: typecheck (0 errors), lint (0 warnings), fmt clean
+
+---
+
+### Week 3 Day 1-2 — 2026-03-08
+
+**What was done:**
+
+- Dev runner review fixes (`scripts/dev-runner.ts`):
+  - Port offset upper bound guard: rejects offsets that would exceed port 65535
+  - `checkPort()` timeout: 5s safety timeout prevents hangs on unresponsive listen attempts
+  - Explicit comment on EADDRNOTAVAIL vs other errors
+- Auto-kill for occupied ports:
+  - `findPidOnPort()`: Windows (`netstat -ano | findstr`), macOS/Linux (`lsof -ti`)
+  - `killProcess()`: Windows (`taskkill /PID /F`), macOS/Linux (`kill -9`)
+  - `autoKillPort()`: find → kill → verify port freed, with 500ms grace period
+  - `ensurePortsAvailable()` auto-kills busy ports before erroring
+  - `--no-kill` flag skips auto-kill, uses old error-and-exit behavior
+- Auth trustedOrigins comment added (APP_URL always has a value)
+- WebRTC opcodes added to `@uncorded/protocol`:
+  - WEBRTC_OFFER (30), WEBRTC_ANSWER (31), WEBRTC_ICE_CANDIDATE (32), FILE_SHARE (33), FILE_AVAILABILITY_UPDATE (34)
+  - Replaced FILE_EXPIRED (30) which was dropped in the P2P pivot
+- Signaling frame types (`packages/protocol/src/signaling.ts`):
+  - `WebRtcSignalPayload`, `FileSharePayload`, `FileAvailabilityPayload`
+  - Exported from protocol index
+- Server-side signaling handlers (5 new gateway cases):
+  - WEBRTC_OFFER/ANSWER/ICE_CANDIDATE: Zod-validated, membership-checked, forwarded to target via `sendToUser()` with sender info
+  - FILE_SHARE: validates membership, inserts `fileReceipts` row, broadcasts to channel
+  - FILE_AVAILABILITY_UPDATE: validates membership, broadcasts to channel
+  - All cases require identified user, silently drop if target offline
+- Client-side signaling (`apps/web/src/lib/signaling.ts`):
+  - `sendOffer()`, `sendAnswer()`, `sendIceCandidate()` — typed wrappers around `sendFrame()`
+  - `onSignalingEvent(type, callback)` — subscribe to incoming offer/answer/ice-candidate events
+- STUN config (`apps/web/src/lib/rtc-config.ts`):
+  - Google public STUN servers (stun.l.google.com, stun1.l.google.com)
+- All checks pass: typecheck (0 errors), lint (0 warnings)
 
 ---
 
 ### Week 2.5 Day 5 — 2026-03-08
+
 **What was done:**
+
 - Polish & foundation:
   - DM Sans Google Font imported, set as `--font-sans` in `@theme inline`
   - Z-index scale via CSS custom properties: `--z-dropdown: 40`, `--z-modal: 50`, `--z-tooltip: 60`, `--z-toast: 70`
@@ -41,7 +104,9 @@ This is the real state of the codebase — not what is planned, but what works.
 ---
 
 ### Week 2.5 Day 4 — 2026-03-08
+
 **What was done:**
+
 - Green-tinted color system (Railway-inspired approach):
   - Rewrote `apps/web/src/index.css` with OKLCH semantic tokens at hue ~155°
   - All surfaces carry brand green at low chroma for visual cohesion
@@ -79,7 +144,9 @@ This is the real state of the codebase — not what is planned, but what works.
 ---
 
 ### Week 2.5 Day 3 — 2026-03-08
+
 **What was done:**
+
 - Carryover fixes from code review:
   - Branded types threaded into frontend: `app-store.ts` signals use `ServerId | null` / `ChannelId | null`, `MessageInput` prop typed as `ChannelId`, `InviteModal` prop typed as `ServerId`, `ChatArea` and modals updated
   - WS payload validation: replaced `as Record<string, unknown>` casts with Zod schemas (`identifySchema`, `typingStartSchema`) in handlers.ts and gateway.ts

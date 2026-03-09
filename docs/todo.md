@@ -179,19 +179,19 @@ Reference: C:\Nexis (monorepo patterns, auth, WS gateway), C:\t3Code (tooling, U
 
 ### Day 1-2: WebRTC Signaling Layer
 
-- [ ] Add WebRTC opcodes to @uncorded/protocol (WEBRTC_OFFER, WEBRTC_ANSWER, WEBRTC_ICE_CANDIDATE, FILE_SHARE, FILE_AVAILABILITY_UPDATE)
-- [ ] WS gateway handlers: forward signaling frames between peers via connection registry
-- [ ] Client-side signaling: send/receive offers, answers, ICE candidates through existing gateway
-- [ ] STUN configuration (Google public STUN servers)
+- [x] Add WebRTC opcodes to @uncorded/protocol (WEBRTC_OFFER, WEBRTC_ANSWER, WEBRTC_ICE_CANDIDATE, FILE_SHARE, FILE_AVAILABILITY_UPDATE)
+- [x] WS gateway handlers: forward signaling frames between peers via connection registry
+- [x] Client-side signaling: send/receive offers, answers, ICE candidates through existing gateway
+- [x] STUN configuration (Google public STUN servers)
 
 ### Day 3-4: WebTorrent Integration (Browser)
 
-- [ ] WebTorrent client initialization in browser
-- [ ] File -> torrent creation (generate magnet URI + info hash)
-- [ ] Seed from browser tab (in-memory, while tab open)
-- [ ] Download from magnet URI via WebRTC DataChannel
-- [ ] file_receipts table + Drizzle migration
-- [ ] FILE_SHARE message type: magnet URI stored as message, receipt saved to DB
+- [x] WebTorrent client initialization in browser
+- [x] File -> torrent creation (generate magnet URI + info hash)
+- [x] Seed from browser tab (in-memory, while tab open)
+- [x] Download from magnet URI via WebRTC DataChannel
+- [x] file_receipts table + Drizzle migration
+- [x] FILE_SHARE message type: magnet URI stored as message, receipt saved to DB
 
 ### Day 5-6: DM File Sharing UI
 

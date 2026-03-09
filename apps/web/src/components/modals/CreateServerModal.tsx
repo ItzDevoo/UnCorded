@@ -1,4 +1,4 @@
-import { createSignal } from "solid-js";
+import { createSignal, Show } from "solid-js";
 import { createServerSchema } from "@uncorded/shared";
 import {
   serverId,
@@ -11,7 +11,15 @@ import {
 import { api, ApiRequestError } from "../../lib/api.js";
 import { addServer, type ReadyServer } from "../../lib/gateway-store.js";
 import { setSelectedServerId } from "../../stores/app-store.js";
-import Modal from "./Modal.js";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "../ui/dialog.js";
+import { Input } from "../ui/input.js";
+import { Button } from "../ui/button.js";
 
 interface CreateServerResponse {
   id: ServerId;
@@ -92,50 +100,50 @@ const CreateServerModal = (props: Props) => {
   };
 
   return (
-    <Modal isOpen={true} onClose={props.onClose} title="Create a Server">
-      <form onSubmit={handleSubmit}>
-        <label class="mb-1 block text-sm font-medium text-secondary-foreground">Server Name</label>
-        <input
-          type="text"
-          value={name()}
-          onInput={(e) => setName(e.currentTarget.value)}
-          maxLength={100}
-          placeholder="My Awesome Server"
-          class="mb-4 w-full rounded-lg bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring"
-          autofocus
-        />
+    <Dialog open={true} onOpenChange={() => props.onClose()}>
+      <DialogContent onClose={props.onClose}>
+        <DialogHeader>
+          <DialogTitle>Create a Server</DialogTitle>
+        </DialogHeader>
 
-        <label class="mb-1 block text-sm font-medium text-secondary-foreground">
-          Icon URL <span class="text-muted-foreground">(optional)</span>
-        </label>
-        <input
-          type="text"
-          value={iconUrl()}
-          onInput={(e) => setIconUrl(e.currentTarget.value)}
-          placeholder="https://example.com/icon.png"
-          class="mb-4 w-full rounded-lg bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring"
-        />
+        <form onSubmit={handleSubmit}>
+          <label class="mb-1 block text-sm font-medium text-secondary-foreground">Server Name</label>
+          <Input
+            type="text"
+            value={name()}
+            onInput={(e) => setName(e.currentTarget.value)}
+            maxLength={100}
+            placeholder="My Awesome Server"
+            autofocus
+            class="mb-4"
+          />
 
-        {error() && <p class="mb-3 text-sm text-destructive">{error()}</p>}
+          <label class="mb-1 block text-sm font-medium text-secondary-foreground">
+            Icon URL <span class="text-muted-foreground">(optional)</span>
+          </label>
+          <Input
+            type="text"
+            value={iconUrl()}
+            onInput={(e) => setIconUrl(e.currentTarget.value)}
+            placeholder="https://example.com/icon.png"
+            class="mb-4"
+          />
 
-        <div class="flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={() => props.onClose()}
-            class="rounded-lg px-4 py-2 text-sm text-secondary-foreground hover:text-foreground"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={loading() || !name().trim()}
-            class="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/80 disabled:opacity-50"
-          >
-            {loading() ? "Creating..." : "Create"}
-          </button>
-        </div>
-      </form>
-    </Modal>
+          <Show when={error()}>
+            <p role="alert" class="mb-3 text-sm text-destructive">{error()}</p>
+          </Show>
+
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => props.onClose()}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading() || !name().trim()}>
+              {loading() ? "Creating..." : "Create"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 

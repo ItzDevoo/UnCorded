@@ -72,10 +72,10 @@ const VirtualMessageList = (props: { channelId: ChannelId }) => {
     <div
       ref={scrollRef}
       onScroll={handleScroll}
-      class="flex-1 overflow-y-auto"
+      class="min-h-0 flex-1 overflow-y-auto"
     >
       <Show when={loading()}>
-        <div class="flex justify-center py-4">
+        <div class="flex min-h-[100px] justify-center py-4">
           <div class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       </Show>

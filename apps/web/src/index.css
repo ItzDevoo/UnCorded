@@ -1,7 +1,11 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap");
 @import "tailwindcss";
 @custom-variant dark (&:is(.dark, .dark *));
 
 @theme inline {
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+
   /* Map semantic CSS vars → Tailwind color utilities */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -92,11 +96,35 @@
 
   --sidebar: oklch(0.16 0.022 155);
   --sidebar-foreground: oklch(0.955 0.008 155);
+
+  /* Z-index scale */
+  --z-dropdown: 40;
+  --z-modal: 50;
+  --z-tooltip: 60;
+  --z-toast: 70;
 }
 
 * {
   scrollbar-width: thin;
   scrollbar-color: oklch(0.35 0.01 155) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: oklch(0.35 0.01 155);
+  border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.42 0.01 155);
 }
 
 .typing-dots {
@@ -132,4 +160,10 @@
   30% {
     transform: translateY(-4px);
   }
+}
+
+.no-transitions *,
+.no-transitions *::before,
+.no-transitions *::after {
+  transition-duration: 0s !important;
 }

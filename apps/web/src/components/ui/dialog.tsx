@@ -1,6 +1,9 @@
 import { Show, onMount, onCleanup, createUniqueId, splitProps, type JSX } from "solid-js";
 import { cn } from "../../lib/cn.js";
 
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 interface DialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -23,7 +26,7 @@ const DialogOverlay = (props: JSX.HTMLAttributes<HTMLDivElement>) => {
   return (
     <div
       data-slot="dialog-overlay"
-      class={cn("fixed inset-0 z-50 bg-black/50 backdrop-blur-sm", local.class)}
+      class={cn("fixed inset-0 z-[--z-modal] bg-black/50 backdrop-blur-sm", local.class)}
       {...rest}
     />
   );
@@ -36,23 +39,51 @@ interface DialogContentProps extends JSX.HTMLAttributes<HTMLDivElement> {
 const DialogContent = (props: DialogContentProps) => {
   const [local, rest] = splitProps(props, ["class", "children", "onClose"]);
   const titleId = createUniqueId();
+  // oxlint-disable-next-line eslint(no-unassigned-vars) -- SolidJS ref pattern
+  let panelRef!: HTMLDivElement;
+
+  // eslint-disable-next-line solid/reactivity -- focus trap runs once on mount
+  onMount(() => {
+    const first = panelRef.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+    first?.focus();
+  });
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key !== "Tab") return;
+
+    const focusable = [...panelRef.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)];
+    if (focusable.length === 0) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    if (e.shiftKey && document.activeElement === first && last) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last && first) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
 
   return (
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center"
+      class="fixed inset-0 z-[--z-modal] flex items-center justify-center"
       onClick={() => local.onClose?.()}
     >
       <DialogOverlay />
       <div
+        ref={panelRef}
         data-slot="dialog-content"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         class={cn(
-          "relative z-50 w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-md",
+          "relative z-[--z-modal] w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-md",
           local.class,
         )}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={handleKeyDown}
         data-title-id={titleId}
         {...rest}
       >

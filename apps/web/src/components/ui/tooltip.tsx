@@ -54,8 +54,8 @@ const Tooltip = (props: TooltipProps) => {
       <Show when={visible()}>
         <div
           class={cn(
-            "pointer-events-none absolute z-50 whitespace-nowrap rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md",
-            positionClasses[side()],
+            "absolute z-[--z-tooltip] whitespace-nowrap rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md",
+            positionClasses[side()] ?? positionClasses.top,
           )}
         >
           {local.content}

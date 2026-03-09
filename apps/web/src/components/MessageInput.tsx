@@ -8,6 +8,7 @@ import { getTypingUsers } from "../stores/message-store.js";
 const TYPING_THROTTLE_MS = 5000;
 const TEXTAREA_MAX_HEIGHT = 200;
 
+/** Keyed by ChannelId (branded string) — TS index signatures can't use branded types */
 const lastTypingSent: Record<string, number> = {};
 
 const MessageInput = (props: { channelId: ChannelId }) => {

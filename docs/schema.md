@@ -26,7 +26,7 @@ created_at, updated_at
 -- name, email_verified, image are required by Better Auth core
 -- username, display_username are required by Better Auth username plugin
 -- passwords/sessions managed by Better Auth tables
--- Better Auth also auto-manages: session, account, verification tables (do not define manually)
+-- Better Auth session, account, verification tables are defined in our schema (required by Drizzle adapter)
 
 ### servers
 
@@ -44,7 +44,7 @@ position (int, default 0), topic, created_at
 ### messages
 
 id, channel_id (TEXT, no FK), author_id -> users,
-content, edited_at, created_at
+content (nullable — null for file-only messages), edited_at, created_at
 -- No FK on channel_id: DM messages reference dm_channels, not channels.
 -- A FK to channels(id) would break DM functionality. Validate channel
 -- ownership in application logic instead.
@@ -54,8 +54,8 @@ INDEX: (channel_id, created_at DESC)
 
 id, channel_id (TEXT), sender_id -> users,
 file_name, file_size (bigint bytes), content_type,
-magnet_uri (TEXT — WebTorrent magnet link, persists in chat),
-info_hash (TEXT — torrent info hash for swarm identification),
+magnet_uri (TEXT NOT NULL — WebTorrent magnet link, persists in chat),
+info_hash (TEXT NOT NULL — torrent info hash for swarm identification),
 message_id -> messages (cascade, nullable),
 created_at
 -- Lightweight record of what was shared. No actual file data stored.

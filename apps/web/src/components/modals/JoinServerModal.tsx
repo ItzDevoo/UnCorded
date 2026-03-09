@@ -3,7 +3,15 @@ import { serverId, userId, type ServerId, type UserId, type InviteCode } from "@
 import { api, ApiRequestError } from "../../lib/api.js";
 import { addServer } from "../../lib/gateway-store.js";
 import { setSelectedServerId } from "../../stores/app-store.js";
-import Modal from "./Modal.js";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "../ui/dialog.js";
+import { Input } from "../ui/input.js";
+import { Button } from "../ui/button.js";
 
 interface InvitePreview {
   code: InviteCode;
@@ -83,90 +91,87 @@ const JoinServerModal = (props: Props) => {
   };
 
   return (
-    <Modal isOpen={true} onClose={props.onClose} title="Join a Server">
-      <Show
-        when={preview()}
-        fallback={
-          <form onSubmit={handlePreview}>
-            <label class="mb-1 block text-sm font-medium text-secondary-foreground">Invite Code</label>
-            <input
-              type="text"
-              value={code()}
-              onInput={(e) => setCode(e.currentTarget.value)}
-              placeholder="abc12345"
-              class="mb-4 w-full rounded-lg bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring"
-              autofocus
-            />
+    <Dialog open={true} onOpenChange={() => props.onClose()}>
+      <DialogContent onClose={props.onClose}>
+        <DialogHeader>
+          <DialogTitle>Join a Server</DialogTitle>
+        </DialogHeader>
 
-            {error() && <p class="mb-3 text-sm text-destructive">{error()}</p>}
+        <Show
+          when={preview()}
+          fallback={
+            <form onSubmit={handlePreview}>
+              <label class="mb-1 block text-sm font-medium text-secondary-foreground">Invite Code</label>
+              <Input
+                type="text"
+                value={code()}
+                onInput={(e) => setCode(e.currentTarget.value)}
+                placeholder="abc12345"
+                autofocus
+                class="mb-4"
+              />
 
-            <div class="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={props.onClose}
-                class="rounded-lg px-4 py-2 text-sm text-secondary-foreground hover:text-foreground"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={loading() || !code().trim()}
-                class="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/80 disabled:opacity-50"
-              >
-                {loading() ? "Looking up..." : "Preview"}
-              </button>
-            </div>
-          </form>
-        }
-      >
-        {(p) => (
-          <div>
-            <div class="mb-4 flex items-center gap-3 rounded-lg bg-secondary p-3">
-              <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted text-lg font-bold text-foreground">
-                {p().server.iconUrl ? (
-                  <img
-                    src={p().server.iconUrl ?? undefined}
-                    alt={p().server.name}
-                    class="h-12 w-12 rounded-xl object-cover"
-                  />
-                ) : (
-                  p().server.name.charAt(0).toUpperCase()
-                )}
-              </div>
-              <div>
-                <div class="font-semibold text-foreground">{p().server.name}</div>
-                <div class="text-sm text-muted-foreground">
-                  {p().memberCount} {p().memberCount === 1 ? "member" : "members"}
+              <Show when={error()}>
+                <p role="alert" class="mb-3 text-sm text-destructive">{error()}</p>
+              </Show>
+
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={() => props.onClose()}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={loading() || !code().trim()}>
+                  {loading() ? "Looking up..." : "Preview"}
+                </Button>
+              </DialogFooter>
+            </form>
+          }
+        >
+          {(p) => (
+            <div>
+              <div class="mb-4 flex items-center gap-3 rounded-lg bg-secondary p-3">
+                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted text-lg font-bold text-foreground">
+                  {p().server.iconUrl ? (
+                    <img
+                      src={p().server.iconUrl ?? undefined}
+                      alt={p().server.name}
+                      class="h-12 w-12 rounded-xl object-cover"
+                    />
+                  ) : (
+                    p().server.name.charAt(0).toUpperCase()
+                  )}
+                </div>
+                <div>
+                  <div class="font-semibold text-foreground">{p().server.name}</div>
+                  <div class="text-sm text-muted-foreground">
+                    {p().memberCount} {p().memberCount === 1 ? "member" : "members"}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {error() && <p class="mb-3 text-sm text-destructive">{error()}</p>}
+              <Show when={error()}>
+                <p role="alert" class="mb-3 text-sm text-destructive">{error()}</p>
+              </Show>
 
-            <div class="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setPreview(null);
-                  setError("");
-                }}
-                class="rounded-lg px-4 py-2 text-sm text-secondary-foreground hover:text-foreground"
-              >
-                Back
-              </button>
-              <button
-                type="button"
-                onClick={handleJoin}
-                disabled={loading()}
-                class="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/80 disabled:opacity-50"
-              >
-                {loading() ? "Joining..." : "Join Server"}
-              </button>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setPreview(null);
+                    setError("");
+                  }}
+                >
+                  Back
+                </Button>
+                <Button type="button" onClick={handleJoin} disabled={loading()}>
+                  {loading() ? "Joining..." : "Join Server"}
+                </Button>
+              </DialogFooter>
             </div>
-          </div>
-        )}
-      </Show>
-    </Modal>
+          )}
+        </Show>
+      </DialogContent>
+    </Dialog>
   );
 };
 

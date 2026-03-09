@@ -1,7 +1,15 @@
 import { createSignal, onMount, onCleanup, Show } from "solid-js";
 import type { ServerId, InviteCode, UserId } from "@uncorded/protocol";
 import { api, ApiRequestError } from "../../lib/api.js";
-import Modal from "./Modal.js";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "../ui/dialog.js";
+import { Input } from "../ui/input.js";
+import { Button } from "../ui/button.js";
 
 interface InviteResponse {
   code: InviteCode;
@@ -30,7 +38,7 @@ const InviteModal = (props: Props) => {
     setError("");
     setLoading(true);
     try {
-      const body: Record<string, unknown> = {};
+      const body: { maxUses?: number; expiresAt?: string } = {};
       if (options?.maxUses) body.maxUses = options.maxUses;
       if (options?.expiresAt) body.expiresAt = options.expiresAt;
 
@@ -79,98 +87,99 @@ const InviteModal = (props: Props) => {
   };
 
   return (
-    <Modal isOpen={true} onClose={props.onClose} title="Invite People">
-      <Show
-        when={!loading() || invite()}
-        fallback={
-          <div class="flex justify-center py-6">
-            <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          </div>
-        }
-      >
-        {error() && <p class="mb-3 text-sm text-destructive">{error()}</p>}
+    <Dialog open={true} onOpenChange={() => props.onClose()}>
+      <DialogContent onClose={props.onClose}>
+        <DialogHeader>
+          <DialogTitle>Invite People</DialogTitle>
+        </DialogHeader>
 
-        <Show when={invite()}>
-          {(inv) => (
-            <>
-              <label class="mb-1 block text-sm font-medium text-secondary-foreground">Invite Code</label>
-              <div class="mb-4 flex gap-2">
-                <input
-                  type="text"
-                  value={inv().code}
-                  readOnly
-                  class="flex-1 rounded-lg bg-input px-3 py-2 text-sm text-foreground outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={handleCopy}
-                  class="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/80"
-                >
-                  {copied() ? "Copied!" : "Copy"}
-                </button>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowAdvanced((v) => !v)}
-                class="mb-3 text-xs text-muted-foreground hover:text-secondary-foreground"
-              >
-                {showAdvanced() ? "Hide advanced" : "Advanced options"}
-              </button>
-
-              <Show when={showAdvanced()}>
-                <div class="mb-4 space-y-3 rounded-lg bg-secondary p-3">
-                  <div>
-                    <label class="mb-1 block text-xs font-medium text-secondary-foreground">
-                      Max Uses
-                    </label>
-                    <input
-                      type="number"
-                      value={maxUses()}
-                      onInput={(e) => setMaxUses(e.currentTarget.value)}
-                      placeholder="Unlimited"
-                      min="1"
-                      class="w-full rounded-lg bg-input px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring"
-                    />
-                  </div>
-                  <div>
-                    <label class="mb-1 block text-xs font-medium text-secondary-foreground">
-                      Expires In (hours)
-                    </label>
-                    <input
-                      type="number"
-                      value={expiresIn()}
-                      onInput={(e) => setExpiresIn(e.currentTarget.value)}
-                      placeholder="Never"
-                      min="1"
-                      class="w-full rounded-lg bg-input px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleGenerateAdvanced}
-                    disabled={loading()}
-                    class="rounded-lg bg-muted px-3 py-1.5 text-sm text-foreground hover:bg-accent disabled:opacity-50"
-                  >
-                    {loading() ? "Generating..." : "Generate New"}
-                  </button>
-                </div>
-              </Show>
-            </>
-          )}
-        </Show>
-      </Show>
-
-      <div class="flex justify-end">
-        <button
-          type="button"
-          onClick={() => props.onClose()}
-          class="rounded-lg px-4 py-2 text-sm text-secondary-foreground hover:text-foreground"
+        <Show
+          when={!loading() || invite()}
+          fallback={
+            <div class="flex justify-center py-6">
+              <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            </div>
+          }
         >
-          Done
-        </button>
-      </div>
-    </Modal>
+          <Show when={error()}>
+            <p role="alert" class="mb-3 text-sm text-destructive">{error()}</p>
+          </Show>
+
+          <Show when={invite()}>
+            {(inv) => (
+              <>
+                <label class="mb-1 block text-sm font-medium text-secondary-foreground">Invite Code</label>
+                <div class="mb-4 flex gap-2">
+                  <Input
+                    type="text"
+                    value={inv().code}
+                    readOnly
+                    class="flex-1"
+                  />
+                  <Button type="button" onClick={handleCopy}>
+                    {copied() ? "Copied!" : "Copy"}
+                  </Button>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  onClick={() => setShowAdvanced((v) => !v)}
+                  class="mb-3 text-xs text-muted-foreground"
+                >
+                  {showAdvanced() ? "Hide advanced" : "Advanced options"}
+                </Button>
+
+                <Show when={showAdvanced()}>
+                  <div class="mb-4 space-y-3 rounded-lg bg-secondary p-3">
+                    <div>
+                      <label class="mb-1 block text-xs font-medium text-secondary-foreground">
+                        Max Uses
+                      </label>
+                      <Input
+                        type="number"
+                        value={maxUses()}
+                        onInput={(e) => setMaxUses(e.currentTarget.value)}
+                        placeholder="Unlimited"
+                        min="1"
+                      />
+                    </div>
+                    <div>
+                      <label class="mb-1 block text-xs font-medium text-secondary-foreground">
+                        Expires In (hours)
+                      </label>
+                      <Input
+                        type="number"
+                        value={expiresIn()}
+                        onInput={(e) => setExpiresIn(e.currentTarget.value)}
+                        placeholder="Never"
+                        min="1"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleGenerateAdvanced}
+                      disabled={loading()}
+                    >
+                      {loading() ? "Generating..." : "Generate New"}
+                    </Button>
+                  </div>
+                </Show>
+              </>
+            )}
+          </Show>
+        </Show>
+
+        <DialogFooter>
+          <Button type="button" variant="ghost" onClick={() => props.onClose()}>
+            Done
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

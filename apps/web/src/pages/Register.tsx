@@ -3,6 +3,8 @@ import { A, useNavigate } from "@solidjs/router";
 import { USERNAME_MIN, USERNAME_MAX, PASSWORD_MIN } from "@uncorded/shared";
 import { signUp } from "../lib/auth.js";
 import AuthLayout from "../components/AuthLayout.js";
+import { Input } from "../components/ui/input.js";
+import { Button } from "../components/ui/button.js";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -44,54 +46,47 @@ const Register = () => {
       </p>
 
       <Show when={error()}>
-        <div class="mb-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error()}</div>
+        <div role="alert" class="mb-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error()}</div>
       </Show>
 
       <form onSubmit={handleSubmit} class="space-y-4">
         <div>
           <label class="mb-1 block text-xs font-medium uppercase text-secondary-foreground">Email</label>
-          <input
+          <Input
             type="email"
             required
             value={email()}
             onInput={(e) => setEmail(e.currentTarget.value)}
-            class="w-full rounded-lg border border-border bg-input px-3 py-2 text-foreground outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
         <div>
           <label class="mb-1 block text-xs font-medium uppercase text-secondary-foreground">
             Username
           </label>
-          <input
+          <Input
             type="text"
             required
             minLength={USERNAME_MIN}
             maxLength={USERNAME_MAX}
             value={username()}
             onInput={(e) => setUsername(e.currentTarget.value)}
-            class="w-full rounded-lg border border-border bg-input px-3 py-2 text-foreground outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
         <div>
           <label class="mb-1 block text-xs font-medium uppercase text-secondary-foreground">
             Password
           </label>
-          <input
+          <Input
             type="password"
             required
             minLength={PASSWORD_MIN}
             value={password()}
             onInput={(e) => setPassword(e.currentTarget.value)}
-            class="w-full rounded-lg border border-border bg-input px-3 py-2 text-foreground outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
-        <button
-          type="submit"
-          disabled={loading()}
-          class="w-full rounded-lg bg-primary py-2 font-medium text-white transition-colors hover:bg-primary/80 disabled:opacity-50"
-        >
+        <Button type="submit" disabled={loading()} size="lg" class="w-full">
           {loading() ? "Creating account..." : "Register"}
-        </button>
+        </Button>
       </form>
 
       <p class="mt-6 text-center text-sm text-secondary-foreground">

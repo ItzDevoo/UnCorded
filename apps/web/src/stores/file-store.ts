@@ -29,7 +29,7 @@ export interface TransferProgress {
   fileName: string;
   progress: number;
   downloadSpeed: number;
-  status: "seeding" | "downloading" | "done" | "error";
+  status: "seeding" | "downloading" | "done" | "cancelled" | "error";
   error?: string;
 }
 
@@ -120,7 +120,7 @@ export async function shareFile(chId: ChannelId, file: File): Promise<SeedResult
   try {
     result = await seedFile(file);
   } catch (err) {
-    console.error("[file-store] Failed to seed file:", err);
+    if (import.meta.env.DEV) console.error("[file-store] Failed to seed file:", err);
     throw err;
   }
 
@@ -190,14 +190,14 @@ export async function downloadFile(magnetUri: string, fileName: string): Promise
   } catch (err) {
     setStore("transfers", infoHash, "status", "error");
     setStore("transfers", infoHash, "error", String(err));
-    console.error("[file-store] Download failed:", err);
+    if (import.meta.env.DEV) console.error("[file-store] Download failed:", err);
     throw err;
   }
 }
 
 export function cancelTransfer(infoHash: string): void {
   stopSeeding(infoHash);
-  setStore("transfers", infoHash, "status", "done");
+  setStore("transfers", infoHash, "status", "cancelled");
 }
 
 export function getReceipts(chId: ChannelId): FileReceipt[] {
@@ -218,7 +218,7 @@ export function getSeeders(frId: FileReceiptId): string[] {
 const unsubFileShare = onGatewayEvent(Opcode.FILE_SHARE, (data) => {
   const parsed = fileShareBroadcastSchema.safeParse(data);
   if (!parsed.success) {
-    console.warn("Invalid FILE_SHARE payload:", parsed.error.issues);
+    if (import.meta.env.DEV) console.warn("Invalid FILE_SHARE payload:", parsed.error.issues);
     return;
   }
   const d = parsed.data;
@@ -237,7 +237,8 @@ const unsubFileShare = onGatewayEvent(Opcode.FILE_SHARE, (data) => {
 const unsubAvailability = onGatewayEvent(Opcode.FILE_AVAILABILITY_UPDATE, (data) => {
   const parsed = fileAvailabilitySchema.safeParse(data);
   if (!parsed.success) {
-    console.warn("Invalid FILE_AVAILABILITY_UPDATE payload:", parsed.error.issues);
+    if (import.meta.env.DEV)
+      console.warn("Invalid FILE_AVAILABILITY_UPDATE payload:", parsed.error.issues);
     return;
   }
   const d = parsed.data;

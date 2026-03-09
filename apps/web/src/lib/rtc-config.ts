@@ -12,10 +12,11 @@ function parseStunServers(): string[] {
     if (Array.isArray(parsed) && parsed.every((s) => typeof s === "string")) {
       return parsed as string[];
     }
-    console.warn("VITE_STUN_SERVERS is not a string array, using defaults");
+    if (import.meta.env.DEV)
+      console.warn("VITE_STUN_SERVERS is not a string array, using defaults");
     return DEFAULT_STUN_SERVERS;
   } catch {
-    console.warn("Failed to parse VITE_STUN_SERVERS, using defaults");
+    if (import.meta.env.DEV) console.warn("Failed to parse VITE_STUN_SERVERS, using defaults");
     return DEFAULT_STUN_SERVERS;
   }
 }

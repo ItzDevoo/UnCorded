@@ -56,7 +56,8 @@ export function onSignalingEvent(
   return onGatewayEvent(opcodeByType[type], (data) => {
     const parsed = signalingEventSchema.safeParse(data);
     if (!parsed.success) {
-      console.warn(`Invalid ${type} signaling event:`, parsed.error.issues);
+      if (import.meta.env.DEV)
+        console.warn(`Invalid ${type} signaling event:`, parsed.error.issues);
       return;
     }
     callback(parsed.data as SignalingEvent);

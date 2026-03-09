@@ -5,6 +5,7 @@ import {
   setGatewayStatus,
   setReadyPayload,
   clearReadyPayload,
+  readyDataSchema,
   type ReadyData,
 } from "./gateway-store.js";
 
@@ -56,24 +57,26 @@ function handleMessage(event: MessageEvent) {
       if (typeof frame.d !== "object" || frame.d === null || !("heartbeatInterval" in frame.d)) {
         break;
       }
-      const { heartbeatInterval } = frame.d as { heartbeatInterval: number };
-      startHeartbeat(heartbeatInterval);
+      const raw = (frame.d as Record<string, unknown>).heartbeatInterval;
+      const interval = Number(raw);
+      if (!Number.isFinite(interval) || interval <= 0) break;
+      startHeartbeat(interval);
       sendFrame({ op: Opcode.IDENTIFY, d: { token } });
       break;
     }
     case Opcode.READY: {
-      if (
-        typeof frame.d !== "object" ||
-        frame.d === null ||
-        !("user" in frame.d) ||
-        !("servers" in frame.d)
-      ) {
+      const parsed = readyDataSchema.safeParse(frame.d);
+      if (!parsed.success) {
+        if (import.meta.env.DEV) {
+          console.error("[gateway] Invalid READY payload:", parsed.error.issues);
+        }
+        ws?.close();
         break;
       }
       reconnectAttempts = 0;
       setGatewayStatus("connected");
-      setReadyPayload(frame.d as ReadyData);
-      dispatch(Opcode.READY, frame.d);
+      setReadyPayload(parsed.data as ReadyData);
+      dispatch(Opcode.READY, parsed.data);
       break;
     }
     default: {

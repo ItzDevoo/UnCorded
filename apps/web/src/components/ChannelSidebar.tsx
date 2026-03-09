@@ -6,8 +6,10 @@ import {
   currentChannels,
   selectedChannelId,
   setSelectedChannelId,
+  selectedServerId,
 } from "../stores/app-store.js";
 import InviteModal from "./modals/InviteModal.js";
+import DMList from "./DMList.js";
 
 const ChannelSidebar = () => {
   const session = useSession();
@@ -21,64 +23,100 @@ const ChannelSidebar = () => {
 
   return (
     <div class="flex h-full w-60 shrink-0 flex-col bg-card">
-      {/* Server name header */}
+      {/* Header */}
       <div class="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
-        <span class="truncate font-semibold text-foreground">
-          {currentServer()?.name ?? "UnCorded"}
-        </span>
-        <Show when={currentServer()}>
-          <button
-            onClick={() => setShowInvite(true)}
-            title="Invite People"
-            class="rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="2"
+        <Show
+          when={selectedServerId()}
+          fallback={<span class="truncate font-semibold text-foreground">Direct Messages</span>}
+        >
+          <span class="truncate font-semibold text-foreground">
+            {currentServer()?.name ?? "UnCorded"}
+          </span>
+          <Show when={currentServer()}>
+            <button
+              onClick={() => setShowInvite(true)}
+              title="Invite People"
+              class="rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-              />
-            </svg>
-          </button>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                />
+              </svg>
+            </button>
+          </Show>
         </Show>
       </div>
 
-      {/* Channel list */}
-      <div class="flex-1 overflow-y-auto p-2">
-        <div class="px-2 pt-4 text-xs font-semibold uppercase text-muted-foreground">Channels</div>
-        <For each={currentChannels()}>
-          {(channel) => {
-            const isActive = () => selectedChannelId() === channel.id;
-            return (
-              <button
-                onClick={() => setSelectedChannelId(channel.id)}
-                class="mt-0.5 flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-sm transition-colors"
-                classList={{
-                  "bg-muted text-foreground": isActive(),
-                  "text-secondary-foreground hover:bg-accent hover:text-foreground": !isActive(),
-                }}
+      {/* Channel list or DM list */}
+      <Show
+        when={selectedServerId()}
+        fallback={
+          <>
+            <button
+              onClick={() => navigate("/app/friends")}
+              class="mx-2 mt-2 flex w-[calc(100%-1rem)] items-center gap-2 rounded px-2 py-1.5 text-sm text-secondary-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
               >
-                <span class="truncate">
-                  <span class="text-muted-foreground">#</span> {channel.name}
-                </span>
-                <Show when={channel.fileSharingEnabled}>
-                  <span
-                    class="ml-auto h-2 w-2 shrink-0 rounded-full bg-success"
-                    title="File sharing enabled"
-                  />
-                </Show>
-              </button>
-            );
-          }}
-        </For>
-      </div>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+              Friends
+            </button>
+            <DMList />
+          </>
+        }
+      >
+        <div class="flex-1 overflow-y-auto p-2">
+          <div class="px-2 pt-4 text-xs font-semibold uppercase text-muted-foreground">
+            Channels
+          </div>
+          <For each={currentChannels()}>
+            {(channel) => {
+              const isActive = () => selectedChannelId() === channel.id;
+              return (
+                <button
+                  onClick={() => setSelectedChannelId(channel.id)}
+                  class="mt-0.5 flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-sm transition-colors"
+                  classList={{
+                    "bg-muted text-foreground": isActive(),
+                    "text-secondary-foreground hover:bg-accent hover:text-foreground": !isActive(),
+                  }}
+                >
+                  <span class="truncate">
+                    <span class="text-muted-foreground">#</span> {channel.name}
+                  </span>
+                  <Show when={channel.fileSharingEnabled}>
+                    <span
+                      class="ml-auto h-2 w-2 shrink-0 rounded-full bg-success"
+                      title="File sharing enabled"
+                    />
+                  </Show>
+                </button>
+              );
+            }}
+          </For>
+        </div>
+      </Show>
 
       {/* User panel */}
       <div class="flex shrink-0 items-center gap-2 border-t border-border bg-background/50 px-2 py-2">

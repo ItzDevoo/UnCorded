@@ -83,7 +83,7 @@ const FileMessage = (props: { receipt: FileReceipt; isOwn: boolean }) => {
         } else {
           setDownloadError("Download failed. Please try again.");
         }
-        console.error("[FileMessage] Download failed:", err);
+        if (import.meta.env.DEV) console.error("[FileMessage] Download failed:", err);
       });
   }
 
@@ -152,6 +152,13 @@ const FileMessage = (props: { receipt: FileReceipt; isOwn: boolean }) => {
 
           <Show when={status() === "done"}>
             <Badge variant="success">Saved</Badge>
+          </Show>
+
+          <Show when={status() === "cancelled"}>
+            <Badge variant="outline">Cancelled</Badge>
+            <Button size="sm" variant="ghost" onClick={handleDownload}>
+              Retry
+            </Button>
           </Show>
 
           {/* Seeder count badge */}

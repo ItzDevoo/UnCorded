@@ -60,3 +60,29 @@ The magnetUri allows any peer to join the torrent swarm and download.
 Sent by clients to indicate seeding status for a file.
 Payload: { fileReceiptId: string, channelId: string, available: boolean }
 Server broadcasts to channel members so UI can show "X seeders" or "No seeders online."
+
+## FRIEND_REQUEST (op 70)
+
+Sent to target user when someone sends a friend request.
+Payload: { userId: string, username: string | null, displayName: string | null, avatarUrl: string | null, status: string }
+Triggered by REST POST /api/friends/request.
+
+## FRIEND_ACCEPT (op 71)
+
+Sent to both users when a friend request is accepted.
+Payload: { userId: string, username: string | null, displayName: string | null, avatarUrl: string | null, status: string }
+The userId is the OTHER user (the peer whose friendship was accepted).
+Triggered by REST POST /api/friends/:userId/accept or auto-accept on mutual request.
+
+## FRIEND_REMOVE (op 72)
+
+Sent to the other user when a friend is removed or blocked.
+Payload: { userId: string }
+Triggered by REST DELETE /api/friends/:userId or POST /api/friends/:userId/block.
+
+## DM_CHANNEL_CREATE (op 80)
+
+Sent to both users when a new DM channel is created.
+Payload: { id: string, otherUser: { id: string, username: string | null, displayName: string | null, avatarUrl: string | null, status: string } }
+Each user receives a different payload — otherUser is the PEER, not self.
+Triggered by REST POST /api/dms.

@@ -1,6 +1,6 @@
 import { createSignal, For, Show } from "solid-js";
 import { readyData } from "../lib/gateway-store.js";
-import { selectedServerId, setSelectedServerId } from "../stores/app-store.js";
+import { selectedServerId, setSelectedServerId, selectHome } from "../stores/app-store.js";
 import CreateServerModal from "./modals/CreateServerModal.js";
 import JoinServerModal from "./modals/JoinServerModal.js";
 
@@ -10,7 +10,10 @@ const ServerSidebar = () => {
   return (
     <div class="flex h-full w-[72px] shrink-0 flex-col items-center gap-2 overflow-y-auto bg-sidebar py-3">
       {/* Home button */}
-      <button class="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white transition-all hover:rounded-xl">
+      <button
+        onClick={() => selectHome()}
+        class="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white transition-all hover:rounded-xl"
+      >
         <svg
           xmlns="http://www.w3.org/2000/svg"
           class="h-6 w-6"

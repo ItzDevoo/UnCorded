@@ -196,19 +196,37 @@ Reference: C:\Nexis (monorepo patterns, auth, WS gateway), C:\t3Code (tooling, U
 ### Day 5-6: DM File Sharing UI
 
 - [x] Drag-and-drop + clipboard paste file selection
-- [ ] File sharing in DMs (P2P, both users online) — SKIPPED: DM routes don't exist yet
+- [x] File sharing in DMs (P2P, both users online) — DM routes now exist
 - [x] Download progress bar
 - [x] Seeder count indicator ("X seeders" / "No seeders online")
 - [x] Rich previews for images (generate thumbnail after download)
 - [x] Clear error messaging when P2P fails for free users (NAT blocked, no TURN)
 - [x] Code review fixes (9 fixes: tier gate, Zod bounds, raw cast, shape validation, etc.)
 
-### Day 7: DMs + Friends
+### Day 7: DMs + Friends + Review Fixes (13 items)
 
-- [ ] Friend system (request, accept, decline, block)
-- [ ] DM channels (always P2P for files)
-- [ ] DM list in sidebar
-- [ ] /channels/me friend list page
+- [x] Code review fixes (13 items from Day 5-6 review):
+  - [x] Fix #1 (High): Bounded WebRTC data field (SDP ≤16KB, ICE as record)
+  - [x] Fix #2 (High): Zod readyDataSchema for READY payload validation on client
+  - [x] Fix #3 (High): Validate HELLO heartbeatInterval (Number.isFinite + positive)
+  - [x] Fix #4 (High): File size upper bound (100MB) on server fileShareSchema
+  - [x] Fix #5 (Medium): .min(1) on fileAvailabilitySchema IDs
+  - [x] Fix #6 (Medium): .min(1) on typingStartSchema channelId
+  - [x] Fix #7 (Medium): Download timeout (5 min) on downloadFromMagnet
+  - [x] Fix #8 (Medium): "cancelled" status in TransferProgress + UI badge
+  - [x] Fix #9 (Medium): Race fix in seedFile — client error handler before seed callback
+  - [x] Fix #10 (Medium): Console.warn/error gated behind import.meta.env.DEV
+  - [x] Fix #11 (Low): FREE_TIER constant replaces magic "free" string
+  - [x] Fix #12 (Low): No action — already has explanatory comment
+  - [x] Fix #13 (Low): TODO comment on broadcastToServer cache optimization
+- [x] Friend system (request, accept, decline, block, remove)
+- [x] DM channels (create/get, always P2P for files)
+- [x] DM message support (resolveChannel + broadcastToDm in message routes)
+- [x] READY payload includes dmChannels + friends arrays
+- [x] DM list in sidebar (ChannelSidebar toggles between channels/DMs)
+- [x] Friends page (/app/friends) with All/Pending/Blocked tabs
+- [x] Friend store (WS listeners for FRIEND_REQUEST/ACCEPT/REMOVE)
+- [x] Schema docs: member_roles cascade info
 
 **Milestone: Users can share files in DMs via P2P. Magnet links persist in chat.**
 

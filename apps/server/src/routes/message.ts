@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { eq, and, lt, gt, desc, or } from "drizzle-orm";
+import { eq, and, lt, gt, desc, or, ne } from "drizzle-orm";
 import {
   createMessageSchema,
   updateMessageSchema,
@@ -9,28 +9,51 @@ import {
   InternalError,
 } from "@uncorded/shared";
 import { Opcode, messageId, channelId, userId } from "@uncorded/protocol";
+import type { GatewayFrame } from "@uncorded/protocol";
 import { db } from "../db/index.js";
-import { messages, channels, servers, user } from "../db/schema.js";
+import { messages, channels, servers, user, dmMembers } from "../db/schema.js";
 import { getSession } from "../middleware/auth.js";
 import { requireMember } from "../helpers/permissions.js";
-import { broadcastToServer } from "../ws/connections.js";
+import { broadcastToServer, sendToUser } from "../ws/connections.js";
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
 
-/** Look up channel and return its serverId, or throw NotFoundError. */
-async function getChannelServerId(chanId: string): Promise<string> {
-  const [channel] = await db
+type ChannelResolution = { type: "server"; serverId: string } | { type: "dm" };
+
+/** Resolve a channel ID to either a server channel or DM channel. */
+async function resolveChannel(chanId: string, reqUserId: string): Promise<ChannelResolution> {
+  // Try server channel first
+  const [serverCh] = await db
     .select({ serverId: channels.serverId })
     .from(channels)
     .where(eq(channels.id, chanId))
     .limit(1);
 
-  if (!channel) {
-    throw new NotFoundError("Channel");
+  if (serverCh) {
+    await requireMember(reqUserId, serverCh.serverId);
+    return { type: "server", serverId: serverCh.serverId };
   }
 
-  return channel.serverId;
+  // Try DM channel
+  const [dmMem] = await db
+    .select({ channelId: dmMembers.channelId })
+    .from(dmMembers)
+    .where(and(eq(dmMembers.channelId, chanId), eq(dmMembers.userId, reqUserId)))
+    .limit(1);
+
+  if (dmMem) return { type: "dm" };
+
+  throw new NotFoundError("Channel");
+}
+
+/** Broadcast a frame to all DM members except the sender. */
+async function broadcastToDm(chanId: string, frame: GatewayFrame, excludeUserId: string) {
+  const others = await db
+    .select({ userId: dmMembers.userId })
+    .from(dmMembers)
+    .where(and(eq(dmMembers.channelId, chanId), ne(dmMembers.userId, excludeUserId)));
+  for (const m of others) sendToUser(m.userId, frame);
 }
 
 /** Fetch a single message with author info. */
@@ -77,8 +100,7 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
 
   // POST / — Create message
   .post("/", async ({ user: sessionUser, params, body, set }) => {
-    const serverId = await getChannelServerId(params.channelId);
-    await requireMember(sessionUser.id, serverId);
+    const resolution = await resolveChannel(params.channelId, sessionUser.id);
 
     const parsed = createMessageSchema.safeParse(body);
     if (!parsed.success) {
@@ -104,10 +126,14 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
 
     const messageWithAuthor = await fetchMessageWithAuthor(inserted.id);
 
-    await broadcastToServer(serverId, {
-      op: Opcode.MESSAGE_CREATE,
-      d: messageWithAuthor,
-    });
+    const frame = { op: Opcode.MESSAGE_CREATE, d: messageWithAuthor } as const;
+    if (resolution.type === "server") {
+      await broadcastToServer(resolution.serverId, frame);
+    } else {
+      await broadcastToDm(params.channelId, frame, sessionUser.id);
+      // Also send to self so other tabs get the message
+      sendToUser(sessionUser.id, frame);
+    }
 
     set.status = 201;
     return messageWithAuthor;
@@ -115,8 +141,7 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
 
   // GET / — List messages with cursor pagination
   .get("/", async ({ user: sessionUser, params, query }) => {
-    const serverId = await getChannelServerId(params.channelId);
-    await requireMember(sessionUser.id, serverId);
+    await resolveChannel(params.channelId, sessionUser.id);
 
     const before = query.before as string | undefined;
     const after = query.after as string | undefined;
@@ -190,8 +215,7 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
 
   // PATCH /:messageId — Edit message
   .patch("/:messageId", async ({ user: sessionUser, params, body }) => {
-    const serverId = await getChannelServerId(params.channelId);
-    await requireMember(sessionUser.id, serverId);
+    const resolution = await resolveChannel(params.channelId, sessionUser.id);
 
     const parsed = updateMessageSchema.safeParse(body);
     if (!parsed.success) {
@@ -221,7 +245,7 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
 
     const updated = await fetchMessageWithAuthor(params.messageId);
 
-    await broadcastToServer(serverId, {
+    const frame = {
       op: Opcode.MESSAGE_UPDATE,
       d: {
         id: messageId(params.messageId),
@@ -229,15 +253,21 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
         content: parsed.data.content,
         editedAt,
       },
-    });
+    } as const;
+
+    if (resolution.type === "server") {
+      await broadcastToServer(resolution.serverId, frame);
+    } else {
+      await broadcastToDm(params.channelId, frame, sessionUser.id);
+      sendToUser(sessionUser.id, frame);
+    }
 
     return updated;
   })
 
   // DELETE /:messageId — Delete message
   .delete("/:messageId", async ({ user: sessionUser, params, set }) => {
-    const serverId = await getChannelServerId(params.channelId);
-    await requireMember(sessionUser.id, serverId);
+    const resolution = await resolveChannel(params.channelId, sessionUser.id);
 
     // Fetch message
     const [existing] = await db
@@ -252,10 +282,13 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
 
     // Author or server owner can delete
     if (existing.authorId !== sessionUser.id) {
+      if (resolution.type === "dm") {
+        throw new ForbiddenError("Cannot delete this message");
+      }
       const [server] = await db
         .select({ ownerId: servers.ownerId })
         .from(servers)
-        .where(eq(servers.id, serverId))
+        .where(eq(servers.id, resolution.serverId))
         .limit(1);
 
       if (!server || server.ownerId !== sessionUser.id) {
@@ -265,10 +298,17 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
 
     await db.delete(messages).where(eq(messages.id, params.messageId));
 
-    await broadcastToServer(serverId, {
+    const frame = {
       op: Opcode.MESSAGE_DELETE,
       d: { id: messageId(params.messageId), channelId: channelId(params.channelId) },
-    });
+    } as const;
+
+    if (resolution.type === "server") {
+      await broadcastToServer(resolution.serverId, frame);
+    } else {
+      await broadcastToDm(params.channelId, frame, sessionUser.id);
+      sendToUser(sessionUser.id, frame);
+    }
 
     set.status = 204;
   });

@@ -45,7 +45,7 @@ export function initTorrentClient(): WebTorrentInstance {
   client = new WebTorrent();
 
   client.on("error", (err) => {
-    console.error("[torrent-client] Error:", err);
+    if (import.meta.env.DEV) console.error("[torrent-client] Error:", err);
   });
 
   return client;
@@ -63,25 +63,23 @@ export function seedFile(file: File): Promise<SeedResult> {
   const c = initTorrentClient();
 
   return new Promise((resolve, reject) => {
+    const onError = (err: Error | string) => reject(typeof err === "string" ? new Error(err) : err);
+    c.once("error", onError);
+
     c.seed(file, (torrent: Torrent) => {
+      c.removeListener("error", onError);
+      torrent.once("error", (err) => reject(typeof err === "string" ? new Error(err) : err));
       resolve({
         magnetUri: torrent.magnetURI,
         infoHash: torrent.infoHash,
       });
     });
-
-    // Handle seed errors via the client-level error event (already logged above).
-    // Also add a one-time error handler on the torrent once it's created.
-    const onTorrent = (torrent: Torrent) => {
-      torrent.once("error", (err) => {
-        reject(typeof err === "string" ? new Error(err) : err);
-      });
-    };
-    c.once("torrent", onTorrent);
   });
 }
 
 // ── Downloading ─────────────────────────────────────────────────────────────
+
+const DOWNLOAD_TIMEOUT_MS = 5 * 60 * 1000;
 
 export function downloadFromMagnet(
   magnetUri: string,
@@ -92,7 +90,13 @@ export function downloadFromMagnet(
   return new Promise((resolve, reject) => {
     const torrent = c.add(magnetUri);
 
+    const timeout = setTimeout(() => {
+      torrent.destroy();
+      reject(new Error("Download timed out after 5 minutes"));
+    }, DOWNLOAD_TIMEOUT_MS);
+
     torrent.on("error", (err) => {
+      clearTimeout(timeout);
       reject(typeof err === "string" ? new Error(err) : err);
     });
 
@@ -103,6 +107,7 @@ export function downloadFromMagnet(
     }
 
     torrent.on("done", () => {
+      clearTimeout(timeout);
       const filePromises = torrent.files.map(
         (f: TorrentFile) =>
           new Promise<File>((res, rej) => {

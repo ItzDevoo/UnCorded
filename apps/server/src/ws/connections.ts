@@ -38,6 +38,7 @@ export function sendToUser(userId: string, frame: GatewayFrame): void {
   }
 }
 
+// TODO: cache server membership for broadcast performance
 export async function broadcastToServer(
   serverId: string,
   frame: GatewayFrame,

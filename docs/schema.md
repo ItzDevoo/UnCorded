@@ -77,7 +77,7 @@ permissions (bigint bitfield, default 0), position (int, default 0)
 ### member_roles
 
 (user_id, server_id, role_id) PK
-user_id -> users, server_id -> servers, role_id -> roles (cascade)
+user_id -> users (cascade), server_id -> servers (cascade), role_id -> roles (cascade)
 
 ### friendships
 

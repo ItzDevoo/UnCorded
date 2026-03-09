@@ -6,12 +6,60 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Week 3 Day 5-6 — DM File Sharing UI + Review Fixes
+## Current Status: Week 3 Day 7 — DMs + Friends + Review Fixes
+
+---
+
+### Week 3 Day 7 — 2026-03-09
+
+**What was done:**
+
+- Code review fixes (13 items from Day 5-6 review):
+  - Fix #1 (High): Bounded WebRTC data field — SDP strings ≤16KB, ICE candidates as bounded records
+  - Fix #2 (High): readyDataSchema Zod validation for READY payload on client, close WS + log on failure
+  - Fix #3 (High): HELLO heartbeatInterval validated with Number.isFinite + positive check
+  - Fix #4 (High): Server fileShareSchema max file size 100MB
+  - Fix #5-6 (Medium): .min(1) on fileAvailabilitySchema IDs + typingStartSchema channelId
+  - Fix #7 (Medium): 5-minute download timeout on downloadFromMagnet with torrent destroy on timeout
+  - Fix #8 (Medium): "cancelled" status in TransferProgress union + Cancelled badge with retry in FileMessage
+  - Fix #9 (Medium): seedFile race condition — client-level error handler attached before seed(), removed after torrent created
+  - Fix #10 (Medium): All console.warn/error in production client code gated behind import.meta.env.DEV
+  - Fix #11 (Low): FREE_TIER constant replaces magic "free" string in tier check
+  - Fix #13 (Low): TODO comment on broadcastToServer for future cache optimization
+  - Schema docs: member_roles cascade info for all three FKs
+- Friend system backend:
+  - `apps/server/src/routes/friend.ts`: POST /request (with auto-accept for mutual requests), POST /:userId/accept, POST /:userId/decline, POST /:userId/block, DELETE /:userId, GET / (list accepted), GET /pending (list incoming)
+  - All routes broadcast real-time WS events (FRIEND_REQUEST, FRIEND_ACCEPT, FRIEND_REMOVE)
+- DM channel backend:
+  - `apps/server/src/routes/dm.ts`: POST / (create or get existing DM, requires friendship), GET / (list user's DMs with other user info)
+  - DM_CHANNEL_CREATE broadcast on creation
+- DM message support:
+  - `apps/server/src/routes/message.ts`: replaced getChannelServerId() with resolveChannel() that checks both server channels AND DM channels
+  - broadcastToDm() helper sends frames to other DM members
+  - All 4 message routes (POST/GET/PATCH/DELETE) updated to work for both server and DM channels
+- READY payload expanded:
+  - `apps/server/src/ws/handlers.ts`: loads dmChannels (via dm_members join) and friends (via friendships table) and includes them in READY
+- Frontend friend system:
+  - `apps/web/src/stores/friend-store.ts`: WS listeners for FRIEND_REQUEST/ACCEPT/REMOVE + API functions
+  - `apps/web/src/lib/gateway-store.ts`: ReadyDmChannel/ReadyFriend types, readyDataSchema, addDmChannel/addFriend/removeFriend/updateFriendStatus helpers
+  - `apps/web/src/pages/Friends.tsx`: All/Pending/Blocked tabs, add friend input, accept/decline/remove buttons
+- Frontend DM support:
+  - `apps/web/src/stores/app-store.ts`: selectedDmChannelId signal, selectDmChannel/selectHome helpers
+  - `apps/web/src/components/DMList.tsx`: DM channel list with avatars, online dots, active highlight
+  - `apps/web/src/components/ChannelSidebar.tsx`: toggles between channel list (server selected) and DM list + Friends button (home selected)
+  - `apps/web/src/components/ChatArea.tsx`: works for both server channels and DM channels, shows "@username" header for DMs
+  - `apps/web/src/components/ServerSidebar.tsx`: home button calls selectHome()
+  - `apps/web/src/components/AppLayout.tsx`: routes to ChatArea for both server and DM selections
+  - `apps/web/src/App.tsx`: /app/friends route added
+- Shared schemas: friendRequestSchema + createDmSchema in packages/shared
+- All checks pass: typecheck (0 errors), lint (0 warnings), fmt clean
 
 ---
 
 ### Week 3 Day 5-6 — 2026-03-09
+
 **What was done:**
+
 - Code review fixes (9 issues from Day 3-4 review):
   - Fix #1 (High): Subscription tier gate on FILE_SHARE — free users blocked from server channel file sharing
   - Fix #2 (High): ArrayBuffer instanceof guard in client gateway before decode()

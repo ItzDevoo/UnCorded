@@ -8,26 +8,29 @@ import { user, channels, members, fileReceipts } from "../db/schema.js";
 import { removeConnection, getConnections, sendToUser, broadcastToServer } from "./connections.js";
 import { handleIdentify } from "./handlers.js";
 
-const typingStartSchema = z.object({ channelId: z.string() });
+const FREE_TIER = "free" as const;
+const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024;
+
+const typingStartSchema = z.object({ channelId: z.string().min(1) });
 
 const webRtcSignalSchema = z.object({
   targetUserId: z.string(),
   channelId: z.string(),
-  data: z.unknown(),
+  data: z.union([z.string().max(16_384), z.record(z.string(), z.unknown())]),
 });
 
 const fileShareSchema = z.object({
   channelId: z.string().min(1),
   fileName: z.string().min(1).max(255),
-  fileSize: z.number().int().positive(),
+  fileSize: z.number().int().positive().max(MAX_FILE_SIZE_BYTES),
   contentType: z.string().min(1).max(127),
   magnetUri: z.string().min(1).max(2048).startsWith("magnet:"),
   infoHash: z.string().min(1).max(128),
 });
 
 const fileAvailabilitySchema = z.object({
-  fileReceiptId: z.string(),
-  channelId: z.string(),
+  fileReceiptId: z.string().min(1),
+  channelId: z.string().min(1),
   available: z.boolean(),
 });
 
@@ -229,7 +232,7 @@ export const gateway = new Elysia().ws("/gateway", {
           .from(user)
           .where(eq(user.id, ctx.userId))
           .limit(1);
-        if (!fsUser || fsUser.subscriptionTier === "free") break;
+        if (!fsUser || fsUser.subscriptionTier === FREE_TIER) break;
 
         // Insert file receipt
         const receiptId = createId();

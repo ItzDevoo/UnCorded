@@ -133,3 +133,15 @@ This applies to any module that registers global listeners or timers at the top 
 **[W3 D5-6]** — SolidJS drag-and-drop: use a `dragCounter` (increment on dragenter, decrement on dragleave) instead of a simple boolean to handle nested child elements that fire their own drag events. Without this, the overlay flickers as the cursor moves over child elements.
 
 **[W3 D5-6]** — `downloadFile()` in file-store should return `File[]` (not `void`) so callers can use the downloaded files for thumbnail generation or other processing. Re-throw errors after updating store state so callers can handle them too.
+
+**[W3 D7]** — When both seed and download use WebTorrent, attach a client-level error handler BEFORE calling `c.seed()` or `c.add()`, then remove it after the torrent-specific handler is attached. This prevents seed errors from being silently swallowed when the callback hasn't fired yet (race condition between error and success).
+
+**[W3 D7]** — `z.unknown()` in server-side Zod schemas is an unbounded security hole. WebRTC signaling data should be bounded: SDP strings ≤16KB (typical SDP is ~2KB), ICE candidates as `z.record(z.string(), z.unknown())`. Always bound string fields with `.max()`.
+
+**[W3 D7]** — When implementing DM message support alongside server channel messages, use a `resolveChannel()` function that tries server channels first, then DM channels. This avoids duplicating auth/membership checks across every route handler. Use a discriminated union return type (`{ type: "server"; serverId } | { type: "dm" }`) to branch on broadcast behavior.
+
+**[W3 D7]** — Drizzle intersection query for "find DM where both users are members": use a subquery to find all channelIds for user A, then query dm_members where userId=B AND channelId IN (subquery). This avoids a self-join and is simpler to read.
+
+**[W3 D7]** — Console output in production: gate ALL `console.warn` and `console.error` calls in client-side code behind `if (import.meta.env.DEV)`. Server-side console.error stays (useful for production monitoring). This prevents information leakage in production browser consoles.
+
+**[W3 D7]** — Zod `.default([])` on optional array fields in READY schema provides backwards compatibility during development. Old server versions that don't send `dmChannels` or `friends` will parse successfully with empty arrays instead of failing validation.

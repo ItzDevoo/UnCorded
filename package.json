@@ -7,7 +7,7 @@
   ],
   "type": "module",
   "scripts": {
-    "dev": "bun run scripts/dev.ts",
+    "dev": "bun run scripts/dev-runner.ts",
     "dev:server": "turbo dev --filter @uncorded/server",
     "dev:web": "turbo dev --filter @uncorded/web",
     "build": "turbo build",

@@ -46,12 +46,19 @@ const Register = () => {
       </p>
 
       <Show when={error()}>
-        <div role="alert" class="mb-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error()}</div>
+        <div
+          role="alert"
+          class="mb-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
+        >
+          {error()}
+        </div>
       </Show>
 
       <form onSubmit={handleSubmit} class="space-y-4">
         <div>
-          <label class="mb-1 block text-xs font-medium uppercase text-secondary-foreground">Email</label>
+          <label class="mb-1 block text-xs font-medium uppercase text-secondary-foreground">
+            Email
+          </label>
           <Input
             type="email"
             required

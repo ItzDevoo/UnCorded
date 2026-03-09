@@ -1,13 +1,7 @@
 import { createSignal, onMount, onCleanup, Show } from "solid-js";
 import type { ServerId, InviteCode, UserId } from "@uncorded/protocol";
 import { api, ApiRequestError } from "../../lib/api.js";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "../ui/dialog.js";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog.js";
 import { Input } from "../ui/input.js";
 import { Button } from "../ui/button.js";
 
@@ -102,20 +96,19 @@ const InviteModal = (props: Props) => {
           }
         >
           <Show when={error()}>
-            <p role="alert" class="mb-3 text-sm text-destructive">{error()}</p>
+            <p role="alert" class="mb-3 text-sm text-destructive">
+              {error()}
+            </p>
           </Show>
 
           <Show when={invite()}>
             {(inv) => (
               <>
-                <label class="mb-1 block text-sm font-medium text-secondary-foreground">Invite Code</label>
+                <label class="mb-1 block text-sm font-medium text-secondary-foreground">
+                  Invite Code
+                </label>
                 <div class="mb-4 flex gap-2">
-                  <Input
-                    type="text"
-                    value={inv().code}
-                    readOnly
-                    class="flex-1"
-                  />
+                  <Input type="text" value={inv().code} readOnly class="flex-1" />
                   <Button type="button" onClick={handleCopy}>
                     {copied() ? "Copied!" : "Copy"}
                   </Button>

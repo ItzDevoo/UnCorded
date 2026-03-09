@@ -182,9 +182,7 @@ export function getTypingUsers(cId: ChannelId): TypingUser[] {
 export function addTypingUser(cId: ChannelId, uId: UserId, username: string) {
   const key = cId as string;
   if (!store.typing[key]) {
-    setStore("typing", key, [
-      { userId: uId, username, expiresAt: Date.now() + TYPING_TIMEOUT_MS },
-    ]);
+    setStore("typing", key, [{ userId: uId, username, expiresAt: Date.now() + TYPING_TIMEOUT_MS }]);
     return;
   }
   setStore(

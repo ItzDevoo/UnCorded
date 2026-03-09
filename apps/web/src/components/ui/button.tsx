@@ -8,13 +8,10 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground hover:bg-primary/80",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
-        outline:
-          "border border-border bg-transparent hover:bg-accent hover:text-accent-foreground",
-        destructive:
-          "bg-destructive text-white hover:bg-destructive/80",
+        outline: "border border-border bg-transparent hover:bg-accent hover:text-accent-foreground",
+        destructive: "bg-destructive text-white hover:bg-destructive/80",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
@@ -36,12 +33,7 @@ type ButtonProps = JSX.ButtonHTMLAttributes<HTMLButtonElement> &
   VariantProps<typeof buttonVariants>;
 
 const Button = (props: ButtonProps) => {
-  const [local, rest] = splitProps(props, [
-    "class",
-    "variant",
-    "size",
-    "children",
-  ]);
+  const [local, rest] = splitProps(props, ["class", "variant", "size", "children"]);
 
   return (
     <button

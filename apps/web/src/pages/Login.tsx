@@ -37,15 +37,24 @@ const Login = () => {
     <AuthLayout>
       <h2 class="mb-6 text-center text-lg font-bold tracking-tight text-primary">UnCorded</h2>
       <h1 class="mb-2 text-center text-2xl font-bold text-foreground">Welcome back</h1>
-      <p class="mb-6 text-center text-sm text-secondary-foreground">Sign in to continue to UnCorded</p>
+      <p class="mb-6 text-center text-sm text-secondary-foreground">
+        Sign in to continue to UnCorded
+      </p>
 
       <Show when={error()}>
-        <div role="alert" class="mb-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error()}</div>
+        <div
+          role="alert"
+          class="mb-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
+        >
+          {error()}
+        </div>
       </Show>
 
       <form onSubmit={handleSubmit} class="space-y-4">
         <div>
-          <label class="mb-1 block text-xs font-medium uppercase text-secondary-foreground">Email</label>
+          <label class="mb-1 block text-xs font-medium uppercase text-secondary-foreground">
+            Email
+          </label>
           <Input
             type="email"
             required

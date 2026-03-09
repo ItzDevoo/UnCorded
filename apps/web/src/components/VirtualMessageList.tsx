@@ -69,11 +69,7 @@ const VirtualMessageList = (props: { channelId: ChannelId }) => {
   }
 
   return (
-    <div
-      ref={scrollRef}
-      onScroll={handleScroll}
-      class="min-h-0 flex-1 overflow-y-auto"
-    >
+    <div ref={scrollRef} onScroll={handleScroll} class="min-h-0 flex-1 overflow-y-auto">
       <Show when={loading()}>
         <div class="flex min-h-[100px] justify-center py-4">
           <div class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -108,10 +104,7 @@ const VirtualMessageList = (props: { channelId: ChannelId }) => {
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
-                <MessageBubble
-                  message={msg}
-                  isOwn={msg.author.id === currentUserId()}
-                />
+                <MessageBubble message={msg} isOwn={msg.author.id === currentUserId()} />
               </div>
             );
           })}

@@ -33,11 +33,15 @@ const MessageBubble = (props: { message: Message; isOwn: boolean }) => {
           <span class={`text-sm font-semibold ${props.isOwn ? "text-primary" : "text-foreground"}`}>
             {displayName()}
           </span>
-          <span class="text-xs text-muted-foreground">{formatTimestamp(props.message.createdAt)}</span>
+          <span class="text-xs text-muted-foreground">
+            {formatTimestamp(props.message.createdAt)}
+          </span>
         </div>
         <p class="break-words text-sm text-secondary-foreground">
           {props.message.content}
-          {props.message.editedAt && <span class="ml-1 text-xs text-muted-foreground">(edited)</span>}
+          {props.message.editedAt && (
+            <span class="ml-1 text-xs text-muted-foreground">(edited)</span>
+          )}
         </p>
       </div>
     </div>

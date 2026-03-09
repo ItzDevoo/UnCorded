@@ -98,11 +98,7 @@ type DivProps = JSX.HTMLAttributes<HTMLDivElement>;
 const DialogHeader = (props: DivProps) => {
   const [local, rest] = splitProps(props, ["class", "children"]);
   return (
-    <div
-      data-slot="dialog-header"
-      class={cn("mb-4 flex flex-col gap-1.5", local.class)}
-      {...rest}
-    >
+    <div data-slot="dialog-header" class={cn("mb-4 flex flex-col gap-1.5", local.class)} {...rest}>
       {local.children}
     </div>
   );
@@ -111,11 +107,7 @@ const DialogHeader = (props: DivProps) => {
 const DialogFooter = (props: DivProps) => {
   const [local, rest] = splitProps(props, ["class", "children"]);
   return (
-    <div
-      data-slot="dialog-footer"
-      class={cn("flex justify-end gap-3", local.class)}
-      {...rest}
-    >
+    <div data-slot="dialog-footer" class={cn("flex justify-end gap-3", local.class)} {...rest}>
       {local.children}
     </div>
   );

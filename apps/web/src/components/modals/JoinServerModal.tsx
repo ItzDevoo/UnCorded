@@ -3,13 +3,7 @@ import { serverId, userId, type ServerId, type UserId, type InviteCode } from "@
 import { api, ApiRequestError } from "../../lib/api.js";
 import { addServer } from "../../lib/gateway-store.js";
 import { setSelectedServerId } from "../../stores/app-store.js";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "../ui/dialog.js";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog.js";
 import { Input } from "../ui/input.js";
 import { Button } from "../ui/button.js";
 
@@ -101,7 +95,9 @@ const JoinServerModal = (props: Props) => {
           when={preview()}
           fallback={
             <form onSubmit={handlePreview}>
-              <label class="mb-1 block text-sm font-medium text-secondary-foreground">Invite Code</label>
+              <label class="mb-1 block text-sm font-medium text-secondary-foreground">
+                Invite Code
+              </label>
               <Input
                 type="text"
                 value={code()}
@@ -112,7 +108,9 @@ const JoinServerModal = (props: Props) => {
               />
 
               <Show when={error()}>
-                <p role="alert" class="mb-3 text-sm text-destructive">{error()}</p>
+                <p role="alert" class="mb-3 text-sm text-destructive">
+                  {error()}
+                </p>
               </Show>
 
               <DialogFooter>
@@ -149,7 +147,9 @@ const JoinServerModal = (props: Props) => {
               </div>
 
               <Show when={error()}>
-                <p role="alert" class="mb-3 text-sm text-destructive">{error()}</p>
+                <p role="alert" class="mb-3 text-sm text-destructive">
+                  {error()}
+                </p>
               </Show>
 
               <DialogFooter>

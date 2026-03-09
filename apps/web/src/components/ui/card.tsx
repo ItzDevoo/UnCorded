@@ -19,11 +19,7 @@ const Card = (props: DivProps) => {
 const CardHeader = (props: DivProps) => {
   const [local, rest] = splitProps(props, ["class", "children"]);
   return (
-    <div
-      data-slot="card-header"
-      class={cn("flex flex-col gap-1.5 p-6", local.class)}
-      {...rest}
-    >
+    <div data-slot="card-header" class={cn("flex flex-col gap-1.5 p-6", local.class)} {...rest}>
       {local.children}
     </div>
   );
@@ -67,11 +63,7 @@ const CardContent = (props: DivProps) => {
 const CardFooter = (props: DivProps) => {
   const [local, rest] = splitProps(props, ["class", "children"]);
   return (
-    <div
-      data-slot="card-footer"
-      class={cn("flex items-center p-6 pt-0", local.class)}
-      {...rest}
-    >
+    <div data-slot="card-footer" class={cn("flex items-center p-6 pt-0", local.class)} {...rest}>
       {local.children}
     </div>
   );

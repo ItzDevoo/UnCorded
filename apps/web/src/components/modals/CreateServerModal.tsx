@@ -11,13 +11,7 @@ import {
 import { api, ApiRequestError } from "../../lib/api.js";
 import { addServer, type ReadyServer } from "../../lib/gateway-store.js";
 import { setSelectedServerId } from "../../stores/app-store.js";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "../ui/dialog.js";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog.js";
 import { Input } from "../ui/input.js";
 import { Button } from "../ui/button.js";
 
@@ -107,7 +101,9 @@ const CreateServerModal = (props: Props) => {
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
-          <label class="mb-1 block text-sm font-medium text-secondary-foreground">Server Name</label>
+          <label class="mb-1 block text-sm font-medium text-secondary-foreground">
+            Server Name
+          </label>
           <Input
             type="text"
             value={name()}
@@ -130,7 +126,9 @@ const CreateServerModal = (props: Props) => {
           />
 
           <Show when={error()}>
-            <p role="alert" class="mb-3 text-sm text-destructive">{error()}</p>
+            <p role="alert" class="mb-3 text-sm text-destructive">
+              {error()}
+            </p>
           </Show>
 
           <DialogFooter>

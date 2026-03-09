@@ -11,7 +11,7 @@ const TEXTAREA_MAX_HEIGHT = 200;
 /** Keyed by ChannelId (branded string) — TS index signatures can't use branded types */
 const lastTypingSent: Record<string, number> = {};
 
-const MessageInput = (props: { channelId: ChannelId }) => {
+const MessageInput = (props: { channelId: ChannelId; onFileSelect?: (file: File) => void }) => {
   // oxlint-disable-next-line no-unassigned-vars -- SolidJS ref pattern, assigned via JSX ref={}
   let textareaRef!: HTMLTextAreaElement;
   const [content, setContent] = createSignal("");
@@ -60,6 +60,22 @@ const MessageInput = (props: { channelId: ChannelId }) => {
     }
   }
 
+  function handlePaste(e: ClipboardEvent) {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (const item of items) {
+      if (item.kind === "file") {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          props.onFileSelect?.(file);
+          return;
+        }
+      }
+    }
+  }
+
   const typingUsers = () => getTypingUsers(props.channelId);
 
   const typingText = () => {
@@ -78,6 +94,7 @@ const MessageInput = (props: { channelId: ChannelId }) => {
           value={content()}
           onInput={handleInput}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           placeholder="Send a message..."
           rows={1}
           class="block w-full resize-none bg-transparent px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none"

@@ -2,8 +2,10 @@ import { createMemo, createEffect, Show, on } from "solid-js";
 import type { ChannelId } from "@uncorded/protocol";
 import { selectedChannelId, currentChannels } from "../stores/app-store.js";
 import { fetchMessages, getMessages } from "../stores/message-store.js";
+import { shareFile } from "../stores/file-store.js";
 import VirtualMessageList from "./VirtualMessageList.js";
 import MessageInput from "./MessageInput.js";
+import FileDropZone from "./FileDropZone.js";
 
 const ChatArea = () => {
   const channelName = createMemo(() => {
@@ -22,6 +24,14 @@ const ChatArea = () => {
     }),
   );
 
+  function handleFileSelect(file: File) {
+    const id = channelId();
+    if (!id) return;
+    shareFile(id, file).catch((err) => {
+      console.error("[ChatArea] Failed to share file:", err);
+    });
+  }
+
   return (
     <div class="flex h-full flex-col">
       <Show when={channelName()}>
@@ -31,9 +41,10 @@ const ChatArea = () => {
               <span class="font-semibold text-foreground"># {name()}</span>
             </div>
 
-            <VirtualMessageList channelId={channelId() as ChannelId} />
-
-            <MessageInput channelId={channelId() as ChannelId} />
+            <FileDropZone channelId={channelId() as ChannelId} onFileSelect={handleFileSelect}>
+              <VirtualMessageList channelId={channelId() as ChannelId} />
+              <MessageInput channelId={channelId() as ChannelId} onFileSelect={handleFileSelect} />
+            </FileDropZone>
           </>
         )}
       </Show>

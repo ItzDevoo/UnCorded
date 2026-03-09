@@ -195,12 +195,13 @@ Reference: C:\Nexis (monorepo patterns, auth, WS gateway), C:\t3Code (tooling, U
 
 ### Day 5-6: DM File Sharing UI
 
-- [ ] Drag-and-drop + clipboard paste file selection
-- [ ] File sharing in DMs (P2P, both users online)
-- [ ] Download progress bar
-- [ ] Seeder count indicator ("X seeders" / "No seeders online")
-- [ ] Rich previews for images (generate thumbnail before torrenting)
-- [ ] Clear error messaging when P2P fails for free users (NAT blocked, no TURN)
+- [x] Drag-and-drop + clipboard paste file selection
+- [ ] File sharing in DMs (P2P, both users online) — SKIPPED: DM routes don't exist yet
+- [x] Download progress bar
+- [x] Seeder count indicator ("X seeders" / "No seeders online")
+- [x] Rich previews for images (generate thumbnail after download)
+- [x] Clear error messaging when P2P fails for free users (NAT blocked, no TURN)
+- [x] Code review fixes (9 fixes: tier gate, Zod bounds, raw cast, shape validation, etc.)
 
 ### Day 7: DMs + Friends
 

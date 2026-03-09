@@ -121,3 +121,15 @@ This applies to any module that registers global listeners or timers at the top 
 **[W3 D3-4]** — When splitting a shared payload type into request/broadcast variants (e.g., `FileSharePayload` → `FileShareRequest` + `FileShareBroadcast`), the request type contains what the client sends (no server-generated fields), and the broadcast type adds server-enriched fields (senderId, fileReceiptId). The server gateway handler bridges the two by inserting the DB record and adding the extra fields before broadcasting.
 
 **[W3 D3-4]** — WebRTC signaling handlers should validate target user membership, not just sender membership. Without this check, any authenticated user in a server could send signaling frames to users who aren't members of the same server, which is a security gap.
+
+**[W3 D5-6]** — `decode()` in the protocol codec should validate the shape of the decoded MessagePack data (must have `op` as number and `d` field). Without this, any malformed binary frame would be silently cast to `GatewayFrame`, potentially causing downstream crashes. Throw on invalid shape since callers already wrap in try/catch.
+
+**[W3 D5-6]** — Zod schemas for WS payloads should have bounds (`.min(1)`, `.max(255)`, `.positive()`, `.startsWith("magnet:")`) to prevent empty strings and oversized payloads from being accepted. Defense in depth — even though the client constructs valid payloads, the server should enforce constraints.
+
+**[W3 D5-6]** — Elysia's `ws.message(ws, raw)` callback receives `raw` that may be `Uint8Array` or `ArrayBuffer` depending on the runtime path. Using `raw as Uint8Array` directly can fail. Safe pattern: `raw instanceof Uint8Array ? raw : new Uint8Array(raw as ArrayBuffer)`.
+
+**[W3 D5-6]** — Browser `MessageEvent.data` should be checked with `instanceof ArrayBuffer` before casting, even when `ws.binaryType = "arraybuffer"` is set. Text frames or edge cases could produce non-ArrayBuffer data.
+
+**[W3 D5-6]** — SolidJS drag-and-drop: use a `dragCounter` (increment on dragenter, decrement on dragleave) instead of a simple boolean to handle nested child elements that fire their own drag events. Without this, the overlay flickers as the cursor moves over child elements.
+
+**[W3 D5-6]** — `downloadFile()` in file-store should return `File[]` (not `void`) so callers can use the downloaded files for thumbnail generation or other processing. Re-throw errors after updating store state so callers can handle them too.

@@ -149,7 +149,7 @@ export async function shareFile(chId: ChannelId, file: File): Promise<SeedResult
   return result;
 }
 
-export async function downloadFile(magnetUri: string, fileName: string): Promise<void> {
+export async function downloadFile(magnetUri: string, fileName: string): Promise<File[]> {
   // Extract infoHash from magnet URI for tracking
   const hashMatch = magnetUri.match(/xt=urn:btih:([a-fA-F0-9]+)/);
   const infoHash = hashMatch?.[1] ?? magnetUri;
@@ -185,10 +185,13 @@ export async function downloadFile(magnetUri: string, fileName: string): Promise
       a.click();
       URL.revokeObjectURL(url);
     }
+
+    return files;
   } catch (err) {
     setStore("transfers", infoHash, "status", "error");
     setStore("transfers", infoHash, "error", String(err));
     console.error("[file-store] Download failed:", err);
+    throw err;
   }
 }
 

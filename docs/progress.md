@@ -6,12 +6,39 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Week 3 Day 3-4 — WebTorrent Integration + Review Fixes
+## Current Status: Week 3 Day 5-6 — DM File Sharing UI + Review Fixes
+
+---
+
+### Week 3 Day 5-6 — 2026-03-09
+**What was done:**
+- Code review fixes (9 issues from Day 3-4 review):
+  - Fix #1 (High): Subscription tier gate on FILE_SHARE — free users blocked from server channel file sharing
+  - Fix #2 (High): ArrayBuffer instanceof guard in client gateway before decode()
+  - Fix #3 (Medium): Explanatory comments on broadcastToServer() usage (no per-channel perms yet)
+  - Fix #4 (Medium): Zod input bounds on fileShareSchema (min/max/positive/startsWith)
+  - Fix #5 (Medium): Zod schema for inbound signaling events in signaling.ts
+  - Fix #6 (Medium): Safe raw cast in server gateway (Uint8Array instanceof check)
+  - Fix #7 (Medium): Shape validation in decode() — throws on missing op/d fields
+  - Fix #8 (Medium): Runtime guards on HELLO/READY payloads in client gateway
+  - Fix #9 (Low): Explanatory comment on frame.op as Opcode cast in WebRTC handler
+- Schema docs: Better Auth export name note, cascade info on members/friendships/dm_members
+- DM File Sharing UI components:
+  - `FileDropZone.tsx`: drag-and-drop overlay with 100MB size validation, dragCounter for nested elements
+  - `FileMessage.tsx`: file receipt display with idle/downloading/done/error/seeding states, download progress bar, seeder count badges, image thumbnail generation via OffscreenCanvas, error messaging for free users/no seeders
+  - ChatArea wired with FileDropZone wrapper and shareFile integration
+  - MessageInput onPaste handler for clipboard file detection
+  - VirtualMessageList renders FileMessage components for channel file receipts
+  - file-store downloadFile() now returns File[] for caller thumbnail generation
+- DM wiring SKIPPED — DM routes don't exist yet (schema only)
+- All checks pass: typecheck (0 errors), lint (0 warnings), fmt clean
 
 ---
 
 ### Week 3 Day 3-4 — 2026-03-09
+
 **What was done:**
+
 - Carryover review fixes from Day 1-2:
   - Fix #1: Target user membership validation in WebRTC signaling handlers — sender AND target must be members of the same server before forwarding signaling frames
   - Fix #2: Split `FileSharePayload` into `FileShareRequest` (client sends) + `FileShareBroadcast` (server broadcasts with senderId + fileReceiptId) in `packages/protocol/src/signaling.ts`

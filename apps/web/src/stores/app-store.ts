@@ -5,18 +5,21 @@ import { readyData, type ReadyServer, type ReadyChannel } from "../lib/gateway-s
 const [selectedServerId, setSelectedServerId] = createSignal<ServerId | null>(null);
 const [selectedChannelId, setSelectedChannelId] = createSignal<ChannelId | null>(null);
 
-const currentServer = createMemo<ReadyServer | null>(() => {
-  const id = selectedServerId();
-  return readyData.data?.servers.find((s) => s.id === id) ?? null;
-});
+// All reactive computations must be inside a root for proper SolidJS ownership
+let currentServer: () => ReadyServer | null;
+let currentChannels: () => ReadyChannel[];
 
-const currentChannels = createMemo<ReadyChannel[]>(() => {
-  const server = currentServer();
-  return server?.channels.toSorted((a, b) => a.position - b.position) ?? [];
-});
-
-// Effects need a root owner for proper SolidJS reactive ownership
 const dispose = createRoot((d) => {
+  currentServer = createMemo<ReadyServer | null>(() => {
+    const id = selectedServerId();
+    return readyData.data?.servers.find((s) => s.id === id) ?? null;
+  });
+
+  currentChannels = createMemo<ReadyChannel[]>(() => {
+    const server = currentServer();
+    return server?.channels.toSorted((a, b) => a.position - b.position) ?? [];
+  });
+
   // Auto-select first server on READY if none selected
   createEffect(() => {
     const servers = readyData.data?.servers;

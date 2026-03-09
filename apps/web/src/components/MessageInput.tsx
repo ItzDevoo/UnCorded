@@ -1,22 +1,25 @@
-import { createSignal, Show } from 'solid-js';
-import { Opcode } from '@uncorded/protocol';
-import { api } from '../lib/api.js';
-import { sendFrame } from '../lib/gateway.js';
-import { getTypingUsers } from '../stores/message-store.js';
+import { createSignal, Show } from "solid-js";
+import { Opcode, type ChannelId } from "@uncorded/protocol";
+import { api } from "../lib/api.js";
+import { sendFrame } from "../lib/gateway.js";
+import { getTypingUsers } from "../stores/message-store.js";
 
+// Must be less than TYPING_TIMEOUT_MS (6s) in message-store so indicators don't flicker
 const TYPING_THROTTLE_MS = 5000;
 const TEXTAREA_MAX_HEIGHT = 200;
 
-const MessageInput = (props: { channelId: string }) => {
+/** Keyed by ChannelId (branded string) — TS index signatures can't use branded types */
+const lastTypingSent: Record<string, number> = {};
+
+const MessageInput = (props: { channelId: ChannelId }) => {
+  // oxlint-disable-next-line no-unassigned-vars -- SolidJS ref pattern, assigned via JSX ref={}
   let textareaRef!: HTMLTextAreaElement;
-  const [content, setContent] = createSignal('');
+  const [content, setContent] = createSignal("");
   const [sending, setSending] = createSignal(false);
 
-  const lastTypingSent: Record<string, number> = {};
-
   function resetHeight() {
-    textareaRef.style.height = 'auto';
-    textareaRef.style.height = Math.min(textareaRef.scrollHeight, TEXTAREA_MAX_HEIGHT) + 'px';
+    textareaRef.style.height = "auto";
+    textareaRef.style.height = Math.min(textareaRef.scrollHeight, TEXTAREA_MAX_HEIGHT) + "px";
   }
 
   function handleInput(e: InputEvent & { currentTarget: HTMLTextAreaElement }) {
@@ -39,11 +42,11 @@ const MessageInput = (props: { channelId: string }) => {
     setSending(true);
     try {
       await api(`/api/channels/${props.channelId}/messages`, {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify({ content: text }),
       });
-      setContent('');
-      textareaRef.style.height = 'auto';
+      setContent("");
+      textareaRef.style.height = "auto";
     } finally {
       setSending(false);
     }
@@ -51,7 +54,7 @@ const MessageInput = (props: { channelId: string }) => {
   }
 
   function handleKeyDown(e: KeyboardEvent) {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       send();
     }
@@ -64,12 +67,12 @@ const MessageInput = (props: { channelId: string }) => {
     if (users.length === 0) return null;
     if (users.length === 1) return `${users[0]?.username} is typing`;
     if (users.length === 2) return `${users[0]?.username} and ${users[1]?.username} are typing`;
-    return 'Several people are typing';
+    return "Several people are typing";
   };
 
   return (
     <div class="shrink-0 px-4 pb-4">
-      <div class="rounded-lg bg-bg-input">
+      <div class="rounded-lg bg-input">
         <textarea
           ref={textareaRef}
           value={content()}
@@ -77,14 +80,14 @@ const MessageInput = (props: { channelId: string }) => {
           onKeyDown={handleKeyDown}
           placeholder="Send a message..."
           rows={1}
-          class="block w-full resize-none bg-transparent px-4 py-3 text-sm text-text-primary placeholder:text-text-muted outline-none"
+          class="block w-full resize-none bg-transparent px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none"
           style={{ "max-height": `${TEXTAREA_MAX_HEIGHT}px` }}
         />
       </div>
       <div class="h-5 px-2 pt-1">
         <Show when={typingText()}>
           {(text) => (
-            <span class="text-xs text-text-muted">
+            <span class="text-xs text-muted-foreground">
               {text()}
               <span class="typing-dots">
                 <span class="dot" />

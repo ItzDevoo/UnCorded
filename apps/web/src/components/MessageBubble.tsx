@@ -1,43 +1,43 @@
-import type { Message } from '../stores/message-store.js';
+import type { Message } from "../stores/message-store.js";
+
+const ONE_MINUTE_MS = 60_000;
+const ONE_HOUR_MS = 3_600_000;
+const ONE_DAY_MS = 86_400_000;
 
 function formatTimestamp(iso: string): string {
   const date = new Date(iso);
   const now = Date.now();
   const diff = now - date.getTime();
 
-  if (diff < 60_000) return 'just now';
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
-  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
+  if (diff < ONE_MINUTE_MS) return "just now";
+  if (diff < ONE_HOUR_MS) return `${Math.floor(diff / ONE_MINUTE_MS)}m ago`;
+  if (diff < ONE_DAY_MS) return `${Math.floor(diff / ONE_HOUR_MS)}h ago`;
 
   return date.toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   });
 }
 
 const MessageBubble = (props: { message: Message; isOwn: boolean }) => {
   const displayName = () =>
-    props.message.author.displayName || props.message.author.username || 'Unknown';
+    props.message.author.displayName || props.message.author.username || "Unknown";
 
   return (
-    <div class={`group flex gap-3 px-4 py-1 hover:bg-bg-hover ${props.isOwn ? 'bg-brand/5' : ''}`}>
-      <div class="mt-0.5 h-8 w-8 shrink-0 rounded-full bg-bg-active" />
+    <div class={`group flex gap-3 px-4 py-1 hover:bg-accent ${props.isOwn ? "bg-primary/5" : ""}`}>
+      <div class="mt-0.5 h-8 w-8 shrink-0 rounded-full bg-muted" />
       <div class="min-w-0 flex-1">
         <div class="flex items-baseline gap-2">
-          <span
-            class={`text-sm font-semibold ${props.isOwn ? 'text-brand' : 'text-text-primary'}`}
-          >
+          <span class={`text-sm font-semibold ${props.isOwn ? "text-primary" : "text-foreground"}`}>
             {displayName()}
           </span>
-          <span class="text-xs text-text-muted">{formatTimestamp(props.message.createdAt)}</span>
+          <span class="text-xs text-muted-foreground">{formatTimestamp(props.message.createdAt)}</span>
         </div>
-        <p class="break-words text-sm text-text-secondary">
+        <p class="break-words text-sm text-secondary-foreground">
           {props.message.content}
-          {props.message.editedAt && (
-            <span class="ml-1 text-xs text-text-muted">(edited)</span>
-          )}
+          {props.message.editedAt && <span class="ml-1 text-xs text-muted-foreground">(edited)</span>}
         </p>
       </div>
     </div>

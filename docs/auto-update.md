@@ -24,14 +24,14 @@ This must be implemented early in the Electron desktop app phase — not bolted 
 ```typescript
 // In @uncorded/protocol (shared between main + renderer)
 type UpdateStatus =
-  | "disabled"     // Dev build or unsupported platform
-  | "idle"         // Enabled, waiting for check
-  | "checking"     // Checking GitHub for updates
-  | "up-to-date"   // No update available
-  | "available"    // Update found, waiting for user to download
-  | "downloading"  // Download in progress
-  | "downloaded"   // Ready to install
-  | "error";       // Something failed
+  | "disabled" // Dev build or unsupported platform
+  | "idle" // Enabled, waiting for check
+  | "checking" // Checking GitHub for updates
+  | "up-to-date" // No update available
+  | "available" // Update found, waiting for user to download
+  | "downloading" // Download in progress
+  | "downloaded" // Ready to install
+  | "error"; // Something failed
 
 interface UpdateState {
   enabled: boolean;
@@ -40,8 +40,8 @@ interface UpdateState {
   availableVersion: string | null;
   downloadedVersion: string | null;
   downloadPercent: number | null;
-  checkedAt: string | null;           // ISO timestamp
-  message: string | null;             // Error message for UI
+  checkedAt: string | null; // ISO timestamp
+  message: string | null; // Error message for UI
   errorContext: "check" | "download" | "install" | null;
   canRetry: boolean;
 }
@@ -151,18 +151,18 @@ Result: UI sees updates at 0%, 10%, 20%, ..., 90%, 100% — not every 0.1%.
 import { autoUpdater } from "electron-updater";
 
 function configureAutoUpdater() {
-  autoUpdater.autoDownload = false;            // User triggers download
-  autoUpdater.autoInstallOnAppQuit = false;    // User triggers install
-  autoUpdater.channel = "latest";              // Stable only
+  autoUpdater.autoDownload = false; // User triggers download
+  autoUpdater.autoInstallOnAppQuit = false; // User triggers install
+  autoUpdater.channel = "latest"; // Stable only
   autoUpdater.allowPrerelease = false;
   autoUpdater.allowDowngrade = false;
 
   // GitHub as update feed provider
   autoUpdater.setFeedURL({
     provider: "github",
-    owner: "ItzDevoo",        // GitHub org/user
-    repo: "UnCorded",         // GitHub repo
-    releaseType: "release"
+    owner: "ItzDevoo", // GitHub org/user
+    repo: "UnCorded", // GitHub repo
+    releaseType: "release",
   });
 }
 ```
@@ -211,11 +211,11 @@ autoUpdater.on("error", (error) => {
 
 ## Check Schedule
 
-| Event | Timing |
-|-------|--------|
-| Startup check | 15 seconds after app launch |
-| Polling interval | Every 4 hours |
-| Manual check | User clicks "Check for Updates" in menu |
+| Event            | Timing                                  |
+| ---------------- | --------------------------------------- |
+| Startup check    | 15 seconds after app launch             |
+| Polling interval | Every 4 hours                           |
+| Manual check     | User clicks "Check for Updates" in menu |
 
 ```typescript
 const AUTO_UPDATE_STARTUP_DELAY_MS = 15_000;
@@ -232,12 +232,12 @@ setInterval(() => checkForUpdates("poll"), AUTO_UPDATE_POLL_INTERVAL_MS);
 
 ### Channels
 
-| Channel | Direction | Purpose |
-|---------|-----------|---------|
-| `desktop:update-get-state` | renderer → main | Get current update state |
-| `desktop:update-download` | renderer → main | Trigger download |
-| `desktop:update-install` | renderer → main | Trigger install (quits app) |
-| `desktop:update-state` | main → renderer | Broadcast state changes |
+| Channel                    | Direction       | Purpose                     |
+| -------------------------- | --------------- | --------------------------- |
+| `desktop:update-get-state` | renderer → main | Get current update state    |
+| `desktop:update-download`  | renderer → main | Trigger download            |
+| `desktop:update-install`   | renderer → main | Trigger install (quits app) |
+| `desktop:update-state`     | main → renderer | Broadcast state changes     |
 
 ### Preload Bridge
 
@@ -259,12 +259,14 @@ ipcMain.handle("desktop:update-get-state", () => {
 });
 
 ipcMain.handle("desktop:update-download", async () => {
-  if (updateState.status !== "available") return { accepted: false, completed: false, state: updateState };
+  if (updateState.status !== "available")
+    return { accepted: false, completed: false, state: updateState };
   // ... trigger download, return result
 });
 
 ipcMain.handle("desktop:update-install", async () => {
-  if (updateState.status !== "downloaded") return { accepted: false, completed: false, state: updateState };
+  if (updateState.status !== "downloaded")
+    return { accepted: false, completed: false, state: updateState };
   // ... stop backend server, quit and install
 });
 ```
@@ -299,7 +301,7 @@ async function installUpdate() {
   isQuitting = true;
 
   try {
-    await stopBackendServer(5000);  // 5s grace period
+    await stopBackendServer(5000); // 5s grace period
     autoUpdater.quitAndInstall();
   } catch (error) {
     isQuitting = false;
@@ -315,11 +317,11 @@ async function installUpdate() {
 
 Auto-update is automatically disabled when:
 
-| Condition | Reason |
-|-----------|--------|
-| Development build | `app.isPackaged === false` |
+| Condition              | Reason                                 |
+| ---------------------- | -------------------------------------- |
+| Development build      | `app.isPackaged === false`             |
 | Linux without AppImage | AppImage is required for delta updates |
-| Env override | `UNCORDED_DISABLE_AUTO_UPDATE=1` |
+| Env override           | `UNCORDED_DISABLE_AUTO_UPDATE=1`       |
 
 When disabled, state stays `"disabled"` permanently. UI should show why:
 
@@ -332,9 +334,11 @@ function getDisabledReason(context: {
   disabledByEnv: boolean;
 }): string | null {
   if (context.disabledByEnv) return "Disabled by environment variable";
-  if (context.isDevelopment || !context.isPackaged) return "Auto-update not available in development";
-  if (context.platform === "linux" && !context.appImage) return "Auto-update requires AppImage format";
-  return null;  // enabled
+  if (context.isDevelopment || !context.isPackaged)
+    return "Auto-update not available in development";
+  if (context.platform === "linux" && !context.appImage)
+    return "Auto-update requires AppImage format";
+  return null; // enabled
 }
 ```
 
@@ -349,6 +353,7 @@ Help
 ```
 
 The menu item text updates based on state:
+
 - `"Check for Updates..."` — idle/up-to-date/error
 - `"Checking for Updates..."` — checking (disabled)
 - `"Download Update (vX.Y.Z)"` — available
@@ -363,14 +368,14 @@ The web app needs an update banner/toast. Only shown when `isDesktop` is true.
 
 ### States to Display
 
-| Status | UI |
-|--------|-----|
-| `up-to-date` | Nothing (or subtle "Up to date" in settings) |
-| `available` | Banner: "Update vX.Y.Z available" + Download button |
-| `downloading` | Progress bar with percentage |
-| `downloaded` | Banner: "Update ready" + "Restart Now" button |
-| `error` | Error message + Retry button (if `canRetry`) |
-| `disabled` / `idle` / `checking` | Nothing visible |
+| Status                           | UI                                                  |
+| -------------------------------- | --------------------------------------------------- |
+| `up-to-date`                     | Nothing (or subtle "Up to date" in settings)        |
+| `available`                      | Banner: "Update vX.Y.Z available" + Download button |
+| `downloading`                    | Progress bar with percentage                        |
+| `downloaded`                     | Banner: "Update ready" + "Restart Now" button       |
+| `error`                          | Error message + Retry button (if `canRetry`)        |
+| `disabled` / `idle` / `checking` | Nothing visible                                     |
 
 ### SolidJS Store Integration
 
@@ -395,55 +400,60 @@ export { updateState };
 ## Release Pipeline (CI/CD)
 
 ### Trigger
+
 - Push tag matching `v*.*.*`
 - Manual dispatch with version input
 
 ### Jobs
 
 #### 1. Preflight (ubuntu)
+
 - Validate semver format
 - Run lint + typecheck + tests
 - Determine: version, tag, is_prerelease, make_latest
 
 #### 2. Build (parallel matrix)
 
-| Platform | Runner | Target | Signing |
-|----------|--------|--------|---------|
-| macOS arm64 | macos-14 | DMG + ZIP | Apple notarization |
-| macOS x64 | macos-latest | DMG + ZIP | Apple notarization |
-| Linux x64 | ubuntu-24.04 | AppImage | None |
-| Windows x64 | windows-2022 | NSIS | Azure Trusted Signing |
+| Platform    | Runner       | Target    | Signing               |
+| ----------- | ------------ | --------- | --------------------- |
+| macOS arm64 | macos-14     | DMG + ZIP | Apple notarization    |
+| macOS x64   | macos-latest | DMG + ZIP | Apple notarization    |
+| Linux x64   | ubuntu-24.04 | AppImage  | None                  |
+| Windows x64 | windows-2022 | NSIS      | Azure Trusted Signing |
 
 Each build:
+
 1. Stage app (dist-electron + server dist + web dist)
 2. Install production deps
 3. Run electron-builder with `--publish never`
 4. Upload artifacts
 
 #### 3. Release (ubuntu)
+
 - Download all build artifacts
 - Create GitHub Release with tag + release notes
 - Upload all artifacts to release
 - Mark as latest (or prerelease)
 
 #### 4. Finalize (ubuntu)
+
 - Bump version in all package.json files
 - Commit and push to main
 
 ### Signing Secrets Required
 
-| Secret | Platform | Purpose |
-|--------|----------|---------|
-| `CSC_LINK` | macOS | Code signing certificate (base64) |
-| `CSC_KEY_PASSWORD` | macOS | Certificate password |
-| `APPLE_API_KEY` | macOS | Notarization API key |
-| `APPLE_API_KEY_ID` | macOS | Notarization key ID |
-| `APPLE_API_ISSUER` | macOS | Notarization issuer ID |
-| `AZURE_TENANT_ID` | Windows | Azure AD tenant |
-| `AZURE_CLIENT_ID` | Windows | Azure AD client |
-| `AZURE_CLIENT_SECRET` | Windows | Azure AD secret |
-| `AZURE_CODE_SIGNING_ACCOUNT` | Windows | Trusted Signing account |
-| `AZURE_CERT_PROFILE` | Windows | Certificate profile name |
+| Secret                       | Platform | Purpose                           |
+| ---------------------------- | -------- | --------------------------------- |
+| `CSC_LINK`                   | macOS    | Code signing certificate (base64) |
+| `CSC_KEY_PASSWORD`           | macOS    | Certificate password              |
+| `APPLE_API_KEY`              | macOS    | Notarization API key              |
+| `APPLE_API_KEY_ID`           | macOS    | Notarization key ID               |
+| `APPLE_API_ISSUER`           | macOS    | Notarization issuer ID            |
+| `AZURE_TENANT_ID`            | Windows  | Azure AD tenant                   |
+| `AZURE_CLIENT_ID`            | Windows  | Azure AD client                   |
+| `AZURE_CLIENT_SECRET`        | Windows  | Azure AD secret                   |
+| `AZURE_CODE_SIGNING_ACCOUNT` | Windows  | Trusted Signing account           |
+| `AZURE_CERT_PROFILE`         | Windows  | Certificate profile name          |
 
 ---
 

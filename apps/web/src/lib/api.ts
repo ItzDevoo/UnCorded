@@ -1,5 +1,5 @@
-import type { ApiError } from '@uncorded/shared';
-import { API_BASE } from './config.js';
+import type { ApiError } from "@uncorded/shared";
+import { API_BASE } from "./config.js";
 
 export class ApiRequestError extends Error {
   status: number;
@@ -15,9 +15,9 @@ export class ApiRequestError extends Error {
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
-    credentials: 'include',
+    credentials: "include",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       ...options.headers,
     },
   });
@@ -25,9 +25,9 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   if (!res.ok) {
     const raw: unknown = await res.json().catch(() => null);
     const body: ApiError =
-      raw !== null && typeof raw === 'object' && 'code' in raw && 'message' in raw
+      raw !== null && typeof raw === "object" && "code" in raw && "message" in raw
         ? (raw as ApiError)
-        : { code: 'UNKNOWN', message: 'Request failed' };
+        : { code: "UNKNOWN", message: "Request failed" };
     throw new ApiRequestError(res.status, body);
   }
 

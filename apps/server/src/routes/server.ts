@@ -1,30 +1,33 @@
-import { Elysia } from 'elysia';
-import { eq, sql, and } from 'drizzle-orm';
-import { createServerSchema, updateServerSchema } from '@uncorded/shared';
-import { db } from '../db/index.js';
-import { servers, channels, members } from '../db/schema.js';
-import { getSession } from '../middleware/auth.js';
-import { requireMember, requireOwner } from '../helpers/permissions.js';
+import { Elysia } from "elysia";
+import { eq, sql, and } from "drizzle-orm";
+import {
+  createServerSchema,
+  updateServerSchema,
+  ValidationError,
+  NotFoundError,
+  InternalError,
+} from "@uncorded/shared";
+import { serverId, userId, channelId } from "@uncorded/protocol";
+import { db } from "../db/index.js";
+import { servers, channels, members } from "../db/schema.js";
+import { getSession } from "../middleware/auth.js";
+import { requireMember, requireOwner } from "../helpers/permissions.js";
 
-export const serverRoutes = new Elysia({ prefix: '/api/servers' })
+export const serverRoutes = new Elysia({ prefix: "/api/servers" })
   .resolve(async ({ status, request }) => {
     const session = await getSession(request.headers);
     if (!session) {
-      return status(401, { code: 'UNAUTHORIZED', message: 'Authentication required' });
+      return status(401, { code: "UNAUTHORIZED", message: "Authentication required" });
     }
     return {
       user: session.user,
       session: session.session,
     };
   })
-  .post('/', async ({ user: sessionUser, body, set }) => {
+  .post("/", async ({ user: sessionUser, body, set }) => {
     const parsed = createServerSchema.safeParse(body);
     if (!parsed.success) {
-      set.status = 400;
-      return {
-        code: 'VALIDATION_ERROR',
-        message: parsed.error.issues[0]?.message ?? 'Invalid input',
-      };
+      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
     }
 
     const [server] = await db
@@ -37,16 +40,15 @@ export const serverRoutes = new Elysia({ prefix: '/api/servers' })
       .returning();
 
     if (!server) {
-      set.status = 500;
-      return { code: 'INTERNAL_ERROR', message: 'Failed to create server' };
+      throw new InternalError("Failed to create server");
     }
 
     const [channel] = await db
       .insert(channels)
       .values({
         serverId: server.id,
-        name: 'general',
-        storagePolicy: 'ephemeral',
+        name: "general",
+        fileSharingEnabled: true,
         position: 0,
       })
       .returning();
@@ -56,12 +58,19 @@ export const serverRoutes = new Elysia({ prefix: '/api/servers' })
       serverId: server.id,
     });
 
-    const result = { ...server, channels: [channel] };
-
     set.status = 201;
-    return result;
+    return {
+      ...server,
+      id: serverId(server.id),
+      ownerId: userId(server.ownerId),
+      channels: [
+        channel
+          ? { ...channel, id: channelId(channel.id), serverId: serverId(channel.serverId) }
+          : channel,
+      ],
+    };
   })
-  .get('/', async ({ user: sessionUser }) => {
+  .get("/", async ({ user: sessionUser }) => {
     const channelCount = db
       .select({ count: sql<number>`count(*)::int` })
       .from(channels)
@@ -77,13 +86,17 @@ export const serverRoutes = new Elysia({ prefix: '/api/servers' })
         channelCount: sql<number>`(${channelCount})`,
       })
       .from(servers)
-      .innerJoin(members, and(eq(members.serverId, servers.id), eq(members.userId, sessionUser.id)));
+      .innerJoin(
+        members,
+        and(eq(members.serverId, servers.id), eq(members.userId, sessionUser.id)),
+      );
 
-    return userServers;
+    return userServers.map((s) =>
+      Object.assign(s, { id: serverId(s.id), ownerId: userId(s.ownerId) }),
+    );
   })
-  .get('/:serverId', async ({ user: sessionUser, params, set }) => {
-    const member = await requireMember(sessionUser.id, params.serverId, set);
-    if (!member) return { code: 'FORBIDDEN', message: 'Not a server member' };
+  .get("/:serverId", async ({ user: sessionUser, params }) => {
+    await requireMember(sessionUser.id, params.serverId);
 
     const [server] = await db
       .select()
@@ -92,23 +105,17 @@ export const serverRoutes = new Elysia({ prefix: '/api/servers' })
       .limit(1);
 
     if (!server) {
-      set.status = 404;
-      return { code: 'NOT_FOUND', message: 'Server not found' };
+      throw new NotFoundError("Server");
     }
 
-    return server;
+    return { ...server, id: serverId(server.id), ownerId: userId(server.ownerId) };
   })
-  .patch('/:serverId', async ({ user: sessionUser, params, body, set }) => {
-    const server = await requireOwner(sessionUser.id, params.serverId, set);
-    if (!server) return { code: 'FORBIDDEN', message: 'Not the server owner' };
+  .patch("/:serverId", async ({ user: sessionUser, params, body }) => {
+    await requireOwner(sessionUser.id, params.serverId);
 
     const parsed = updateServerSchema.safeParse(body);
     if (!parsed.success) {
-      set.status = 400;
-      return {
-        code: 'VALIDATION_ERROR',
-        message: parsed.error.issues[0]?.message ?? 'Invalid input',
-      };
+      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
     }
 
     const updates: Partial<typeof servers.$inferInsert> = {};
@@ -117,8 +124,7 @@ export const serverRoutes = new Elysia({ prefix: '/api/servers' })
     if (parsed.data.iconUrl !== undefined) updates.iconUrl = parsed.data.iconUrl ?? null;
 
     if (Object.keys(updates).length === 0) {
-      set.status = 400;
-      return { code: 'NO_CHANGES', message: 'No fields to update' };
+      throw new ValidationError("No fields to update");
     }
 
     const [updated] = await db
@@ -127,11 +133,12 @@ export const serverRoutes = new Elysia({ prefix: '/api/servers' })
       .where(eq(servers.id, params.serverId))
       .returning();
 
-    return updated;
+    return updated
+      ? { ...updated, id: serverId(updated.id), ownerId: userId(updated.ownerId) }
+      : updated;
   })
-  .delete('/:serverId', async ({ user: sessionUser, params, set }) => {
-    const server = await requireOwner(sessionUser.id, params.serverId, set);
-    if (!server) return { code: 'FORBIDDEN', message: 'Not the server owner' };
+  .delete("/:serverId", async ({ user: sessionUser, params, set }) => {
+    await requireOwner(sessionUser.id, params.serverId);
 
     await db.delete(servers).where(eq(servers.id, params.serverId));
 

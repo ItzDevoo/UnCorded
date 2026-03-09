@@ -1,15 +1,12 @@
-import { and, eq } from 'drizzle-orm';
-import { db } from '../db/index.js';
-import { members, servers } from '../db/schema.js';
+import { and, eq } from "drizzle-orm";
+import { ForbiddenError, NotFoundError } from "@uncorded/shared";
+import { db } from "../db/index.js";
+import { members, servers } from "../db/schema.js";
 
 /**
- * Verify user is a member of the server. Returns member row or null (sets 403).
+ * Verify user is a member of the server. Throws ForbiddenError if not.
  */
-export async function requireMember(
-  userId: string,
-  serverId: string,
-  set: { status?: number | string },
-) {
+export async function requireMember(userId: string, serverId: string) {
   const [member] = await db
     .select()
     .from(members)
@@ -17,36 +14,38 @@ export async function requireMember(
     .limit(1);
 
   if (!member) {
-    set.status = 403;
-    return null;
+    throw new ForbiddenError("Not a server member");
   }
 
   return member;
 }
 
 /**
- * Verify user is the owner of the server. Returns server row or null (sets 403/404).
+ * Verify user is the owner of the server. Throws NotFoundError/ForbiddenError.
  */
-export async function requireOwner(
-  userId: string,
-  serverId: string,
-  set: { status?: number | string },
-) {
-  const [server] = await db
-    .select()
-    .from(servers)
-    .where(eq(servers.id, serverId))
-    .limit(1);
+export async function requireOwner(userId: string, serverId: string) {
+  const [server] = await db.select().from(servers).where(eq(servers.id, serverId)).limit(1);
 
   if (!server) {
-    set.status = 404;
-    return null;
+    throw new NotFoundError("Server");
   }
 
   if (server.ownerId !== userId) {
-    set.status = 403;
-    return null;
+    throw new ForbiddenError("Not the server owner");
   }
 
   return server;
+}
+
+/**
+ * Check if a user is a member of a server (non-throwing).
+ */
+export async function isMember(userId: string, serverId: string): Promise<boolean> {
+  const [member] = await db
+    .select({ userId: members.userId })
+    .from(members)
+    .where(and(eq(members.userId, userId), eq(members.serverId, serverId)))
+    .limit(1);
+
+  return !!member;
 }

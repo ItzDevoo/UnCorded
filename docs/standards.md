@@ -30,36 +30,40 @@ C:\UnCorded\Project\
 
 ### Package Roles (Strict)
 
-| Package | Purpose | Rules |
-|---------|---------|-------|
-| `@uncorded/shared` | Runtime utilities | Explicit subpath exports only. No star exports. |
-| `@uncorded/protocol` | WS protocol definitions | Types + codec. Minimal runtime code. |
-| `apps/web` | SolidJS frontend | No Node.js APIs. Must work in browser. |
-| `apps/server` | ElysiaJS backend | All DB access, auth, WS gateway. |
-| `apps/desktop` | Electron wrapper | Native features only. Embeds server + loads web app. |
+| Package              | Purpose                 | Rules                                                |
+| -------------------- | ----------------------- | ---------------------------------------------------- |
+| `@uncorded/shared`   | Runtime utilities       | Explicit subpath exports only. No star exports.      |
+| `@uncorded/protocol` | WS protocol definitions | Types + codec. Minimal runtime code.                 |
+| `apps/web`           | SolidJS frontend        | No Node.js APIs. Must work in browser.               |
+| `apps/server`        | ElysiaJS backend        | All DB access, auth, WS gateway.                     |
+| `apps/desktop`       | Electron wrapper        | Native features only. Embeds server + loads web app. |
 
 ---
 
 ## Tooling
 
 ### Package Manager
+
 - **Bun** — required everywhere. Never use node, npm, or yarn.
 - Pin Bun version in `package.json` engines field.
 
 ### Linter: Oxlint (not ESLint)
+
 - Config: `.oxlintrc.json` at monorepo root
 - Plugins: eslint, oxc, typescript, unicorn
-- Ignores: dist, node_modules, bun.lock, *.tsbuildinfo
+- Ignores: dist, node_modules, bun.lock, \*.tsbuildinfo
 - Run: `bun run lint`
 
 Why oxlint: 50-100x faster than ESLint. No plugin compatibility issues. Single binary.
 
 ### Formatter: Oxfmt (not Prettier)
+
 - Config: `.oxfmtrc.json` at monorepo root
-- Ignores: dist, node_modules, bun.lock, *.tsbuildinfo
+- Ignores: dist, node_modules, bun.lock, \*.tsbuildinfo
 - Run: `bun run fmt`
 
 ### Build Orchestration: Turborepo
+
 - Config: `turbo.json` at monorepo root
 - Task dependency graph:
 
@@ -81,6 +85,7 @@ Key: `dev` depends on `protocol#build` because runtime code imports compiled pro
 Prevent accidental ID confusion across the codebase. A `ServerId` should never be passed where a `ChannelId` is expected.
 
 ### Definition (in `@uncorded/protocol`)
+
 ```typescript
 // Branded type factory
 type Brand<T, B extends string> = T & { readonly __brand: B };
@@ -94,11 +99,14 @@ export type FileReceiptId = Brand<string, "FileReceiptId">;
 export type DmChannelId = Brand<string, "DmChannelId">;
 
 // Constructor (validates + brands)
-export function createUserId(id: string): UserId { return id as UserId; }
+export function createUserId(id: string): UserId {
+  return id as UserId;
+}
 // ... same pattern for each type
 ```
 
 ### Rules
+
 - All IDs in function signatures, route params, WS payloads, and store types use branded types
 - Raw `string` for IDs is banned in any public interface
 - `createId()` from `@uncorded/shared` returns the appropriate branded type
@@ -113,6 +121,7 @@ Reference: t3Code's `packages/contracts/src/baseSchemas.ts` for pattern.
 Every error is a tagged class with context. No raw `throw new Error("something broke")`.
 
 ### Pattern
+
 ```typescript
 // Base error with tag discrimination
 export class UnCordedError extends Error {
@@ -141,6 +150,7 @@ export class NotFoundError extends UnCordedError { ... }
 ```
 
 ### Error Composition
+
 ```typescript
 // Union types for error boundaries
 type ChannelOperationError = PermissionError | NotFoundError | ValidationError;
@@ -148,6 +158,7 @@ type FileShareError = GatewayError | PermissionError | WebRTCError;
 ```
 
 ### Rules
+
 - Every thrown error includes: operation name, detail message, and optional cause chain
 - Route handlers catch typed errors and map to HTTP status codes
 - WS handlers catch typed errors and send appropriate close codes
@@ -162,6 +173,7 @@ Reference: t3Code's tagged error classes with operation context.
 Track architectural evolution formally. Each plan is a numbered markdown file.
 
 ### Format
+
 ```
 .plans/
 ├── 01-tooling-migration.md      # ESLint→Oxlint, Prettier→Oxfmt
@@ -172,31 +184,39 @@ Track architectural evolution formally. Each plan is a numbered markdown file.
 ```
 
 ### Plan Template
+
 ```markdown
 # Plan XX: Title
 
 ## Motivation
+
 Why this change matters.
 
 ## Scope
+
 What files/packages are affected.
 
 ## Steps
+
 1. Step one
 2. Step two
-...
+   ...
 
 ## Risks
+
 What could go wrong.
 
 ## Validation
+
 How to verify the change worked.
 
 ## Status
+
 - [ ] Not started / In progress / Complete
 ```
 
 ### Rules
+
 - Create a plan before starting any cross-cutting refactor
 - Plans are living documents — update status as work progresses
 - Plans survive completion — they're documentation of decisions made
@@ -209,6 +229,7 @@ How to verify the change worked.
 ### Single Command: `bun run dev`
 
 Launches all services through `scripts/dev-runner.ts`:
+
 - Builds `@uncorded/protocol` first
 - Starts ElysiaJS server (API + WS gateway)
 - Starts Vite dev server (SolidJS frontend)
@@ -216,12 +237,14 @@ Launches all services through `scripts/dev-runner.ts`:
 - Ctrl+C cleanly kills all child processes (process group isolation)
 
 ### TUI Features (modeled after t3Code's dev-runner)
+
 - Real-time process status (running / crashed / restarting)
 - Interleaved log output with color-coded process labels
 - Port assignments displayed on startup
 - Error highlighting in log output
 
 ### Modes
+
 ```bash
 bun run dev              # Full stack (server + web)
 bun run dev:server       # Server only
@@ -230,6 +253,7 @@ bun run dev:desktop      # Desktop + web (Electron dev)
 ```
 
 ### Port Allocation
+
 - Server: 3000 (base)
 - Web: 5173 (Vite default)
 - Support port offset via `UNCORDED_PORT_OFFSET` env var for multiple instances
@@ -241,6 +265,7 @@ bun run dev:desktop      # Desktop + web (Electron dev)
 ## TypeScript Configuration
 
 ### Base Config (`tsconfig.base.json`)
+
 ```json
 {
   "compilerOptions": {
@@ -260,6 +285,7 @@ bun run dev:desktop      # Desktop + web (Electron dev)
 ```
 
 ### Critical Flags
+
 - `noUncheckedIndexedAccess` — array/object indexing returns `T | undefined`, forces null checks
 - `exactOptionalPropertyTypes` — `{ x?: string }` means `string | undefined`, NOT `string | undefined | null`
 - `strict` — enables all strict checks (noImplicitAny, strictNullChecks, etc.)
@@ -269,31 +295,37 @@ bun run dev:desktop      # Desktop + web (Electron dev)
 ## Quality Gates
 
 ### Before Every Commit (enforced by chat bot agent)
+
 1. `bun run typecheck` — zero errors
 2. `bun run lint` — zero errors
 3. `bun run fmt` — no formatting drift (check mode)
 
 ### CI Pipeline
+
 1. Lint (oxlint)
 2. Typecheck (tsc --noEmit per package)
 3. Unit tests (Vitest)
 4. Build (turbo build)
 
 ### Test Framework: Vitest
+
 - Run: `bun run test`
 - Never use `bun test` directly (bypasses Vitest config)
 - Browser tests via Playwright when needed
 
 ### Testing Strategy
-| Type | What | Where |
-|------|------|-------|
-| Unit tests | Pure functions, utilities, stores | `*.test.ts` next to source |
-| Integration tests | API routes, WS handlers, DB queries | `__tests__/` in apps/server |
-| Browser tests | UI components, viewport matrix | Playwright + Vitest browser mode |
-| Smoke tests | App starts without crashing | `scripts/smoke-test.ts` |
+
+| Type              | What                                | Where                            |
+| ----------------- | ----------------------------------- | -------------------------------- |
+| Unit tests        | Pure functions, utilities, stores   | `*.test.ts` next to source       |
+| Integration tests | API routes, WS handlers, DB queries | `__tests__/` in apps/server      |
+| Browser tests     | UI components, viewport matrix      | Playwright + Vitest browser mode |
+| Smoke tests       | App starts without crashing         | `scripts/smoke-test.ts`          |
 
 ### Browser Viewport Testing
+
 Test responsive behavior across device sizes:
+
 ```typescript
 const VIEWPORTS = {
   mobile: { width: 360, height: 800 },
@@ -304,19 +336,20 @@ const VIEWPORTS = {
 ```
 
 ### CI/CD Pipeline
+
 ```yaml
 # .github/workflows/ci.yml
 jobs:
   quality:
     steps:
       - bun install
-      - bun run lint          # Oxlint
-      - bun run typecheck     # tsc --noEmit per package
-      - bun run test          # Unit tests
-      - bun run test:browser  # Playwright browser tests
-      - bun run build         # Full turbo build
+      - bun run lint # Oxlint
+      - bun run typecheck # tsc --noEmit per package
+      - bun run test # Unit tests
+      - bun run test:browser # Playwright browser tests
+      - bun run build # Full turbo build
 
-  release:  # (Phase 2 — when desktop app ships)
+  release: # (Phase 2 — when desktop app ships)
     steps:
       - Build desktop artifacts (Windows NSIS, macOS DMG, Linux AppImage)
       - Code signing (Windows + macOS)
@@ -324,6 +357,7 @@ jobs:
 ```
 
 ### Rules
+
 - Every PR must pass all quality gates before merge
 - Test files live next to the code they test (`foo.ts` → `foo.test.ts`)
 - Use MSW (Mock Service Worker) for mocking HTTP/WS in browser tests
@@ -334,6 +368,7 @@ jobs:
 ## File & Folder Conventions
 
 ### Naming
+
 - **Files**: kebab-case (`message-store.ts`, `chat-area.tsx`)
 - **Components**: PascalCase export, kebab-case file (`chat-area.tsx` → `export function ChatArea()`)
 - **Types/Interfaces**: PascalCase (`ReadyData`, `GatewayFrame`)
@@ -341,10 +376,12 @@ jobs:
 - **Enums**: PascalCase name, PascalCase values (in protocol: numeric values)
 
 ### Exports
+
 - Named exports only. No default exports.
 - Packages use explicit subpath exports in package.json — no barrel re-exports of everything.
 
 ### Imports
+
 - Absolute imports within each app via path aliases (`~/components/ChatArea`)
 - Cross-package imports via workspace names (`@uncorded/shared/id`, `@uncorded/protocol`)
 
@@ -353,6 +390,7 @@ jobs:
 ## Desktop App Standards (Electron — Phase 2)
 
 ### Architecture (follows t3Code patterns)
+
 - Electron embeds the ElysiaJS server as a child process
 - Main process spawns server with `ELECTRON_RUN_AS_NODE=1` on a dynamic loopback port
 - Renderer loads the SolidJS app (static files in production, Vite dev server in dev)
@@ -360,12 +398,14 @@ jobs:
 - Context isolation enabled, node integration disabled, sandbox enabled
 
 ### IPC Patterns
+
 - Preload script exposes `window.desktopBridge` with typed methods
 - `ipcMain.handle()` for request-response (file dialogs, confirmations)
 - `ipcMain.on()` + `webContents.send()` for broadcasts (update status, menu actions)
 - All IPC channels explicitly defined — no dynamic channel names
 
 ### Native Features (Desktop Only)
+
 - Persistent seed folder selection (native file dialog via IPC)
 - Background seeding (app stays connected when minimized)
 - Client-side CSAM hashing (PhotoDNA/PDQ)
@@ -374,6 +414,7 @@ jobs:
 - Custom protocol handler (`uncorded://`)
 
 ### Web App Detection
+
 ```typescript
 // apps/web/src/lib/env.ts
 export const isDesktop = window.desktopBridge !== undefined;
@@ -383,18 +424,21 @@ export const isWeb = !isDesktop;
 Gate desktop-only features behind `isDesktop` checks. The web app must function fully without Electron APIs.
 
 ### Build Pipeline
+
 - Bundler: tsdown (main.ts + preload.ts → dist-electron/)
 - Format: CommonJS for Electron main process
-- Workspace packages (@uncorded/*) bundled into output, not external
+- Workspace packages (@uncorded/\*) bundled into output, not external
 - Sourcemaps enabled for debugging
 
 ### Dev Workflow
+
 - `bun run dev:desktop` starts Vite + Electron together
 - Dev script waits for Vite dev server + compiled main.js before spawning Electron
 - Hot reload works in Electron (renderer points to Vite dev server)
 - File watcher restarts Electron on main process changes (debounced)
 
 ### Process Management
+
 - Server spawned as child process with auth token for WS connection
 - Dynamic port allocation (reserve ephemeral loopback port)
 - Automatic restart with exponential backoff on crash

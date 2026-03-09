@@ -22,6 +22,20 @@
       "when": 1772778942449,
       "tag": "0002_material_killraven",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1741392000000,
+      "tag": "0003_schema_pivot_p2p",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1741478400000,
+      "tag": "0004_reports_fk_on_delete",
+      "breakpoints": true
     }
   ]
 }

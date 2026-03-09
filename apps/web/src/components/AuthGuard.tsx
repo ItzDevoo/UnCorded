@@ -1,6 +1,6 @@
-import { createEffect, type ParentComponent } from 'solid-js';
-import { useNavigate } from '@solidjs/router';
-import { useSession } from '../lib/auth.js';
+import { createEffect, type ParentComponent } from "solid-js";
+import { useNavigate } from "@solidjs/router";
+import { useSession } from "../lib/auth.js";
 
 const AuthGuard: ParentComponent = (props) => {
   const session = useSession();
@@ -9,7 +9,7 @@ const AuthGuard: ParentComponent = (props) => {
   createEffect(() => {
     const s = session();
     if (!s.isPending && !s.data) {
-      navigate('/login', { replace: true });
+      navigate("/login", { replace: true });
     }
   });
 

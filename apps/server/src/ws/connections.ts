@@ -1,10 +1,10 @@
 /** Loose WS type — Elysia's ws.raw generic varies, so we use a structural type */
 export type AnyServerWebSocket = { send(data: string | Buffer): number };
-import { eq } from 'drizzle-orm';
-import { encode } from '@uncorded/protocol';
-import type { GatewayFrame } from '@uncorded/protocol';
-import { db } from '../db/index.js';
-import { members } from '../db/schema.js';
+import { eq } from "drizzle-orm";
+import { encode } from "@uncorded/protocol";
+import type { GatewayFrame } from "@uncorded/protocol";
+import { db } from "../db/index.js";
+import { members } from "../db/schema.js";
 
 /** userId → set of active WebSocket connections (supports multiple tabs) */
 export const clients = new Map<string, Set<AnyServerWebSocket>>();

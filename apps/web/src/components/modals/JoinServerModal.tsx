@@ -1,56 +1,58 @@
-import { createSignal, For, Show } from 'solid-js';
-import { api, ApiRequestError } from '../../lib/api.js';
-import { addServer } from '../../lib/gateway-store.js';
-import { setSelectedServerId } from '../../stores/app-store.js';
-import Modal from './Modal.js';
+import { createSignal, Show } from "solid-js";
+import { serverId, userId, type ServerId, type UserId, type InviteCode } from "@uncorded/protocol";
+import { api, ApiRequestError } from "../../lib/api.js";
+import { addServer } from "../../lib/gateway-store.js";
+import { setSelectedServerId } from "../../stores/app-store.js";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "../ui/dialog.js";
+import { Input } from "../ui/input.js";
+import { Button } from "../ui/button.js";
 
 interface InvitePreview {
-  code: string;
+  code: InviteCode;
   server: { name: string; iconUrl: string | null };
   memberCount: number;
-  storagePolicies: string[];
 }
 
 interface AcceptResponse {
   server: {
-    id: string;
+    id: ServerId;
     name: string;
     iconUrl: string | null;
-    ownerId: string;
+    ownerId: UserId;
   };
 }
-
-const POLICY_COLORS: Record<string, string> = {
-  ephemeral: 'bg-warning',
-  extended: 'bg-brand',
-  persistent: 'bg-success',
-};
 
 interface Props {
   onClose: () => void;
 }
 
 const JoinServerModal = (props: Props) => {
-  const [code, setCode] = createSignal('');
+  const [code, setCode] = createSignal("");
   const [preview, setPreview] = createSignal<InvitePreview | null>(null);
   const [loading, setLoading] = createSignal(false);
-  const [error, setError] = createSignal('');
+  const [error, setError] = createSignal("");
 
   const handlePreview = async (e: Event) => {
     e.preventDefault();
     const trimmed = code().trim();
     if (!trimmed) return;
 
-    setError('');
+    setError("");
     setLoading(true);
     try {
       const data = await api<InvitePreview>(`/api/invites/${encodeURIComponent(trimmed)}`);
       setPreview(data);
     } catch (err) {
       if (err instanceof ApiRequestError) {
-        setError(err.status === 404 ? 'Invite not found' : err.body.message);
+        setError(err.status === 404 ? "Invite not found" : err.body.message);
       } else {
-        setError('Failed to fetch invite');
+        setError("Failed to fetch invite");
       }
     } finally {
       setLoading(false);
@@ -61,27 +63,27 @@ const JoinServerModal = (props: Props) => {
     const p = preview();
     if (!p) return;
 
-    setError('');
+    setError("");
     setLoading(true);
     try {
       const data = await api<AcceptResponse>(`/api/invites/${encodeURIComponent(p.code)}/accept`, {
-        method: 'POST',
+        method: "POST",
       });
 
       addServer({
-        id: data.server.id,
+        id: serverId(data.server.id),
         name: data.server.name,
         iconUrl: data.server.iconUrl,
-        ownerId: data.server.ownerId,
+        ownerId: userId(data.server.ownerId),
         channels: [],
       });
-      setSelectedServerId(data.server.id);
+      setSelectedServerId(serverId(data.server.id));
       props.onClose();
     } catch (err) {
       if (err instanceof ApiRequestError) {
-        setError(err.status === 409 ? 'You are already a member of this server' : err.body.message);
+        setError(err.status === 409 ? "You are already a member of this server" : err.body.message);
       } else {
-        setError('Failed to join server');
+        setError("Failed to join server");
       }
     } finally {
       setLoading(false);
@@ -89,104 +91,87 @@ const JoinServerModal = (props: Props) => {
   };
 
   return (
-    <Modal isOpen={true} onClose={props.onClose} title="Join a Server">
-      <Show
-        when={preview()}
-        fallback={
-          <form onSubmit={handlePreview}>
-            <label class="mb-1 block text-sm font-medium text-text-secondary">Invite Code</label>
-            <input
-              type="text"
-              value={code()}
-              onInput={(e) => setCode(e.currentTarget.value)}
-              placeholder="abc12345"
-              class="mb-4 w-full rounded-lg bg-bg-input px-3 py-2 text-sm text-text-primary placeholder:text-text-muted outline-none focus:ring-2 focus:ring-brand"
-              autofocus
-            />
+    <Dialog open={true} onOpenChange={() => props.onClose()}>
+      <DialogContent onClose={props.onClose}>
+        <DialogHeader>
+          <DialogTitle>Join a Server</DialogTitle>
+        </DialogHeader>
 
-            {error() && <p class="mb-3 text-sm text-danger">{error()}</p>}
+        <Show
+          when={preview()}
+          fallback={
+            <form onSubmit={handlePreview}>
+              <label class="mb-1 block text-sm font-medium text-secondary-foreground">Invite Code</label>
+              <Input
+                type="text"
+                value={code()}
+                onInput={(e) => setCode(e.currentTarget.value)}
+                placeholder="abc12345"
+                autofocus
+                class="mb-4"
+              />
 
-            <div class="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={props.onClose}
-                class="rounded-lg px-4 py-2 text-sm text-text-secondary hover:text-text-primary"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={loading() || !code().trim()}
-                class="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover disabled:opacity-50"
-              >
-                {loading() ? 'Looking up...' : 'Preview'}
-              </button>
-            </div>
-          </form>
-        }
-      >
-        {(p) => (
-          <div>
-            <div class="mb-4 flex items-center gap-3 rounded-lg bg-bg-tertiary p-3">
-              <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-bg-active text-lg font-bold text-text-primary">
-                {p().server.iconUrl ? (
-                  <img
-                    src={p().server.iconUrl ?? undefined}
-                    alt={p().server.name}
-                    class="h-12 w-12 rounded-xl object-cover"
-                  />
-                ) : (
-                  p().server.name.charAt(0).toUpperCase()
-                )}
-              </div>
-              <div>
-                <div class="font-semibold text-text-primary">{p().server.name}</div>
-                <div class="text-sm text-text-muted">
-                  {p().memberCount} {p().memberCount === 1 ? 'member' : 'members'}
+              <Show when={error()}>
+                <p role="alert" class="mb-3 text-sm text-destructive">{error()}</p>
+              </Show>
+
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={() => props.onClose()}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={loading() || !code().trim()}>
+                  {loading() ? "Looking up..." : "Preview"}
+                </Button>
+              </DialogFooter>
+            </form>
+          }
+        >
+          {(p) => (
+            <div>
+              <div class="mb-4 flex items-center gap-3 rounded-lg bg-secondary p-3">
+                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted text-lg font-bold text-foreground">
+                  {p().server.iconUrl ? (
+                    <img
+                      src={p().server.iconUrl ?? undefined}
+                      alt={p().server.name}
+                      class="h-12 w-12 rounded-xl object-cover"
+                    />
+                  ) : (
+                    p().server.name.charAt(0).toUpperCase()
+                  )}
+                </div>
+                <div>
+                  <div class="font-semibold text-foreground">{p().server.name}</div>
+                  <div class="text-sm text-muted-foreground">
+                    {p().memberCount} {p().memberCount === 1 ? "member" : "members"}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div class="mb-4">
-              <div class="mb-1 text-xs font-medium uppercase text-text-muted">Storage Policies</div>
-              <div class="flex gap-2">
-                <For each={p().storagePolicies}>
-                  {(policy) => (
-                    <span class="flex items-center gap-1.5 rounded-full bg-bg-tertiary px-2.5 py-1 text-xs text-text-secondary">
-                      <span class={`h-2 w-2 rounded-full ${POLICY_COLORS[policy] ?? 'bg-text-muted'}`} />
-                      {policy}
-                    </span>
-                  )}
-                </For>
-              </div>
-            </div>
+              <Show when={error()}>
+                <p role="alert" class="mb-3 text-sm text-destructive">{error()}</p>
+              </Show>
 
-            {error() && <p class="mb-3 text-sm text-danger">{error()}</p>}
-
-            <div class="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setPreview(null);
-                  setError('');
-                }}
-                class="rounded-lg px-4 py-2 text-sm text-text-secondary hover:text-text-primary"
-              >
-                Back
-              </button>
-              <button
-                type="button"
-                onClick={handleJoin}
-                disabled={loading()}
-                class="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover disabled:opacity-50"
-              >
-                {loading() ? 'Joining...' : 'Join Server'}
-              </button>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setPreview(null);
+                    setError("");
+                  }}
+                >
+                  Back
+                </Button>
+                <Button type="button" onClick={handleJoin} disabled={loading()}>
+                  {loading() ? "Joining..." : "Join Server"}
+                </Button>
+              </DialogFooter>
             </div>
-          </div>
-        )}
-      </Show>
-    </Modal>
+          )}
+        </Show>
+      </DialogContent>
+    </Dialog>
   );
 };
 

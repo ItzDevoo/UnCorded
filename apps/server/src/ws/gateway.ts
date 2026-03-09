@@ -1,10 +1,13 @@
-import { Elysia } from 'elysia';
-import { Opcode, CloseCode, encode, decode } from '@uncorded/protocol';
-import { eq, and } from 'drizzle-orm';
-import { db } from '../db/index.js';
-import { user, channels, members } from '../db/schema.js';
-import { removeConnection, getConnections, broadcastToServer } from './connections.js';
-import { handleIdentify } from './handlers.js';
+import { Elysia } from "elysia";
+import { z } from "zod";
+import { Opcode, CloseCode, encode, decode } from "@uncorded/protocol";
+import { eq, and } from "drizzle-orm";
+import { db } from "../db/index.js";
+import { user, channels, members } from "../db/schema.js";
+import { removeConnection, getConnections, broadcastToServer } from "./connections.js";
+import { handleIdentify } from "./handlers.js";
+
+const typingStartSchema = z.object({ channelId: z.string() });
 
 const HEARTBEAT_INTERVAL = 30_000;
 const HEARTBEAT_TIMEOUT = 45_000;
@@ -33,7 +36,7 @@ function resetHeartbeatTimeout(ws: { raw: object; terminate: () => void }): void
   }, HEARTBEAT_TIMEOUT);
 }
 
-export const gateway = new Elysia().ws('/gateway', {
+export const gateway = new Elysia().ws("/gateway", {
   open(ws) {
     ws.send(
       Buffer.from(encode({ op: Opcode.HELLO, d: { heartbeatInterval: HEARTBEAT_INTERVAL } })),
@@ -42,8 +45,8 @@ export const gateway = new Elysia().ws('/gateway', {
   },
 
   async message(ws, raw) {
-    if (typeof raw === 'string') {
-      ws.close(CloseCode.NOT_BINARY, 'Expected binary MessagePack');
+    if (typeof raw === "string") {
+      ws.close(CloseCode.NOT_BINARY, "Expected binary MessagePack");
       return;
     }
 
@@ -51,7 +54,7 @@ export const gateway = new Elysia().ws('/gateway', {
     try {
       frame = decode(raw as Uint8Array);
     } catch {
-      ws.close(CloseCode.INVALID_FRAME, 'Invalid MessagePack frame');
+      ws.close(CloseCode.INVALID_FRAME, "Invalid MessagePack frame");
       return;
     }
 
@@ -60,7 +63,7 @@ export const gateway = new Elysia().ws('/gateway', {
     switch (frame.op) {
       case Opcode.IDENTIFY: {
         if (ctx.userId) {
-          ws.close(CloseCode.ALREADY_IDENTIFIED, 'Already identified');
+          ws.close(CloseCode.ALREADY_IDENTIFIED, "Already identified");
           return;
         }
 
@@ -77,7 +80,7 @@ export const gateway = new Elysia().ws('/gateway', {
 
       case Opcode.HEARTBEAT: {
         if (!ctx.userId) {
-          ws.close(CloseCode.NOT_IDENTIFIED, 'Not identified');
+          ws.close(CloseCode.NOT_IDENTIFIED, "Not identified");
           return;
         }
         resetHeartbeatTimeout(ws);
@@ -86,12 +89,13 @@ export const gateway = new Elysia().ws('/gateway', {
 
       case Opcode.TYPING_START: {
         if (!ctx.userId) {
-          ws.close(CloseCode.NOT_IDENTIFIED, 'Not identified');
+          ws.close(CloseCode.NOT_IDENTIFIED, "Not identified");
           return;
         }
 
-        const d = frame.d as Record<string, unknown> | null;
-        if (!d || typeof d.channelId !== 'string') break;
+        const parsed = typingStartSchema.safeParse(frame.d);
+        if (!parsed.success) break;
+        const d = parsed.data;
 
         const [ch] = await db
           .select({ serverId: channels.serverId })
@@ -139,7 +143,7 @@ export const gateway = new Elysia().ws('/gateway', {
       // If no more connections for this user, set offline
       const remaining = getConnections(ctx.userId);
       if (!remaining) {
-        await db.update(user).set({ status: 'offline' }).where(eq(user.id, ctx.userId));
+        await db.update(user).set({ status: "offline" }).where(eq(user.id, ctx.userId));
       }
     }
 

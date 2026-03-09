@@ -1,24 +1,25 @@
-import { Elysia } from 'elysia';
-import { eq, and } from 'drizzle-orm';
-import { db } from '../db/index.js';
-import { members, servers, user } from '../db/schema.js';
-import { getSession } from '../middleware/auth.js';
-import { requireMember, requireOwner } from '../helpers/permissions.js';
+import { Elysia } from "elysia";
+import { eq, and } from "drizzle-orm";
+import { ForbiddenError, ValidationError, NotFoundError } from "@uncorded/shared";
+import { userId } from "@uncorded/protocol";
+import { db } from "../db/index.js";
+import { members, servers, user } from "../db/schema.js";
+import { getSession } from "../middleware/auth.js";
+import { requireMember, requireOwner } from "../helpers/permissions.js";
 
-export const memberRoutes = new Elysia({ prefix: '/api/servers/:serverId/members' })
+export const memberRoutes = new Elysia({ prefix: "/api/servers/:serverId/members" })
   .resolve(async ({ status, request }) => {
     const session = await getSession(request.headers);
     if (!session) {
-      return status(401, { code: 'UNAUTHORIZED', message: 'Authentication required' });
+      return status(401, { code: "UNAUTHORIZED", message: "Authentication required" });
     }
     return {
       user: session.user,
       session: session.session,
     };
   })
-  .get('/', async ({ user: sessionUser, params, set }) => {
-    const member = await requireMember(sessionUser.id, params.serverId, set);
-    if (!member) return { code: 'FORBIDDEN', message: 'Not a server member' };
+  .get("/", async ({ user: sessionUser, params }) => {
+    await requireMember(sessionUser.id, params.serverId);
 
     const memberList = await db
       .select({
@@ -34,11 +35,10 @@ export const memberRoutes = new Elysia({ prefix: '/api/servers/:serverId/members
       .innerJoin(user, eq(user.id, members.userId))
       .where(eq(members.serverId, params.serverId));
 
-    return memberList;
+    return memberList.map((m) => Object.assign(m, { userId: userId(m.userId) }));
   })
-  .delete('/@me', async ({ user: sessionUser, params, set }) => {
-    const member = await requireMember(sessionUser.id, params.serverId, set);
-    if (!member) return { code: 'FORBIDDEN', message: 'Not a server member' };
+  .delete("/@me", async ({ user: sessionUser, params, set }) => {
+    await requireMember(sessionUser.id, params.serverId);
 
     const [server] = await db
       .select({ ownerId: servers.ownerId })
@@ -47,8 +47,9 @@ export const memberRoutes = new Elysia({ prefix: '/api/servers/:serverId/members
       .limit(1);
 
     if (server?.ownerId === sessionUser.id) {
-      set.status = 403;
-      return { code: 'OWNER_CANNOT_LEAVE', message: 'Server owner cannot leave. Transfer ownership or delete the server.' };
+      throw new ForbiddenError(
+        "Server owner cannot leave. Transfer ownership or delete the server.",
+      );
     }
 
     await db
@@ -57,17 +58,22 @@ export const memberRoutes = new Elysia({ prefix: '/api/servers/:serverId/members
 
     set.status = 204;
   })
-  .delete('/:userId', async ({ user: sessionUser, params, set }) => {
-    const server = await requireOwner(sessionUser.id, params.serverId, set);
-    if (!server) return { code: 'FORBIDDEN', message: 'Not the server owner' };
+  .delete("/:userId", async ({ user: sessionUser, params, set }) => {
+    await requireOwner(sessionUser.id, params.serverId);
 
     if (params.userId === sessionUser.id) {
-      set.status = 400;
-      return { code: 'CANNOT_KICK_SELF', message: 'Cannot kick yourself' };
+      throw new ValidationError("Cannot kick yourself");
     }
 
-    const member = await requireMember(params.userId, params.serverId, set);
-    if (!member) return { code: 'NOT_FOUND', message: 'Member not found' };
+    const [member] = await db
+      .select()
+      .from(members)
+      .where(and(eq(members.userId, params.userId), eq(members.serverId, params.serverId)))
+      .limit(1);
+
+    if (!member) {
+      throw new NotFoundError("Member");
+    }
 
     await db
       .delete(members)

@@ -6,6 +6,7 @@ Updated by the coding agent at the end of every session.
 Reference: C:\Nexis\docs\lessons.md for patterns learned during Nexis build.
 
 ## Format
+
 **[Week X Day Y]** — What went wrong or what was decided and why.
 
 ---
@@ -53,6 +54,7 @@ Reference: C:\Nexis\docs\lessons.md for patterns learned during Nexis build.
 **[W2 D4-5]** — SolidJS `solid/reactivity` lint rule: `onGatewayEvent` callbacks that call store mutation functions (e.g. `addMessage`) trigger the warning because the linter sees reactive store access inside a non-tracked scope. These are event handlers, not reactive computations — suppress with `/* eslint-disable solid/reactivity -- event handlers */`.
 
 **[W2 D4-5]** — Module-level side effects (setInterval, event listeners) accumulate on Vite HMR reloads. Fix: store return values (interval IDs, unsubscribe functions) and clean them up in `import.meta.hot.dispose()`. Pattern:
+
 ```
 const intervalId = setInterval(...);
 const unsub = onGatewayEvent(...);
@@ -63,8 +65,45 @@ if (import.meta.hot) {
   });
 }
 ```
+
 This applies to any module that registers global listeners or timers at the top level.
 
 **[W2 D4-5]** — Solid `produce()` on a store path that doesn't exist yet gets `undefined` as the draft. The `if (!ch) return` guard inside produce silently does nothing, and the fallback code after may race with it. Fix: check existence before calling produce and initialize first if missing. Cleaner than a two-phase produce-then-check pattern.
 
 **[W2 D1-2]** — CORRECTED: The `as never` pattern (`set.status = 401; return { code, message } as never`) does NOT short-circuit Elysia's resolve at runtime. Elysia merges the returned object into context, replacing user/session with undefined, crashing all downstream handlers. The correct pattern is `return status(401, { code, message })` using the `status` function from resolve context. This both short-circuits AND sends a JSON body. The original `return status(401)` worked for short-circuiting but sent an empty body — adding the second argument fixes both issues.
+
+**[W2.5 D1]** — `drizzle-kit generate` uses a TUI with interactive prompts (arrow keys, Enter) for rename/create/drop decisions during schema migrations. This cannot be automated via piped input on Windows. Workaround: write the migration SQL manually and update `drizzle/meta/_journal.json` by hand, then run `db:migrate`. The SQL migration file with `statement-breakpoint` comments works correctly with drizzle-orm's migrator.
+
+**[W2.5 D1]** — Oxlint warns on SolidJS `let ref!: HTMLElement` declarations as "no-unassigned-vars" because it doesn't know about SolidJS's `ref={el => ref = el}` JSX pattern. Fix: suppress with `// oxlint-disable-next-line eslint(no-unassigned-vars) -- SolidJS ref pattern`.
+
+**[W2.5 D1]** — Oxfmt changes single quotes to double quotes by default (different from Prettier's `singleQuote: true`). This is fine — the entire codebase was reformatted in one pass. No need to configure around it.
+
+**[W2.5 D1]** — Oxlint's `unicorn/no-array-sort` and `unicorn/no-array-reverse` prefer non-mutating alternatives: use `.toSorted()` and `.toReversed()` instead of `.sort()` and `.reverse()`. These are ES2023 methods, safe with our `target: ES2023` tsconfig.
+
+**[W2.5 D2]** — `exactOptionalPropertyTypes` means `{ x?: string }` does NOT accept explicit `undefined` assignment. Patterns like `foo({ maxUses: maybeUndefined })` break — instead build the object conditionally: `const opts = {}; if (val !== undefined) opts.maxUses = val;`.
+
+**[W2.5 D2]** — When importing branded type constructor functions (e.g., `userId()` from protocol), watch for name collisions with local variables. In handlers.ts, `const userId = sessionRow.userId` shadowed the imported `userId()` function. Rename the local variable (e.g., `identifiedUserId`) to avoid the shadow.
+
+**[W2.5 D2]** — Oxlint's `oxc/no-map-spread` warns against `arr.map(x => ({ ...x, id: brand(x.id) }))` because spread in map creates unnecessary allocations. Use `Object.assign(x, { id: brand(x.id) })` instead — mutates in-place, which is fine for data from DB queries that aren't reused.
+
+**[W2.5 D3]** — Elysia's `.onError()` DOES catch errors thrown from route handler bodies. The pattern `throw new AppError(...)` in route handlers is caught by the global `.onError()` and converted to `{ code, message }` with the correct status code. This means routes no longer need `set` for error responses — just throw. However, `.resolve()` blocks must still use `return status(401, ...)` because throwing inside resolve doesn't short-circuit the same way.
+
+**[W2.5 D3]** — When refactoring permission helpers from `requireMember(userId, serverId, set)` (returns null + mutates set) to `requireMember(userId, serverId)` (throws), the invite accept route needs special handling. It used requireMember inversely — checked if user IS already a member, then returned 409. After refactoring, use a separate non-throwing `isMember()` helper for this inverse check pattern.
+
+**[W2.5 D3]** — Branded type signals in SolidJS: `createSignal<ServerId | null>(null)` requires all callers to pass branded types. Raw strings from API responses must be branded at the call site — e.g., `setSelectedServerId(serverId(data.server.id))`, not `setSelectedServerId(data.server.id)`. This caught two bugs in CreateServerModal and JoinServerModal where raw strings were being passed.
+
+**[W2.5 D4]** — SolidJS store `Record<string, T>` paths require plain strings, not branded types. When using branded IDs as store keys, cast to `string` at the store boundary: `const key = channelId as string`. Keep branded types in function signatures for type safety, but store internals use strings.
+
+**[W2.5 D4]** — Zod validation at WS event boundaries catches malformed payloads early and prevents branded type contamination. Pattern: `safeParse(data)` → on failure `console.warn` + early return → on success brand the validated strings via constructor functions. This moves the branding to the parse boundary rather than trusting `data as T` casts.
+
+**[W2.5 D4]** — `bun add zod` in a workspace package installs the latest (v4), but if `@uncorded/shared` depends on `zod@^3`, you get version conflicts. Always pin to the same major: `bun add zod@3`.
+
+**[W2.5 D4]** — Railway-style brand-tinted dark palettes: use OKLCH for perceptually uniform color mixing. Keep brand hue consistent across all background/border/muted tokens at low chroma (0.008–0.02), full chroma only for primary/ring/success. Shadows stay neutral — tinted shadows look artificial.
+
+**[W2.5 D5]** — Focus trap in SolidJS dialogs: use `onMount` to auto-focus first focusable element, `onKeyDown` with Tab/Shift+Tab to cycle between first and last focusable elements. The `FOCUSABLE_SELECTOR` should include `a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])`. Guard against empty focusable lists.
+
+**[W2.5 D5]** — Z-index in Tailwind v4: `@theme inline` naming for z-index is uncertain (`--z-index-modal` could become `z-index-modal` or `z-modal`). Safer approach: define CSS custom properties in `:root` (e.g., `--z-modal: 50`) and reference them via `z-[--z-modal]` arbitrary value syntax, which is guaranteed to work.
+
+**[W2.5 D5]** — When migrating from a custom Modal wrapper to a compound Dialog component, keep `open={true}` on Dialog since the parent component controls visibility (only renders the modal when needed). Use `onOpenChange={() => props.onClose()}` for backdrop click and Escape key dismiss.
+
+**[W2.5 D5]** — TypeScript index signatures can't use branded types. `Record<ChannelId, number>` won't work because branded types aren't valid index types. Use `Record<string, number>` with a documenting comment instead.

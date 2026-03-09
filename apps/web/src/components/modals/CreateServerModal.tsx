@@ -1,21 +1,37 @@
-import { createSignal } from 'solid-js';
-import { createServerSchema } from '@uncorded/shared';
-import { api, ApiRequestError } from '../../lib/api.js';
-import { addServer, type ReadyServer } from '../../lib/gateway-store.js';
-import { setSelectedServerId } from '../../stores/app-store.js';
-import Modal from './Modal.js';
+import { createSignal, Show } from "solid-js";
+import { createServerSchema } from "@uncorded/shared";
+import {
+  serverId,
+  userId,
+  channelId,
+  type ServerId,
+  type UserId,
+  type ChannelId,
+} from "@uncorded/protocol";
+import { api, ApiRequestError } from "../../lib/api.js";
+import { addServer, type ReadyServer } from "../../lib/gateway-store.js";
+import { setSelectedServerId } from "../../stores/app-store.js";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "../ui/dialog.js";
+import { Input } from "../ui/input.js";
+import { Button } from "../ui/button.js";
 
 interface CreateServerResponse {
-  id: string;
+  id: ServerId;
   name: string;
   iconUrl: string | null;
-  ownerId: string;
+  ownerId: UserId;
   channels: {
-    id: string;
-    serverId: string;
+    id: ChannelId;
+    serverId: ServerId;
     name: string;
     type: string;
-    storagePolicy: 'ephemeral' | 'extended' | 'persistent';
+    fileSharingEnabled: boolean;
     position: number;
     topic: string | null;
   }[];
@@ -26,14 +42,14 @@ interface Props {
 }
 
 const CreateServerModal = (props: Props) => {
-  const [name, setName] = createSignal('');
-  const [iconUrl, setIconUrl] = createSignal('');
+  const [name, setName] = createSignal("");
+  const [iconUrl, setIconUrl] = createSignal("");
   const [loading, setLoading] = createSignal(false);
-  const [error, setError] = createSignal('');
+  const [error, setError] = createSignal("");
 
   const handleSubmit = async (e: Event) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     const body = {
       name: name().trim(),
@@ -42,41 +58,41 @@ const CreateServerModal = (props: Props) => {
 
     const result = createServerSchema.safeParse(body);
     if (!result.success) {
-      setError(result.error.issues[0]?.message ?? 'Invalid input');
+      setError(result.error.issues[0]?.message ?? "Invalid input");
       return;
     }
 
     setLoading(true);
     try {
-      const server = await api<CreateServerResponse>('/api/servers', {
-        method: 'POST',
+      const server = await api<CreateServerResponse>("/api/servers", {
+        method: "POST",
         body: JSON.stringify(body),
       });
 
       const readyServer: ReadyServer = {
-        id: server.id,
+        id: serverId(server.id),
         name: server.name,
         iconUrl: server.iconUrl,
-        ownerId: server.ownerId,
+        ownerId: userId(server.ownerId),
         channels: server.channels.map((ch) => ({
-          id: ch.id,
-          serverId: ch.serverId,
+          id: channelId(ch.id),
+          serverId: serverId(ch.serverId),
           name: ch.name,
           type: ch.type,
           position: ch.position,
           topic: ch.topic,
-          storagePolicy: ch.storagePolicy,
+          fileSharingEnabled: ch.fileSharingEnabled,
         })),
       };
 
       addServer(readyServer);
-      setSelectedServerId(server.id);
+      setSelectedServerId(serverId(server.id));
       props.onClose();
     } catch (err) {
       if (err instanceof ApiRequestError) {
         setError(err.body.message);
       } else {
-        setError('Failed to create server');
+        setError("Failed to create server");
       }
     } finally {
       setLoading(false);
@@ -84,50 +100,50 @@ const CreateServerModal = (props: Props) => {
   };
 
   return (
-    <Modal isOpen={true} onClose={props.onClose} title="Create a Server">
-      <form onSubmit={handleSubmit}>
-        <label class="mb-1 block text-sm font-medium text-text-secondary">Server Name</label>
-        <input
-          type="text"
-          value={name()}
-          onInput={(e) => setName(e.currentTarget.value)}
-          maxLength={100}
-          placeholder="My Awesome Server"
-          class="mb-4 w-full rounded-lg bg-bg-input px-3 py-2 text-sm text-text-primary placeholder:text-text-muted outline-none focus:ring-2 focus:ring-brand"
-          autofocus
-        />
+    <Dialog open={true} onOpenChange={() => props.onClose()}>
+      <DialogContent onClose={props.onClose}>
+        <DialogHeader>
+          <DialogTitle>Create a Server</DialogTitle>
+        </DialogHeader>
 
-        <label class="mb-1 block text-sm font-medium text-text-secondary">
-          Icon URL <span class="text-text-muted">(optional)</span>
-        </label>
-        <input
-          type="text"
-          value={iconUrl()}
-          onInput={(e) => setIconUrl(e.currentTarget.value)}
-          placeholder="https://example.com/icon.png"
-          class="mb-4 w-full rounded-lg bg-bg-input px-3 py-2 text-sm text-text-primary placeholder:text-text-muted outline-none focus:ring-2 focus:ring-brand"
-        />
+        <form onSubmit={handleSubmit}>
+          <label class="mb-1 block text-sm font-medium text-secondary-foreground">Server Name</label>
+          <Input
+            type="text"
+            value={name()}
+            onInput={(e) => setName(e.currentTarget.value)}
+            maxLength={100}
+            placeholder="My Awesome Server"
+            autofocus
+            class="mb-4"
+          />
 
-        {error() && <p class="mb-3 text-sm text-danger">{error()}</p>}
+          <label class="mb-1 block text-sm font-medium text-secondary-foreground">
+            Icon URL <span class="text-muted-foreground">(optional)</span>
+          </label>
+          <Input
+            type="text"
+            value={iconUrl()}
+            onInput={(e) => setIconUrl(e.currentTarget.value)}
+            placeholder="https://example.com/icon.png"
+            class="mb-4"
+          />
 
-        <div class="flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={() => props.onClose()}
-            class="rounded-lg px-4 py-2 text-sm text-text-secondary hover:text-text-primary"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={loading() || !name().trim()}
-            class="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover disabled:opacity-50"
-          >
-            {loading() ? 'Creating...' : 'Create'}
-          </button>
-        </div>
-      </form>
-    </Modal>
+          <Show when={error()}>
+            <p role="alert" class="mb-3 text-sm text-destructive">{error()}</p>
+          </Show>
+
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => props.onClose()}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading() || !name().trim()}>
+              {loading() ? "Creating..." : "Create"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 

@@ -1,29 +1,26 @@
 {
   "name": "uncorded",
   "private": true,
-  "type": "module",
-  "packageManager": "bun@1.2.20",
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
+  "type": "module",
   "scripts": {
-    "dev": "turbo dev",
+    "dev": "bun run scripts/dev.ts",
+    "dev:server": "turbo dev --filter @uncorded/server",
+    "dev:web": "turbo dev --filter @uncorded/web",
     "build": "turbo build",
     "typecheck": "turbo typecheck",
-    "lint": "turbo lint",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "lint": "oxlint",
+    "fmt": "oxfmt .",
     "db:migrate": "bun run --filter @uncorded/server db:migrate"
   },
   "devDependencies": {
-    "@eslint/js": "^9",
-    "eslint": "^9",
-    "eslint-config-prettier": "^10",
-    "eslint-plugin-solid": "^0.14.5",
-    "prettier": "^3",
+    "oxfmt": "^0.36.0",
+    "oxlint": "^1.51.0",
     "turbo": "^2",
-    "typescript": "^5.7",
-    "typescript-eslint": "^8"
-  }
+    "typescript": "^5.7"
+  },
+  "packageManager": "bun@1.2.20"
 }

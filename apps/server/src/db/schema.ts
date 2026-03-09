@@ -8,156 +8,152 @@ import {
   bigint,
   index,
   primaryKey,
-} from 'drizzle-orm/pg-core';
-import { sql } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
+} from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { nanoid } from "nanoid";
 
 // ─── Helpers ─────────────────────────────────────────────
 
 const id = () =>
-  text('id')
+  text("id")
     .primaryKey()
     .$defaultFn(() => nanoid());
 
-const createdAt = () =>
-  timestamp('created_at', { mode: 'date' }).defaultNow().notNull();
+const createdAt = () => timestamp("created_at", { mode: "date" }).defaultNow().notNull();
 
 const updatedAt = () =>
-  timestamp('updated_at', { mode: 'date' })
+  timestamp("updated_at", { mode: "date" })
     .defaultNow()
     .$onUpdate(() => new Date())
     .notNull();
 
 // ─── Enums ───────────────────────────────────────────────
 
-export const userStatusEnum = pgEnum('user_status', ['online', 'idle', 'dnd', 'offline']);
+export const userStatusEnum = pgEnum("user_status", ["online", "idle", "dnd", "offline"]);
 
-export const channelTypeEnum = pgEnum('channel_type', ['text', 'category']);
+export const channelTypeEnum = pgEnum("channel_type", ["text", "category"]);
 
-export const storagePolicyEnum = pgEnum('storage_policy', [
-  'ephemeral',
-  'extended',
-  'persistent',
+export const friendshipStatusEnum = pgEnum("friendship_status", ["pending", "accepted", "blocked"]);
+
+export const subscriptionTierEnum = pgEnum("subscription_tier", [
+  "free",
+  "supporter",
+  "server_owner",
 ]);
 
-export const friendshipStatusEnum = pgEnum('friendship_status', [
-  'pending',
-  'accepted',
-  'blocked',
+export const subscriptionStatusEnum = pgEnum("subscription_status", [
+  "active",
+  "cancelled",
+  "past_due",
 ]);
 
-export const purchaseItemEnum = pgEnum('purchase_item', ['custom_avatar', 'extended_expiry']);
-
-export const purchaseStatusEnum = pgEnum('purchase_status', ['active', 'cancelled']);
-
-export const reportCategoryEnum = pgEnum('report_category', [
-  'csam',
-  'harassment',
-  'spam',
-  'copyright',
-  'malware',
-  'other',
+export const reportCategoryEnum = pgEnum("report_category", [
+  "csam",
+  "harassment",
+  "spam",
+  "copyright",
+  "malware",
+  "other",
 ]);
 
 // ─── Better Auth Core Tables ─────────────────────────────
 // Better Auth manages session, account, verification tables automatically.
 // We define the user table with our custom fields so Drizzle knows the schema.
 
-export const user = pgTable('user', {
+export const user = pgTable("user", {
   id: id(),
-  name: text('name').notNull(),
-  email: text('email').notNull().unique(),
-  emailVerified: boolean('email_verified').default(false).notNull(),
-  image: text('image'),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  emailVerified: boolean("email_verified").default(false).notNull(),
+  image: text("image"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 
   // Username plugin fields
-  username: text('username').unique(),
-  displayUsername: text('display_username'),
+  username: text("username").unique(),
+  displayUsername: text("display_username"),
 
   // Custom app fields
-  displayName: text('display_name'),
-  avatarUrl: text('avatar_url'),
-  status: userStatusEnum('status').default('offline').notNull(),
-  hasExtendedExpiry: boolean('has_extended_expiry').default(false).notNull(),
-  hasCustomAvatar: boolean('has_custom_avatar').default(false).notNull(),
+  displayName: text("display_name"),
+  avatarUrl: text("avatar_url"),
+  status: userStatusEnum("status").default("offline").notNull(),
+  subscriptionTier: subscriptionTierEnum("subscription_tier").default("free").notNull(),
 });
 
 export const session = pgTable(
-  'session',
+  "session",
   {
     id: id(),
-    expiresAt: timestamp('expires_at', { mode: 'date' }).notNull(),
-    token: text('token').notNull().unique(),
+    expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
+    token: text("token").notNull().unique(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
-    ipAddress: text('ip_address'),
-    userAgent: text('user_agent'),
-    userId: text('user_id')
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    userId: text("user_id")
       .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
+      .references(() => user.id, { onDelete: "cascade" }),
   },
-  (t) => [index('session_user_id_idx').on(t.userId)],
+  (t) => [index("session_user_id_idx").on(t.userId)],
 );
 
 export const account = pgTable(
-  'account',
+  "account",
   {
     id: id(),
-    accountId: text('account_id').notNull(),
-    providerId: text('provider_id').notNull(),
-    userId: text('user_id')
+    accountId: text("account_id").notNull(),
+    providerId: text("provider_id").notNull(),
+    userId: text("user_id")
       .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
-    accessToken: text('access_token'),
-    refreshToken: text('refresh_token'),
-    idToken: text('id_token'),
-    accessTokenExpiresAt: timestamp('access_token_expires_at', { mode: 'date' }),
-    refreshTokenExpiresAt: timestamp('refresh_token_expires_at', { mode: 'date' }),
-    scope: text('scope'),
-    password: text('password'),
+      .references(() => user.id, { onDelete: "cascade" }),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    idToken: text("id_token"),
+    accessTokenExpiresAt: timestamp("access_token_expires_at", { mode: "date" }),
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at", { mode: "date" }),
+    scope: text("scope"),
+    password: text("password"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index('account_user_id_idx').on(t.userId)],
+  (t) => [index("account_user_id_idx").on(t.userId)],
 );
 
 export const verification = pgTable(
-  'verification',
+  "verification",
   {
     id: id(),
-    identifier: text('identifier').notNull(),
-    value: text('value').notNull(),
-    expiresAt: timestamp('expires_at', { mode: 'date' }).notNull(),
+    identifier: text("identifier").notNull(),
+    value: text("value").notNull(),
+    expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index('verification_identifier_idx').on(t.identifier)],
+  (t) => [index("verification_identifier_idx").on(t.identifier)],
 );
 
 // ─── App Tables ──────────────────────────────────────────
 
-export const servers = pgTable('servers', {
+export const servers = pgTable("servers", {
   id: id(),
-  name: text('name').notNull(),
-  iconUrl: text('icon_url'),
-  ownerId: text('owner_id')
+  name: text("name").notNull(),
+  iconUrl: text("icon_url"),
+  ownerId: text("owner_id")
     .notNull()
     .references(() => user.id),
   createdAt: createdAt(),
 });
 
-export const channels = pgTable('channels', {
+export const channels = pgTable("channels", {
   id: id(),
-  serverId: text('server_id')
+  serverId: text("server_id")
     .notNull()
-    .references(() => servers.id, { onDelete: 'cascade' }),
-  name: text('name').notNull(),
-  type: channelTypeEnum('type').default('text').notNull(),
-  storagePolicy: storagePolicyEnum('storage_policy').default('ephemeral').notNull(),
-  position: integer('position').default(0).notNull(),
-  topic: text('topic'),
+    .references(() => servers.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  type: channelTypeEnum("type").default("text").notNull(),
+  fileSharingEnabled: boolean("file_sharing_enabled").default(true).notNull(),
+  position: integer("position").default(0).notNull(),
+  topic: text("topic"),
   createdAt: createdAt(),
 });
 
@@ -166,148 +162,151 @@ export const channels = pgTable('channels', {
 // A FK to channels(id) would break DM functionality.
 // Validate channel ownership in application logic instead.
 export const messages = pgTable(
-  'messages',
+  "messages",
   {
     id: id(),
-    channelId: text('channel_id').notNull(),
-    authorId: text('author_id')
+    channelId: text("channel_id").notNull(),
+    authorId: text("author_id")
       .notNull()
       .references(() => user.id),
-    content: text('content'),
-    editedAt: timestamp('edited_at', { mode: 'date' }),
+    content: text("content"),
+    editedAt: timestamp("edited_at", { mode: "date" }),
     createdAt: createdAt(),
   },
-  (t) => [index('messages_channel_created_idx').on(t.channelId, t.createdAt.desc())],
+  (t) => [index("messages_channel_created_idx").on(t.channelId, t.createdAt.desc())],
 );
 
-export const attachments = pgTable('attachments', {
+export const fileReceipts = pgTable("file_receipts", {
   id: id(),
-  messageId: text('message_id')
+  channelId: text("channel_id").notNull(),
+  senderId: text("sender_id")
     .notNull()
-    .references(() => messages.id, { onDelete: 'cascade' }),
-  filename: text('filename').notNull(),
-  url: text('url').notNull(),
-  fileKey: text('file_key').notNull(),
-  size: bigint('size', { mode: 'number' }).notNull(),
-  contentType: text('content_type').notNull(),
-  width: integer('width'),
-  height: integer('height'),
-  expiresAt: timestamp('expires_at', { mode: 'date' }),
-  expired: boolean('expired').default(false).notNull(),
+    .references(() => user.id),
+  fileName: text("file_name").notNull(),
+  fileSize: bigint("file_size", { mode: "number" }).notNull(),
+  contentType: text("content_type").notNull(),
+  magnetUri: text("magnet_uri").notNull(),
+  infoHash: text("info_hash").notNull(),
+  messageId: text("message_id").references(() => messages.id, { onDelete: "cascade" }),
+  createdAt: createdAt(),
 });
 
 export const members = pgTable(
-  'members',
+  "members",
   {
-    userId: text('user_id')
+    userId: text("user_id")
       .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
-    serverId: text('server_id')
+      .references(() => user.id, { onDelete: "cascade" }),
+    serverId: text("server_id")
       .notNull()
-      .references(() => servers.id, { onDelete: 'cascade' }),
-    nickname: text('nickname'),
-    joinedAt: timestamp('joined_at', { mode: 'date' }).defaultNow().notNull(),
+      .references(() => servers.id, { onDelete: "cascade" }),
+    nickname: text("nickname"),
+    joinedAt: timestamp("joined_at", { mode: "date" }).defaultNow().notNull(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.serverId] })],
 );
 
-export const roles = pgTable('roles', {
+export const roles = pgTable("roles", {
   id: id(),
-  serverId: text('server_id')
+  serverId: text("server_id")
     .notNull()
-    .references(() => servers.id, { onDelete: 'cascade' }),
-  name: text('name').notNull(),
-  color: text('color'),
-  permissions: bigint('permissions', { mode: 'number' }).default(sql`0`).notNull(),
-  position: integer('position').default(0).notNull(),
+    .references(() => servers.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  color: text("color"),
+  permissions: bigint("permissions", { mode: "number" })
+    .default(sql`0`)
+    .notNull(),
+  position: integer("position").default(0).notNull(),
 });
 
 export const memberRoles = pgTable(
-  'member_roles',
+  "member_roles",
   {
-    userId: text('user_id')
+    userId: text("user_id")
       .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
-    serverId: text('server_id')
+      .references(() => user.id, { onDelete: "cascade" }),
+    serverId: text("server_id")
       .notNull()
-      .references(() => servers.id, { onDelete: 'cascade' }),
-    roleId: text('role_id')
+      .references(() => servers.id, { onDelete: "cascade" }),
+    roleId: text("role_id")
       .notNull()
-      .references(() => roles.id, { onDelete: 'cascade' }),
+      .references(() => roles.id, { onDelete: "cascade" }),
   },
   (t) => [primaryKey({ columns: [t.userId, t.serverId, t.roleId] })],
 );
 
 export const friendships = pgTable(
-  'friendships',
+  "friendships",
   {
-    userId: text('user_id')
+    userId: text("user_id")
       .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
-    friendId: text('friend_id')
+      .references(() => user.id, { onDelete: "cascade" }),
+    friendId: text("friend_id")
       .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
-    status: friendshipStatusEnum('status').default('pending').notNull(),
+      .references(() => user.id, { onDelete: "cascade" }),
+    status: friendshipStatusEnum("status").default("pending").notNull(),
     createdAt: createdAt(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.friendId] })],
 );
 
-export const dmChannels = pgTable('dm_channels', {
+export const dmChannels = pgTable("dm_channels", {
   id: id(),
   createdAt: createdAt(),
 });
 
 export const dmMembers = pgTable(
-  'dm_members',
+  "dm_members",
   {
-    channelId: text('channel_id')
+    channelId: text("channel_id")
       .notNull()
-      .references(() => dmChannels.id, { onDelete: 'cascade' }),
-    userId: text('user_id')
+      .references(() => dmChannels.id, { onDelete: "cascade" }),
+    userId: text("user_id")
       .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
+      .references(() => user.id, { onDelete: "cascade" }),
   },
   (t) => [primaryKey({ columns: [t.channelId, t.userId] })],
 );
 
-export const invites = pgTable('invites', {
-  code: text('code')
+export const invites = pgTable("invites", {
+  code: text("code")
     .primaryKey()
     .$defaultFn(() => nanoid(8)),
-  serverId: text('server_id')
+  serverId: text("server_id")
     .notNull()
-    .references(() => servers.id, { onDelete: 'cascade' }),
-  creatorId: text('creator_id')
+    .references(() => servers.id, { onDelete: "cascade" }),
+  creatorId: text("creator_id")
     .notNull()
     .references(() => user.id),
-  uses: integer('uses').default(0).notNull(),
-  maxUses: integer('max_uses'),
-  expiresAt: timestamp('expires_at', { mode: 'date' }),
+  uses: integer("uses").default(0).notNull(),
+  maxUses: integer("max_uses"),
+  expiresAt: timestamp("expires_at", { mode: "date" }),
 });
 
-export const purchases = pgTable('purchases', {
+export const subscriptions = pgTable("subscriptions", {
   id: id(),
-  userId: text('user_id')
+  userId: text("user_id")
     .notNull()
     .references(() => user.id),
-  item: purchaseItemEnum('item').notNull(),
-  stripeSubscriptionId: text('stripe_subscription_id'),
-  stripeCustomerId: text('stripe_customer_id'),
-  status: purchaseStatusEnum('status').default('active').notNull(),
-  currentPeriodEnd: timestamp('current_period_end', { mode: 'date' }),
+  tier: subscriptionTierEnum("tier").notNull(),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  stripeCustomerId: text("stripe_customer_id"),
+  status: subscriptionStatusEnum("status").default("active").notNull(),
+  currentPeriodEnd: timestamp("current_period_end", { mode: "date" }),
   createdAt: createdAt(),
 });
 
-export const reports = pgTable('reports', {
+export const reports = pgTable("reports", {
   id: id(),
-  reporterId: text('reporter_id')
+  reporterId: text("reporter_id")
     .notNull()
     .references(() => user.id),
-  messageId: text('message_id').references(() => messages.id),
-  attachmentId: text('attachment_id').references(() => attachments.id),
-  category: reportCategoryEnum('category').notNull(),
-  details: text('details'),
-  resolved: boolean('resolved').default(false).notNull(),
+  messageId: text("message_id").references(() => messages.id, { onDelete: "set null" }),
+  fileReceiptId: text("file_receipt_id").references(() => fileReceipts.id, {
+    onDelete: "set null",
+  }),
+  category: reportCategoryEnum("category").notNull(),
+  details: text("details"),
+  resolved: boolean("resolved").default(false).notNull(),
   createdAt: createdAt(),
 });

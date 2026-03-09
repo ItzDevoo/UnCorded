@@ -6,14 +6,165 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Week 2 Complete — Architectural Pivot to P2P
+## Current Status: Week 2.5 Day 5 — Component Adoption + Polish + Review Fixes
+
+---
+
+### Week 2.5 Day 5 — 2026-03-08
+**What was done:**
+- Polish & foundation:
+  - DM Sans Google Font imported, set as `--font-sans` in `@theme inline`
+  - Z-index scale via CSS custom properties: `--z-dropdown: 40`, `--z-modal: 50`, `--z-tooltip: 60`, `--z-toast: 70`
+  - WebKit scrollbar styling: 6px width, rounded thumb with green tint, hover state
+  - `.no-transitions` utility class for suppressing animations during theme switches
+- Dialog focus trap (WCAG 2.1 Level A):
+  - Auto-focuses first focusable element on mount
+  - Tab cycles through focusable elements within dialog panel
+  - Shift+Tab reverses the cycle
+  - `FOCUSABLE_SELECTOR` constant for reusable query
+  - `panelRef` with oxlint suppression for SolidJS ref pattern
+- Z-index migration: Dialog overlay, wrapper, and panel use `z-[--z-modal]` instead of `z-50`; Tooltip uses `z-[--z-tooltip]`
+- Tooltip fixes: position fallback (`?? positionClasses.top`), removed `pointer-events-none`
+- Auth pages adopt UI primitives:
+  - Login: 2 raw `<input>` → `<Input>`, raw `<button>` → `<Button size="lg">`, `role="alert"` on error
+  - Register: 3 raw `<input>` → `<Input>`, raw `<button>` → `<Button size="lg">`, `role="alert"` on error
+- All 3 modals migrated from `<Modal>` to `<Dialog>`:
+  - CreateServerModal: Dialog + DialogContent + DialogHeader + DialogTitle + DialogFooter + Input + Button
+  - JoinServerModal: same pattern, 1 input + 4 buttons replaced
+  - InviteModal: same pattern + **Fix #4**: `Record<string, unknown>` → `{ maxUses?: number; expiresAt?: string }`
+  - Old `Modal.tsx` deleted (all modals now use Dialog)
+- MessageInput: documenting comment for branded type limitation on `Record<string, number>`
+- VirtualMessageList: `min-h-0` on scroll container (flex child overflow fix), `min-h-[100px]` on loading state
+- Schema docs: `magnet_uri`/`info_hash` marked NOT NULL, `content` marked nullable, Better Auth tables note corrected
+- All checks pass: typecheck (0 errors), lint (0 warnings)
+
+---
+
+### Week 2.5 Day 4 — 2026-03-08
+**What was done:**
+- Green-tinted color system (Railway-inspired approach):
+  - Rewrote `apps/web/src/index.css` with OKLCH semantic tokens at hue ~155°
+  - All surfaces carry brand green at low chroma for visual cohesion
+  - Token system: background, foreground, card, primary, secondary, muted, accent, destructive, success, warning, info, sidebar
+  - Radius scale: 0.625rem base with sm/md/lg/xl/2xl derived sizes
+  - Base layer sets `border-border` and `bg-background text-foreground` globally
+- Migrated all 12 component files from old tokens (bg-bg-primary, text-text-primary, bg-brand, etc.) to new semantic tokens (bg-background, text-foreground, bg-primary, etc.)
+- Fixed all 8 review issues:
+  - Branded types in modal response interfaces (CreateServerModal: ServerId/UserId/ChannelId, JoinServerModal: ServerId/UserId/InviteCode)
+  - Created `InternalError` class (500, "INTERNAL_ERROR") in `packages/shared/src/errors/internal.ts`
+  - Replaced inline 500 returns with `throw new InternalError()` in server.ts and message.ts
+  - Added `options?: { cause?: unknown }` to all error subclass constructors
+  - Message-store functions now use branded params (ChannelId, MessageId, UserId) with string keys for store paths
+  - Added Zod validation schemas for all 4 WS event handlers (MESSAGE_CREATE, MESSAGE_UPDATE, MESSAGE_DELETE, TYPING_START) — parse + warn + early return on failure, brand at parse boundary
+  - Dev runner stream readers: collected IIFE promises with `.catch(console.error)`, included in final `Promise.all()`
+- UI primitives created in `apps/web/src/components/ui/`:
+  - `cn()` utility (clsx + tailwind-merge) in `lib/cn.ts`
+  - `button.tsx`: CVA with 6 variants (default, secondary, ghost, outline, destructive, link) and 5 sizes
+  - `input.tsx`: styled with focus-visible ring, error state via aria-invalid
+  - `badge.tsx`: CVA with 6 variants (default, success, warning, destructive, info, outline)
+  - `card.tsx`: compound Card/CardHeader/CardTitle/CardDescription/CardContent/CardFooter
+  - `dialog.tsx`: Dialog/DialogOverlay/DialogContent/DialogHeader/DialogFooter/DialogTitle/DialogDescription with a11y
+  - `tooltip.tsx`: CSS-positioned hover tooltip with delay, 4 sides
+  - All primitives have `data-slot` attributes
+- Virtual scrolling:
+  - `VirtualMessageList.tsx` using `@tanstack/solid-virtual` createVirtualizer
+  - Dynamic row heights via measureElement, overscan 5
+  - Auto-scroll to bottom on new messages (100px threshold)
+  - Load more when scrolled to top
+  - `ChatArea.tsx` updated to use VirtualMessageList instead of `<For>` list
+- Dependencies added: zod, class-variance-authority, tailwind-merge, clsx, @tanstack/solid-virtual
+- Updated docs/ui-standards.md with new OKLCH color palette and cn() utility
+- All checks pass: typecheck (0 errors), lint (0 warnings)
+
+---
+
+### Week 2.5 Day 3 — 2026-03-08
+**What was done:**
+- Carryover fixes from code review:
+  - Branded types threaded into frontend: `app-store.ts` signals use `ServerId | null` / `ChannelId | null`, `MessageInput` prop typed as `ChannelId`, `InviteModal` prop typed as `ServerId`, `ChatArea` and modals updated
+  - WS payload validation: replaced `as Record<string, unknown>` casts with Zod schemas (`identifySchema`, `typingStartSchema`) in handlers.ts and gateway.ts
+  - Reports FK: added `{ onDelete: "set null" }` to `messageId` and `fileReceiptId` references in reports table, migration 0004 written
+- Typed error hierarchy created in `@uncorded/shared`:
+  - `AppError` base class with `_tag`, `statusCode`, `code`, `message`
+  - `UnauthorizedError` (401), `ForbiddenError` (403), `SessionExpiredError` (401)
+  - `ValidationError` (400), `NotFoundError` (404), `ConflictError` (409), `RateLimitError` (429)
+- Central error handler in `apps/server/src/index.ts` catches `AppError` subclasses
+- All route handlers converted from inline `set.status = X; return { code, message }` to `throw new XError(...)`:
+  - user.ts (4 sites), server.ts (5 sites), channel.ts (5 sites), message.ts (8 sites), invite.ts (4 sites), member.ts (5 sites)
+- Permission helpers refactored:
+  - `requireMember()` and `requireOwner()` now throw instead of returning null + mutating `set`
+  - `set` parameter removed from both
+  - New `isMember()` non-throwing helper for inverse checks (invite accept)
+- Dev runner script `scripts/dev.ts`:
+  - Spawns server and web dev processes in parallel
+  - Prefixes output with colored labels: `[server]` (cyan), `[web]` (magenta)
+  - Ctrl+C kills all child processes gracefully
+- Root package.json updated: `dev` → `bun run scripts/dev.ts`, added `dev:server` and `dev:web`
+- All checks pass: typecheck (0 errors), lint (0 warnings), fmt clean
+
+---
+
+### Week 2.5 Day 2 — 2026-03-08
+
+**What was done:**
+
+- Review fixes applied:
+  - `MessageInput.tsx`: moved `lastTypingSent` to module level (explicit shared state if mounted multiple times)
+  - `MessageBubble.tsx`: extracted `ONE_MINUTE_MS`, `ONE_HOUR_MS`, `ONE_DAY_MS` constants
+  - `message-store.ts`: removed unused `sendFrame` re-export, added comments linking TYPING_THROTTLE_MS (5s) and TYPING_TIMEOUT_MS (6s)
+- TypeScript strictness tightened in `tsconfig.base.json`:
+  - Added `exactOptionalPropertyTypes: true` — prevents assigning `undefined` to optional properties
+  - Added `noImplicitOverride: true`
+  - Changed `target` from `ESNext` to `ES2023`
+  - Fixed `InviteModal.tsx` — build options object conditionally instead of passing `undefined` values
+- Branded ID types added to `@uncorded/protocol`:
+  - New file `packages/protocol/src/branded.ts` with 10 branded types: UserId, ServerId, ChannelId, MessageId, InviteCode, FileReceiptId, DmChannelId, SubscriptionId, ReportId, RoleId
+  - Each type has a cast constructor function (e.g., `userId(raw)`) for branding at boundaries
+  - Exported from `packages/protocol/src/index.ts`
+- Server routes branded at response boundaries:
+  - `user.ts`: `id: userId(dbUser.id)` in GET/PATCH responses
+  - `server.ts`: `serverId()`, `userId()` on all server responses
+  - `channel.ts`: `channelId()`, `serverId()` on all channel responses
+  - `message.ts`: `messageId()`, `channelId()`, `userId()` on messages + broadcasts
+  - `invite.ts`: `inviteCode()`, `serverId()`, `userId()` on invite responses
+  - `member.ts`: `userId()` on member list
+  - `handlers.ts` (WS READY): all IDs in user, servers, and channels branded
+- Frontend types updated:
+  - `gateway-store.ts`: `ReadyUser.id` → `UserId`, `ReadyServer.id` → `ServerId`, etc.
+  - `message-store.ts`: `Message.id` → `MessageId`, `Message.channelId` → `ChannelId`, etc.
+  - `CreateServerModal.tsx`, `JoinServerModal.tsx`: brand raw API response IDs at parse boundary
+- All checks pass: typecheck (0 errors), lint (0 warnings/errors)
+
+---
+
+### Week 2.5 Day 1 — 2026-03-08
+
+**What was done:**
+
+- Drizzle schema migrated to match P2P pivot (docs/schema.md)
+  - Dropped: `attachments` table, `purchases` table, `storage_policy`/`purchase_item`/`purchase_status` enums
+  - Added: `file_receipts` table (magnet URI, info hash, metadata), `subscriptions` table (Stripe tiers), `subscription_tier`/`subscription_status` enums
+  - Changed: `channels.storage_policy` → `channels.file_sharing_enabled` (boolean), `users.has_extended_expiry` + `has_custom_avatar` → `users.subscription_tier` (enum)
+  - Updated all referencing code: shared Zod schemas, server routes (user, channel, server, invite), WS handlers (READY payload), Better Auth config, frontend types (ReadyChannel), UI components (ChannelSidebar badges, CreateServerModal, JoinServerModal)
+  - Migration 0003_schema_pivot_p2p.sql applied to Neon DB
+- ESLint + Prettier removed, Oxlint + Oxfmt installed
+  - Deleted: `eslint.config.js`, `prettier.config.js`, all ESLint/Prettier deps
+  - Created: `.oxlintrc.json` (plugins: eslint, oxc, typescript, unicorn), `.oxfmtrc.json`
+  - Updated root scripts: `lint` → `oxlint`, `fmt` → `oxfmt .`
+  - Removed per-package `lint` scripts (oxlint runs from root)
+  - Removed `lint` task from turbo.json pipeline
+  - Formatted entire codebase with oxfmt (double quotes, consistent style)
+  - Fixed all oxlint warnings: toReversed/toSorted for non-mutating array ops, addEventListener over on-handlers, SolidJS ref suppressions
+- All checks pass: typecheck (0 errors), lint (0 warnings/errors), fmt (no changes)
 
 ---
 
 ### Architectural Pivot — 2026-03-07
+
 **Decision:** Pivoted from server-side ephemeral file storage (Cloudflare R2 + TTL + cron job) to P2P file sharing via WebTorrent (BitTorrent over WebRTC DataChannels).
 
 **What this means:**
+
 - Files NEVER touch our servers — all transfers are direct P2P between users
 - WebTorrent handles torrent creation, magnet URIs, and swarm coordination in the browser
 - Existing WebSocket gateway becomes the WebRTC signaling relay
@@ -22,6 +173,7 @@ This is the real state of the codebase — not what is planned, but what works.
 - TURN relay restricted to paid users — honest monetization tied to real infrastructure cost
 
 **What carries forward unchanged:**
+
 - All auth (Better Auth, login/register, sessions)
 - All server/channel/member/invite CRUD (routes + UI)
 - All messaging (REST API + WS real-time + chat UI + typing indicators)
@@ -29,6 +181,7 @@ This is the real state of the codebase — not what is planned, but what works.
 - App shell, modals, sidebar components
 
 **What's dropped:**
+
 - R2 file storage, presigned uploads, TTL logic, expiry cron job, FILE_EXPIRED opcode
 - storage_policy enum (replaced by file_sharing_enabled boolean)
 - a-la-carte purchases (custom_avatar, extended_expiry) — replaced by subscription tiers
@@ -39,7 +192,9 @@ This is the real state of the codebase — not what is planned, but what works.
 ---
 
 ### Week 2 Day 4-5 (cont.) — 2026-03-06
+
 **What works:**
+
 - Message list UI with real-time updates wired to WebSocket events
   - `message-store.ts`: SolidJS store for messages per channel, typing indicators, WS listeners for MESSAGE_CREATE/UPDATE/DELETE/TYPING_START
   - `fetchMessages(channelId)`: GET with cursor pagination (`?before=<oldestId>&limit=50`), deduplication, `hasMore` detection
@@ -58,7 +213,9 @@ This is the real state of the codebase — not what is planned, but what works.
 ---
 
 ### Week 2 Day 6-7 (cont.) — 2026-03-06
+
 **What works:**
+
 - Server creation modal (CreateServerModal)
   - Form with name (required) + icon URL (optional), validated with `createServerSchema` from shared
   - POST /api/servers, injects new server into readyData store via `addServer()`, auto-selects it
@@ -83,7 +240,9 @@ This is the real state of the codebase — not what is planned, but what works.
 ---
 
 ### Week 2 Day 6-7 — 2026-03-06
+
 **What works:**
+
 - Server list sidebar renders real servers from gateway READY payload
   - Server icons (image if iconUrl, first-letter fallback), active indicator pill, click to select
   - Home button + add server placeholder retained
@@ -104,7 +263,9 @@ This is the real state of the codebase — not what is planned, but what works.
 ---
 
 ### Week 2 Day 4-5 — 2026-03-06
+
 **What works:**
+
 - Message CRUD routes at `/api/channels/:channelId/messages`
   - POST `/` — create message with content validation (max 4000 chars), returns message + author info, broadcasts MESSAGE_CREATE to server
   - GET `/` — cursor-based pagination (before/after messageId + limit, default 50, max 100), composite cursor on createdAt + id for tiebreaking, returns oldest-first with author info joined
@@ -119,7 +280,9 @@ This is the real state of the codebase — not what is planned, but what works.
 ---
 
 ### Week 2 Day 2-3 (cont.) — 2026-03-06
+
 **What works:**
+
 - Client-side WebSocket manager (`apps/web/src/lib/gateway.ts`)
   - `connectGateway(token)` / `disconnectGateway()` — full lifecycle control
   - HELLO → IDENTIFY → READY handshake (mirrors server protocol)
@@ -137,7 +300,9 @@ This is the real state of the codebase — not what is planned, but what works.
 ---
 
 ### Week 2 Day 2-3 — 2026-03-06
+
 **What works:**
+
 - WebSocket gateway at `/gateway` with full connection lifecycle
 - HELLO → IDENTIFY → READY handshake: server sends HELLO with heartbeat interval, client sends IDENTIFY with session token, server validates session in DB and sends READY with user profile + servers + channels (nested, sorted by position)
 - Heartbeat monitoring: 30s client interval, 45s server timeout → terminate on miss
@@ -152,7 +317,9 @@ This is the real state of the codebase — not what is planned, but what works.
 ---
 
 ### Week 2 Day 1-2 — 2026-03-06
+
 **What works:**
+
 - Server CRUD: POST /api/servers (creates server + "general" channel + member in transaction), GET (list with channelCount subquery), GET /:id, PATCH /:id, DELETE /:id
 - Channel CRUD: POST /api/servers/:serverId/channels (auto-position via max(position)+1), GET (ordered by position), PATCH /api/channels/:id, DELETE /api/channels/:id
 - Member routes: GET /api/servers/:serverId/members (joins user table for profile info), DELETE /@me (leave, blocked for owner), DELETE /:userId (kick, owner only)
@@ -165,7 +332,9 @@ This is the real state of the codebase — not what is planned, but what works.
 ---
 
 ### Quick Fixes — 2026-03-06
+
 **What was done:**
+
 - Added `purchaseItemEnum` to Drizzle schema — `purchases.item` is now a proper PG enum (migration 0002 applied)
 - Fixed auth resolve to use `request.headers` directly instead of HeadersInit cast
 - Typed PATCH /@me update object as `Partial<typeof user.$inferInsert>`
@@ -177,7 +346,9 @@ This is the real state of the codebase — not what is planned, but what works.
 ---
 
 ### Week 1 Day 5-7 — 2026-03-06
+
 **What works:**
+
 - SolidJS + Vite + Tailwind v4 scaffold with @tailwindcss/vite plugin
 - Dark theme via @theme block in index.css (bg-primary/secondary/tertiary, text colors, brand, etc.)
 - @solidjs/router with lazy-loaded pages: /, /login, /register, /app
@@ -196,16 +367,20 @@ This is the real state of the codebase — not what is planned, but what works.
 - All checks pass: typecheck (0 errors), lint (0 errors), build succeeds
 
 **Backend fix from Day 3-4:**
+
 - Reverted Better Auth middleware from `.all('/api/auth/*')` back to `.mount(auth.handler)` — the `.all()` approach consumed the request body before Better Auth could read it, causing "Body already used" errors on POST requests (registration, login). The `.mount()` approach passes the raw Request without body parsing.
 - CORS origin defaults to http://localhost:5173 for Vite dev server
 
 **Known issues:**
+
 - None
 
 ---
 
 ### Week 1 Day 3-4 — 2026-03-06
+
 **What works:**
+
 - ElysiaJS server scaffold with plugin architecture
 - Zod-validated env config with sensible defaults for empty env vars
 - Drizzle ORM schema: all 17 tables from schema.md migrated to Neon
@@ -218,7 +393,9 @@ This is the real state of the codebase — not what is planned, but what works.
 ---
 
 ### Week 1 Day 1-2 — 2026-03-05
+
 **What works:**
+
 - Bun monorepo with workspaces
 - Turborepo pipelines (build, typecheck, lint, dev)
 - packages/shared: createId, Zod schemas, shared types

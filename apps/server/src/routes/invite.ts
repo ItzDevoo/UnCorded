@@ -1,33 +1,34 @@
-import { Elysia } from 'elysia';
-import { eq, and, or, gt, isNull, sql, count } from 'drizzle-orm';
-import { createInviteSchema } from '@uncorded/shared';
-import { db } from '../db/index.js';
-import { invites, servers, members, channels } from '../db/schema.js';
-import { getSession } from '../middleware/auth.js';
-import { requireMember } from '../helpers/permissions.js';
+import { Elysia } from "elysia";
+import { eq, and, or, gt, isNull, sql, count } from "drizzle-orm";
+import {
+  createInviteSchema,
+  ValidationError,
+  NotFoundError,
+  ConflictError,
+} from "@uncorded/shared";
+import { inviteCode, serverId, userId } from "@uncorded/protocol";
+import { db } from "../db/index.js";
+import { invites, servers, members } from "../db/schema.js";
+import { getSession } from "../middleware/auth.js";
+import { requireMember, isMember } from "../helpers/permissions.js";
 
-export const serverInviteRoutes = new Elysia({ prefix: '/api/servers/:serverId/invites' })
+export const serverInviteRoutes = new Elysia({ prefix: "/api/servers/:serverId/invites" })
   .resolve(async ({ status, request }) => {
     const session = await getSession(request.headers);
     if (!session) {
-      return status(401, { code: 'UNAUTHORIZED', message: 'Authentication required' });
+      return status(401, { code: "UNAUTHORIZED", message: "Authentication required" });
     }
     return {
       user: session.user,
       session: session.session,
     };
   })
-  .post('/', async ({ user: sessionUser, params, body, set }) => {
-    const member = await requireMember(sessionUser.id, params.serverId, set);
-    if (!member) return { code: 'FORBIDDEN', message: 'Not a server member' };
+  .post("/", async ({ user: sessionUser, params, body, set }) => {
+    await requireMember(sessionUser.id, params.serverId);
 
     const parsed = createInviteSchema.safeParse(body);
     if (!parsed.success) {
-      set.status = 400;
-      return {
-        code: 'VALIDATION_ERROR',
-        message: parsed.error.issues[0]?.message ?? 'Invalid input',
-      };
+      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
     }
 
     const [invite] = await db
@@ -41,20 +42,22 @@ export const serverInviteRoutes = new Elysia({ prefix: '/api/servers/:serverId/i
       .returning();
 
     set.status = 201;
-    return invite;
+    return invite
+      ? {
+          ...invite,
+          code: inviteCode(invite.code),
+          serverId: serverId(invite.serverId),
+          creatorId: userId(invite.creatorId),
+        }
+      : invite;
   });
 
-export const inviteCodeRoutes = new Elysia({ prefix: '/api/invites/:code' })
-  .get('/', async ({ params, set }) => {
-    const [invite] = await db
-      .select()
-      .from(invites)
-      .where(eq(invites.code, params.code))
-      .limit(1);
+export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
+  .get("/", async ({ params }) => {
+    const [invite] = await db.select().from(invites).where(eq(invites.code, params.code)).limit(1);
 
     if (!invite) {
-      set.status = 404;
-      return { code: 'NOT_FOUND', message: 'Invite not found' };
+      throw new NotFoundError("Invite");
     }
 
     const [server] = await db
@@ -67,8 +70,7 @@ export const inviteCodeRoutes = new Elysia({ prefix: '/api/invites/:code' })
       .limit(1);
 
     if (!server) {
-      set.status = 404;
-      return { code: 'NOT_FOUND', message: 'Server not found' };
+      throw new NotFoundError("Server");
     }
 
     const [memberCount] = await db
@@ -76,32 +78,26 @@ export const inviteCodeRoutes = new Elysia({ prefix: '/api/invites/:code' })
       .from(members)
       .where(eq(members.serverId, invite.serverId));
 
-    const storagePolicies = await db
-      .selectDistinct({ storagePolicy: channels.storagePolicy })
-      .from(channels)
-      .where(eq(channels.serverId, invite.serverId));
-
     return {
-      code: invite.code,
+      code: inviteCode(invite.code),
       server: {
         name: server.name,
         iconUrl: server.iconUrl,
       },
       memberCount: memberCount?.count ?? 0,
-      storagePolicies: storagePolicies.map((r) => r.storagePolicy),
     };
   })
   .resolve(async ({ status, request }) => {
     const session = await getSession(request.headers);
     if (!session) {
-      return status(401, { code: 'UNAUTHORIZED', message: 'Authentication required' });
+      return status(401, { code: "UNAUTHORIZED", message: "Authentication required" });
     }
     return {
       user: session.user,
       session: session.session,
     };
   })
-  .post('/accept', async ({ user: sessionUser, params, set }) => {
+  .post("/accept", async ({ user: sessionUser, params }) => {
     const [invite] = await db
       .select()
       .from(invites)
@@ -115,18 +111,13 @@ export const inviteCodeRoutes = new Elysia({ prefix: '/api/invites/:code' })
       .limit(1);
 
     if (!invite) {
-      set.status = 404;
-      return { code: 'NOT_FOUND', message: 'Invite not found or expired' };
+      throw new NotFoundError("Invite not found or expired");
     }
 
-    const existingMember = await requireMember(sessionUser.id, invite.serverId, set);
-    if (existingMember) {
-      set.status = 409;
-      return { code: 'ALREADY_MEMBER', message: 'Already a member of this server' };
+    const alreadyMember = await isMember(sessionUser.id, invite.serverId);
+    if (alreadyMember) {
+      throw new ConflictError("ALREADY_MEMBER", "Already a member of this server");
     }
-
-    // Reset status from requireMember's 403
-    set.status = 200;
 
     await db.insert(members).values({
       userId: sessionUser.id,
@@ -144,9 +135,11 @@ export const inviteCodeRoutes = new Elysia({ prefix: '/api/invites/:code' })
       .where(eq(servers.id, invite.serverId))
       .limit(1);
 
-    return { server };
+    return {
+      server: server
+        ? { ...server, id: serverId(server.id), ownerId: userId(server.ownerId) }
+        : server,
+    };
   });
 
-export const inviteRoutes = new Elysia()
-  .use(serverInviteRoutes)
-  .use(inviteCodeRoutes);
+export const inviteRoutes = new Elysia().use(serverInviteRoutes).use(inviteCodeRoutes);

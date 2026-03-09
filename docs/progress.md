@@ -6,7 +6,37 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Week 2.5 Day 4 — Color System + UI Foundation + Virtual Scrolling
+## Current Status: Week 2.5 Day 5 — Component Adoption + Polish + Review Fixes
+
+---
+
+### Week 2.5 Day 5 — 2026-03-08
+**What was done:**
+- Polish & foundation:
+  - DM Sans Google Font imported, set as `--font-sans` in `@theme inline`
+  - Z-index scale via CSS custom properties: `--z-dropdown: 40`, `--z-modal: 50`, `--z-tooltip: 60`, `--z-toast: 70`
+  - WebKit scrollbar styling: 6px width, rounded thumb with green tint, hover state
+  - `.no-transitions` utility class for suppressing animations during theme switches
+- Dialog focus trap (WCAG 2.1 Level A):
+  - Auto-focuses first focusable element on mount
+  - Tab cycles through focusable elements within dialog panel
+  - Shift+Tab reverses the cycle
+  - `FOCUSABLE_SELECTOR` constant for reusable query
+  - `panelRef` with oxlint suppression for SolidJS ref pattern
+- Z-index migration: Dialog overlay, wrapper, and panel use `z-[--z-modal]` instead of `z-50`; Tooltip uses `z-[--z-tooltip]`
+- Tooltip fixes: position fallback (`?? positionClasses.top`), removed `pointer-events-none`
+- Auth pages adopt UI primitives:
+  - Login: 2 raw `<input>` → `<Input>`, raw `<button>` → `<Button size="lg">`, `role="alert"` on error
+  - Register: 3 raw `<input>` → `<Input>`, raw `<button>` → `<Button size="lg">`, `role="alert"` on error
+- All 3 modals migrated from `<Modal>` to `<Dialog>`:
+  - CreateServerModal: Dialog + DialogContent + DialogHeader + DialogTitle + DialogFooter + Input + Button
+  - JoinServerModal: same pattern, 1 input + 4 buttons replaced
+  - InviteModal: same pattern + **Fix #4**: `Record<string, unknown>` → `{ maxUses?: number; expiresAt?: string }`
+  - Old `Modal.tsx` deleted (all modals now use Dialog)
+- MessageInput: documenting comment for branded type limitation on `Record<string, number>`
+- VirtualMessageList: `min-h-0` on scroll container (flex child overflow fix), `min-h-[100px]` on loading state
+- Schema docs: `magnet_uri`/`info_hash` marked NOT NULL, `content` marked nullable, Better Auth tables note corrected
+- All checks pass: typecheck (0 errors), lint (0 warnings)
 
 ---
 

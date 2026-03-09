@@ -99,3 +99,11 @@ This applies to any module that registers global listeners or timers at the top 
 **[W2.5 D4]** — `bun add zod` in a workspace package installs the latest (v4), but if `@uncorded/shared` depends on `zod@^3`, you get version conflicts. Always pin to the same major: `bun add zod@3`.
 
 **[W2.5 D4]** — Railway-style brand-tinted dark palettes: use OKLCH for perceptually uniform color mixing. Keep brand hue consistent across all background/border/muted tokens at low chroma (0.008–0.02), full chroma only for primary/ring/success. Shadows stay neutral — tinted shadows look artificial.
+
+**[W2.5 D5]** — Focus trap in SolidJS dialogs: use `onMount` to auto-focus first focusable element, `onKeyDown` with Tab/Shift+Tab to cycle between first and last focusable elements. The `FOCUSABLE_SELECTOR` should include `a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])`. Guard against empty focusable lists.
+
+**[W2.5 D5]** — Z-index in Tailwind v4: `@theme inline` naming for z-index is uncertain (`--z-index-modal` could become `z-index-modal` or `z-modal`). Safer approach: define CSS custom properties in `:root` (e.g., `--z-modal: 50`) and reference them via `z-[--z-modal]` arbitrary value syntax, which is guaranteed to work.
+
+**[W2.5 D5]** — When migrating from a custom Modal wrapper to a compound Dialog component, keep `open={true}` on Dialog since the parent component controls visibility (only renders the modal when needed). Use `onOpenChange={() => props.onClose()}` for backdrop click and Escape key dismiss.
+
+**[W2.5 D5]** — TypeScript index signatures can't use branded types. `Record<ChannelId, number>` won't work because branded types aren't valid index types. Use `Record<string, number>` with a documenting comment instead.

@@ -151,7 +151,27 @@ Reference: C:\Nexis (monorepo patterns, auth, WS gateway), C:\t3Code (tooling, U
   - [x] ChatArea updated to use VirtualMessageList
 - [x] Verify: typecheck (0 errors), lint (0 warnings)
 
-**Milestone: Codebase modernized — Oxlint/Oxfmt, strict TS, branded types, typed errors, dev runner TUI, UI primitives, virtual scrolling, green-tinted design system.**
+### Day 5: Component Adoption + Polish + Review Fixes
+
+- [x] DM Sans font import + `--font-sans` in @theme inline
+- [x] Z-index scale via CSS custom properties (--z-dropdown, --z-modal, --z-tooltip, --z-toast)
+- [x] WebKit scrollbar styling (6px thumb, rounded, green-tinted)
+- [x] `.no-transitions` utility class for theme switching
+- [x] Dialog focus trap (WCAG 2.1 Level A): Tab/Shift+Tab cycling, auto-focus first element on mount
+- [x] Dialog z-index migrated from `z-50` to `z-[--z-modal]`
+- [x] Tooltip: position fallback (`?? positionClasses.top`), removed `pointer-events-none`, `z-[--z-tooltip]`
+- [x] Login page: raw inputs → `<Input>`, raw button → `<Button>`, `role="alert"` on error
+- [x] Register page: raw inputs → `<Input>`, raw button → `<Button>`, `role="alert"` on error
+- [x] CreateServerModal: `<Modal>` → `<Dialog>` + `<Input>` + `<Button>` + `<DialogFooter>`
+- [x] JoinServerModal: `<Modal>` → `<Dialog>` + `<Input>` + `<Button>` + `<DialogFooter>`
+- [x] InviteModal: `<Modal>` → `<Dialog>` + `<Input>` + `<Button>`, typed body (`Record<string, unknown>` → `{ maxUses?: number; expiresAt?: string }`)
+- [x] Deleted Modal.tsx (all modals now use Dialog)
+- [x] MessageInput: documenting comment for branded key limitation
+- [x] VirtualMessageList: `min-h-0` on scroll container, `min-h-[100px]` on loading state
+- [x] Schema docs: file_receipts NOT NULL, messages.content nullable, Better Auth tables note
+- [x] Verify: typecheck (0 errors), lint (0 warnings)
+
+**Milestone: Codebase modernized — Oxlint/Oxfmt, strict TS, branded types, typed errors, dev runner TUI, UI primitives adopted across all components, focus trap, virtual scrolling, green-tinted design system with DM Sans.**
 
 ---
 

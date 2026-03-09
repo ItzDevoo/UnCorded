@@ -48,16 +48,28 @@ function startHeartbeat(intervalMs: number) {
 }
 
 function handleMessage(event: MessageEvent) {
-  const frame = decode(new Uint8Array(event.data as ArrayBuffer));
+  if (!(event.data instanceof ArrayBuffer)) return;
+  const frame = decode(new Uint8Array(event.data));
 
   switch (frame.op) {
     case Opcode.HELLO: {
+      if (typeof frame.d !== "object" || frame.d === null || !("heartbeatInterval" in frame.d)) {
+        break;
+      }
       const { heartbeatInterval } = frame.d as { heartbeatInterval: number };
       startHeartbeat(heartbeatInterval);
       sendFrame({ op: Opcode.IDENTIFY, d: { token } });
       break;
     }
     case Opcode.READY: {
+      if (
+        typeof frame.d !== "object" ||
+        frame.d === null ||
+        !("user" in frame.d) ||
+        !("servers" in frame.d)
+      ) {
+        break;
+      }
       reconnectAttempts = 0;
       setGatewayStatus("connected");
       setReadyPayload(frame.d as ReadyData);

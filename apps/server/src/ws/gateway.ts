@@ -17,12 +17,12 @@ const webRtcSignalSchema = z.object({
 });
 
 const fileShareSchema = z.object({
-  channelId: z.string(),
-  fileName: z.string(),
-  fileSize: z.number(),
-  contentType: z.string(),
-  magnetUri: z.string(),
-  infoHash: z.string(),
+  channelId: z.string().min(1),
+  fileName: z.string().min(1).max(255),
+  fileSize: z.number().int().positive(),
+  contentType: z.string().min(1).max(127),
+  magnetUri: z.string().min(1).max(2048).startsWith("magnet:"),
+  infoHash: z.string().min(1).max(128),
 });
 
 const fileAvailabilitySchema = z.object({
@@ -74,7 +74,7 @@ export const gateway = new Elysia().ws("/gateway", {
 
     let frame: { op: number; d: unknown };
     try {
-      frame = decode(raw as Uint8Array);
+      frame = decode(raw instanceof Uint8Array ? raw : new Uint8Array(raw as ArrayBuffer));
     } catch {
       ws.close(CloseCode.INVALID_FRAME, "Invalid MessagePack frame");
       return;
@@ -185,7 +185,10 @@ export const gateway = new Elysia().ws("/gateway", {
           .limit(1);
         if (!targetMem) break;
 
-        // Forward to target peer with sender info (silently drop if offline)
+        // Forward to target peer with sender info (silently drop if offline).
+        // Cast is safe: we're inside the combined OFFER/ANSWER/ICE_CANDIDATE case,
+        // so frame.op is one of these three opcodes, but TS can't narrow a union
+        // switch case to a single variant.
         sendToUser(d.targetUserId, {
           op: frame.op as Opcode,
           d: { fromUserId: ctx.userId, channelId: d.channelId, data: d.data },
@@ -218,6 +221,16 @@ export const gateway = new Elysia().ws("/gateway", {
           .limit(1);
         if (!fsMem) break;
 
+        // Free users cannot share files in server channels (DM sharing is always allowed,
+        // but DM channels use dm_channels table, not channels — so this lookup implicitly
+        // filters to server channels only)
+        const [fsUser] = await db
+          .select({ subscriptionTier: user.subscriptionTier })
+          .from(user)
+          .where(eq(user.id, ctx.userId))
+          .limit(1);
+        if (!fsUser || fsUser.subscriptionTier === "free") break;
+
         // Insert file receipt
         const receiptId = createId();
         await db.insert(fileReceipts).values({
@@ -231,7 +244,9 @@ export const gateway = new Elysia().ws("/gateway", {
           infoHash: d.infoHash,
         });
 
-        // Broadcast to channel members
+        // Broadcast to all server members — broadcastToServer() is correct here because
+        // there are no per-channel permissions yet. The payload includes channelId so
+        // clients filter to the relevant channel view.
         await broadcastToServer(fsCh.serverId, {
           op: Opcode.FILE_SHARE,
           d: {
@@ -273,7 +288,7 @@ export const gateway = new Elysia().ws("/gateway", {
           .limit(1);
         if (!faMem) break;
 
-        // Broadcast availability change to channel members
+        // Broadcast to all server members (see FILE_SHARE comment — no per-channel perms yet)
         await broadcastToServer(faCh.serverId, {
           op: Opcode.FILE_AVAILABILITY_UPDATE,
           d: {

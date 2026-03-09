@@ -1,6 +1,15 @@
+import { z } from "zod";
 import { Opcode } from "@uncorded/protocol";
 import type { UserId, ChannelId } from "@uncorded/protocol";
 import { sendFrame, onGatewayEvent } from "./gateway.js";
+
+// ── Inbound validation ──────────────────────────────────────────────────────
+
+const signalingEventSchema = z.object({
+  fromUserId: z.string(),
+  channelId: z.string(),
+  data: z.unknown(),
+});
 
 // ── Outbound signaling ──────────────────────────────────────────────────────
 
@@ -45,6 +54,11 @@ export function onSignalingEvent(
   callback: (event: SignalingEvent) => void,
 ): () => void {
   return onGatewayEvent(opcodeByType[type], (data) => {
-    callback(data as SignalingEvent);
+    const parsed = signalingEventSchema.safeParse(data);
+    if (!parsed.success) {
+      console.warn(`Invalid ${type} signaling event:`, parsed.error.issues);
+      return;
+    }
+    callback(parsed.data as SignalingEvent);
   });
 }

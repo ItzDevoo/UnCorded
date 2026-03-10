@@ -9,6 +9,8 @@ import {
   MAX_CONTENT_TYPE_LENGTH,
   MAX_MAGNET_URI_LENGTH,
   MAX_INFO_HASH_LENGTH,
+  HEARTBEAT_INTERVAL_MS,
+  HEARTBEAT_TIMEOUT_MS,
 } from "@uncorded/shared";
 import { eq, and } from "drizzle-orm";
 import { db } from "../db/index.js";
@@ -53,9 +55,6 @@ const fileAvailabilitySchema = z.object({
   available: z.boolean(),
 });
 
-const HEARTBEAT_INTERVAL = 30_000;
-const HEARTBEAT_TIMEOUT = 45_000;
-
 interface WsContext {
   userId: string | null;
   heartbeatTimeout: Timer | null;
@@ -77,13 +76,13 @@ function resetHeartbeatTimeout(ws: { raw: object; terminate: () => void }): void
   if (ctx.heartbeatTimeout) clearTimeout(ctx.heartbeatTimeout);
   ctx.heartbeatTimeout = setTimeout(() => {
     ws.terminate();
-  }, HEARTBEAT_TIMEOUT);
+  }, HEARTBEAT_TIMEOUT_MS);
 }
 
 export const gateway = new Elysia().ws("/gateway", {
   open(ws) {
     ws.send(
-      Buffer.from(encode({ op: Opcode.HELLO, d: { heartbeatInterval: HEARTBEAT_INTERVAL } })),
+      Buffer.from(encode({ op: Opcode.HELLO, d: { heartbeatInterval: HEARTBEAT_INTERVAL_MS } })),
     );
     resetHeartbeatTimeout(ws);
   },
@@ -276,7 +275,7 @@ export const gateway = new Elysia().ws("/gateway", {
           if (resolution.type === "server") {
             await broadcastToServer(resolution.serverId, shareFrame);
           } else {
-            await broadcastToDm(d.channelId, shareFrame);
+            await broadcastToDm(d.channelId, shareFrame, ctx.userId);
           }
           break;
         }
@@ -307,7 +306,7 @@ export const gateway = new Elysia().ws("/gateway", {
           if (resolution.type === "server") {
             await broadcastToServer(resolution.serverId, availFrame);
           } else {
-            await broadcastToDm(d.channelId, availFrame);
+            await broadcastToDm(d.channelId, availFrame, ctx.userId);
           }
           break;
         }

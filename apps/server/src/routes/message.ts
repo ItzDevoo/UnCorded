@@ -1,67 +1,36 @@
 import { Elysia } from "elysia";
-import { eq, and, lt, gt, desc, or, ne } from "drizzle-orm";
+import { eq, and, lt, gt, desc, or } from "drizzle-orm";
 import { z } from "zod";
 import {
   createMessageSchema,
   updateMessageSchema,
   MESSAGE_PAGE_LIMIT,
+  MESSAGE_FETCH_MAX_LIMIT,
   ValidationError,
   NotFoundError,
   ForbiddenError,
   InternalError,
 } from "@uncorded/shared";
 import { Opcode, messageId, channelId, userId } from "@uncorded/protocol";
-import type { GatewayFrame } from "@uncorded/protocol";
 import { db } from "../db/index.js";
-import { messages, channels, servers, user, dmMembers } from "../db/schema.js";
+import { messages, servers, user } from "../db/schema.js";
 import { getSession } from "../middleware/auth.js";
-import { requireMember } from "../helpers/permissions.js";
-import { broadcastToServer, sendToUser } from "../ws/connections.js";
+import { resolveChannelMembership } from "../helpers/resolve-channel.js";
+import { broadcastToServer, broadcastToDm, sendToUser } from "../ws/connections.js";
 
 const DEFAULT_LIMIT = MESSAGE_PAGE_LIMIT;
-const MAX_LIMIT = 100;
 
 const listQuerySchema = z.object({
   before: z.string().min(1).optional(),
   after: z.string().min(1).optional(),
-  limit: z.coerce.number().int().min(1).max(MAX_LIMIT).optional(),
+  limit: z.coerce.number().int().min(1).max(MESSAGE_FETCH_MAX_LIMIT).optional(),
 });
 
-type ChannelResolution = { type: "server"; serverId: string } | { type: "dm" };
-
-/** Resolve a channel ID to either a server channel or DM channel. */
-async function resolveChannel(chanId: string, reqUserId: string): Promise<ChannelResolution> {
-  // Try server channel first
-  const [serverCh] = await db
-    .select({ serverId: channels.serverId })
-    .from(channels)
-    .where(eq(channels.id, chanId))
-    .limit(1);
-
-  if (serverCh) {
-    await requireMember(reqUserId, serverCh.serverId);
-    return { type: "server", serverId: serverCh.serverId };
-  }
-
-  // Try DM channel
-  const [dmMem] = await db
-    .select({ channelId: dmMembers.channelId })
-    .from(dmMembers)
-    .where(and(eq(dmMembers.channelId, chanId), eq(dmMembers.userId, reqUserId)))
-    .limit(1);
-
-  if (dmMem) return { type: "dm" };
-
-  throw new NotFoundError("Channel");
-}
-
-/** Broadcast a frame to all DM members except the sender. */
-async function broadcastToDm(chanId: string, frame: GatewayFrame, excludeUserId: string) {
-  const others = await db
-    .select({ userId: dmMembers.userId })
-    .from(dmMembers)
-    .where(and(eq(dmMembers.channelId, chanId), ne(dmMembers.userId, excludeUserId)));
-  for (const m of others) sendToUser(m.userId, frame);
+/** Resolve channel membership, throwing typed errors for HTTP routes. */
+async function resolveChannel(chanId: string, reqUserId: string) {
+  const resolution = await resolveChannelMembership(reqUserId, chanId);
+  if (!resolution) throw new NotFoundError("Channel");
+  return resolution;
 }
 
 /** Fetch a single message with author info. */

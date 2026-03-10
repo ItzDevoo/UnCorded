@@ -36,6 +36,13 @@
       "when": 1741478400000,
       "tag": "0004_reports_fk_on_delete",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1741564800000,
+      "tag": "0005_fk_on_delete_policies",
+      "breakpoints": true
     }
   ]
 }

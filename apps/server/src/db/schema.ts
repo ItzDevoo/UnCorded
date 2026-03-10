@@ -166,9 +166,7 @@ export const messages = pgTable(
   {
     id: id(),
     channelId: text("channel_id").notNull(),
-    authorId: text("author_id")
-      .notNull()
-      .references(() => user.id),
+    authorId: text("author_id").references(() => user.id, { onDelete: "set null" }),
     content: text("content"),
     editedAt: timestamp("edited_at", { mode: "date" }),
     createdAt: createdAt(),
@@ -179,9 +177,7 @@ export const messages = pgTable(
 export const fileReceipts = pgTable("file_receipts", {
   id: id(),
   channelId: text("channel_id").notNull(),
-  senderId: text("sender_id")
-    .notNull()
-    .references(() => user.id),
+  senderId: text("sender_id").references(() => user.id, { onDelete: "set null" }),
   fileName: text("file_name").notNull(),
   fileSize: bigint("file_size", { mode: "number" }).notNull(),
   contentType: text("content_type").notNull(),
@@ -275,9 +271,7 @@ export const invites = pgTable("invites", {
   serverId: text("server_id")
     .notNull()
     .references(() => servers.id, { onDelete: "cascade" }),
-  creatorId: text("creator_id")
-    .notNull()
-    .references(() => user.id),
+  creatorId: text("creator_id").references(() => user.id, { onDelete: "set null" }),
   uses: integer("uses").default(0).notNull(),
   maxUses: integer("max_uses"),
   expiresAt: timestamp("expires_at", { mode: "date" }),
@@ -287,7 +281,7 @@ export const subscriptions = pgTable("subscriptions", {
   id: id(),
   userId: text("user_id")
     .notNull()
-    .references(() => user.id),
+    .references(() => user.id, { onDelete: "cascade" }),
   tier: subscriptionTierEnum("tier").notNull(),
   stripeSubscriptionId: text("stripe_subscription_id"),
   stripeCustomerId: text("stripe_customer_id"),
@@ -298,9 +292,7 @@ export const subscriptions = pgTable("subscriptions", {
 
 export const reports = pgTable("reports", {
   id: id(),
-  reporterId: text("reporter_id")
-    .notNull()
-    .references(() => user.id),
+  reporterId: text("reporter_id").references(() => user.id, { onDelete: "set null" }),
   messageId: text("message_id").references(() => messages.id, { onDelete: "set null" }),
   fileReceiptId: text("file_receipt_id").references(() => fileReceipts.id, {
     onDelete: "set null",

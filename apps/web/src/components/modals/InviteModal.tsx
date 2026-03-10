@@ -8,7 +8,7 @@ import { Button } from "../ui/button.js";
 interface InviteResponse {
   code: InviteCode;
   serverId: ServerId;
-  creatorId: UserId;
+  creatorId: UserId | null;
   uses: number;
   maxUses: number | null;
   expiresAt: string | null;

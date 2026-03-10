@@ -206,7 +206,7 @@ const FileMessage = (props: { receipt: FileReceipt; isOwn: boolean }) => {
       <Show when={isImage() && thumbnailUrl()}>
         <div class="mt-2">
           <img
-            src={thumbnailUrl()!}
+            src={thumbnailUrl() ?? ""}
             alt={props.receipt.fileName}
             class="max-h-[200px] max-w-[300px] cursor-pointer rounded-md"
             tabIndex={0}

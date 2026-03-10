@@ -38,18 +38,9 @@ const envSchema = z.object({
   UPSTASH_REDIS_URL: optionalString,
   UPSTASH_REDIS_TOKEN: optionalString,
 
-  // R2 — optional until file uploads are implemented
-  R2_ACCOUNT_ID: optionalString,
-  R2_ACCESS_KEY_ID: optionalString,
-  R2_SECRET_ACCESS_KEY: optionalString,
-  R2_BUCKET_NAME: optionalString,
-  R2_PUBLIC_URL: optionalUrl,
-
   // Stripe — optional until billing is implemented
   STRIPE_SECRET_KEY: optionalString,
   STRIPE_WEBHOOK_SECRET: optionalString,
-  STRIPE_AVATAR_PRICE_ID: optionalString,
-  STRIPE_EXPIRY_PRICE_ID: optionalString,
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -61,7 +52,9 @@ if (!parsed.success) {
 }
 
 if (parsed.data.NODE_ENV === "production" && parsed.data.APP_URL === "http://localhost:3000") {
-  console.error("APP_URL must be set explicitly in production (currently falling back to localhost)");
+  console.error(
+    "APP_URL must be set explicitly in production (currently falling back to localhost)",
+  );
   process.exit(1);
 }
 

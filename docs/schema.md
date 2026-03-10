@@ -45,7 +45,7 @@ position (int, default 0), topic, created_at
 
 ### messages
 
-id, channel_id (TEXT, no FK), author_id -> users,
+id, channel_id (TEXT, no FK), author_id -> users (set null, nullable — "[deleted user]"),
 content (nullable — null for file-only messages), edited_at, created_at
 -- No FK on channel_id: DM messages reference dm_channels, not channels.
 -- A FK to channels(id) would break DM functionality. Validate channel
@@ -54,7 +54,7 @@ INDEX: (channel_id, created_at DESC)
 
 ### file_receipts
 
-id, channel_id (TEXT), sender_id -> users,
+id, channel_id (TEXT), sender_id -> users (set null, nullable — "[deleted user]"),
 file_name, file_size (bigint bytes), content_type,
 magnet_uri (TEXT NOT NULL — WebTorrent magnet link, persists in chat),
 info_hash (TEXT NOT NULL — torrent info hash for swarm identification),
@@ -96,12 +96,12 @@ channel_id -> dm_channels (cascade), user_id -> users (cascade)
 ### invites
 
 code (PK, nanoid 8 chars), server_id -> servers (cascade),
-creator_id -> users, uses (int, default 0),
+creator_id -> users (set null, nullable — invite stays functional), uses (int, default 0),
 max_uses (nullable, null = unlimited), expires_at (nullable)
 
 ### subscriptions
 
-id, user_id -> users,
+id, user_id -> users (cascade),
 tier (subscription_tier enum: supporter | server_owner),
 stripe_subscription_id, stripe_customer_id,
 status (subscription_status, default active),
@@ -109,7 +109,7 @@ current_period_end (timestamp), created_at
 
 ### reports
 
-id, reporter_id -> users,
+id, reporter_id -> users (set null, nullable — moderation data survives user deletion),
 message_id -> messages (nullable, on delete set null),
 file_receipt_id -> file_receipts (nullable, on delete set null),
 category (report_category),

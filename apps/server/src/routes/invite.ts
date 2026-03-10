@@ -47,7 +47,7 @@ export const serverInviteRoutes = new Elysia({ prefix: "/api/servers/:serverId/i
           ...invite,
           code: inviteCode(invite.code),
           serverId: serverId(invite.serverId),
-          creatorId: userId(invite.creatorId),
+          creatorId: invite.creatorId ? userId(invite.creatorId) : null,
         }
       : invite;
   });

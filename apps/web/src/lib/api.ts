@@ -31,5 +31,6 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
     throw new ApiRequestError(res.status, body);
   }
 
+  // TODO: validate API responses with Zod at call sites
   return res.json() as Promise<T>;
 }

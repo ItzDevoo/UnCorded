@@ -5,6 +5,18 @@ import { cn } from "../../lib/cn.js";
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+let scrollLockCount = 0;
+
+function lockScroll() {
+  scrollLockCount++;
+  if (scrollLockCount === 1) document.body.style.overflow = "hidden";
+}
+
+function unlockScroll() {
+  scrollLockCount--;
+  if (scrollLockCount === 0) document.body.style.overflow = "";
+}
+
 interface DialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -13,6 +25,7 @@ interface DialogProps {
 
 const Dialog = (props: DialogProps) => {
   const handleKeyDown = (e: KeyboardEvent) => {
+    if (!props.open) return;
     if (e.key === "Escape") props.onOpenChange(false);
   };
 
@@ -47,11 +60,11 @@ const DialogContent = (props: DialogContentProps) => {
   onMount(() => {
     const first = panelRef.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
     first?.focus();
-    document.body.style.overflow = "hidden";
+    lockScroll();
   });
 
   onCleanup(() => {
-    document.body.style.overflow = "";
+    unlockScroll();
   });
 
   const handleKeyDown = (e: KeyboardEvent) => {

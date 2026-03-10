@@ -59,9 +59,7 @@ const authorSchema = z.object({
 
 /** Accepts both ISO strings and Date objects (MessagePack preserves Dates). */
 const coerceDate = z.union([z.string(), z.date().transform((d) => d.toISOString())]);
-const coerceDateNullable = z
-  .union([z.string(), z.date().transform((d) => d.toISOString())])
-  .nullable();
+const coerceDateNullable = coerceDate.nullable();
 
 const messageCreateSchema = z.object({
   id: z.string(),

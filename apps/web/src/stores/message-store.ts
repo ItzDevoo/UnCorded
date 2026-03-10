@@ -271,6 +271,7 @@ const unsubTyping = onGatewayEvent(Opcode.TYPING_START, (data) => {
 
 // --- Typing cleanup interval ---
 
+const TYPING_CLEANUP_INTERVAL_MS = 1_000;
 const cleanupInterval = setInterval(() => {
   const now = Date.now();
   for (const chId of Object.keys(store.typing)) {
@@ -288,7 +289,7 @@ const cleanupInterval = setInterval(() => {
       );
     }
   }
-}, 1000);
+}, TYPING_CLEANUP_INTERVAL_MS);
 
 // --- HMR cleanup ---
 

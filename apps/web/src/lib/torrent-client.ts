@@ -37,8 +37,8 @@ export function initTorrentClient(): WebTorrentInstance {
     if (Peer) {
       Peer.config = rtcConfig;
     }
-  } catch {
-    // Fallback: simple-peer uses its own defaults (Google STUN)
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn("[torrent] Failed to configure simple-peer:", err);
   }
 
   client = new WebTorrent();
@@ -67,10 +67,13 @@ export function seedFile(file: File): Promise<SeedResult> {
 
     c.seed(file, (torrent: Torrent) => {
       c.removeListener("error", onError);
-      torrent.once("error", (err) => reject(typeof err === "string" ? new Error(err) : err));
       resolve({
         magnetUri: torrent.magnetURI,
         infoHash: torrent.infoHash,
+      });
+      // Long-lived seeding torrent — log errors in dev but don't crash
+      torrent.on("error", (err) => {
+        if (import.meta.env.DEV) console.warn("[torrent] Post-seed error:", err);
       });
     });
   });

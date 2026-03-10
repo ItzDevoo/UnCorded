@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { Opcode } from "@uncorded/protocol";
-import type { UserId } from "@uncorded/protocol";
 import { userId } from "@uncorded/protocol";
 import { onGatewayEvent } from "../lib/gateway.js";
 import { addFriend, removeFriend, updateFriendStatus } from "../lib/gateway-store.js";
@@ -35,7 +34,7 @@ const unsubRequest = onGatewayEvent(Opcode.FRIEND_REQUEST, (data) => {
   if (!parsed.success) return;
   const d = parsed.data;
   addFriend({
-    userId: userId(d.userId) as UserId,
+    userId: userId(d.userId),
     username: d.username,
     displayName: d.displayName,
     avatarUrl: d.avatarUrl,
@@ -51,7 +50,7 @@ const unsubAccept = onGatewayEvent(Opcode.FRIEND_ACCEPT, (data) => {
   const d = parsed.data;
   // If not in friends list yet (we sent the request), add them
   addFriend({
-    userId: userId(d.userId) as UserId,
+    userId: userId(d.userId),
     username: d.username,
     displayName: d.displayName,
     avatarUrl: d.avatarUrl,

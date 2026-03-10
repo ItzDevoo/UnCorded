@@ -79,7 +79,15 @@ export async function handleIdentify(
       .where(eq(user.id, identifiedUserId))
       .limit(1);
 
-    const dbUser = dbUserRow ? { ...dbUserRow, id: userId(dbUserRow.id) } : null;
+    if (!dbUserRow) {
+      return {
+        success: false,
+        closeCode: CloseCode.INVALID_SESSION,
+        closeReason: "User not found",
+      };
+    }
+
+    const dbUser = { ...dbUserRow, id: userId(dbUserRow.id) };
 
     // Load user's servers
     const userServers = await db
@@ -131,17 +139,17 @@ export async function handleIdentify(
       list.push(ch);
     }
 
-    const readyServers = userServers.map((s) =>
-      Object.assign(s, {
+    const readyServers = userServers.map((s) => {
+      // Read s.id before mutation — channelsByServer uses the original string key
+      const chs = (channelsByServer.get(s.id) ?? [])
+        .toSorted((a, b) => a.position - b.position)
+        .map((ch) => Object.assign(ch, { id: channelId(ch.id), serverId: serverId(ch.serverId) }));
+      return Object.assign(s, {
         id: serverId(s.id),
         ownerId: userId(s.ownerId),
-        channels: (channelsByServer.get(s.id) ?? [])
-          .toSorted((a, b) => a.position - b.position)
-          .map((ch) =>
-            Object.assign(ch, { id: channelId(ch.id), serverId: serverId(ch.serverId) }),
-          ),
-      }),
-    );
+        channels: chs,
+      });
+    });
 
     // Load DM channels
     const myDmMemberships = await db
@@ -250,7 +258,7 @@ export async function handleIdentify(
         encode({
           op: Opcode.READY,
           d: {
-            user: dbUser ?? null,
+            user: dbUser,
             servers: readyServers,
             dmChannels: readyDmChannels,
             friends: readyFriends,

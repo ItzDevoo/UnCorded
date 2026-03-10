@@ -18,12 +18,13 @@ interface Toast {
 
 const [toasts, setToasts] = createStore<Toast[]>([]);
 
+const TOAST_AUTO_DISMISS_MS = 5_000;
 let nextId = 0;
 
 export function showToast(message: string, variant: ToastVariant = "info"): void {
   const id = String(++nextId);
   setToasts(produce((arr) => arr.push({ id, message, variant })));
-  setTimeout(() => dismissToast(id), 5_000);
+  setTimeout(() => dismissToast(id), TOAST_AUTO_DISMISS_MS);
 }
 
 export function dismissToast(id: string): void {

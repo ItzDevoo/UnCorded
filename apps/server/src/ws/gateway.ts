@@ -203,7 +203,10 @@ export const gateway = new Elysia().ws("/gateway", {
           // so frame.op is one of these three opcodes, but TS can't narrow a union
           // switch case to a single variant.
           sendToUser(d.targetUserId, {
-            op: frame.op as Opcode,
+            op: frame.op as
+              | Opcode.WEBRTC_OFFER
+              | Opcode.WEBRTC_ANSWER
+              | Opcode.WEBRTC_ICE_CANDIDATE,
             d: { fromUserId: ctx.userId, channelId: d.channelId, data: d.data },
           });
           break;
@@ -313,7 +316,11 @@ export const gateway = new Elysia().ws("/gateway", {
           break;
       }
     } catch (err) {
-      console.error("[gateway] Unexpected error:", err);
+      console.error(
+        "[gateway] Unexpected error:",
+        err instanceof Error ? err.message : String(err),
+      );
+      if (err instanceof Error && err.stack) console.error(err.stack);
       if (ctx.userId) {
         sendToUser(ctx.userId, {
           op: Opcode.ERROR,

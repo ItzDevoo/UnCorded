@@ -18,7 +18,7 @@ Reference: C:\Nexis\apps\server\src\db\schema.ts for implementation patterns.
 
 Drizzle export is `user` (singular) to match Better Auth convention.
 
-id, name (required, Better Auth), email (unique), email_verified (bool, Better Auth),
+id, name (required, Better Auth), email (unique), email_verified (bool, default false, Better Auth),
 image (nullable, Better Auth), username (unique, nullable — Better Auth username plugin),
 display_username (Better Auth username plugin),
 display_name, avatar_url,
@@ -46,7 +46,7 @@ position (int, default 0), topic, created_at
 ### messages
 
 id, channel_id (TEXT, no FK), author_id -> users (set null, nullable — "[deleted user]"),
-content (nullable — null for file-only messages), edited_at, created_at
+content (nullable — null for file-only messages), edited_at (nullable), created_at
 -- No FK on channel_id: DM messages reference dm_channels, not channels.
 -- A FK to channels(id) would break DM functionality. Validate channel
 -- ownership in application logic instead.
@@ -119,21 +119,26 @@ created_at
 
 ### session (Better Auth managed)
 
-id, expires_at, token, ip_address, user_agent,
+id, expires_at, token, ip_address (nullable), user_agent (nullable),
 user_id -> users (cascade),
 created_at, updated_at
+INDEX: session_user_id_idx (user_id)
 
 ### account (Better Auth managed)
 
-id, account_id, provider_id, provider_account_id,
+id, account_id, provider_id,
 user_id -> users (cascade),
-access_token, refresh_token, access_token_expires_at, refresh_token_expires_at,
-scope, id_token, password, created_at, updated_at
+access_token (nullable), refresh_token (nullable),
+access_token_expires_at (nullable), refresh_token_expires_at (nullable),
+scope (nullable), id_token (nullable), password (nullable),
+created_at, updated_at
+INDEX: account_user_id_idx (user_id)
 
 ### verification (Better Auth managed)
 
 id, identifier, value, expires_at,
 created_at, updated_at
+INDEX: verification_identifier_idx (identifier)
 
 ## Migration Notes
 

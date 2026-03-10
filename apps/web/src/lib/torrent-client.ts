@@ -92,7 +92,7 @@ export function downloadFromMagnet(
 
     const timeout = setTimeout(() => {
       torrent.destroy();
-      reject(new Error("Download timed out after 5 minutes"));
+      reject(new Error(`Download timed out after ${DOWNLOAD_TIMEOUT_MS / 60_000} minutes`));
     }, DOWNLOAD_TIMEOUT_MS);
 
     torrent.on("error", (err) => {

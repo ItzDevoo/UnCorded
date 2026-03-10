@@ -44,24 +44,24 @@ const ChatArea = () => {
 
   return (
     <div class="flex h-full flex-col">
-      <Show when={channelName()}>
-        {(name) => (
+      <Show when={channelId()}>
+        {(id) => (
           <>
             <div class="flex h-12 shrink-0 items-center border-b border-border px-4">
               <span class="font-semibold text-foreground">
                 {isDm() ? "@" : "# "}
-                {name()}
+                {channelName()}
               </span>
             </div>
 
-            <FileDropZone channelId={channelId() as ChannelId} onFileSelect={handleFileSelect}>
-              <VirtualMessageList channelId={channelId() as ChannelId} />
-              <MessageInput channelId={channelId() as ChannelId} onFileSelect={handleFileSelect} />
+            <FileDropZone channelId={id()} onFileSelect={handleFileSelect}>
+              <VirtualMessageList channelId={id()} />
+              <MessageInput channelId={id()} onFileSelect={handleFileSelect} />
             </FileDropZone>
           </>
         )}
       </Show>
-      <Show when={!channelName()}>
+      <Show when={!channelId()}>
         <div class="flex flex-1 items-center justify-center">
           <p class="text-muted-foreground">Select a channel to start chatting</p>
         </div>

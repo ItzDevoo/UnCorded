@@ -1,6 +1,6 @@
 import { createSignal, Show } from "solid-js";
 import { Opcode, type ChannelId } from "@uncorded/protocol";
-import { api } from "../lib/api.js";
+import { api, ApiRequestError } from "../lib/api.js";
 import { sendFrame } from "../lib/gateway.js";
 import { getTypingUsers } from "../stores/message-store.js";
 
@@ -16,6 +16,7 @@ const MessageInput = (props: { channelId: ChannelId; onFileSelect?: (file: File)
   let textareaRef!: HTMLTextAreaElement;
   const [content, setContent] = createSignal("");
   const [sending, setSending] = createSignal(false);
+  const [sendError, setSendError] = createSignal<string | null>(null);
 
   function resetHeight() {
     textareaRef.style.height = "auto";
@@ -40,6 +41,7 @@ const MessageInput = (props: { channelId: ChannelId; onFileSelect?: (file: File)
     if (!text || sending()) return;
 
     setSending(true);
+    setSendError(null);
     try {
       await api(`/api/channels/${props.channelId}/messages`, {
         method: "POST",
@@ -47,6 +49,10 @@ const MessageInput = (props: { channelId: ChannelId; onFileSelect?: (file: File)
       });
       setContent("");
       textareaRef.style.height = "auto";
+    } catch (err) {
+      const message =
+        err instanceof ApiRequestError ? err.body.message : "Failed to send message";
+      setSendError(message);
     } finally {
       setSending(false);
     }
@@ -101,6 +107,9 @@ const MessageInput = (props: { channelId: ChannelId; onFileSelect?: (file: File)
           style={{ "max-height": `${TEXTAREA_MAX_HEIGHT}px` }}
         />
       </div>
+      <Show when={sendError()}>
+        <p class="px-2 pt-1 text-xs text-destructive">{sendError()}</p>
+      </Show>
       <div class="h-5 px-2 pt-1">
         <Show when={typingText()}>
           {(text) => (

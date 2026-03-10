@@ -3,6 +3,7 @@ import { eq, and, lt, gt, desc, or, ne } from "drizzle-orm";
 import {
   createMessageSchema,
   updateMessageSchema,
+  MESSAGE_PAGE_LIMIT,
   ValidationError,
   NotFoundError,
   ForbiddenError,
@@ -16,7 +17,7 @@ import { getSession } from "../middleware/auth.js";
 import { requireMember } from "../helpers/permissions.js";
 import { broadcastToServer, sendToUser } from "../ws/connections.js";
 
-const DEFAULT_LIMIT = 50;
+const DEFAULT_LIMIT = MESSAGE_PAGE_LIMIT;
 const MAX_LIMIT = 100;
 
 type ChannelResolution = { type: "server"; serverId: string } | { type: "dm" };

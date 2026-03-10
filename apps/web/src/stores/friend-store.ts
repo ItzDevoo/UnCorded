@@ -4,7 +4,7 @@ import type { UserId } from "@uncorded/protocol";
 import { userId } from "@uncorded/protocol";
 import { onGatewayEvent } from "../lib/gateway.js";
 import { addFriend, removeFriend, updateFriendStatus } from "../lib/gateway-store.js";
-import { API_BASE } from "../lib/config.js";
+import { api } from "../lib/api.js";
 
 // ── Zod schemas for WS events ──────────────────────────────────────────────
 
@@ -73,60 +73,26 @@ const unsubRemove = onGatewayEvent(Opcode.FRIEND_REMOVE, (data) => {
 // ── API functions ───────────────────────────────────────────────────────────
 
 export async function sendFriendRequest(targetUserId: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/friends/request`, {
+  await api("/api/friends/request", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
     body: JSON.stringify({ userId: targetUserId }),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: "Request failed" }));
-    throw new Error(err.message ?? "Failed to send friend request");
-  }
 }
 
 export async function acceptFriendRequest(fromUserId: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/friends/${fromUserId}/accept`, {
-    method: "POST",
-    credentials: "include",
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: "Request failed" }));
-    throw new Error(err.message ?? "Failed to accept friend request");
-  }
+  await api(`/api/friends/${fromUserId}/accept`, { method: "POST" });
 }
 
 export async function declineFriendRequest(fromUserId: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/friends/${fromUserId}/decline`, {
-    method: "POST",
-    credentials: "include",
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: "Request failed" }));
-    throw new Error(err.message ?? "Failed to decline friend request");
-  }
+  await api(`/api/friends/${fromUserId}/decline`, { method: "POST" });
 }
 
 export async function removeFriendApi(friendUserId: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/friends/${friendUserId}`, {
-    method: "DELETE",
-    credentials: "include",
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: "Request failed" }));
-    throw new Error(err.message ?? "Failed to remove friend");
-  }
+  await api(`/api/friends/${friendUserId}`, { method: "DELETE" });
 }
 
 export async function blockUser(targetUserId: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/friends/${targetUserId}/block`, {
-    method: "POST",
-    credentials: "include",
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: "Request failed" }));
-    throw new Error(err.message ?? "Failed to block user");
-  }
+  await api(`/api/friends/${targetUserId}/block`, { method: "POST" });
 }
 
 // ── HMR cleanup ─────────────────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 import { createStore, produce } from "solid-js/store";
 import { z } from "zod";
+import { MESSAGE_PAGE_LIMIT } from "@uncorded/shared";
 import { Opcode } from "@uncorded/protocol";
 import type { MessageId, ChannelId, UserId } from "@uncorded/protocol";
 import { channelId, messageId, userId } from "@uncorded/protocol";
@@ -39,7 +40,7 @@ interface MessageStoreState {
   typing: Record<string, TypingUser[]>;
 }
 
-const LIMIT = 50;
+const LIMIT = MESSAGE_PAGE_LIMIT;
 // Must exceed TYPING_THROTTLE_MS (5s) so indicators don't flicker between sends
 const TYPING_TIMEOUT_MS = 6000;
 

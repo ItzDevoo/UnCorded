@@ -35,10 +35,11 @@ const FileDropZone = (props: {
     const file = e.dataTransfer?.files[0];
     if (!file) return;
 
+    const maxMb = MAX_FILE_SIZE_BYTES / (1024 * 1024);
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      setErrorMessage("File exceeds 100 MB limit");
+      setErrorMessage(`File exceeds ${maxMb} MB limit`);
       if (import.meta.env.DEV)
-        console.warn("[FileDropZone] File too large:", file.size, "bytes (max 100 MB)");
+        console.warn(`[FileDropZone] File too large: ${file.size} bytes (max ${maxMb} MB)`);
       return;
     }
 

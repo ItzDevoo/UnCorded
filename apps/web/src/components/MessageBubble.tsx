@@ -167,7 +167,7 @@ const MessageBubble = (props: MessageBubbleProps) => {
     "rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors";
 
   const Toolbar = () => (
-    <div class="absolute -top-3 right-2 z-10 flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5 shadow-sm opacity-0 transition-opacity group-hover:opacity-100">
+    <div class="absolute top-1 right-2 z-10 flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5 shadow-sm opacity-0 transition-opacity group-hover:opacity-100">
       <button class={toolbarBtnClass} title="Copy" onClick={handleCopy}>
         <CopyIcon />
       </button>

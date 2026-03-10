@@ -214,7 +214,6 @@ export function getSeeders(frId: FileReceiptId): string[] {
 
 // ── WS listeners (run once on import) ───────────────────────────────────────
 
-/* eslint-disable solid/reactivity -- event handlers, not tracked scopes */
 const unsubFileShare = onGatewayEvent(Opcode.FILE_SHARE, (data) => {
   const parsed = fileShareBroadcastSchema.safeParse(data);
   if (!parsed.success) {
@@ -244,7 +243,6 @@ const unsubAvailability = onGatewayEvent(Opcode.FILE_AVAILABILITY_UPDATE, (data)
   const d = parsed.data;
   updateSeeders(fileReceiptId(d.fileReceiptId), userId(d.userId), d.available);
 });
-/* eslint-enable solid/reactivity */
 
 // ── HMR cleanup ─────────────────────────────────────────────────────────────
 

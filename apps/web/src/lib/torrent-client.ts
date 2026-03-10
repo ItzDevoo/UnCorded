@@ -31,9 +31,8 @@ export function initTorrentClient(): WebTorrentInstance {
 
   // Configure simple-peer's default RTC config (STUN servers) before creating client.
   // WebTorrent uses @thaunknown/simple-peer internally for all WebRTC connections.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports -- simple-peer config override
   try {
-    // Dynamic import of simple-peer to set config globally
+    // WebTorrent internal API — no public types available
     const Peer = (WebTorrent as unknown as { Peer?: { config?: RTCConfiguration } }).Peer;
     if (Peer) {
       Peer.config = rtcConfig;

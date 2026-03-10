@@ -32,7 +32,7 @@ created_at, updated_at
 
 ### servers
 
-id, name, icon_url, owner_id -> users (no cascade — ownership must be transferred before user deletion), created_at
+id, name, icon_url, owner_id -> users (restrict — ownership must be transferred before user deletion), created_at
 
 ### channels
 
@@ -116,6 +116,24 @@ category (report_category),
 details (text, nullable),
 resolved (bool, default false),
 created_at
+
+### session (Better Auth managed)
+
+id, expires_at, token, ip_address, user_agent,
+user_id -> users (cascade),
+created_at, updated_at
+
+### account (Better Auth managed)
+
+id, account_id, provider_id, provider_account_id,
+user_id -> users (cascade),
+access_token, refresh_token, access_token_expires_at, refresh_token_expires_at,
+scope, id_token, password, created_at, updated_at
+
+### verification (Better Auth managed)
+
+id, identifier, value, expires_at,
+created_at, updated_at
 
 ## Migration Notes
 

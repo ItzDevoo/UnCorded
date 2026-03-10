@@ -1,11 +1,9 @@
 import { createSignal, Show } from "solid-js";
 import { Opcode, type AnyChannelId } from "@uncorded/protocol";
+import { TYPING_THROTTLE_MS } from "@uncorded/shared";
 import { api, ApiRequestError } from "../lib/api.js";
 import { sendFrame } from "../lib/gateway.js";
 import { getTypingUsers } from "../stores/message-store.js";
-
-// Must be less than TYPING_TIMEOUT_MS (6s) in message-store so indicators don't flicker
-const TYPING_THROTTLE_MS = 5000;
 const TEXTAREA_MAX_HEIGHT = 200;
 
 /** Keyed by ChannelId (branded string) — TS index signatures can't use branded types */

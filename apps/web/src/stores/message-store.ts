@@ -1,6 +1,6 @@
 import { createStore, produce } from "solid-js/store";
 import { z } from "zod";
-import { MESSAGE_PAGE_LIMIT } from "@uncorded/shared";
+import { MESSAGE_PAGE_LIMIT, TYPING_TIMEOUT_MS } from "@uncorded/shared";
 import { Opcode } from "@uncorded/protocol";
 import type { MessageId, AnyChannelId, UserId } from "@uncorded/protocol";
 import { channelId, messageId, userId } from "@uncorded/protocol";
@@ -41,8 +41,6 @@ interface MessageStoreState {
 }
 
 const LIMIT = MESSAGE_PAGE_LIMIT;
-// Must exceed TYPING_THROTTLE_MS (5s) so indicators don't flicker between sends
-const TYPING_TIMEOUT_MS = 6000;
 
 const [store, setStore] = createStore<MessageStoreState>({
   channels: {},
@@ -215,7 +213,6 @@ export function addTypingUser(cId: AnyChannelId, uId: UserId, username: string) 
 
 // --- WS listeners (run once on import) ---
 
-/* eslint-disable solid/reactivity -- these are event handlers, not tracked scopes */
 const unsubCreate = onGatewayEvent(Opcode.MESSAGE_CREATE, (data) => {
   const parsed = messageCreateSchema.safeParse(data);
   if (!parsed.success) {
@@ -271,7 +268,6 @@ const unsubTyping = onGatewayEvent(Opcode.TYPING_START, (data) => {
   const d = parsed.data;
   addTypingUser(channelId(d.channelId), userId(d.userId), d.username);
 });
-/* eslint-enable solid/reactivity */
 
 // --- Typing cleanup interval ---
 

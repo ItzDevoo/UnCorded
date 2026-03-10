@@ -4,6 +4,7 @@ import { selectedChannelId, selectedDmChannelId, currentChannels } from "../stor
 import { readyData } from "../lib/gateway-store.js";
 import { fetchMessages, getMessages } from "../stores/message-store.js";
 import { shareFile } from "../stores/file-store.js";
+import { showToast } from "./ui/toast.js";
 import VirtualMessageList from "./VirtualMessageList.js";
 import MessageInput from "./MessageInput.js";
 import FileDropZone from "./FileDropZone.js";
@@ -38,7 +39,7 @@ const ChatArea = () => {
     const id = channelId();
     if (!id) return;
     shareFile(id, file).catch((err) => {
-      if (import.meta.env.DEV) console.error("[ChatArea] Failed to share file:", err);
+      showToast(err instanceof Error ? err.message : "Failed to share file", "error");
     });
   }
 

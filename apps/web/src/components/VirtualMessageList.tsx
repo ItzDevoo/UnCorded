@@ -21,18 +21,6 @@ const VirtualMessageList = (props: { channelId: AnyChannelId }) => {
   const currentUserId = createMemo(() => readyData.data?.user.id);
   const fileReceipts = createMemo(() => getReceipts(props.channelId));
 
-  // Fetch on mount if needed
-  createEffect(
-    on(
-      () => props.channelId,
-      (id) => {
-        if (id && !getMessages(id)) {
-          fetchMessages(id);
-        }
-      },
-    ),
-  );
-
   const virtualizer = createVirtualizer({
     get count() {
       return messages().length;

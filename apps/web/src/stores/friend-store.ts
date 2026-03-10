@@ -30,7 +30,6 @@ const friendRemoveSchema = z.object({
 
 // ── WS listeners ────────────────────────────────────────────────────────────
 
-/* eslint-disable solid/reactivity -- event handlers, not tracked scopes */
 const unsubRequest = onGatewayEvent(Opcode.FRIEND_REQUEST, (data) => {
   const parsed = friendRequestSchema.safeParse(data);
   if (!parsed.success) return;
@@ -68,7 +67,6 @@ const unsubRemove = onGatewayEvent(Opcode.FRIEND_REMOVE, (data) => {
   if (!parsed.success) return;
   removeFriend(userId(parsed.data.userId));
 });
-/* eslint-enable solid/reactivity */
 
 // ── API functions ───────────────────────────────────────────────────────────
 

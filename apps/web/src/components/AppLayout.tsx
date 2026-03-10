@@ -3,10 +3,12 @@ import { useSession } from "../lib/auth.js";
 import { connectGateway, disconnectGateway } from "../lib/gateway.js";
 import { gatewayStatus } from "../lib/gateway-store.js";
 import { selectedServerId, selectedDmChannelId } from "../stores/app-store.js";
+import "../lib/gateway-errors.js";
 import AuthGuard from "./AuthGuard.js";
 import ServerSidebar from "./ServerSidebar.js";
 import ChannelSidebar from "./ChannelSidebar.js";
 import ChatArea from "./ChatArea.js";
+import { ToastContainer } from "./ui/toast.js";
 
 const AppLayout: ParentComponent = (props) => {
   const session = useSession();
@@ -22,6 +24,7 @@ const AppLayout: ParentComponent = (props) => {
 
   return (
     <AuthGuard>
+      <ToastContainer />
       <div class="flex h-screen overflow-hidden">
         <ServerSidebar />
         <ChannelSidebar />

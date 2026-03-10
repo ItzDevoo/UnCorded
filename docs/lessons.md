@@ -167,3 +167,11 @@ This applies to any module that registers global listeners or timers at the top 
 **[W4 D1]** — Dialog overlay with `fixed inset-0` + `backdrop-blur-sm` creates a stacking context that blocks pointer events on the dialog panel, even when both share the same z-index (`z-[--z-modal]`). The `backdrop-filter` CSS property triggers GPU compositing and creates a new stacking context that interferes with event delivery. Fix: make the overlay `pointer-events-none` (it's purely visual — blur + dark background). The wrapper div handles backdrop clicks via its own `onClick`, and the panel stops propagation. Remove redundant z-index from overlay and panel — only the wrapper needs `z-[--z-modal]`.
 
 **[W4 D1]** — Dialogs rendered inline in the component tree get trapped inside parent stacking contexts (e.g., chat area with `overflow-auto` or `transform` creates a new stacking context). Even `fixed inset-0 z-[--z-modal]` can't escape a parent stacking context — CSS z-index only competes within the same stacking context. Fix: use SolidJS `<Portal mount={document.body}>` to render the dialog at the root of the DOM, above all app content. Also add `document.body.style.overflow = "hidden"` on mount and restore on cleanup to prevent background scrolling while the dialog is open.
+
+**[Pre-W4 Cleanup]** — Validation constants (MAX_SDP_SIZE, MAX_FILE_NAME_LENGTH, etc.) and timing constants (TYPING_THROTTLE_MS, TYPING_TIMEOUT_MS) should live in `@uncorded/shared/constants`, not duplicated in server gateway.ts and client stores. Single source of truth prevents drift.
+
+**[Pre-W4 Cleanup]** — Stale eslint-disable comments accumulate after migrating from ESLint to Oxlint. Remove them during cleanup passes — Oxlint doesn't read eslint directives.
+
+**[Pre-W4 Cleanup]** — Server WS gateway should wrap the switch dispatch in try/catch to prevent a single handler error from crashing the connection. Send an ERROR frame to the client (if identified) and log server-side. Never close the connection on transient errors.
+
+**[Pre-W4 Cleanup]** — When both a parent (ChatArea) and child (VirtualMessageList) component register the same `createEffect(on(channelId, fetchMessages))`, messages get fetched twice on channel switch. Keep the effect in the parent only.

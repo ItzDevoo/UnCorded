@@ -1,7 +1,15 @@
 import { Elysia } from "elysia";
 import { z } from "zod";
 import { Opcode, CloseCode, encode, decode } from "@uncorded/protocol";
-import { createId, MAX_FILE_SIZE_BYTES } from "@uncorded/shared";
+import {
+  createId,
+  MAX_FILE_SIZE_BYTES,
+  MAX_SDP_SIZE,
+  MAX_FILE_NAME_LENGTH,
+  MAX_CONTENT_TYPE_LENGTH,
+  MAX_MAGNET_URI_LENGTH,
+  MAX_INFO_HASH_LENGTH,
+} from "@uncorded/shared";
 import { eq, and } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { user, fileReceipts, dmMembers } from "../db/schema.js";
@@ -16,11 +24,6 @@ import { handleIdentify } from "./handlers.js";
 import { resolveChannelMembership } from "../helpers/resolve-channel.js";
 
 const FREE_TIER = "free" as const;
-const MAX_SDP_SIZE = 16_384;
-const MAX_FILE_NAME_LENGTH = 255;
-const MAX_CONTENT_TYPE_LENGTH = 127;
-const MAX_MAGNET_URI_LENGTH = 2048;
-const MAX_INFO_HASH_LENGTH = 128;
 
 const typingStartSchema = z.object({ channelId: z.string().min(1) });
 
@@ -104,156 +107,146 @@ export const gateway = new Elysia().ws("/gateway", {
 
     const ctx = getCtx(ws);
 
-    switch (frame.op) {
-      case Opcode.IDENTIFY: {
-        if (ctx.userId) {
-          ws.close(CloseCode.ALREADY_IDENTIFIED, "Already identified");
-          return;
+    try {
+      switch (frame.op) {
+        case Opcode.IDENTIFY: {
+          if (ctx.userId) {
+            ws.close(CloseCode.ALREADY_IDENTIFIED, "Already identified");
+            return;
+          }
+
+          const result = await handleIdentify(ws.raw, frame.d);
+          if (!result.success) {
+            ws.close(result.closeCode, result.closeReason);
+            return;
+          }
+
+          ctx.userId = result.userId;
+          resetHeartbeatTimeout(ws);
+          break;
         }
 
-        const result = await handleIdentify(ws.raw, frame.d);
-        if (!result.success) {
-          ws.close(result.closeCode, result.closeReason);
-          return;
+        case Opcode.HEARTBEAT: {
+          if (!ctx.userId) {
+            ws.close(CloseCode.NOT_IDENTIFIED, "Not identified");
+            return;
+          }
+          resetHeartbeatTimeout(ws);
+          break;
         }
 
-        ctx.userId = result.userId;
-        resetHeartbeatTimeout(ws);
-        break;
-      }
+        case Opcode.TYPING_START: {
+          if (!ctx.userId) {
+            ws.close(CloseCode.NOT_IDENTIFIED, "Not identified");
+            return;
+          }
 
-      case Opcode.HEARTBEAT: {
-        if (!ctx.userId) {
-          ws.close(CloseCode.NOT_IDENTIFIED, "Not identified");
-          return;
-        }
-        resetHeartbeatTimeout(ws);
-        break;
-      }
+          const parsed = typingStartSchema.safeParse(frame.d);
+          if (!parsed.success) break;
+          const d = parsed.data;
 
-      case Opcode.TYPING_START: {
-        if (!ctx.userId) {
-          ws.close(CloseCode.NOT_IDENTIFIED, "Not identified");
-          return;
-        }
+          const resolution = await resolveChannelMembership(ctx.userId, d.channelId);
+          if (!resolution) break;
 
-        const parsed = typingStartSchema.safeParse(frame.d);
-        if (!parsed.success) break;
-        const d = parsed.data;
-
-        const resolution = await resolveChannelMembership(ctx.userId, d.channelId);
-        if (!resolution) break;
-
-        const [usr] = await db
-          .select({ username: user.username })
-          .from(user)
-          .where(eq(user.id, ctx.userId))
-          .limit(1);
-
-        const typingFrame = {
-          op: Opcode.TYPING_START,
-          d: { channelId: d.channelId, userId: ctx.userId, username: usr?.username ?? null },
-        } as const;
-
-        if (resolution.type === "server") {
-          await broadcastToServer(resolution.serverId, typingFrame, ctx.userId);
-        } else {
-          await broadcastToDm(d.channelId, typingFrame, ctx.userId);
-        }
-        break;
-      }
-
-      case Opcode.WEBRTC_OFFER:
-      case Opcode.WEBRTC_ANSWER:
-      case Opcode.WEBRTC_ICE_CANDIDATE: {
-        if (!ctx.userId) {
-          ws.close(CloseCode.NOT_IDENTIFIED, "Not identified");
-          return;
-        }
-
-        const parsed = webRtcSignalSchema.safeParse(frame.d);
-        if (!parsed.success) break;
-        const d = parsed.data;
-
-        const resolution = await resolveChannelMembership(ctx.userId, d.channelId);
-        if (!resolution) break;
-
-        // Validate target user is also a member of the same channel context
-        if (resolution.type === "server") {
-          const targetResolution = await resolveChannelMembership(d.targetUserId, d.channelId);
-          if (!targetResolution) break;
-        } else {
-          // DM: verify target is a member of this DM channel
-          const [targetDm] = await db
-            .select({ channelId: dmMembers.channelId })
-            .from(dmMembers)
-            .where(and(eq(dmMembers.channelId, d.channelId), eq(dmMembers.userId, d.targetUserId)))
-            .limit(1);
-          if (!targetDm) break;
-        }
-
-        // Forward to target peer with sender info (silently drop if offline).
-        // Cast is safe: we're inside the combined OFFER/ANSWER/ICE_CANDIDATE case,
-        // so frame.op is one of these three opcodes, but TS can't narrow a union
-        // switch case to a single variant.
-        sendToUser(d.targetUserId, {
-          op: frame.op as Opcode,
-          d: { fromUserId: ctx.userId, channelId: d.channelId, data: d.data },
-        });
-        break;
-      }
-
-      case Opcode.FILE_SHARE: {
-        if (!ctx.userId) {
-          ws.close(CloseCode.NOT_IDENTIFIED, "Not identified");
-          return;
-        }
-
-        const parsed = fileShareSchema.safeParse(frame.d);
-        if (!parsed.success) break;
-        const d = parsed.data;
-
-        const resolution = await resolveChannelMembership(ctx.userId, d.channelId);
-        if (!resolution) break;
-
-        // Free users cannot share files in server channels (DM sharing is always P2P/free)
-        if (resolution.type === "server") {
-          const [fsUser] = await db
-            .select({ subscriptionTier: user.subscriptionTier })
+          const [usr] = await db
+            .select({ username: user.username })
             .from(user)
             .where(eq(user.id, ctx.userId))
             .limit(1);
 
-          if (!fsUser || fsUser.subscriptionTier === FREE_TIER) {
-            sendToUser(ctx.userId, {
-              op: Opcode.ERROR,
-              d: {
-                code: "TIER_RESTRICTED",
-                message: "File sharing in server channels requires a Supporter subscription",
-                channelId: d.channelId,
-              },
-            });
-            break;
+          const typingFrame = {
+            op: Opcode.TYPING_START,
+            d: { channelId: d.channelId, userId: ctx.userId, username: usr?.username ?? null },
+          } as const;
+
+          if (resolution.type === "server") {
+            await broadcastToServer(resolution.serverId, typingFrame, ctx.userId);
+          } else {
+            await broadcastToDm(d.channelId, typingFrame, ctx.userId);
           }
+          break;
         }
 
-        // Insert file receipt
-        const receiptId = createId();
-        await db.insert(fileReceipts).values({
-          id: receiptId,
-          channelId: d.channelId,
-          senderId: ctx.userId,
-          fileName: d.fileName,
-          fileSize: d.fileSize,
-          contentType: d.contentType,
-          magnetUri: d.magnetUri,
-          infoHash: d.infoHash,
-        });
+        case Opcode.WEBRTC_OFFER:
+        case Opcode.WEBRTC_ANSWER:
+        case Opcode.WEBRTC_ICE_CANDIDATE: {
+          if (!ctx.userId) {
+            ws.close(CloseCode.NOT_IDENTIFIED, "Not identified");
+            return;
+          }
 
-        const shareFrame = {
-          op: Opcode.FILE_SHARE,
-          d: {
-            fileReceiptId: receiptId,
+          const parsed = webRtcSignalSchema.safeParse(frame.d);
+          if (!parsed.success) break;
+          const d = parsed.data;
+
+          const resolution = await resolveChannelMembership(ctx.userId, d.channelId);
+          if (!resolution) break;
+
+          // Validate target user is also a member of the same channel context
+          if (resolution.type === "server") {
+            const targetResolution = await resolveChannelMembership(d.targetUserId, d.channelId);
+            if (!targetResolution) break;
+          } else {
+            // DM: verify target is a member of this DM channel
+            const [targetDm] = await db
+              .select({ channelId: dmMembers.channelId })
+              .from(dmMembers)
+              .where(
+                and(eq(dmMembers.channelId, d.channelId), eq(dmMembers.userId, d.targetUserId)),
+              )
+              .limit(1);
+            if (!targetDm) break;
+          }
+
+          // Forward to target peer with sender info (silently drop if offline).
+          // Cast is safe: we're inside the combined OFFER/ANSWER/ICE_CANDIDATE case,
+          // so frame.op is one of these three opcodes, but TS can't narrow a union
+          // switch case to a single variant.
+          sendToUser(d.targetUserId, {
+            op: frame.op as Opcode,
+            d: { fromUserId: ctx.userId, channelId: d.channelId, data: d.data },
+          });
+          break;
+        }
+
+        case Opcode.FILE_SHARE: {
+          if (!ctx.userId) {
+            ws.close(CloseCode.NOT_IDENTIFIED, "Not identified");
+            return;
+          }
+
+          const parsed = fileShareSchema.safeParse(frame.d);
+          if (!parsed.success) break;
+          const d = parsed.data;
+
+          const resolution = await resolveChannelMembership(ctx.userId, d.channelId);
+          if (!resolution) break;
+
+          // Free users cannot share files in server channels (DM sharing is always P2P/free)
+          if (resolution.type === "server") {
+            const [fsUser] = await db
+              .select({ subscriptionTier: user.subscriptionTier })
+              .from(user)
+              .where(eq(user.id, ctx.userId))
+              .limit(1);
+
+            if (!fsUser || fsUser.subscriptionTier === FREE_TIER) {
+              sendToUser(ctx.userId, {
+                op: Opcode.ERROR,
+                d: {
+                  code: "TIER_RESTRICTED",
+                  message: "File sharing in server channels requires a Supporter subscription",
+                  channelId: d.channelId,
+                },
+              });
+              break;
+            }
+          }
+
+          // Insert file receipt
+          const receiptId = createId();
+          await db.insert(fileReceipts).values({
+            id: receiptId,
             channelId: d.channelId,
             senderId: ctx.userId,
             fileName: d.fileName,
@@ -261,50 +254,72 @@ export const gateway = new Elysia().ws("/gateway", {
             contentType: d.contentType,
             magnetUri: d.magnetUri,
             infoHash: d.infoHash,
-          },
-        } as const;
+          });
 
-        if (resolution.type === "server") {
-          await broadcastToServer(resolution.serverId, shareFrame);
-        } else {
-          await broadcastToDm(d.channelId, shareFrame);
+          const shareFrame = {
+            op: Opcode.FILE_SHARE,
+            d: {
+              fileReceiptId: receiptId,
+              channelId: d.channelId,
+              senderId: ctx.userId,
+              fileName: d.fileName,
+              fileSize: d.fileSize,
+              contentType: d.contentType,
+              magnetUri: d.magnetUri,
+              infoHash: d.infoHash,
+            },
+          } as const;
+
+          if (resolution.type === "server") {
+            await broadcastToServer(resolution.serverId, shareFrame);
+          } else {
+            await broadcastToDm(d.channelId, shareFrame);
+          }
+          break;
         }
-        break;
+
+        case Opcode.FILE_AVAILABILITY_UPDATE: {
+          if (!ctx.userId) {
+            ws.close(CloseCode.NOT_IDENTIFIED, "Not identified");
+            return;
+          }
+
+          const parsed = fileAvailabilitySchema.safeParse(frame.d);
+          if (!parsed.success) break;
+          const d = parsed.data;
+
+          const resolution = await resolveChannelMembership(ctx.userId, d.channelId);
+          if (!resolution) break;
+
+          const availFrame = {
+            op: Opcode.FILE_AVAILABILITY_UPDATE,
+            d: {
+              fileReceiptId: d.fileReceiptId,
+              channelId: d.channelId,
+              userId: ctx.userId,
+              available: d.available,
+            },
+          } as const;
+
+          if (resolution.type === "server") {
+            await broadcastToServer(resolution.serverId, availFrame);
+          } else {
+            await broadcastToDm(d.channelId, availFrame);
+          }
+          break;
+        }
+
+        default:
+          break;
       }
-
-      case Opcode.FILE_AVAILABILITY_UPDATE: {
-        if (!ctx.userId) {
-          ws.close(CloseCode.NOT_IDENTIFIED, "Not identified");
-          return;
-        }
-
-        const parsed = fileAvailabilitySchema.safeParse(frame.d);
-        if (!parsed.success) break;
-        const d = parsed.data;
-
-        const resolution = await resolveChannelMembership(ctx.userId, d.channelId);
-        if (!resolution) break;
-
-        const availFrame = {
-          op: Opcode.FILE_AVAILABILITY_UPDATE,
-          d: {
-            fileReceiptId: d.fileReceiptId,
-            channelId: d.channelId,
-            userId: ctx.userId,
-            available: d.available,
-          },
-        } as const;
-
-        if (resolution.type === "server") {
-          await broadcastToServer(resolution.serverId, availFrame);
-        } else {
-          await broadcastToDm(d.channelId, availFrame);
-        }
-        break;
+    } catch (err) {
+      console.error("[gateway] Unexpected error:", err);
+      if (ctx.userId) {
+        sendToUser(ctx.userId, {
+          op: Opcode.ERROR,
+          d: { code: "INTERNAL_ERROR", message: "An unexpected error occurred" },
+        });
       }
-
-      default:
-        break;
     }
   },
 

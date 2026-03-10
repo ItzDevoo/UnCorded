@@ -56,7 +56,6 @@ const DialogContent = (props: DialogContentProps) => {
   // oxlint-disable-next-line eslint(no-unassigned-vars) -- SolidJS ref pattern
   let panelRef!: HTMLDivElement;
 
-  // eslint-disable-next-line solid/reactivity -- focus trap + scroll lock run once on mount
   onMount(() => {
     const first = panelRef.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
     first?.focus();

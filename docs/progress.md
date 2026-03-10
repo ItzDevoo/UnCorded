@@ -6,10 +6,25 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Pre-Week 3.5 — UI Overhaul planned (t3Code-inspired redesign)
+## Current Status: Week 3.5 Phase 4 complete — UI Overhaul nearly done
 
-Main at 43e0084 (pushed). 14+ review cycles complete, health score 9.5/10. All review debt cleared. Schema fully synced.
-Next: Week 3.5 UI overhaul — replace Discord-clone layout with distinctive, modern design inspired by t3Code.
+Phase 4 (pages, modals, polish) complete. Auth pages have brand wordmark + gradient + fade-in. Friends page uses Input/Empty components. Message list has skeleton loading + Empty states. Dialogs responsive on mobile. Accessibility polish on logout button.
+Next: Final verification pass, then Week 4 (Stripe subscriptions + server file sharing).
+
+---
+
+### Week 3.5 Phase 4 — Pages, Modals, Polish — 2026-03-10
+
+**What was done:**
+
+- Auth pages redesign: brand wordmark moved to AuthLayout, radial gradient background, animate-fade-in on card, shadow-md, removed duplicate h2 from Login/Register, label classes updated to text-sm text-muted-foreground, animate-fade-in on forms
+- Friends page refresh: raw input replaced with Input component, 3 empty states replaced with Empty component, header height h-12→h-14, gap-4→gap-3
+- VirtualMessageList: spinner replaced with 6 MessageSkeleton components (header/body variants), empty state replaced with Empty + chat bubble SVG icon
+- ChatArea: "Select a channel" text replaced with Empty + speech bubble SVG icon
+- AppLayout gateway states: connecting text updated to "Connecting to UnCorded..." with animate-fade-in, disconnected state replaced with Empty + warning icon SVG
+- Dialog responsive sizing: added mx-4 sm:mx-0 max-h-[85vh] overflow-y-auto to panel
+- AppSidebar: aria-label="Log out" added to logout button
+- All checks pass: typecheck (0 errors), lint (0 warnings)
 
 ---
 

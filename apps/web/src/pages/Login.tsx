@@ -35,7 +35,6 @@ const Login = () => {
 
   return (
     <AuthLayout>
-      <h2 class="mb-6 text-center text-lg font-bold tracking-tight text-primary">UnCorded</h2>
       <h1 class="mb-2 text-center text-2xl font-bold text-foreground">Welcome back</h1>
       <p class="mb-6 text-center text-sm text-secondary-foreground">
         Sign in to continue to UnCorded
@@ -50,9 +49,9 @@ const Login = () => {
         </div>
       </Show>
 
-      <form onSubmit={handleSubmit} class="space-y-4">
+      <form onSubmit={handleSubmit} class="animate-fade-in space-y-4">
         <div>
-          <label class="mb-1 block text-xs font-medium uppercase text-secondary-foreground">
+          <label class="mb-1 block text-sm font-medium text-muted-foreground">
             Email
           </label>
           <Input
@@ -63,7 +62,7 @@ const Login = () => {
           />
         </div>
         <div>
-          <label class="mb-1 block text-xs font-medium uppercase text-secondary-foreground">
+          <label class="mb-1 block text-sm font-medium text-muted-foreground">
             Password
           </label>
           <Input

@@ -238,6 +238,7 @@ const AppSidebar = () => {
             onClick={handleLogout}
             class="rounded p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-destructive"
             title="Log out"
+            aria-label="Log out"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

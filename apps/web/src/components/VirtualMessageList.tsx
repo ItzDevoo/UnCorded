@@ -4,8 +4,25 @@ import type { AnyChannelId } from "@uncorded/protocol";
 import { readyData } from "../lib/gateway-store.js";
 import { fetchMessages, getMessages } from "../stores/message-store.js";
 import { getReceipts } from "../stores/file-store.js";
+import { Skeleton } from "./ui/skeleton.js";
+import { Empty } from "./ui/empty.js";
 import MessageBubble from "./MessageBubble.js";
 import FileMessage from "./FileMessage.js";
+
+const MessageSkeleton = (props: { showHeader?: boolean }) => (
+  <div class="px-4 py-1">
+    <Show when={props.showHeader}>
+      <div class="mb-1 flex items-center gap-2">
+        <Skeleton class="h-8 w-8 rounded-full" />
+        <Skeleton class="h-4 w-24 rounded" />
+        <Skeleton class="h-3 w-16 rounded" />
+      </div>
+    </Show>
+    <div class="pl-10">
+      <Skeleton class="h-4 w-full max-w-md rounded" />
+    </div>
+  </div>
+);
 
 const SCROLL_BOTTOM_THRESHOLD = 100;
 const OVERSCAN = 5;
@@ -75,8 +92,13 @@ const VirtualMessageList = (props: { channelId: AnyChannelId }) => {
   return (
     <div ref={scrollRef} onScroll={handleScroll} class="min-h-0 flex-1 overflow-y-auto">
       <Show when={loading()}>
-        <div class="flex min-h-[100px] justify-center py-4">
-          <div class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <div class="space-y-3 py-4">
+          <MessageSkeleton showHeader />
+          <MessageSkeleton />
+          <MessageSkeleton />
+          <MessageSkeleton showHeader />
+          <MessageSkeleton />
+          <MessageSkeleton />
         </div>
       </Show>
 
@@ -84,9 +106,16 @@ const VirtualMessageList = (props: { channelId: AnyChannelId }) => {
         when={messages().length > 0}
         fallback={
           <Show when={!loading()}>
-            <div class="flex h-full items-center justify-center pb-4">
-              <p class="text-muted-foreground">No messages yet. Start the conversation!</p>
-            </div>
+            <Empty
+              title="No messages yet"
+              description="Start the conversation!"
+              icon={
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
+                </svg>
+              }
+              class="h-full"
+            />
           </Show>
         }
       >

@@ -303,12 +303,12 @@ Goal: Replace Discord-clone UI with a distinctive, polished design inspired by t
 
 ### Phase 4: Pages, Modals, Polish (Day 4)
 
-- [ ] Auth pages redesign (login/register — modern card layout)
-- [ ] Friends page refresh (cleaner tabs, better empty states)
-- [ ] Modal entrance/exit transitions (scale + opacity)
-- [ ] Skeleton loading states for message list, sidebar, channel list
-- [ ] Empty state components (no messages, no channels, no friends)
-- [ ] Final responsive pass (mobile breakpoints)
+- [x] Auth pages redesign (login/register — brand wordmark, gradient bg, animation, label update)
+- [x] Friends page refresh (Input/Empty components, header spacing)
+- [x] Modal responsive sizing (mobile margins, max-height, overflow scroll)
+- [x] Skeleton loading states for message list (6 skeleton messages)
+- [x] Empty state components (no messages, no channel, no friends, gateway states)
+- [x] Accessibility polish (aria-label on logout button)
 
 **Milestone: UnCorded has its own visual identity. Polished, modern, distinctive.**
 

@@ -5,8 +5,7 @@ import { gatewayStatus } from "../lib/gateway-store.js";
 import { selectedServerId, selectedDmChannelId } from "../stores/app-store.js";
 import "../lib/gateway-errors.js";
 import AuthGuard from "./AuthGuard.js";
-import ServerSidebar from "./ServerSidebar.js";
-import ChannelSidebar from "./ChannelSidebar.js";
+import AppSidebar from "./AppSidebar.js";
 import ChatArea from "./ChatArea.js";
 import { ToastContainer } from "./ui/toast.js";
 
@@ -26,8 +25,7 @@ const AppLayout: ParentComponent = (props) => {
     <AuthGuard>
       <ToastContainer />
       <div class="flex h-screen overflow-hidden">
-        <ServerSidebar />
-        <ChannelSidebar />
+        <AppSidebar />
         <main class="flex min-w-0 flex-1 flex-col bg-secondary">
           <Show
             when={gatewayStatus() === "connected"}

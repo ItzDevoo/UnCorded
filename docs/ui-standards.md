@@ -124,15 +124,21 @@ Use Tailwind's default spacing scale. Common patterns:
 ### App Shell
 
 ```
-┌──────┬──────────┬──────────────────────┐
-│ 72px │  240px   │       flex-1         │
-│Server│ Channel  │     Main Area        │
-│ List │  List    │                      │
-│      │          │                      │
-│      │──────────│                      │
-│      │User Panel│                      │
-└──────┴──────────┴──────────────────────┘
+┌────────────┬───────────────────────────┐
+│   288px    │         flex-1            │
+│  Sidebar   │       Main Area          │
+│ ┌────────┐ │                           │
+│ │Switcher│ │                           │
+│ ├────────┤ │                           │
+│ │Channels│ │                           │
+│ │ or DMs │ │                           │
+│ ├────────┤ │                           │
+│ │  User  │ │                           │
+│ └────────┘ │                           │
+└────────────┴───────────────────────────┘
 ```
+
+Single sidebar with dropdown server switcher, unified channel/DM list, and user panel.
 
 ---
 
@@ -331,6 +337,48 @@ A subtle SVG noise overlay on `body::after` adds texture to all surfaces:
 - `z-index: 9999` — above all content
 - Uses inline SVG `feTurbulence` filter for fractal noise at 256×256px tile size
 - `body` has `relative` for stacking context
+
+---
+
+## Sidebar
+
+Composable sidebar primitives for the app shell. File: `components/ui/sidebar.tsx`
+
+### Subcomponents
+
+| Component | Element | Purpose |
+|-----------|---------|---------|
+| `Sidebar` | `<aside>` | Root container — `w-72`, `bg-sidebar`, `border-r` |
+| `SidebarHeader` | `<div>` | Top section — houses ServerSwitcher |
+| `SidebarContent` | `ScrollArea` | Scrollable middle — channels or DMs |
+| `SidebarFooter` | `<div>` | Bottom section — user panel, `border-t` |
+| `SidebarGroup` | `<div>` | Labeled section with optional collapse (`collapsible`, `defaultOpen`) |
+| `SidebarMenu` | `<ul>` | Menu list container |
+| `SidebarMenuItem` | `<li>` | Menu item with `group/menu-item` for hover actions |
+| `SidebarMenuButton` | `<button>` | Interactive item — `active` prop toggles `bg-accent` |
+| `SidebarMenuAction` | `<button>` | Hover-revealed action button (right-aligned) |
+
+### SidebarGroup Collapsible
+
+```tsx
+<SidebarGroup label="Channels" collapsible defaultOpen>
+  <SidebarMenu>{/* items */}</SidebarMenu>
+</SidebarGroup>
+```
+
+When `collapsible` is set, the label header shows a chevron and toggles children visibility on click.
+
+### ServerSwitcher
+
+Dropdown in `SidebarHeader` for switching between Home and servers. Uses `Portal` + fixed backdrop for click-outside dismiss (same pattern as Dialog). File: `components/ServerSwitcher.tsx`
+
+### AppSidebar
+
+Composes all sidebar primitives with app data. Owns modal signals for Create/Join/Invite. File: `components/AppSidebar.tsx`
+
+- **Server view:** Channels group + Invite People button
+- **Home view:** Friends button + Direct Messages group
+- **Footer:** User avatar, username, online status, logout
 
 ---
 

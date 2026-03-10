@@ -1,4 +1,4 @@
-import { createSignal, Show } from "solid-js";
+import { createSignal, Show, For } from "solid-js";
 import { Opcode, type AnyChannelId } from "@uncorded/protocol";
 import { TYPING_THROTTLE_MS } from "@uncorded/shared";
 import { api, ApiRequestError } from "../lib/api.js";
@@ -110,14 +110,23 @@ const MessageInput = (props: { channelId: AnyChannelId; onFileSelect?: (file: Fi
       <div class="h-5 px-2 pt-1">
         <Show when={typingText()}>
           {(text) => (
-            <span class="text-xs text-muted-foreground">
-              {text()}
-              <span class="typing-dots">
-                <span class="dot" />
-                <span class="dot" />
-                <span class="dot" />
+            <div class="flex items-center gap-1.5 h-5">
+              <For each={typingUsers()}>
+                {(user) => (
+                  <div class="flex h-5 w-5 items-center justify-center rounded-full bg-primary/15 text-[10px] font-semibold text-primary">
+                    {(user.username?.[0] ?? "?").toUpperCase()}
+                  </div>
+                )}
+              </For>
+              <span class="text-xs text-muted-foreground">
+                {text()}
+                <span class="typing-dots">
+                  <span class="dot" />
+                  <span class="dot" />
+                  <span class="dot" />
+                </span>
               </span>
-            </span>
+            </div>
           )}
         </Show>
       </div>

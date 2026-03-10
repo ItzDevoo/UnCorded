@@ -1,3 +1,18 @@
+import { createSignal, Show } from "solid-js";
+import type { AnyChannelId } from "@uncorded/protocol";
+import { api, ApiRequestError } from "../lib/api.js";
+import { readyData } from "../lib/gateway-store.js";
+import { currentServer } from "../stores/app-store.js";
+import { showToast } from "./ui/toast.js";
+import { Button } from "./ui/button.js";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "./ui/dialog.js";
 import type { Message } from "../stores/message-store.js";
 
 const ONE_MINUTE_MS = 60_000;
@@ -21,30 +36,277 @@ function formatTimestamp(iso: string): string {
   });
 }
 
-const MessageBubble = (props: { message: Message; isOwn: boolean }) => {
+function getInitial(message: Message): string {
+  const name = message.author.displayName || message.author.username || "?";
+  return name[0]?.toUpperCase() ?? "?";
+}
+
+// ── SVG Icons ────────────────────────────────────────────────────────────────
+
+const CopyIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+    <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+  </svg>
+);
+
+const PencilIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+    <path d="m15 5 4 4" />
+  </svg>
+);
+
+const TrashIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 6h18" />
+    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+  </svg>
+);
+
+// ── Component ────────────────────────────────────────────────────────────────
+
+interface MessageBubbleProps {
+  message: Message;
+  isOwn: boolean;
+  showHeader: boolean;
+  channelId: AnyChannelId;
+}
+
+const MessageBubble = (props: MessageBubbleProps) => {
+  const [editing, setEditing] = createSignal(false);
+  const [editContent, setEditContent] = createSignal(props.message.content);
+  const [saving, setSaving] = createSignal(false);
+  const [showDeleteDialog, setShowDeleteDialog] = createSignal(false);
+  const [deleting, setDeleting] = createSignal(false);
+
   const displayName = () =>
     props.message.author.displayName || props.message.author.username || "Unknown";
 
-  return (
-    <div class={`group flex gap-3 px-4 py-1 hover:bg-accent ${props.isOwn ? "bg-primary/5" : ""}`}>
-      <div class="mt-0.5 h-8 w-8 shrink-0 rounded-full bg-muted" />
-      <div class="min-w-0 flex-1">
-        <div class="flex items-baseline gap-2">
-          <span class={`text-sm font-semibold ${props.isOwn ? "text-primary" : "text-foreground"}`}>
-            {displayName()}
-          </span>
-          <span class="text-xs text-muted-foreground">
-            {formatTimestamp(props.message.createdAt)}
-          </span>
-        </div>
-        <p class="break-words text-sm text-secondary-foreground">
-          {props.message.content}
-          {props.message.editedAt && (
-            <span class="ml-1 text-xs text-muted-foreground">(edited)</span>
-          )}
-        </p>
-      </div>
+  const canDelete = () => {
+    if (props.isOwn) return true;
+    const server = currentServer();
+    if (!server) return false; // DM — own messages only
+    return server.ownerId === readyData.data?.user.id;
+  };
+
+  // ── Actions ──────────────────────────────────────────────────────────────
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(props.message.content);
+    } catch {
+      showToast("Failed to copy", "error");
+    }
+  }
+
+  function startEdit() {
+    setEditContent(props.message.content);
+    setEditing(true);
+  }
+
+  async function saveEdit() {
+    const text = editContent().trim();
+    if (!text || saving()) return;
+    if (text === props.message.content) {
+      setEditing(false);
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await api(`/api/channels/${props.channelId}/messages/${props.message.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ content: text }),
+      });
+      setEditing(false);
+    } catch (err) {
+      const message = err instanceof ApiRequestError ? err.body.message : "Failed to edit message";
+      showToast(message, "error");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function cancelEdit() {
+    setEditing(false);
+    setEditContent(props.message.content);
+  }
+
+  function handleEditKeyDown(e: KeyboardEvent) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      cancelEdit();
+    } else if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      saveEdit();
+    }
+  }
+
+  async function handleDelete() {
+    if (deleting()) return;
+    setDeleting(true);
+    try {
+      await api(`/api/channels/${props.channelId}/messages/${props.message.id}`, {
+        method: "DELETE",
+      });
+      setShowDeleteDialog(false);
+    } catch (err) {
+      const message =
+        err instanceof ApiRequestError ? err.body.message : "Failed to delete message";
+      showToast(message, "error");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  // ── Toolbar ──────────────────────────────────────────────────────────────
+
+  const toolbarBtnClass =
+    "rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors";
+
+  const Toolbar = () => (
+    <div class="absolute -top-3 right-2 z-10 flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5 shadow-sm opacity-0 transition-opacity group-hover:opacity-100">
+      <button class={toolbarBtnClass} title="Copy" onClick={handleCopy}>
+        <CopyIcon />
+      </button>
+      <Show when={props.isOwn}>
+        <button class={toolbarBtnClass} title="Edit" onClick={startEdit}>
+          <PencilIcon />
+        </button>
+      </Show>
+      <Show when={canDelete()}>
+        <button
+          class={toolbarBtnClass}
+          title="Delete"
+          onClick={() => setShowDeleteDialog(true)}
+        >
+          <TrashIcon />
+        </button>
+      </Show>
     </div>
+  );
+
+  // ── Content (normal vs editing) ──────────────────────────────────────────
+
+  const MessageContent = () => (
+    <Show
+      when={!editing()}
+      fallback={
+        <div class="mt-1">
+          <textarea
+            value={editContent()}
+            onInput={(e) => setEditContent(e.currentTarget.value)}
+            onKeyDown={handleEditKeyDown}
+            rows={2}
+            class="block w-full resize-none rounded-lg bg-input px-3 py-2 text-sm text-foreground outline-none"
+          />
+          <div class="mt-1 flex items-center gap-2">
+            <Button size="sm" onClick={saveEdit} disabled={saving()}>
+              {saving() ? "Saving..." : "Save"}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={cancelEdit}>
+              Cancel
+            </Button>
+            <span class="text-xs text-muted-foreground">
+              Enter to save, Esc to cancel
+            </span>
+          </div>
+        </div>
+      }
+    >
+      <p class="break-words text-sm leading-relaxed text-foreground/90">
+        {props.message.content}
+        {props.message.editedAt && (
+          <span class="ml-1 text-xs italic text-muted-foreground">(edited)</span>
+        )}
+      </p>
+    </Show>
+  );
+
+  // ── Avatar ───────────────────────────────────────────────────────────────
+
+  const Avatar = () => (
+    <Show
+      when={props.message.author.avatarUrl}
+      fallback={
+        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
+          {getInitial(props.message)}
+        </div>
+      }
+    >
+      {(url) => (
+        <img
+          src={url()}
+          alt={displayName()}
+          class="h-9 w-9 shrink-0 rounded-full object-cover"
+        />
+      )}
+    </Show>
+  );
+
+  // ── Delete Dialog ────────────────────────────────────────────────────────
+
+  const DeleteDialog = () => (
+    <Dialog open={showDeleteDialog()} onOpenChange={setShowDeleteDialog}>
+      <DialogContent onClose={() => setShowDeleteDialog(false)}>
+        <DialogHeader>
+          <DialogTitle>Delete Message</DialogTitle>
+          <DialogDescription>Are you sure? This cannot be undone.</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setShowDeleteDialog(false)}>
+            Cancel
+          </Button>
+          <Button variant="destructive" onClick={handleDelete} disabled={deleting()}>
+            {deleting() ? "Deleting..." : "Delete"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
+  // ── Render ───────────────────────────────────────────────────────────────
+
+  return (
+    <>
+      <Show
+        when={props.showHeader}
+        fallback={
+          <div
+            class={`group relative px-4 py-0.5 hover:bg-accent/50 ${props.isOwn ? "border-l-2 border-primary/30" : ""}`}
+          >
+            <Toolbar />
+            <div class="flex gap-3">
+              <div class="w-9 shrink-0" />
+              <div class="min-w-0 flex-1">
+                <MessageContent />
+              </div>
+            </div>
+          </div>
+        }
+      >
+        <div
+          class={`group relative px-4 pt-3 py-1 hover:bg-accent/50 ${props.isOwn ? "border-l-2 border-primary/30" : ""}`}
+        >
+          <Toolbar />
+          <div class="flex gap-3">
+            <Avatar />
+            <div class="min-w-0 flex-1">
+              <div class="flex items-baseline gap-2">
+                <span class="text-sm font-semibold text-foreground">{displayName()}</span>
+                <span class="text-xs text-muted-foreground">
+                  {formatTimestamp(props.message.createdAt)}
+                </span>
+              </div>
+              <MessageContent />
+            </div>
+          </div>
+        </div>
+      </Show>
+      <DeleteDialog />
+    </>
   );
 };
 

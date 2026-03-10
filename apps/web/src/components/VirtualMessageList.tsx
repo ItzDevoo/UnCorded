@@ -9,6 +9,7 @@ import FileMessage from "./FileMessage.js";
 
 const SCROLL_BOTTOM_THRESHOLD = 100;
 const OVERSCAN = 5;
+const GROUP_GAP_MS = 5 * 60 * 1000;
 
 const VirtualMessageList = (props: { channelId: AnyChannelId }) => {
   // oxlint-disable-next-line no-unassigned-vars -- SolidJS ref pattern, assigned via JSX ref={}
@@ -21,12 +22,24 @@ const VirtualMessageList = (props: { channelId: AnyChannelId }) => {
   const currentUserId = createMemo(() => readyData.data?.user.id);
   const fileReceipts = createMemo(() => getReceipts(props.channelId));
 
+  function shouldShowHeader(index: number): boolean {
+    if (index === 0) return true;
+    const msgs = messages();
+    const prev = msgs[index - 1];
+    const curr = msgs[index];
+    if (!prev || !curr) return true;
+    if (prev.author.id !== curr.author.id) return true;
+    const prevTime = new Date(prev.createdAt).getTime();
+    const currTime = new Date(curr.createdAt).getTime();
+    return currTime - prevTime > GROUP_GAP_MS;
+  }
+
   const virtualizer = createVirtualizer({
     get count() {
       return messages().length;
     },
     getScrollElement: () => scrollRef,
-    estimateSize: () => 44,
+    estimateSize: (i) => (shouldShowHeader(i) ? 52 : 28),
     overscan: OVERSCAN,
     measureElement: (el) => el.getBoundingClientRect().height,
   });
@@ -95,7 +108,12 @@ const VirtualMessageList = (props: { channelId: AnyChannelId }) => {
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
-                <MessageBubble message={msg} isOwn={msg.author.id === currentUserId()} />
+                <MessageBubble
+                  message={msg}
+                  isOwn={msg.author.id === currentUserId()}
+                  showHeader={shouldShowHeader(virtualRow.index)}
+                  channelId={props.channelId}
+                />
               </div>
             );
           })}

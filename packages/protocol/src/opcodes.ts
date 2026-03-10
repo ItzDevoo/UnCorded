@@ -20,8 +20,16 @@ export enum Opcode {
   /** Both: presence change */
   PRESENCE_UPDATE = 20,
 
-  /** Server -> Client: file expired */
-  FILE_EXPIRED = 30,
+  /** Client -> Server: WebRTC SDP offer for P2P connection */
+  WEBRTC_OFFER = 30,
+  /** Client -> Server: WebRTC SDP answer in response to offer */
+  WEBRTC_ANSWER = 31,
+  /** Client -> Server: WebRTC ICE candidate for NAT traversal */
+  WEBRTC_ICE_CANDIDATE = 32,
+  /** Client -> Server: file shared via P2P (stores receipt, broadcasts to channel) */
+  FILE_SHARE = 33,
+  /** Client -> Server: seeder availability changed for a file */
+  FILE_AVAILABILITY_UPDATE = 34,
 
   /** Server -> Client: channel created */
   CHANNEL_CREATE = 40,

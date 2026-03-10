@@ -1,9 +1,22 @@
 import { createSignal, createMemo, createEffect, createRoot } from "solid-js";
-import type { ServerId, ChannelId } from "@uncorded/protocol";
+import type { ServerId, ChannelId, DmChannelId } from "@uncorded/protocol";
 import { readyData, type ReadyServer, type ReadyChannel } from "../lib/gateway-store.js";
 
 const [selectedServerId, setSelectedServerId] = createSignal<ServerId | null>(null);
 const [selectedChannelId, setSelectedChannelId] = createSignal<ChannelId | null>(null);
+const [selectedDmChannelId, setSelectedDmChannelId] = createSignal<DmChannelId | null>(null);
+
+function selectDmChannel(id: DmChannelId) {
+  setSelectedServerId(null);
+  setSelectedChannelId(null);
+  setSelectedDmChannelId(id);
+}
+
+function selectHome() {
+  setSelectedServerId(null);
+  setSelectedChannelId(null);
+  setSelectedDmChannelId(null);
+}
 
 // All reactive computations must be inside a root for proper SolidJS ownership
 let currentServer: () => ReadyServer | null;
@@ -20,10 +33,10 @@ const dispose = createRoot((d) => {
     return server?.channels.toSorted((a, b) => a.position - b.position) ?? [];
   });
 
-  // Auto-select first server on READY if none selected
+  // Auto-select first server on READY if none selected and no DM active
   createEffect(() => {
     const servers = readyData.data?.servers;
-    if (servers && servers.length > 0 && !selectedServerId()) {
+    if (servers && servers.length > 0 && !selectedServerId() && !selectedDmChannelId()) {
       const first = servers[0];
       if (first) setSelectedServerId(first.id);
     }
@@ -50,6 +63,10 @@ export {
   setSelectedServerId,
   selectedChannelId,
   setSelectedChannelId,
+  selectedDmChannelId,
+  setSelectedDmChannelId,
+  selectDmChannel,
+  selectHome,
   currentServer,
   currentChannels,
 };

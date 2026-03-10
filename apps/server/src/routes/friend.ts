@@ -1,0 +1,390 @@
+import { Elysia } from "elysia";
+import { eq, and, or } from "drizzle-orm";
+import {
+  friendRequestSchema,
+  ValidationError,
+  NotFoundError,
+  ForbiddenError,
+} from "@uncorded/shared";
+import { Opcode, userId as brandUserId } from "@uncorded/protocol";
+import { db } from "../db/index.js";
+import { friendships, user } from "../db/schema.js";
+import { getSession } from "../middleware/auth.js";
+import { sendToUser } from "../ws/connections.js";
+
+export const friendRoutes = new Elysia({ prefix: "/api/friends" })
+  .resolve(async ({ status, request }) => {
+    const session = await getSession(request.headers);
+    if (!session) {
+      return status(401, { code: "UNAUTHORIZED", message: "Authentication required" });
+    }
+    return {
+      user: session.user,
+      session: session.session,
+    };
+  })
+
+  // POST /request — Send friend request
+  .post("/request", async ({ user: sessionUser, body, set }) => {
+    const parsed = friendRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
+    }
+
+    const targetId = parsed.data.userId;
+
+    if (targetId === sessionUser.id) {
+      throw new ValidationError("Cannot send a friend request to yourself");
+    }
+
+    // Check target user exists
+    const [target] = await db
+      .select({ id: user.id })
+      .from(user)
+      .where(eq(user.id, targetId))
+      .limit(1);
+    if (!target) {
+      throw new NotFoundError("User");
+    }
+
+    // Check for existing friendship in either direction
+    const [existing] = await db
+      .select({
+        userId: friendships.userId,
+        friendId: friendships.friendId,
+        status: friendships.status,
+      })
+      .from(friendships)
+      .where(
+        or(
+          and(eq(friendships.userId, sessionUser.id), eq(friendships.friendId, targetId)),
+          and(eq(friendships.userId, targetId), eq(friendships.friendId, sessionUser.id)),
+        ),
+      )
+      .limit(1);
+
+    if (existing) {
+      if (existing.status === "blocked") {
+        throw new ForbiddenError("Cannot send friend request");
+      }
+      if (existing.status === "accepted") {
+        throw new ValidationError("Already friends");
+      }
+      // Auto-accept if target already sent us a request
+      if (existing.userId === targetId && existing.status === "pending") {
+        await db
+          .update(friendships)
+          .set({ status: "accepted" })
+          .where(and(eq(friendships.userId, targetId), eq(friendships.friendId, sessionUser.id)));
+
+        const [me] = await db
+          .select({
+            username: user.username,
+            displayName: user.displayName,
+            avatarUrl: user.avatarUrl,
+            status: user.status,
+          })
+          .from(user)
+          .where(eq(user.id, sessionUser.id))
+          .limit(1);
+
+        const [them] = await db
+          .select({
+            username: user.username,
+            displayName: user.displayName,
+            avatarUrl: user.avatarUrl,
+            status: user.status,
+          })
+          .from(user)
+          .where(eq(user.id, targetId))
+          .limit(1);
+
+        sendToUser(targetId, {
+          op: Opcode.FRIEND_ACCEPT,
+          d: {
+            userId: brandUserId(sessionUser.id),
+            username: me?.username ?? null,
+            displayName: me?.displayName ?? null,
+            avatarUrl: me?.avatarUrl ?? null,
+            status: me?.status ?? "offline",
+          },
+        });
+        sendToUser(sessionUser.id, {
+          op: Opcode.FRIEND_ACCEPT,
+          d: {
+            userId: brandUserId(targetId),
+            username: them?.username ?? null,
+            displayName: them?.displayName ?? null,
+            avatarUrl: them?.avatarUrl ?? null,
+            status: them?.status ?? "offline",
+          },
+        });
+
+        set.status = 200;
+        return { status: "accepted" };
+      }
+      throw new ValidationError("Friend request already pending");
+    }
+
+    // Insert new pending friendship
+    await db.insert(friendships).values({
+      userId: sessionUser.id,
+      friendId: targetId,
+      status: "pending",
+    });
+
+    // Broadcast to target
+    const [me] = await db
+      .select({
+        username: user.username,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+        status: user.status,
+      })
+      .from(user)
+      .where(eq(user.id, sessionUser.id))
+      .limit(1);
+
+    sendToUser(targetId, {
+      op: Opcode.FRIEND_REQUEST,
+      d: {
+        userId: brandUserId(sessionUser.id),
+        username: me?.username ?? null,
+        displayName: me?.displayName ?? null,
+        avatarUrl: me?.avatarUrl ?? null,
+        status: me?.status ?? "offline",
+      },
+    });
+
+    set.status = 201;
+    return { status: "pending" };
+  })
+
+  // POST /:userId/accept — Accept friend request
+  .post("/:userId/accept", async ({ user: sessionUser, params }) => {
+    const [existing] = await db
+      .select({
+        userId: friendships.userId,
+        friendId: friendships.friendId,
+        status: friendships.status,
+      })
+      .from(friendships)
+      .where(
+        and(
+          eq(friendships.userId, params.userId),
+          eq(friendships.friendId, sessionUser.id),
+          eq(friendships.status, "pending"),
+        ),
+      )
+      .limit(1);
+
+    if (!existing) {
+      throw new NotFoundError("Friend request");
+    }
+
+    await db
+      .update(friendships)
+      .set({ status: "accepted" })
+      .where(and(eq(friendships.userId, params.userId), eq(friendships.friendId, sessionUser.id)));
+
+    const [me] = await db
+      .select({
+        username: user.username,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+        status: user.status,
+      })
+      .from(user)
+      .where(eq(user.id, sessionUser.id))
+      .limit(1);
+
+    const [them] = await db
+      .select({
+        username: user.username,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+        status: user.status,
+      })
+      .from(user)
+      .where(eq(user.id, params.userId))
+      .limit(1);
+
+    sendToUser(params.userId, {
+      op: Opcode.FRIEND_ACCEPT,
+      d: {
+        userId: brandUserId(sessionUser.id),
+        username: me?.username ?? null,
+        displayName: me?.displayName ?? null,
+        avatarUrl: me?.avatarUrl ?? null,
+        status: me?.status ?? "offline",
+      },
+    });
+    sendToUser(sessionUser.id, {
+      op: Opcode.FRIEND_ACCEPT,
+      d: {
+        userId: brandUserId(params.userId),
+        username: them?.username ?? null,
+        displayName: them?.displayName ?? null,
+        avatarUrl: them?.avatarUrl ?? null,
+        status: them?.status ?? "offline",
+      },
+    });
+
+    return { status: "accepted" };
+  })
+
+  // POST /:userId/decline — Decline friend request
+  .post("/:userId/decline", async ({ user: sessionUser, params, set }) => {
+    const result = await db
+      .delete(friendships)
+      .where(
+        and(
+          eq(friendships.userId, params.userId),
+          eq(friendships.friendId, sessionUser.id),
+          eq(friendships.status, "pending"),
+        ),
+      )
+      .returning();
+
+    if (result.length === 0) {
+      throw new NotFoundError("Friend request");
+    }
+
+    set.status = 204;
+  })
+
+  // POST /:userId/block — Block user
+  .post("/:userId/block", async ({ user: sessionUser, params }) => {
+    const targetId = params.userId;
+
+    // Delete any existing friendship in either direction
+    await db
+      .delete(friendships)
+      .where(
+        or(
+          and(eq(friendships.userId, sessionUser.id), eq(friendships.friendId, targetId)),
+          and(eq(friendships.userId, targetId), eq(friendships.friendId, sessionUser.id)),
+        ),
+      );
+
+    // Insert block
+    await db.insert(friendships).values({
+      userId: sessionUser.id,
+      friendId: targetId,
+      status: "blocked",
+    });
+
+    sendToUser(targetId, {
+      op: Opcode.FRIEND_REMOVE,
+      d: { userId: brandUserId(sessionUser.id) },
+    });
+
+    return { status: "blocked" };
+  })
+
+  // DELETE /:userId — Remove friend
+  .delete("/:userId", async ({ user: sessionUser, params, set }) => {
+    const targetId = params.userId;
+
+    const result = await db
+      .delete(friendships)
+      .where(
+        and(
+          or(
+            and(eq(friendships.userId, sessionUser.id), eq(friendships.friendId, targetId)),
+            and(eq(friendships.userId, targetId), eq(friendships.friendId, sessionUser.id)),
+          ),
+          eq(friendships.status, "accepted"),
+        ),
+      )
+      .returning();
+
+    if (result.length === 0) {
+      throw new NotFoundError("Friendship");
+    }
+
+    sendToUser(targetId, {
+      op: Opcode.FRIEND_REMOVE,
+      d: { userId: brandUserId(sessionUser.id) },
+    });
+    sendToUser(sessionUser.id, {
+      op: Opcode.FRIEND_REMOVE,
+      d: { userId: brandUserId(targetId) },
+    });
+
+    set.status = 204;
+  })
+
+  // GET / — List accepted friends
+  .get("/", async ({ user: sessionUser }) => {
+    const rows = await db
+      .select({
+        peerId: friendships.friendId,
+        peerIdAlt: friendships.userId,
+        myId: friendships.userId,
+      })
+      .from(friendships)
+      .where(
+        and(
+          or(eq(friendships.userId, sessionUser.id), eq(friendships.friendId, sessionUser.id)),
+          eq(friendships.status, "accepted"),
+        ),
+      );
+
+    const peerIds = rows.map((r) => (r.myId === sessionUser.id ? r.peerId : r.peerIdAlt));
+    if (peerIds.length === 0) return { friends: [] };
+
+    const users = await db
+      .select({
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+        status: user.status,
+      })
+      .from(user)
+      .where(or(...peerIds.map((id) => eq(user.id, id))));
+
+    return {
+      friends: users.map((u) => ({
+        userId: brandUserId(u.id),
+        username: u.username,
+        displayName: u.displayName,
+        avatarUrl: u.avatarUrl,
+        status: u.status,
+      })),
+    };
+  })
+
+  // GET /pending — List incoming pending requests
+  .get("/pending", async ({ user: sessionUser }) => {
+    const rows = await db
+      .select({
+        requesterId: friendships.userId,
+      })
+      .from(friendships)
+      .where(and(eq(friendships.friendId, sessionUser.id), eq(friendships.status, "pending")));
+
+    if (rows.length === 0) return { pending: [] };
+
+    const users = await db
+      .select({
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+        status: user.status,
+      })
+      .from(user)
+      .where(or(...rows.map((r) => eq(user.id, r.requesterId))));
+
+    return {
+      pending: users.map((u) => ({
+        userId: brandUserId(u.id),
+        username: u.username,
+        displayName: u.displayName,
+        avatarUrl: u.avatarUrl,
+        status: u.status,
+      })),
+    };
+  });

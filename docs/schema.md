@@ -16,6 +16,8 @@ Reference: C:\Nexis\apps\server\src\db\schema.ts for implementation patterns.
 
 ### users
 
+Drizzle export is `user` (singular) to match Better Auth convention.
+
 id, name (required, Better Auth), email (unique), email_verified (bool, Better Auth),
 image (nullable, Better Auth), username (unique, nullable — Better Auth username plugin),
 display_username (Better Auth username plugin),
@@ -26,7 +28,7 @@ created_at, updated_at
 -- name, email_verified, image are required by Better Auth core
 -- username, display_username are required by Better Auth username plugin
 -- passwords/sessions managed by Better Auth tables
--- Better Auth session, account, verification tables are defined in our schema (required by Drizzle adapter)
+-- session, account, verification are explicitly defined in our schema (required by Drizzle adapter)
 
 ### servers
 
@@ -65,6 +67,7 @@ created_at
 ### members
 
 (user_id, server_id) PK, nickname, joined_at
+user_id -> users (cascade), server_id -> servers (cascade)
 
 ### roles
 
@@ -74,11 +77,12 @@ permissions (bigint bitfield, default 0), position (int, default 0)
 ### member_roles
 
 (user_id, server_id, role_id) PK
-user_id -> users, server_id -> servers, role_id -> roles (cascade)
+user_id -> users (cascade), server_id -> servers (cascade), role_id -> roles (cascade)
 
 ### friendships
 
 (user_id, friend_id) PK, status (friendship_status, default pending), created_at
+user_id -> users (cascade), friend_id -> users (cascade)
 
 ### dm_channels
 
@@ -87,6 +91,7 @@ id, created_at
 ### dm_members
 
 (channel_id, user_id) PK
+channel_id -> dm_channels (cascade), user_id -> users (cascade)
 
 ### invites
 

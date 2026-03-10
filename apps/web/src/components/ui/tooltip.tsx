@@ -19,13 +19,7 @@ const positionClasses: Record<string, string> = {
 };
 
 const Tooltip = (props: TooltipProps) => {
-  const [local, rest] = splitProps(props, [
-    "content",
-    "side",
-    "delay",
-    "children",
-    "class",
-  ]);
+  const [local, rest] = splitProps(props, ["content", "side", "delay", "children", "class"]);
 
   const [visible, setVisible] = createSignal(false);
   let timer: ReturnType<typeof setTimeout> | undefined;

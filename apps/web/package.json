@@ -19,9 +19,11 @@
     "clsx": "^2.1.1",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4",
+    "webtorrent": "^2.8.5",
     "zod": "3"
   },
   "devDependencies": {
+    "@types/webtorrent": "^0.110.1",
     "solid-js": "^1",
     "vite": "^6",
     "vite-plugin-solid": "^2"

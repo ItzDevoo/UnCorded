@@ -11,5 +11,15 @@ export function encode(frame: GatewayFrame): Uint8Array {
 }
 
 export function decode(data: ArrayLike<number> | BufferSource): GatewayFrame {
-  return msgpackDecode(data as Uint8Array) as GatewayFrame;
+  const result = msgpackDecode(data as Uint8Array);
+  if (
+    typeof result !== "object" ||
+    result === null ||
+    !("op" in result) ||
+    typeof (result as Record<string, unknown>).op !== "number" ||
+    !("d" in result)
+  ) {
+    throw new Error("Invalid GatewayFrame: missing op or d");
+  }
+  return result as GatewayFrame;
 }

@@ -4,5 +4,8 @@ export * from "./schemas/server.js";
 export * from "./schemas/channel.js";
 export * from "./schemas/message.js";
 export * from "./schemas/invite.js";
+export * from "./schemas/friend.js";
+export * from "./schemas/dm.js";
 export * from "./types/index.js";
 export * from "./errors/index.js";
+export * from "./constants.js";

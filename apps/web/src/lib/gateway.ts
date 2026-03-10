@@ -5,6 +5,7 @@ import {
   setGatewayStatus,
   setReadyPayload,
   clearReadyPayload,
+  readyDataSchema,
   type ReadyData,
 } from "./gateway-store.js";
 
@@ -48,20 +49,34 @@ function startHeartbeat(intervalMs: number) {
 }
 
 function handleMessage(event: MessageEvent) {
-  const frame = decode(new Uint8Array(event.data as ArrayBuffer));
+  if (!(event.data instanceof ArrayBuffer)) return;
+  const frame = decode(new Uint8Array(event.data));
 
   switch (frame.op) {
     case Opcode.HELLO: {
-      const { heartbeatInterval } = frame.d as { heartbeatInterval: number };
-      startHeartbeat(heartbeatInterval);
+      if (typeof frame.d !== "object" || frame.d === null || !("heartbeatInterval" in frame.d)) {
+        break;
+      }
+      const raw = (frame.d as Record<string, unknown>).heartbeatInterval;
+      const interval = Number(raw);
+      if (!Number.isFinite(interval) || interval <= 0) break;
+      startHeartbeat(interval);
       sendFrame({ op: Opcode.IDENTIFY, d: { token } });
       break;
     }
     case Opcode.READY: {
+      const parsed = readyDataSchema.safeParse(frame.d);
+      if (!parsed.success) {
+        if (import.meta.env.DEV) {
+          console.error("[gateway] Invalid READY payload:", parsed.error.issues);
+        }
+        ws?.close();
+        break;
+      }
       reconnectAttempts = 0;
       setGatewayStatus("connected");
-      setReadyPayload(frame.d as ReadyData);
-      dispatch(Opcode.READY, frame.d);
+      setReadyPayload(parsed.data as ReadyData);
+      dispatch(Opcode.READY, parsed.data);
       break;
     }
     default: {

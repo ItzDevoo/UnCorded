@@ -1,8 +1,24 @@
-import { eq, inArray } from "drizzle-orm";
+import { eq, and, or, ne, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { Opcode, CloseCode, encode, userId, serverId, channelId } from "@uncorded/protocol";
+import {
+  Opcode,
+  CloseCode,
+  encode,
+  userId,
+  serverId,
+  channelId,
+  dmChannelId,
+} from "@uncorded/protocol";
 import { db } from "../db/index.js";
-import { user, session as sessionTable, servers, channels, members } from "../db/schema.js";
+import {
+  user,
+  session as sessionTable,
+  servers,
+  channels,
+  members,
+  dmMembers,
+  friendships,
+} from "../db/schema.js";
 import { addConnection, type AnyServerWebSocket } from "./connections.js";
 
 const identifySchema = z.object({ token: z.string() });
@@ -52,6 +68,7 @@ export async function handleIdentify(
       displayName: user.displayName,
       avatarUrl: user.avatarUrl,
       status: user.status,
+      subscriptionTier: user.subscriptionTier,
     })
     .from(user)
     .where(eq(user.id, identifiedUserId))
@@ -119,6 +136,107 @@ export async function handleIdentify(
     }),
   );
 
+  // Load DM channels
+  const myDmMemberships = await db
+    .select({ channelId: dmMembers.channelId })
+    .from(dmMembers)
+    .where(eq(dmMembers.userId, identifiedUserId));
+
+  let readyDmChannels: {
+    id: string;
+    otherUser: {
+      id: string;
+      username: string | null;
+      displayName: string | null;
+      avatarUrl: string | null;
+      status: string;
+    };
+  }[] = [];
+
+  if (myDmMemberships.length > 0) {
+    const dmChannelIds = myDmMemberships.map((m) => m.channelId);
+    const otherDmMembers = await db
+      .select({
+        channelId: dmMembers.channelId,
+        userId: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+        status: user.status,
+      })
+      .from(dmMembers)
+      .innerJoin(user, eq(user.id, dmMembers.userId))
+      .where(
+        and(inArray(dmMembers.channelId, dmChannelIds), ne(dmMembers.userId, identifiedUserId)),
+      );
+
+    readyDmChannels = otherDmMembers.map((m) => ({
+      id: dmChannelId(m.channelId) as string,
+      otherUser: {
+        id: userId(m.userId) as string,
+        username: m.username,
+        displayName: m.displayName,
+        avatarUrl: m.avatarUrl,
+        status: m.status,
+      },
+    }));
+  }
+
+  // Load friends
+  const friendshipRows = await db
+    .select({
+      usrId: friendships.userId,
+      frdId: friendships.friendId,
+      status: friendships.status,
+    })
+    .from(friendships)
+    .where(
+      and(
+        or(eq(friendships.userId, identifiedUserId), eq(friendships.friendId, identifiedUserId)),
+        or(eq(friendships.status, "accepted"), eq(friendships.status, "pending")),
+      ),
+    );
+
+  let readyFriends: {
+    userId: string;
+    username: string | null;
+    displayName: string | null;
+    avatarUrl: string | null;
+    status: string;
+    friendshipStatus: string;
+    incoming: boolean;
+  }[] = [];
+
+  if (friendshipRows.length > 0) {
+    const peerIds = friendshipRows.map((r) => (r.usrId === identifiedUserId ? r.frdId : r.usrId));
+    const peerUsers = await db
+      .select({
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+        status: user.status,
+      })
+      .from(user)
+      .where(inArray(user.id, peerIds));
+
+    const peerMap = new Map(peerUsers.map((u) => [u.id, u]));
+
+    readyFriends = friendshipRows.map((r) => {
+      const peerId = r.usrId === identifiedUserId ? r.frdId : r.usrId;
+      const peer = peerMap.get(peerId);
+      return {
+        userId: userId(peerId) as string,
+        username: peer?.username ?? null,
+        displayName: peer?.displayName ?? null,
+        avatarUrl: peer?.avatarUrl ?? null,
+        status: peer?.status ?? "offline",
+        friendshipStatus: r.status,
+        incoming: r.frdId === identifiedUserId && r.status === "pending",
+      };
+    });
+  }
+
   // Send READY
   ws.send(
     Buffer.from(
@@ -127,6 +245,8 @@ export async function handleIdentify(
         d: {
           user: dbUser ?? null,
           servers: readyServers,
+          dmChannels: readyDmChannels,
+          friends: readyFriends,
         },
       }),
     ),

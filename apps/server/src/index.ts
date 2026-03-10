@@ -10,6 +10,8 @@ import { channelRoutes } from "./routes/channel.js";
 import { memberRoutes } from "./routes/member.js";
 import { inviteRoutes } from "./routes/invite.js";
 import { messageRoutes } from "./routes/message.js";
+import { friendRoutes } from "./routes/friend.js";
+import { dmRoutes } from "./routes/dm.js";
 import { gateway } from "./ws/gateway.js";
 
 const app = new Elysia()
@@ -32,6 +34,8 @@ const app = new Elysia()
   .use(memberRoutes)
   .use(inviteRoutes)
   .use(messageRoutes)
+  .use(friendRoutes)
+  .use(dmRoutes)
   .use(gateway)
   .get("/health", () => ({ status: "ok" }))
   .onError(({ code, error, set }) => {

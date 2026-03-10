@@ -1,9 +1,11 @@
-import { createMemo, createEffect, on, Show } from "solid-js";
+import { createMemo, createEffect, on, Show, For } from "solid-js";
 import { createVirtualizer } from "@tanstack/solid-virtual";
 import type { ChannelId } from "@uncorded/protocol";
 import { readyData } from "../lib/gateway-store.js";
 import { fetchMessages, getMessages } from "../stores/message-store.js";
+import { getReceipts } from "../stores/file-store.js";
 import MessageBubble from "./MessageBubble.js";
+import FileMessage from "./FileMessage.js";
 
 const SCROLL_BOTTOM_THRESHOLD = 100;
 const OVERSCAN = 5;
@@ -17,6 +19,7 @@ const VirtualMessageList = (props: { channelId: ChannelId }) => {
   const loading = createMemo(() => channelData()?.loading ?? false);
   const hasMore = createMemo(() => channelData()?.hasMore ?? false);
   const currentUserId = createMemo(() => readyData.data?.user.id);
+  const fileReceipts = createMemo(() => getReceipts(props.channelId));
 
   // Fetch on mount if needed
   createEffect(
@@ -69,11 +72,7 @@ const VirtualMessageList = (props: { channelId: ChannelId }) => {
   }
 
   return (
-    <div
-      ref={scrollRef}
-      onScroll={handleScroll}
-      class="min-h-0 flex-1 overflow-y-auto"
-    >
+    <div ref={scrollRef} onScroll={handleScroll} class="min-h-0 flex-1 overflow-y-auto">
       <Show when={loading()}>
         <div class="flex min-h-[100px] justify-center py-4">
           <div class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -108,13 +107,21 @@ const VirtualMessageList = (props: { channelId: ChannelId }) => {
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
-                <MessageBubble
-                  message={msg}
-                  isOwn={msg.author.id === currentUserId()}
-                />
+                <MessageBubble message={msg} isOwn={msg.author.id === currentUserId()} />
               </div>
             );
           })}
+        </div>
+      </Show>
+
+      {/* File receipts for this channel (rendered below messages) */}
+      <Show when={fileReceipts().length > 0}>
+        <div class="px-4 py-2">
+          <For each={fileReceipts()}>
+            {(receipt) => (
+              <FileMessage receipt={receipt} isOwn={receipt.senderId === currentUserId()} />
+            )}
+          </For>
         </div>
       </Show>
     </div>

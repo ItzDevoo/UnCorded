@@ -107,3 +107,47 @@ This applies to any module that registers global listeners or timers at the top 
 **[W2.5 D5]** — When migrating from a custom Modal wrapper to a compound Dialog component, keep `open={true}` on Dialog since the parent component controls visibility (only renders the modal when needed). Use `onOpenChange={() => props.onClose()}` for backdrop click and Escape key dismiss.
 
 **[W2.5 D5]** — TypeScript index signatures can't use branded types. `Record<ChannelId, number>` won't work because branded types aren't valid index types. Use `Record<string, number>` with a documenting comment instead.
+
+**[W3 D1-2]** — When adding multiple switch cases in gateway.ts that all do membership checks, use unique variable prefixes (e.g., `sigCh`, `fsCh`, `faCh`) to avoid redeclaration errors within the same switch scope. Each case block shares the function scope for `const`/`let` declarations.
+
+**[W3 D1-2]** — On Windows, `netstat -ano | findstr :<port>` output includes LISTENING/ESTABLISHED/TIME_WAIT rows. Only parse LISTENING rows to find the process that owns the port. The PID is always the last whitespace-separated token.
+
+**[W3 D1-2]** — After killing a process on a port, add a brief delay (~500ms) before rechecking port availability. The OS needs time to release the socket, especially on Windows where TIME_WAIT can linger.
+
+**[W3 D3-4]** — WebTorrent's constructor does NOT accept `rtcConfig` directly. STUN/TURN config must be set via `@thaunknown/simple-peer`'s static `Peer.config` property before creating the WebTorrent instance. This is because WebTorrent creates simple-peer instances internally for all WebRTC connections.
+
+**[W3 D3-4]** — WebTorrent's `TorrentFile.getBlob()` is callback-based, not Promise-based: `file.getBlob((err, blob) => ...)`. Wrap in a Promise for async/await usage. Same applies to `getBuffer()` and `getBlobURL()`.
+
+**[W3 D3-4]** — When splitting a shared payload type into request/broadcast variants (e.g., `FileSharePayload` → `FileShareRequest` + `FileShareBroadcast`), the request type contains what the client sends (no server-generated fields), and the broadcast type adds server-enriched fields (senderId, fileReceiptId). The server gateway handler bridges the two by inserting the DB record and adding the extra fields before broadcasting.
+
+**[W3 D3-4]** — WebRTC signaling handlers should validate target user membership, not just sender membership. Without this check, any authenticated user in a server could send signaling frames to users who aren't members of the same server, which is a security gap.
+
+**[W3 D5-6]** — `decode()` in the protocol codec should validate the shape of the decoded MessagePack data (must have `op` as number and `d` field). Without this, any malformed binary frame would be silently cast to `GatewayFrame`, potentially causing downstream crashes. Throw on invalid shape since callers already wrap in try/catch.
+
+**[W3 D5-6]** — Zod schemas for WS payloads should have bounds (`.min(1)`, `.max(255)`, `.positive()`, `.startsWith("magnet:")`) to prevent empty strings and oversized payloads from being accepted. Defense in depth — even though the client constructs valid payloads, the server should enforce constraints.
+
+**[W3 D5-6]** — Elysia's `ws.message(ws, raw)` callback receives `raw` that may be `Uint8Array` or `ArrayBuffer` depending on the runtime path. Using `raw as Uint8Array` directly can fail. Safe pattern: `raw instanceof Uint8Array ? raw : new Uint8Array(raw as ArrayBuffer)`.
+
+**[W3 D5-6]** — Browser `MessageEvent.data` should be checked with `instanceof ArrayBuffer` before casting, even when `ws.binaryType = "arraybuffer"` is set. Text frames or edge cases could produce non-ArrayBuffer data.
+
+**[W3 D5-6]** — SolidJS drag-and-drop: use a `dragCounter` (increment on dragenter, decrement on dragleave) instead of a simple boolean to handle nested child elements that fire their own drag events. Without this, the overlay flickers as the cursor moves over child elements.
+
+**[W3 D5-6]** — `downloadFile()` in file-store should return `File[]` (not `void`) so callers can use the downloaded files for thumbnail generation or other processing. Re-throw errors after updating store state so callers can handle them too.
+
+**[W3 D7]** — When both seed and download use WebTorrent, attach a client-level error handler BEFORE calling `c.seed()` or `c.add()`, then remove it after the torrent-specific handler is attached. This prevents seed errors from being silently swallowed when the callback hasn't fired yet (race condition between error and success).
+
+**[W3 D7]** — `z.unknown()` in server-side Zod schemas is an unbounded security hole. WebRTC signaling data should be bounded: SDP strings ≤16KB (typical SDP is ~2KB), ICE candidates as `z.record(z.string(), z.unknown())`. Always bound string fields with `.max()`.
+
+**[W3 D7]** — When implementing DM message support alongside server channel messages, use a `resolveChannel()` function that tries server channels first, then DM channels. This avoids duplicating auth/membership checks across every route handler. Use a discriminated union return type (`{ type: "server"; serverId } | { type: "dm" }`) to branch on broadcast behavior.
+
+**[W3 D7]** — Drizzle intersection query for "find DM where both users are members": use a subquery to find all channelIds for user A, then query dm_members where userId=B AND channelId IN (subquery). This avoids a self-join and is simpler to read.
+
+**[W3 D7]** — Console output in production: gate ALL `console.warn` and `console.error` calls in client-side code behind `if (import.meta.env.DEV)`. Server-side console.error stays (useful for production monitoring). This prevents information leakage in production browser consoles.
+
+**[W3 D7]** — Zod `.default([])` on optional array fields in READY schema provides backwards compatibility during development. Old server versions that don't send `dmChannels` or `friends` will parse successfully with empty arrays instead of failing validation.
+
+**[W3 Post-Review]** — When importing branded type constructor functions that share names with function parameters (e.g., `channelId` function vs `channelId: ChannelId` parameter), use aliased imports (`import { channelId as toChannelId }`) to avoid Oxlint's no-shadow warnings.
+
+**[W3 Post-Review]** — Constants shared between server and client (like MAX_FILE_SIZE_BYTES) belong in `packages/shared/src/constants.ts`, not duplicated in both codebases. Create a constants barrel file and export from the shared package index.
+
+**[W3 Post-Review]** — When a server READY payload omits a field that the client needs (e.g., subscriptionTier), the client must cast to access it, which always returns undefined. Fix both ends: add the field to the server select AND the client ReadyUser interface + Zod schema simultaneously.

@@ -1,13 +1,42 @@
 import { Elysia } from "elysia";
 import { z } from "zod";
 import { Opcode, CloseCode, encode, decode } from "@uncorded/protocol";
+import { createId, MAX_FILE_SIZE_BYTES } from "@uncorded/shared";
 import { eq, and } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { user, channels, members } from "../db/schema.js";
-import { removeConnection, getConnections, broadcastToServer } from "./connections.js";
+import { user, channels, members, fileReceipts } from "../db/schema.js";
+import { removeConnection, getConnections, sendToUser, broadcastToServer } from "./connections.js";
 import { handleIdentify } from "./handlers.js";
 
-const typingStartSchema = z.object({ channelId: z.string() });
+const FREE_TIER = "free" as const;
+
+const typingStartSchema = z.object({ channelId: z.string().min(1) });
+
+const webRtcSignalSchema = z.object({
+  targetUserId: z.string().min(1),
+  channelId: z.string().min(1),
+  data: z.union([
+    z.string().max(16_384),
+    z
+      .record(z.string(), z.unknown())
+      .refine((r) => JSON.stringify(r).length <= 16_384, "ICE candidate too large"),
+  ]),
+});
+
+const fileShareSchema = z.object({
+  channelId: z.string().min(1),
+  fileName: z.string().min(1).max(255),
+  fileSize: z.number().int().positive().max(MAX_FILE_SIZE_BYTES),
+  contentType: z.string().min(1).max(127),
+  magnetUri: z.string().min(1).max(2048).startsWith("magnet:"),
+  infoHash: z.string().min(1).max(128),
+});
+
+const fileAvailabilitySchema = z.object({
+  fileReceiptId: z.string().min(1),
+  channelId: z.string().min(1),
+  available: z.boolean(),
+});
 
 const HEARTBEAT_INTERVAL = 30_000;
 const HEARTBEAT_TIMEOUT = 45_000;
@@ -52,7 +81,10 @@ export const gateway = new Elysia().ws("/gateway", {
 
     let frame: { op: number; d: unknown };
     try {
-      frame = decode(raw as Uint8Array);
+      const bytes =
+        raw instanceof Uint8Array ? raw : raw instanceof ArrayBuffer ? new Uint8Array(raw) : null;
+      if (!bytes) return;
+      frame = decode(bytes);
     } catch {
       ws.close(CloseCode.INVALID_FRAME, "Invalid MessagePack frame");
       return;
@@ -125,6 +157,157 @@ export const gateway = new Elysia().ws("/gateway", {
           },
           ctx.userId,
         );
+        break;
+      }
+
+      case Opcode.WEBRTC_OFFER:
+      case Opcode.WEBRTC_ANSWER:
+      case Opcode.WEBRTC_ICE_CANDIDATE: {
+        if (!ctx.userId) {
+          ws.close(CloseCode.NOT_IDENTIFIED, "Not identified");
+          return;
+        }
+
+        const parsed = webRtcSignalSchema.safeParse(frame.d);
+        if (!parsed.success) break;
+        const d = parsed.data;
+
+        // Validate channel membership
+        const [sigCh] = await db
+          .select({ serverId: channels.serverId })
+          .from(channels)
+          .where(eq(channels.id, d.channelId))
+          .limit(1);
+        if (!sigCh) break;
+
+        const [sigMem] = await db
+          .select({ userId: members.userId })
+          .from(members)
+          .where(and(eq(members.userId, ctx.userId), eq(members.serverId, sigCh.serverId)))
+          .limit(1);
+        if (!sigMem) break;
+
+        // Validate target user is also a member of the same server
+        const [targetMem] = await db
+          .select({ userId: members.userId })
+          .from(members)
+          .where(and(eq(members.userId, d.targetUserId), eq(members.serverId, sigCh.serverId)))
+          .limit(1);
+        if (!targetMem) break;
+
+        // Forward to target peer with sender info (silently drop if offline).
+        // Cast is safe: we're inside the combined OFFER/ANSWER/ICE_CANDIDATE case,
+        // so frame.op is one of these three opcodes, but TS can't narrow a union
+        // switch case to a single variant.
+        sendToUser(d.targetUserId, {
+          op: frame.op as Opcode,
+          d: { fromUserId: ctx.userId, channelId: d.channelId, data: d.data },
+        });
+        break;
+      }
+
+      case Opcode.FILE_SHARE: {
+        if (!ctx.userId) {
+          ws.close(CloseCode.NOT_IDENTIFIED, "Not identified");
+          return;
+        }
+
+        const parsed = fileShareSchema.safeParse(frame.d);
+        if (!parsed.success) break;
+        const d = parsed.data;
+
+        // Validate channel membership
+        const [fsCh] = await db
+          .select({ serverId: channels.serverId })
+          .from(channels)
+          .where(eq(channels.id, d.channelId))
+          .limit(1);
+        if (!fsCh) break;
+
+        const [fsMem] = await db
+          .select({ userId: members.userId })
+          .from(members)
+          .where(and(eq(members.userId, ctx.userId), eq(members.serverId, fsCh.serverId)))
+          .limit(1);
+        if (!fsMem) break;
+
+        // Free users cannot share files in server channels (DM sharing is always allowed,
+        // but DM channels use dm_channels table, not channels — so this lookup implicitly
+        // filters to server channels only)
+        const [fsUser] = await db
+          .select({ subscriptionTier: user.subscriptionTier })
+          .from(user)
+          .where(eq(user.id, ctx.userId))
+          .limit(1);
+        if (!fsUser || fsUser.subscriptionTier === FREE_TIER) break;
+
+        // Insert file receipt
+        const receiptId = createId();
+        await db.insert(fileReceipts).values({
+          id: receiptId,
+          channelId: d.channelId,
+          senderId: ctx.userId,
+          fileName: d.fileName,
+          fileSize: d.fileSize,
+          contentType: d.contentType,
+          magnetUri: d.magnetUri,
+          infoHash: d.infoHash,
+        });
+
+        // Broadcast to all server members — broadcastToServer() is correct here because
+        // there are no per-channel permissions yet. The payload includes channelId so
+        // clients filter to the relevant channel view.
+        await broadcastToServer(fsCh.serverId, {
+          op: Opcode.FILE_SHARE,
+          d: {
+            fileReceiptId: receiptId,
+            channelId: d.channelId,
+            senderId: ctx.userId,
+            fileName: d.fileName,
+            fileSize: d.fileSize,
+            contentType: d.contentType,
+            magnetUri: d.magnetUri,
+            infoHash: d.infoHash,
+          },
+        });
+        break;
+      }
+
+      case Opcode.FILE_AVAILABILITY_UPDATE: {
+        if (!ctx.userId) {
+          ws.close(CloseCode.NOT_IDENTIFIED, "Not identified");
+          return;
+        }
+
+        const parsed = fileAvailabilitySchema.safeParse(frame.d);
+        if (!parsed.success) break;
+        const d = parsed.data;
+
+        // Validate channel membership
+        const [faCh] = await db
+          .select({ serverId: channels.serverId })
+          .from(channels)
+          .where(eq(channels.id, d.channelId))
+          .limit(1);
+        if (!faCh) break;
+
+        const [faMem] = await db
+          .select({ userId: members.userId })
+          .from(members)
+          .where(and(eq(members.userId, ctx.userId), eq(members.serverId, faCh.serverId)))
+          .limit(1);
+        if (!faMem) break;
+
+        // Broadcast to all server members (see FILE_SHARE comment — no per-channel perms yet)
+        await broadcastToServer(faCh.serverId, {
+          op: Opcode.FILE_AVAILABILITY_UPDATE,
+          d: {
+            fileReceiptId: d.fileReceiptId,
+            channelId: d.channelId,
+            userId: ctx.userId,
+            available: d.available,
+          },
+        });
         break;
       }
 

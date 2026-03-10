@@ -2,7 +2,7 @@ import { onCleanup, createEffect, Show, type ParentComponent } from "solid-js";
 import { useSession } from "../lib/auth.js";
 import { connectGateway, disconnectGateway } from "../lib/gateway.js";
 import { gatewayStatus } from "../lib/gateway-store.js";
-import { selectedServerId } from "../stores/app-store.js";
+import { selectedServerId, selectedDmChannelId } from "../stores/app-store.js";
 import AuthGuard from "./AuthGuard.js";
 import ServerSidebar from "./ServerSidebar.js";
 import ChannelSidebar from "./ChannelSidebar.js";
@@ -42,7 +42,7 @@ const AppLayout: ParentComponent = (props) => {
               </div>
             }
           >
-            <Show when={selectedServerId()} fallback={props.children}>
+            <Show when={selectedServerId() || selectedDmChannelId()} fallback={props.children}>
               <ChatArea />
             </Show>
           </Show>

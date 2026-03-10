@@ -35,11 +35,20 @@ function checkPort(port: number, host: string): Promise<boolean> {
   return new Promise((resolve) => {
     const server = createServer();
     server.unref();
+
+    const timeout = setTimeout(() => {
+      server.close();
+      resolve(false);
+    }, 5_000);
+
     server.once("error", (err: NodeJS.ErrnoException) => {
+      clearTimeout(timeout);
       // EADDRNOTAVAIL = IPv6 not present on this host, treat as available
+      // All other errors (EADDRINUSE, EACCES, etc.) → port unavailable
       resolve(err.code === "EADDRNOTAVAIL");
     });
     server.once("listening", () => {
+      clearTimeout(timeout);
       server.close(() => resolve(true));
     });
     server.listen({ port, host });
@@ -47,10 +56,7 @@ function checkPort(port: number, host: string): Promise<boolean> {
 }
 
 async function isPortAvailable(port: number): Promise<boolean> {
-  const [ipv4, ipv6] = await Promise.all([
-    checkPort(port, "127.0.0.1"),
-    checkPort(port, "::1"),
-  ]);
+  const [ipv4, ipv6] = await Promise.all([checkPort(port, "127.0.0.1"), checkPort(port, "::1")]);
   return ipv4 && ipv6;
 }
 
@@ -59,17 +65,103 @@ function resolvePortOffset(): number {
   if (!raw) return 0;
   const offset = parseInt(raw, 10);
   if (Number.isNaN(offset) || offset < 0) {
-    console.error(`${RED}Invalid UNCORDED_PORT_OFFSET: "${raw}" — must be a non-negative integer${RESET}`);
+    console.error(
+      `${RED}Invalid UNCORDED_PORT_OFFSET: "${raw}" — must be a non-negative integer${RESET}`,
+    );
+    process.exit(1);
+  }
+  if (offset > 65535 - BASE_WEB_PORT) {
+    console.error(
+      `${RED}Port offset ${offset} would exceed port 65535 (base web port is ${BASE_WEB_PORT})${RESET}`,
+    );
     process.exit(1);
   }
   return offset;
 }
 
+const noKill = process.argv.includes("--no-kill");
+
+async function findPidOnPort(port: number): Promise<number | null> {
+  try {
+    if (process.platform === "win32") {
+      const proc = Bun.spawn(["cmd", "/c", `netstat -ano | findstr :${port}`], {
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      const text = await new Response(proc.stdout).text();
+      await proc.exited;
+      // Match LISTENING lines: "  TCP  0.0.0.0:3000  0.0.0.0:0  LISTENING  1234"
+      for (const line of text.split("\n")) {
+        if (line.includes("LISTENING")) {
+          const parts = line.trim().split(/\s+/);
+          const pid = parseInt(parts[parts.length - 1], 10);
+          if (!Number.isNaN(pid) && pid > 0) return pid;
+        }
+      }
+    } else {
+      const proc = Bun.spawn(["lsof", "-ti", `:${port}`], {
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      const text = await new Response(proc.stdout).text();
+      await proc.exited;
+      const pid = parseInt(text.trim().split("\n")[0], 10);
+      if (!Number.isNaN(pid) && pid > 0) return pid;
+    }
+  } catch {
+    // Failed to find PID — fall through
+  }
+  return null;
+}
+
+async function killProcess(pid: number): Promise<boolean> {
+  try {
+    if (process.platform === "win32") {
+      const proc = Bun.spawn(["taskkill", "/PID", String(pid), "/F"], {
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      const code = await proc.exited;
+      return code === 0;
+    } else {
+      const proc = Bun.spawn(["kill", "-9", String(pid)], {
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      const code = await proc.exited;
+      return code === 0;
+    }
+  } catch {
+    return false;
+  }
+}
+
+async function autoKillPort(port: number): Promise<boolean> {
+  const pid = await findPidOnPort(port);
+  if (!pid) return false;
+
+  const killed = await killProcess(pid);
+  if (!killed) return false;
+
+  console.log(`${YELLOW}[auto-kill]${RESET} Killed PID ${pid} on port ${port}`);
+
+  // Brief pause for OS to release the port
+  await new Promise((r) => setTimeout(r, 500));
+
+  return isPortAvailable(port);
+}
+
 async function ensurePortsAvailable(serverPort: number, webPort: number): Promise<void> {
-  const [serverOk, webOk] = await Promise.all([
+  let [serverOk, webOk] = await Promise.all([
     isPortAvailable(serverPort),
     isPortAvailable(webPort),
   ]);
+
+  // Auto-kill busy ports unless --no-kill flag is set
+  if (!noKill) {
+    if (!serverOk) serverOk = await autoKillPort(serverPort);
+    if (!webOk) webOk = await autoKillPort(webPort);
+  }
 
   const errors: string[] = [];
   if (!serverOk) errors.push(`  Port ${serverPort} (server) is already in use`);
@@ -78,7 +170,9 @@ async function ensurePortsAvailable(serverPort: number, webPort: number): Promis
   if (errors.length > 0) {
     console.error(`\n${RED}${BOLD}Port conflict — cannot start dev environment${RESET}\n`);
     for (const e of errors) console.error(`${RED}${e}${RESET}`);
-    console.error(`\n${DIM}Kill the process using the port, or set UNCORDED_PORT_OFFSET=N to use different ports.${RESET}\n`);
+    console.error(
+      `\n${DIM}Kill the process using the port, or set UNCORDED_PORT_OFFSET=N to use different ports.${RESET}\n`,
+    );
     process.exit(1);
   }
 }
@@ -118,7 +212,9 @@ function renderBanner(processes: ManagedProcess[]): void {
   const line = "─".repeat(width);
 
   console.log(`${DIM}╭${line}╮${RESET}`);
-  console.log(`${DIM}│${RESET}  ${BOLD}UnCorded Dev Environment${RESET}${" ".repeat(width - 26)}${DIM}│${RESET}`);
+  console.log(
+    `${DIM}│${RESET}  ${BOLD}UnCorded Dev Environment${RESET}${" ".repeat(width - 26)}${DIM}│${RESET}`,
+  );
   console.log(`${DIM}├${line}┤${RESET}`);
 
   for (const mp of processes) {
@@ -356,7 +452,4 @@ for (const mp of managedProcesses) {
 }
 
 // Wait for all processes and streams
-await Promise.all([
-  ...managedProcesses.map((mp) => mp.proc?.exited),
-  ...streamPromises,
-]);
+await Promise.all([...managedProcesses.map((mp) => mp.proc?.exited), ...streamPromises]);

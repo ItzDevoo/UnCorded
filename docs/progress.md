@@ -6,12 +6,168 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Week 2.5 Day 5 — Component Adoption + Polish + Review Fixes
+## Current Status: Week 3 Post-Review — 9 correctness/validation fixes
+
+---
+
+### Week 3 Post-Review Fixes — 2026-03-09
+
+**What was done:**
+
+- 9 review fixes across P2P file sharing and WebRTC signaling code:
+  - Fix #1: subscriptionTier added to READY user payload (server select + ReadyUser interface + Zod schema). FileMessage.tsx no longer uses unsafe cast — reads subscriptionTier directly from readyData.
+  - Fix #2: FileDropZone shows visible error text when file exceeds 100MB (was silent console.warn). Error clears on next valid drop.
+  - Fix #3: webRtcSignalSchema targetUserId + channelId now have .min(1) — reject empty strings.
+  - Fix #4: signalingEventSchema fromUserId + channelId now have .min(1) — reject empty strings.
+  - Fix #5: z.record() in WebRTC data field bounded with .refine() — JSON.stringify ≤16KB cap.
+  - Fix #6: Branded constructors (userId(), channelId()) used at signaling parse boundary instead of `as SignalingEvent` cast.
+  - Fix #7: MAX_FILE_SIZE_BYTES constant created in packages/shared/src/constants.ts, imported by both server gateway and FileDropZone. Local duplicates removed.
+  - Fix #8: console.warn in FileDropZone gated behind import.meta.env.DEV.
+  - Fix #9: Server gateway `raw as ArrayBuffer` replaced with proper instanceof chain (Uint8Array | ArrayBuffer | bail).
+- All checks pass: typecheck (0 errors), lint (0 warnings), fmt clean
+
+---
+
+### Week 3 Day 7 — 2026-03-09
+
+**What was done:**
+
+- Code review fixes (13 items from Day 5-6 review):
+  - Fix #1 (High): Bounded WebRTC data field — SDP strings ≤16KB, ICE candidates as bounded records
+  - Fix #2 (High): readyDataSchema Zod validation for READY payload on client, close WS + log on failure
+  - Fix #3 (High): HELLO heartbeatInterval validated with Number.isFinite + positive check
+  - Fix #4 (High): Server fileShareSchema max file size 100MB
+  - Fix #5-6 (Medium): .min(1) on fileAvailabilitySchema IDs + typingStartSchema channelId
+  - Fix #7 (Medium): 5-minute download timeout on downloadFromMagnet with torrent destroy on timeout
+  - Fix #8 (Medium): "cancelled" status in TransferProgress union + Cancelled badge with retry in FileMessage
+  - Fix #9 (Medium): seedFile race condition — client-level error handler attached before seed(), removed after torrent created
+  - Fix #10 (Medium): All console.warn/error in production client code gated behind import.meta.env.DEV
+  - Fix #11 (Low): FREE_TIER constant replaces magic "free" string in tier check
+  - Fix #13 (Low): TODO comment on broadcastToServer for future cache optimization
+  - Schema docs: member_roles cascade info for all three FKs
+- Friend system backend:
+  - `apps/server/src/routes/friend.ts`: POST /request (with auto-accept for mutual requests), POST /:userId/accept, POST /:userId/decline, POST /:userId/block, DELETE /:userId, GET / (list accepted), GET /pending (list incoming)
+  - All routes broadcast real-time WS events (FRIEND_REQUEST, FRIEND_ACCEPT, FRIEND_REMOVE)
+- DM channel backend:
+  - `apps/server/src/routes/dm.ts`: POST / (create or get existing DM, requires friendship), GET / (list user's DMs with other user info)
+  - DM_CHANNEL_CREATE broadcast on creation
+- DM message support:
+  - `apps/server/src/routes/message.ts`: replaced getChannelServerId() with resolveChannel() that checks both server channels AND DM channels
+  - broadcastToDm() helper sends frames to other DM members
+  - All 4 message routes (POST/GET/PATCH/DELETE) updated to work for both server and DM channels
+- READY payload expanded:
+  - `apps/server/src/ws/handlers.ts`: loads dmChannels (via dm_members join) and friends (via friendships table) and includes them in READY
+- Frontend friend system:
+  - `apps/web/src/stores/friend-store.ts`: WS listeners for FRIEND_REQUEST/ACCEPT/REMOVE + API functions
+  - `apps/web/src/lib/gateway-store.ts`: ReadyDmChannel/ReadyFriend types, readyDataSchema, addDmChannel/addFriend/removeFriend/updateFriendStatus helpers
+  - `apps/web/src/pages/Friends.tsx`: All/Pending/Blocked tabs, add friend input, accept/decline/remove buttons
+- Frontend DM support:
+  - `apps/web/src/stores/app-store.ts`: selectedDmChannelId signal, selectDmChannel/selectHome helpers
+  - `apps/web/src/components/DMList.tsx`: DM channel list with avatars, online dots, active highlight
+  - `apps/web/src/components/ChannelSidebar.tsx`: toggles between channel list (server selected) and DM list + Friends button (home selected)
+  - `apps/web/src/components/ChatArea.tsx`: works for both server channels and DM channels, shows "@username" header for DMs
+  - `apps/web/src/components/ServerSidebar.tsx`: home button calls selectHome()
+  - `apps/web/src/components/AppLayout.tsx`: routes to ChatArea for both server and DM selections
+  - `apps/web/src/App.tsx`: /app/friends route added
+- Shared schemas: friendRequestSchema + createDmSchema in packages/shared
+- All checks pass: typecheck (0 errors), lint (0 warnings), fmt clean
+
+---
+
+### Week 3 Day 5-6 — 2026-03-09
+
+**What was done:**
+
+- Code review fixes (9 issues from Day 3-4 review):
+  - Fix #1 (High): Subscription tier gate on FILE_SHARE — free users blocked from server channel file sharing
+  - Fix #2 (High): ArrayBuffer instanceof guard in client gateway before decode()
+  - Fix #3 (Medium): Explanatory comments on broadcastToServer() usage (no per-channel perms yet)
+  - Fix #4 (Medium): Zod input bounds on fileShareSchema (min/max/positive/startsWith)
+  - Fix #5 (Medium): Zod schema for inbound signaling events in signaling.ts
+  - Fix #6 (Medium): Safe raw cast in server gateway (Uint8Array instanceof check)
+  - Fix #7 (Medium): Shape validation in decode() — throws on missing op/d fields
+  - Fix #8 (Medium): Runtime guards on HELLO/READY payloads in client gateway
+  - Fix #9 (Low): Explanatory comment on frame.op as Opcode cast in WebRTC handler
+- Schema docs: Better Auth export name note, cascade info on members/friendships/dm_members
+- DM File Sharing UI components:
+  - `FileDropZone.tsx`: drag-and-drop overlay with 100MB size validation, dragCounter for nested elements
+  - `FileMessage.tsx`: file receipt display with idle/downloading/done/error/seeding states, download progress bar, seeder count badges, image thumbnail generation via OffscreenCanvas, error messaging for free users/no seeders
+  - ChatArea wired with FileDropZone wrapper and shareFile integration
+  - MessageInput onPaste handler for clipboard file detection
+  - VirtualMessageList renders FileMessage components for channel file receipts
+  - file-store downloadFile() now returns File[] for caller thumbnail generation
+- DM wiring SKIPPED — DM routes don't exist yet (schema only)
+- All checks pass: typecheck (0 errors), lint (0 warnings), fmt clean
+
+---
+
+### Week 3 Day 3-4 — 2026-03-09
+
+**What was done:**
+
+- Carryover review fixes from Day 1-2:
+  - Fix #1: Target user membership validation in WebRTC signaling handlers — sender AND target must be members of the same server before forwarding signaling frames
+  - Fix #2: Split `FileSharePayload` into `FileShareRequest` (client sends) + `FileShareBroadcast` (server broadcasts with senderId + fileReceiptId) in `packages/protocol/src/signaling.ts`
+  - Fix #3: Configurable STUN servers in `apps/web/src/lib/rtc-config.ts` — reads `VITE_STUN_SERVERS` env var (JSON array), falls back to Google public STUN
+- WebTorrent integration:
+  - Installed `webtorrent` + `@types/webtorrent` in apps/web
+  - Created `apps/web/src/lib/torrent-client.ts` — singleton WebTorrent client manager:
+    - `initTorrentClient()` / `destroyTorrentClient()` — lifecycle with HMR cleanup
+    - `seedFile(file)` — creates torrent from File, returns magnetUri + infoHash
+    - `downloadFromMagnet(magnetUri, onProgress)` — downloads via WebRTC, converts to File[]
+    - `stopSeeding(infoHash)` — removes active torrent
+    - `getActiveTorrents()` — lists all active torrents with progress/speed/peers
+    - STUN config applied via simple-peer's `Peer.config` before client creation
+  - Created `apps/web/src/stores/file-store.ts` — SolidJS file sharing store:
+    - Follows message-store.ts pattern: `createStore` + `produce` + Zod schemas + `onGatewayEvent` + HMR cleanup
+    - Store: `receipts` (channelId → FileReceipt[]), `transfers` (infoHash → TransferProgress), `seeders` (fileReceiptId → userId[])
+    - `shareFile(channelId, file)` — seeds via torrent-client, sends FILE_SHARE frame
+    - `downloadFile(magnetUri, fileName)` — downloads via torrent-client, triggers browser save
+    - `getReceipts(channelId)`, `getTransferProgress(infoHash)`, `getSeeders(fileReceiptId)`
+    - WS listeners: FILE_SHARE → addReceipt with branded types, FILE_AVAILABILITY_UPDATE → updateSeeders
+- All checks pass: typecheck (0 errors), lint (0 warnings), fmt clean
+
+---
+
+### Week 3 Day 1-2 — 2026-03-08
+
+**What was done:**
+
+- Dev runner review fixes (`scripts/dev-runner.ts`):
+  - Port offset upper bound guard: rejects offsets that would exceed port 65535
+  - `checkPort()` timeout: 5s safety timeout prevents hangs on unresponsive listen attempts
+  - Explicit comment on EADDRNOTAVAIL vs other errors
+- Auto-kill for occupied ports:
+  - `findPidOnPort()`: Windows (`netstat -ano | findstr`), macOS/Linux (`lsof -ti`)
+  - `killProcess()`: Windows (`taskkill /PID /F`), macOS/Linux (`kill -9`)
+  - `autoKillPort()`: find → kill → verify port freed, with 500ms grace period
+  - `ensurePortsAvailable()` auto-kills busy ports before erroring
+  - `--no-kill` flag skips auto-kill, uses old error-and-exit behavior
+- Auth trustedOrigins comment added (APP_URL always has a value)
+- WebRTC opcodes added to `@uncorded/protocol`:
+  - WEBRTC_OFFER (30), WEBRTC_ANSWER (31), WEBRTC_ICE_CANDIDATE (32), FILE_SHARE (33), FILE_AVAILABILITY_UPDATE (34)
+  - Replaced FILE_EXPIRED (30) which was dropped in the P2P pivot
+- Signaling frame types (`packages/protocol/src/signaling.ts`):
+  - `WebRtcSignalPayload`, `FileSharePayload`, `FileAvailabilityPayload`
+  - Exported from protocol index
+- Server-side signaling handlers (5 new gateway cases):
+  - WEBRTC_OFFER/ANSWER/ICE_CANDIDATE: Zod-validated, membership-checked, forwarded to target via `sendToUser()` with sender info
+  - FILE_SHARE: validates membership, inserts `fileReceipts` row, broadcasts to channel
+  - FILE_AVAILABILITY_UPDATE: validates membership, broadcasts to channel
+  - All cases require identified user, silently drop if target offline
+- Client-side signaling (`apps/web/src/lib/signaling.ts`):
+  - `sendOffer()`, `sendAnswer()`, `sendIceCandidate()` — typed wrappers around `sendFrame()`
+  - `onSignalingEvent(type, callback)` — subscribe to incoming offer/answer/ice-candidate events
+- STUN config (`apps/web/src/lib/rtc-config.ts`):
+  - Google public STUN servers (stun.l.google.com, stun1.l.google.com)
+- All checks pass: typecheck (0 errors), lint (0 warnings)
 
 ---
 
 ### Week 2.5 Day 5 — 2026-03-08
+
 **What was done:**
+
 - Polish & foundation:
   - DM Sans Google Font imported, set as `--font-sans` in `@theme inline`
   - Z-index scale via CSS custom properties: `--z-dropdown: 40`, `--z-modal: 50`, `--z-tooltip: 60`, `--z-toast: 70`
@@ -41,7 +197,9 @@ This is the real state of the codebase — not what is planned, but what works.
 ---
 
 ### Week 2.5 Day 4 — 2026-03-08
+
 **What was done:**
+
 - Green-tinted color system (Railway-inspired approach):
   - Rewrote `apps/web/src/index.css` with OKLCH semantic tokens at hue ~155°
   - All surfaces carry brand green at low chroma for visual cohesion
@@ -79,7 +237,9 @@ This is the real state of the codebase — not what is planned, but what works.
 ---
 
 ### Week 2.5 Day 3 — 2026-03-08
+
 **What was done:**
+
 - Carryover fixes from code review:
   - Branded types threaded into frontend: `app-store.ts` signals use `ServerId | null` / `ChannelId | null`, `MessageInput` prop typed as `ChannelId`, `InviteModal` prop typed as `ServerId`, `ChatArea` and modals updated
   - WS payload validation: replaced `as Record<string, unknown>` casts with Zod schemas (`identifySchema`, `typingStartSchema`) in handlers.ts and gateway.ts

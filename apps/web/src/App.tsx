@@ -6,6 +6,7 @@ import AppLayout from "./components/AppLayout.js";
 const Login = lazy(() => import("./pages/Login.js"));
 const Register = lazy(() => import("./pages/Register.js"));
 const Home = lazy(() => import("./pages/Home.js"));
+const Friends = lazy(() => import("./pages/Friends.js"));
 
 const RootRedirect = () => {
   const session = useSession();
@@ -27,6 +28,7 @@ const App = () => {
       <Route path="/register" component={Register} />
       <Route path="/app" component={AppLayout}>
         <Route path="/" component={Home} />
+        <Route path="/friends" component={Friends} />
       </Route>
     </Router>
   );

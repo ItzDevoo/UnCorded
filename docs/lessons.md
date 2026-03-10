@@ -159,3 +159,5 @@ This applies to any module that registers global listeners or timers at the top 
 **[Pre-W4 Review]** — Branded types (e.g., `UserId`) are subtypes of their base type (`string`) and can be passed to parameters typed as `string` without casting. The `as string` pattern on branded values is unnecessary and defeats the purpose of branding. Only cast at store boundaries where string keys are required.
 
 **[Pre-W4 Review]** — For inline type literals on local variables (like `let readyDmChannels: { id: string; ... }[]`), use `ReturnType<typeof brandFn>` to reference branded types without importing the type separately. This keeps the type aligned with the branding function.
+
+**[W4 D1]** — WebTorrent depends on Node.js built-ins (`events`, `stream`, `buffer`, etc.) that Vite externalizes for browser compatibility. This causes "Class extends value undefined is not a constructor" errors that crash the entire app (white screen). Fix: install `vite-plugin-node-polyfills` and add `nodePolyfills()` to the Vite plugins array. This is the standard approach for any npm package that depends on Node.js built-ins in a Vite browser build.

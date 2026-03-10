@@ -12,7 +12,17 @@ const RootRedirect = () => {
   const session = useSession();
 
   return (
-    <Show when={!session().isPending}>
+    <Show
+      when={!session().isPending}
+      fallback={
+        <div class="flex h-screen items-center justify-center bg-background">
+          <div class="flex flex-col items-center gap-3">
+            <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <p class="text-sm text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      }
+    >
       <Show when={session().data} fallback={<Navigate href="/login" />}>
         <Navigate href="/app" />
       </Show>

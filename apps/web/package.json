@@ -26,6 +26,7 @@
     "@types/webtorrent": "^0.110.1",
     "solid-js": "^1",
     "vite": "^6",
+    "vite-plugin-node-polyfills": "^0.25.0",
     "vite-plugin-solid": "^2"
   }
 }

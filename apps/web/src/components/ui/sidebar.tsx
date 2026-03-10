@@ -66,38 +66,44 @@ const SidebarFooter = (props: SidebarFooterProps) => {
 
 interface SidebarGroupProps extends ParentProps<JSX.HTMLAttributes<HTMLDivElement>> {
   label?: string;
+  actions?: JSX.Element;
   collapsible?: boolean;
   defaultOpen?: boolean;
 }
 
 const SidebarGroup = (props: SidebarGroupProps) => {
-  const [local, rest] = splitProps(props, ["class", "children", "label", "collapsible", "defaultOpen"]);
+  const [local, rest] = splitProps(props, ["class", "children", "label", "actions", "collapsible", "defaultOpen"]);
   const [open, setOpen] = createSignal(local.defaultOpen ?? true);
 
   return (
     <div data-slot="sidebar-group" class={cn("py-1", local.class)} {...rest}>
       <Show when={local.label}>
-        <button
-          type="button"
-          class="flex w-full items-center gap-1 px-4 py-1.5 text-xs font-semibold uppercase text-muted-foreground"
-          classList={{ "cursor-pointer hover:text-foreground": !!local.collapsible }}
-          onClick={() => local.collapsible && setOpen((o) => !o)}
-        >
-          <span class="flex-1 text-left">{local.label}</span>
-          <Show when={local.collapsible}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-3.5 w-3.5 transition-transform"
-              classList={{ "rotate-0": open(), "-rotate-90": !open() }}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
+        <div class="flex items-center gap-1 px-4 py-1.5">
+          <button
+            type="button"
+            class="flex flex-1 items-center gap-1 text-xs font-semibold uppercase text-muted-foreground"
+            classList={{ "cursor-pointer hover:text-foreground": !!local.collapsible }}
+            onClick={() => local.collapsible && setOpen((o) => !o)}
+          >
+            <span class="flex-1 text-left">{local.label}</span>
+            <Show when={local.collapsible}>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-3.5 w-3.5 transition-transform"
+                classList={{ "rotate-0": open(), "-rotate-90": !open() }}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </Show>
+          </button>
+          <Show when={local.actions}>
+            <div class="flex items-center gap-0.5">{local.actions}</div>
           </Show>
-        </button>
+        </div>
       </Show>
       <Show when={!local.collapsible || open()}>{local.children}</Show>
     </div>

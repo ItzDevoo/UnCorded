@@ -132,6 +132,12 @@ function addServer(server: ReadyServer) {
   setReadyData("data", "servers", (prev) => [...prev, server]);
 }
 
+function addChannel(sId: ServerId, channel: ReadyChannel) {
+  setReadyData("data", "servers", (servers) =>
+    servers.map((s) => (s.id === sId ? { ...s, channels: [...s.channels, channel] } : s)),
+  );
+}
+
 function addDmChannel(dm: ReadyDmChannel) {
   setReadyData("data", "dmChannels", (prev) => [...prev, dm]);
 }
@@ -157,6 +163,7 @@ export {
   setReadyPayload,
   clearReadyPayload,
   addServer,
+  addChannel,
   addDmChannel,
   addFriend,
   removeFriend,

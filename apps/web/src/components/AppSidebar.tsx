@@ -23,18 +23,92 @@ import {
 } from "./ui/sidebar.js";
 import ServerSwitcher from "./ServerSwitcher.js";
 import CreateServerModal from "./modals/CreateServerModal.js";
+import CreateChannelModal from "./modals/CreateChannelModal.js";
 import JoinServerModal from "./modals/JoinServerModal.js";
 import InviteModal from "./modals/InviteModal.js";
+
+const iconBtnClass =
+  "rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground";
 
 const AppSidebar = () => {
   const session = useSession();
   const navigate = useNavigate();
-  const [modal, setModal] = createSignal<"create" | "join" | "invite" | null>(null);
+  const [modal, setModal] = createSignal<"create" | "join" | "invite" | "create-channel" | null>(
+    null,
+  );
+
+  const isServerOwner = () =>
+    currentServer()?.ownerId != null &&
+    currentServer()?.ownerId === readyData.data?.user.id;
 
   const handleLogout = async () => {
     await signOut();
     navigate("/login", { replace: true });
   };
+
+  // ── Group header actions ─────────────────────────────────────────────────
+
+  const channelActions = () => (
+    <>
+      <button
+        class={iconBtnClass}
+        title="Invite People"
+        onClick={() => setModal("invite")}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-4 w-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+          />
+        </svg>
+      </button>
+      <Show when={isServerOwner()}>
+        <button
+          class={iconBtnClass}
+          title="Create Channel"
+          onClick={() => setModal("create-channel")}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
+      </Show>
+    </>
+  );
+
+  const dmActions = () => (
+    <button
+      class={iconBtnClass}
+      title="New DM"
+      onClick={() => navigate("/app/friends")}
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-4 w-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+      </svg>
+    </button>
+  );
 
   return (
     <Sidebar>
@@ -75,7 +149,7 @@ const AppSidebar = () => {
                 </SidebarMenuItem>
               </SidebarMenu>
 
-              <SidebarGroup label="Direct Messages" collapsible defaultOpen>
+              <SidebarGroup label="Direct Messages" actions={dmActions()} collapsible defaultOpen>
                 <Show
                   when={(readyData.data?.dmChannels ?? []).length > 0}
                   fallback={
@@ -116,7 +190,7 @@ const AppSidebar = () => {
           }
         >
           {/* ── Server: Channels ─────────────────────────────────────── */}
-          <SidebarGroup label="Channels" collapsible defaultOpen>
+          <SidebarGroup label="Channels" actions={channelActions()} collapsible defaultOpen>
             <SidebarMenu>
               <For each={currentChannels()}>
                 {(channel) => {
@@ -142,32 +216,6 @@ const AppSidebar = () => {
               </For>
             </SidebarMenu>
           </SidebarGroup>
-
-          {/* Invite action in the group header area */}
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                class="text-muted-foreground"
-                onClick={() => setModal("invite")}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-                  />
-                </svg>
-                Invite People
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
         </Show>
       </SidebarContent>
 
@@ -218,6 +266,11 @@ const AppSidebar = () => {
       </Show>
       <Show when={modal() === "invite" && currentServer()}>
         {(server) => <InviteModal serverId={server().id} onClose={() => setModal(null)} />}
+      </Show>
+      <Show when={modal() === "create-channel" && currentServer()}>
+        {(server) => (
+          <CreateChannelModal serverId={server().id} onClose={() => setModal(null)} />
+        )}
       </Show>
     </Sidebar>
   );

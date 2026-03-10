@@ -1,4 +1,5 @@
 import { Show, onMount, onCleanup, createUniqueId, splitProps, type JSX } from "solid-js";
+import { Portal } from "solid-js/web";
 import { cn } from "../../lib/cn.js";
 
 const FOCUSABLE_SELECTOR =
@@ -26,7 +27,7 @@ const DialogOverlay = (props: JSX.HTMLAttributes<HTMLDivElement>) => {
   return (
     <div
       data-slot="dialog-overlay"
-      class={cn("fixed inset-0 z-[--z-modal] bg-black/50 backdrop-blur-sm", local.class)}
+      class={cn("fixed inset-0 bg-black/50 pointer-events-none backdrop-blur-sm", local.class)}
       {...rest}
     />
   );
@@ -42,10 +43,15 @@ const DialogContent = (props: DialogContentProps) => {
   // oxlint-disable-next-line eslint(no-unassigned-vars) -- SolidJS ref pattern
   let panelRef!: HTMLDivElement;
 
-  // eslint-disable-next-line solid/reactivity -- focus trap runs once on mount
+  // eslint-disable-next-line solid/reactivity -- focus trap + scroll lock run once on mount
   onMount(() => {
     const first = panelRef.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
     first?.focus();
+    document.body.style.overflow = "hidden";
+  });
+
+  onCleanup(() => {
+    document.body.style.overflow = "";
   });
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -67,29 +73,31 @@ const DialogContent = (props: DialogContentProps) => {
   };
 
   return (
-    <div
-      class="fixed inset-0 z-[--z-modal] flex items-center justify-center"
-      onClick={() => local.onClose?.()}
-    >
-      <DialogOverlay />
+    <Portal mount={document.body}>
       <div
-        ref={panelRef}
-        data-slot="dialog-content"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        class={cn(
-          "relative z-[--z-modal] w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-md",
-          local.class,
-        )}
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={handleKeyDown}
-        data-title-id={titleId}
-        {...rest}
+        class="fixed inset-0 z-[--z-modal] flex items-center justify-center"
+        onClick={() => local.onClose?.()}
       >
-        {local.children}
+        <DialogOverlay />
+        <div
+          ref={panelRef}
+          data-slot="dialog-content"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          class={cn(
+            "relative w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-md",
+            local.class,
+          )}
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={handleKeyDown}
+          data-title-id={titleId}
+          {...rest}
+        >
+          {local.children}
+        </div>
       </div>
-    </div>
+    </Portal>
   );
 };
 

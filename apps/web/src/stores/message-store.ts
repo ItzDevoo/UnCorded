@@ -57,12 +57,18 @@ const authorSchema = z.object({
   avatarUrl: z.string().nullable(),
 });
 
+/** Accepts both ISO strings and Date objects (MessagePack preserves Dates). */
+const coerceDate = z.union([z.string(), z.date().transform((d) => d.toISOString())]);
+const coerceDateNullable = z
+  .union([z.string(), z.date().transform((d) => d.toISOString())])
+  .nullable();
+
 const messageCreateSchema = z.object({
   id: z.string(),
   channelId: z.string(),
   content: z.string(),
-  editedAt: z.string().nullable(),
-  createdAt: z.string(),
+  editedAt: coerceDateNullable,
+  createdAt: coerceDate,
   author: authorSchema,
 });
 
@@ -70,7 +76,7 @@ const messageUpdateSchema = z.object({
   id: z.string(),
   channelId: z.string(),
   content: z.string(),
-  editedAt: z.string().nullable(),
+  editedAt: coerceDateNullable,
 });
 
 const messageDeleteSchema = z.object({

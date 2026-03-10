@@ -139,17 +139,16 @@ export async function handleIdentify(
       list.push(ch);
     }
 
-    const readyServers = userServers.map((s) => {
-      // Read s.id before mutation — channelsByServer uses the original string key
-      const chs = (channelsByServer.get(s.id) ?? [])
+    /* oxlint-disable no-map-spread -- copy-on-write required, DB rows must not be mutated */
+    const readyServers = userServers.map((s) => ({
+      ...s,
+      id: serverId(s.id),
+      ownerId: userId(s.ownerId),
+      channels: (channelsByServer.get(s.id) ?? [])
         .toSorted((a, b) => a.position - b.position)
-        .map((ch) => Object.assign(ch, { id: channelId(ch.id), serverId: serverId(ch.serverId) }));
-      return Object.assign(s, {
-        id: serverId(s.id),
-        ownerId: userId(s.ownerId),
-        channels: chs,
-      });
-    });
+        .map((ch) => ({ ...ch, id: channelId(ch.id), serverId: serverId(ch.serverId) })),
+    }));
+    /* oxlint-enable no-map-spread */
 
     // Load DM channels
     const myDmMemberships = await db
@@ -269,7 +268,11 @@ export async function handleIdentify(
 
     return { success: true, userId: identifiedUserId };
   } catch (err) {
-    console.error("[handlers] Unexpected error in IDENTIFY:", err);
+    console.error(
+      "[handlers] Unexpected error in IDENTIFY:",
+      err instanceof Error ? err.message : String(err),
+    );
+    if (err instanceof Error && err.stack) console.error(err.stack);
     return {
       success: false,
       closeCode: CloseCode.INVALID_SESSION,

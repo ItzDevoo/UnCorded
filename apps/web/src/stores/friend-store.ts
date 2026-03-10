@@ -4,6 +4,7 @@ import { userId } from "@uncorded/protocol";
 import { onGatewayEvent } from "../lib/gateway.js";
 import { addFriend, removeFriend, updateFriendStatus } from "../lib/gateway-store.js";
 import { api } from "../lib/api.js";
+import { showToast } from "../components/ui/toast.js";
 
 // ── Zod schemas for WS events ──────────────────────────────────────────────
 
@@ -70,26 +71,51 @@ const unsubRemove = onGatewayEvent(Opcode.FRIEND_REMOVE, (data) => {
 // ── API functions ───────────────────────────────────────────────────────────
 
 export async function sendFriendRequest(targetUserId: string): Promise<void> {
-  await api("/api/friends/request", {
-    method: "POST",
-    body: JSON.stringify({ userId: targetUserId }),
-  });
+  try {
+    await api("/api/friends/request", {
+      method: "POST",
+      body: JSON.stringify({ userId: targetUserId }),
+    });
+  } catch (err) {
+    showToast(err instanceof Error ? err.message : "Something went wrong", "error");
+    throw err;
+  }
 }
 
 export async function acceptFriendRequest(fromUserId: string): Promise<void> {
-  await api(`/api/friends/${fromUserId}/accept`, { method: "POST" });
+  try {
+    await api(`/api/friends/${fromUserId}/accept`, { method: "POST" });
+  } catch (err) {
+    showToast(err instanceof Error ? err.message : "Something went wrong", "error");
+    throw err;
+  }
 }
 
 export async function declineFriendRequest(fromUserId: string): Promise<void> {
-  await api(`/api/friends/${fromUserId}/decline`, { method: "POST" });
+  try {
+    await api(`/api/friends/${fromUserId}/decline`, { method: "POST" });
+  } catch (err) {
+    showToast(err instanceof Error ? err.message : "Something went wrong", "error");
+    throw err;
+  }
 }
 
 export async function removeFriendApi(friendUserId: string): Promise<void> {
-  await api(`/api/friends/${friendUserId}`, { method: "DELETE" });
+  try {
+    await api(`/api/friends/${friendUserId}`, { method: "DELETE" });
+  } catch (err) {
+    showToast(err instanceof Error ? err.message : "Something went wrong", "error");
+    throw err;
+  }
 }
 
 export async function blockUser(targetUserId: string): Promise<void> {
-  await api(`/api/friends/${targetUserId}/block`, { method: "POST" });
+  try {
+    await api(`/api/friends/${targetUserId}/block`, { method: "POST" });
+  } catch (err) {
+    showToast(err instanceof Error ? err.message : "Something went wrong", "error");
+    throw err;
+  }
 }
 
 // ── HMR cleanup ─────────────────────────────────────────────────────────────

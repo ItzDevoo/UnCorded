@@ -8,6 +8,7 @@ import {
   setSelectedChannelId,
   selectedDmChannelId,
   selectDmChannel,
+  selectHome,
   currentServer,
   currentChannels,
 } from "../stores/app-store.js";
@@ -91,29 +92,25 @@ const AppSidebar = () => {
     </>
   );
 
-  const dmActions = () => (
-    <button
-      class={iconBtnClass}
-      title="New DM"
-      onClick={() => navigate("/app/friends")}
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        class="h-4 w-4"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-      </svg>
-    </button>
-  );
 
   return (
     <Sidebar>
-      {/* ── Header: Server Switcher ──────────────────────────────────── */}
+      {/* ── Header: Brand Home + Server Switcher ────────────────────── */}
       <SidebarHeader>
+        <button
+          onClick={() => {
+            selectHome();
+            navigate("/app/friends");
+          }}
+          class="flex w-full items-center gap-1.5 rounded-lg px-1 py-1 transition-colors hover:bg-accent"
+        >
+          <div class="flex min-w-0 flex-1 items-center justify-center gap-1.5">
+            <span class="text-sm font-semibold tracking-tight text-foreground">UnCorded</span>
+            <span class="rounded-full bg-muted/50 px-1.5 py-0.5 text-[8px] font-medium uppercase tracking-[0.18em] text-muted-foreground/60">
+              Alpha
+            </span>
+          </div>
+        </button>
         <ServerSwitcher
           onCreateServer={() => setModal("create")}
           onJoinServer={() => setModal("join")}
@@ -149,43 +146,43 @@ const AppSidebar = () => {
                 </SidebarMenuItem>
               </SidebarMenu>
 
-              <SidebarGroup label="Direct Messages" actions={dmActions()} collapsible defaultOpen>
-                <Show
-                  when={(readyData.data?.dmChannels ?? []).length > 0}
-                  fallback={
-                    <p class="px-4 py-2 text-xs text-muted-foreground">No conversations yet</p>
-                  }
-                >
-                  <SidebarMenu>
-                    <For each={readyData.data?.dmChannels}>
-                      {(dm) => {
-                        const displayName = () =>
-                          dm.otherUser.displayName ?? dm.otherUser.username ?? "Unknown";
-                        const initial = () => displayName().charAt(0).toUpperCase();
-                        const isOnline = () => dm.otherUser.status === "online";
-                        const isActive = () => selectedDmChannelId() === dm.id;
+              <div class="mx-3 my-2 h-px bg-border" />
 
-                        return (
-                          <SidebarMenuItem>
-                            <SidebarMenuButton
-                              active={isActive()}
-                              onClick={() => selectDmChannel(dm.id)}
-                            >
-                              <div class="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
-                                {initial()}
-                                <Show when={isOnline()}>
-                                  <div class="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-sidebar bg-success" />
-                                </Show>
-                              </div>
-                              <span class="truncate">{displayName()}</span>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
-                        );
-                      }}
-                    </For>
-                  </SidebarMenu>
-                </Show>
-              </SidebarGroup>
+              <Show
+                when={(readyData.data?.dmChannels ?? []).length > 0}
+                fallback={
+                  <p class="px-4 py-3 text-xs text-muted-foreground">No conversations yet</p>
+                }
+              >
+                <SidebarMenu>
+                  <For each={readyData.data?.dmChannels}>
+                    {(dm) => {
+                      const displayName = () =>
+                        dm.otherUser.displayName ?? dm.otherUser.username ?? "Unknown";
+                      const initial = () => displayName().charAt(0).toUpperCase();
+                      const isOnline = () => dm.otherUser.status === "online";
+                      const isActive = () => selectedDmChannelId() === dm.id;
+
+                      return (
+                        <SidebarMenuItem>
+                          <SidebarMenuButton
+                            active={isActive()}
+                            onClick={() => selectDmChannel(dm.id)}
+                          >
+                            <div class="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
+                              {initial()}
+                              <Show when={isOnline()}>
+                                <div class="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-sidebar bg-success" />
+                              </Show>
+                            </div>
+                            <span class="truncate">{displayName()}</span>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      );
+                    }}
+                  </For>
+                </SidebarMenu>
+              </Show>
             </>
           }
         >

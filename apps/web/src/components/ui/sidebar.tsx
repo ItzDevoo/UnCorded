@@ -26,7 +26,7 @@ type SidebarHeaderProps = ParentProps<JSX.HTMLAttributes<HTMLDivElement>>;
 const SidebarHeader = (props: SidebarHeaderProps) => {
   const [local, rest] = splitProps(props, ["class", "children"]);
   return (
-    <div data-slot="sidebar-header" class={cn("flex shrink-0 items-center p-3", local.class)} {...rest}>
+    <div data-slot="sidebar-header" class={cn("flex shrink-0 flex-col gap-2 p-3", local.class)} {...rest}>
       {local.children}
     </div>
   );

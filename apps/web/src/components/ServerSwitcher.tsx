@@ -1,12 +1,7 @@
 import { createSignal, For, Show, onMount, onCleanup } from "solid-js";
 import { Portal } from "solid-js/web";
 import { readyData } from "../lib/gateway-store.js";
-import {
-  selectedServerId,
-  setSelectedServerId,
-  selectHome,
-  currentServer,
-} from "../stores/app-store.js";
+import { selectedServerId, setSelectedServerId, currentServer } from "../stores/app-store.js";
 
 interface ServerSwitcherProps {
   onCreateServer: () => void;
@@ -41,7 +36,7 @@ const ServerSwitcher = (props: ServerSwitcherProps) => {
 
   const label = () => {
     const server = currentServer();
-    return server ? server.name : "Home";
+    return server ? server.name : "Select a Server";
   };
 
   const serverInitial = () => {
@@ -68,11 +63,7 @@ const ServerSwitcher = (props: ServerSwitcherProps) => {
               stroke="currentColor"
               stroke-width="2"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-              />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           }
         >
@@ -117,34 +108,6 @@ const ServerSwitcher = (props: ServerSwitcherProps) => {
             class="absolute z-[--z-dropdown] min-w-[256px] rounded-xl border border-border bg-popover p-1 shadow-md"
             style={{ top: `${pos().top}px`, left: `${pos().left}px` }}
           >
-            {/* Home */}
-            <button
-              class="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-colors hover:bg-accent"
-              classList={{ "bg-accent font-medium": !selectedServerId() }}
-              onClick={() => {
-                selectHome();
-                close();
-              }}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-4 w-4 text-muted-foreground"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                />
-              </svg>
-              Home
-            </button>
-
-            <div class="mx-1 my-1 h-px bg-border" />
-
             {/* Servers */}
             <For each={readyData.data?.servers}>
               {(server) => (

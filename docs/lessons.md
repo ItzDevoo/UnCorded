@@ -151,3 +151,11 @@ This applies to any module that registers global listeners or timers at the top 
 **[W3 Post-Review]** — Constants shared between server and client (like MAX_FILE_SIZE_BYTES) belong in `packages/shared/src/constants.ts`, not duplicated in both codebases. Create a constants barrel file and export from the shared package index.
 
 **[W3 Post-Review]** — When a server READY payload omits a field that the client needs (e.g., subscriptionTier), the client must cast to access it, which always returns undefined. Fix both ends: add the field to the server select AND the client ReadyUser interface + Zod schema simultaneously.
+
+**[Pre-W4 Review]** — Elysia route params (e.g., `:userId`) arrive as raw strings with no validation. Always add Zod validation at the top of handlers that use params — even though Elysia's router won't match empty segments, edge cases (URL encoding, proxies) can produce unexpected values. Pattern: `const parsedParams = schema.safeParse(params); if (!parsedParams.success) throw new ValidationError(...)`.
+
+**[Pre-W4 Review]** — When a review flags "route params not validated" on a file that has no route params (like dm.ts), verify the code first. Body validation via Zod schemas counts as validation. Don't add unnecessary changes for false positives.
+
+**[Pre-W4 Review]** — Branded types (e.g., `UserId`) are subtypes of their base type (`string`) and can be passed to parameters typed as `string` without casting. The `as string` pattern on branded values is unnecessary and defeats the purpose of branding. Only cast at store boundaries where string keys are required.
+
+**[Pre-W4 Review]** — For inline type literals on local variables (like `let readyDmChannels: { id: string; ... }[]`), use `ReturnType<typeof brandFn>` to reference branded types without importing the type separately. This keeps the type aligned with the branding function.

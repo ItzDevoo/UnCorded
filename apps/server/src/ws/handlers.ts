@@ -143,9 +143,9 @@ export async function handleIdentify(
     .where(eq(dmMembers.userId, identifiedUserId));
 
   let readyDmChannels: {
-    id: string;
+    id: ReturnType<typeof dmChannelId>;
     otherUser: {
-      id: string;
+      id: ReturnType<typeof userId>;
       username: string | null;
       displayName: string | null;
       avatarUrl: string | null;
@@ -171,9 +171,9 @@ export async function handleIdentify(
       );
 
     readyDmChannels = otherDmMembers.map((m) => ({
-      id: dmChannelId(m.channelId) as string,
+      id: dmChannelId(m.channelId),
       otherUser: {
-        id: userId(m.userId) as string,
+        id: userId(m.userId),
         username: m.username,
         displayName: m.displayName,
         avatarUrl: m.avatarUrl,
@@ -198,7 +198,7 @@ export async function handleIdentify(
     );
 
   let readyFriends: {
-    userId: string;
+    userId: ReturnType<typeof userId>;
     username: string | null;
     displayName: string | null;
     avatarUrl: string | null;
@@ -226,7 +226,7 @@ export async function handleIdentify(
       const peerId = r.usrId === identifiedUserId ? r.frdId : r.usrId;
       const peer = peerMap.get(peerId);
       return {
-        userId: userId(peerId) as string,
+        userId: userId(peerId),
         username: peer?.username ?? null,
         displayName: peer?.displayName ?? null,
         avatarUrl: peer?.avatarUrl ?? null,

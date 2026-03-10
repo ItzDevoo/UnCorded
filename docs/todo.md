@@ -240,6 +240,21 @@ Reference: C:\Nexis (monorepo patterns, auth, WS gateway), C:\t3Code (tooling, U
 - [x] Fix #8: console.warn in FileDropZone gated behind import.meta.env.DEV
 - [x] Fix #9: Safe ArrayBuffer type narrowing in server gateway (no more `raw as ArrayBuffer`)
 
+### Pre-Week 4 Review Fixes (12 items)
+
+- [x] Fix #1 (High): console.warn in message-store.ts gated behind import.meta.env.DEV
+- [x] Fix #2 (High): Friends.tsx async onClick handlers wrapped with try/catch + visible error signal
+- [x] Fix #3 (High): Zod .min(1) param validation on all friend route params (:userId)
+- [x] Fix #4 (High): dm.ts — no route params exist, body already validated via createDmSchema (no-op)
+- [x] Fix #5 (Medium): handlers.ts `as string` casts on branded types replaced with proper branded local types
+- [x] Fix #6 (Medium): Friends.tsx `as string` casts on friend.userId removed (UserId assignable to string)
+- [x] Fix #7 (Medium): message-store fetchMessages catch block now exposes fetchError on ChannelMessages
+- [x] Fix #8 (Low): Magic numbers in gateway.ts Zod limits extracted to named constants
+- [x] Fix #9 (Low): servers.ownerId FK annotated with onDelete: "restrict" (explicit intent, matches default NO ACTION behavior)
+- [x] Fix #10 (Low): progress.md already up to date with Week 2.5 + Week 3 entries
+- [x] Fix #11 (Low): FileMessage.tsx thumbnail img — added tabIndex, role="button", onKeyDown for keyboard accessibility
+- [x] Fix #12 (Low): FileMessage.tsx transfer()!.downloadSpeed replaced with transfer()?.downloadSpeed ?? 0
+
 **Milestone: Users can share files in DMs via P2P. Magnet links persist in chat.**
 
 ---

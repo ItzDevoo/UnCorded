@@ -19,6 +19,7 @@ const Friends = () => {
   const [tab, setTab] = createSignal<Tab>("all");
   const [addUserId, setAddUserId] = createSignal("");
   const [error, setError] = createSignal<string | null>(null);
+  const [actionError, setActionError] = createSignal<string | null>(null);
   const [sending, setSending] = createSignal(false);
 
   const friends = () => readyData.data?.friends ?? [];
@@ -83,6 +84,9 @@ const Friends = () => {
       </div>
 
       <div class="flex-1 overflow-y-auto p-4">
+        <Show when={actionError()}>
+          <p class="mb-4 text-xs text-destructive">{actionError()}</p>
+        </Show>
         {/* Add Friend */}
         <div class="mb-6">
           <h3 class="mb-2 text-sm font-semibold uppercase text-muted-foreground">Add Friend</h3>
@@ -133,7 +137,16 @@ const Friends = () => {
                   size="sm"
                   variant="ghost"
                   class="text-destructive"
-                  onClick={() => removeFriendApi(friend.userId as string)}
+                  onClick={async () => {
+                    try {
+                      setActionError(null);
+                      await removeFriendApi(friend.userId);
+                    } catch (err) {
+                      setActionError(
+                        err instanceof Error ? err.message : "Failed to remove friend",
+                      );
+                    }
+                  }}
                 >
                   Remove
                 </Button>
@@ -163,14 +176,32 @@ const Friends = () => {
                   <Button
                     size="sm"
                     variant="default"
-                    onClick={() => acceptFriendRequest(friend.userId as string)}
+                    onClick={async () => {
+                      try {
+                        setActionError(null);
+                        await acceptFriendRequest(friend.userId);
+                      } catch (err) {
+                        setActionError(
+                          err instanceof Error ? err.message : "Failed to accept request",
+                        );
+                      }
+                    }}
                   >
                     Accept
                   </Button>
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => declineFriendRequest(friend.userId as string)}
+                    onClick={async () => {
+                      try {
+                        setActionError(null);
+                        await declineFriendRequest(friend.userId);
+                      } catch (err) {
+                        setActionError(
+                          err instanceof Error ? err.message : "Failed to decline request",
+                        );
+                      }
+                    }}
                   >
                     Decline
                   </Button>
@@ -200,7 +231,14 @@ const Friends = () => {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => removeFriendApi(friend.userId as string)}
+                  onClick={async () => {
+                    try {
+                      setActionError(null);
+                      await removeFriendApi(friend.userId);
+                    } catch (err) {
+                      setActionError(err instanceof Error ? err.message : "Failed to unblock user");
+                    }
+                  }}
                 >
                   Unblock
                 </Button>

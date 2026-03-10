@@ -6,7 +6,28 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Week 3 Post-Review — 9 correctness/validation fixes
+## Current Status: Pre-Week 4 Review — 12 correctness/validation/accessibility fixes
+
+---
+
+### Pre-Week 4 Review Fixes — 2026-03-09
+
+**What was done:**
+
+- 12 review fixes across P2P file sharing, friend system, and message store:
+  - Fix #1 (High): All 4 console.warn calls in message-store.ts gated behind import.meta.env.DEV
+  - Fix #2 (High): Friends.tsx async onClick handlers (accept/decline/remove/unblock) wrapped with try/catch + actionError signal shown in UI
+  - Fix #3 (High): Zod .min(1) param validation on all 4 friend route params (:userId) in friend.ts
+  - Fix #4 (High): dm.ts has no route params — body validation already uses createDmSchema with .min(1). No changes needed.
+  - Fix #5 (Medium): handlers.ts readyDmChannels/readyFriends local types updated to use branded ReturnType<> instead of string. Removed 3 `as string` casts.
+  - Fix #6 (Medium): Friends.tsx 4 `as string` casts on friend.userId removed — UserId (branded) is assignable to string parameters.
+  - Fix #7 (Medium): message-store fetchMessages catch block now sets fetchError on ChannelMessages interface for UI consumption.
+  - Fix #8 (Low): 5 magic numbers in gateway.ts Zod schemas extracted to named constants (MAX_SDP_SIZE, MAX_FILE_NAME_LENGTH, etc.)
+  - Fix #9 (Low): servers.ownerId FK annotated with { onDelete: "restrict" } for explicit documentation. Matches PostgreSQL default NO ACTION behavior.
+  - Fix #10 (Low): progress.md already current — no changes needed.
+  - Fix #11 (Low): FileMessage.tsx thumbnail <img> made keyboard-accessible with tabIndex={0}, role="button", and onKeyDown handler (Enter/Space triggers download)
+  - Fix #12 (Low): FileMessage.tsx transfer()!.downloadSpeed replaced with transfer()?.downloadSpeed ?? 0
+- All checks pass: typecheck (0 errors), lint (0 warnings), fmt clean
 
 ---
 

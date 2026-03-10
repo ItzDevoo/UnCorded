@@ -183,7 +183,9 @@ const FileMessage = (props: { receipt: FileReceipt; isOwn: boolean }) => {
           </div>
           <p class="mt-1 text-xs text-muted-foreground">
             {Math.round((transfer()?.progress ?? 0) * 100)}%
-            {transfer()?.downloadSpeed ? ` \u2014 ${formatSpeed(transfer()!.downloadSpeed)}` : ""}
+            {transfer()?.downloadSpeed
+              ? ` \u2014 ${formatSpeed(transfer()?.downloadSpeed ?? 0)}`
+              : ""}
           </p>
         </div>
       </Show>
@@ -207,7 +209,15 @@ const FileMessage = (props: { receipt: FileReceipt; isOwn: boolean }) => {
             src={thumbnailUrl()!}
             alt={props.receipt.fileName}
             class="max-h-[200px] max-w-[300px] cursor-pointer rounded-md"
+            tabIndex={0}
+            role="button"
             onClick={handleDownload}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleDownload();
+              }
+            }}
           />
         </div>
       </Show>

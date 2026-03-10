@@ -25,6 +25,7 @@ interface ChannelMessages {
   messages: Message[];
   loading: boolean;
   hasMore: boolean;
+  fetchError: string | null;
 }
 
 interface TypingUser {
@@ -90,9 +91,10 @@ export async function fetchMessages(cId: ChannelId) {
 
   // Initialize channel entry if needed
   if (!existing) {
-    setStore("channels", key, { messages: [], loading: true, hasMore: true });
+    setStore("channels", key, { messages: [], loading: true, hasMore: true, fetchError: null });
   } else {
     setStore("channels", key, "loading", true);
+    setStore("channels", key, "fetchError", null);
   }
 
   const oldest = store.channels[key]?.messages[0];
@@ -110,8 +112,14 @@ export async function fetchMessages(cId: ChannelId) {
         ch.loading = false;
       }),
     );
-  } catch {
+  } catch (err) {
     setStore("channels", key, "loading", false);
+    setStore(
+      "channels",
+      key,
+      "fetchError",
+      err instanceof Error ? err.message : "Failed to load messages",
+    );
   }
 }
 
@@ -122,6 +130,7 @@ export function addMessage(cId: ChannelId, message: Message) {
       messages: [message],
       loading: false,
       hasMore: true,
+      fetchError: null,
     });
     return;
   }
@@ -205,7 +214,7 @@ export function addTypingUser(cId: ChannelId, uId: UserId, username: string) {
 const unsubCreate = onGatewayEvent(Opcode.MESSAGE_CREATE, (data) => {
   const parsed = messageCreateSchema.safeParse(data);
   if (!parsed.success) {
-    console.warn("Invalid MESSAGE_CREATE payload:", parsed.error.issues);
+    if (import.meta.env.DEV) console.warn("Invalid MESSAGE_CREATE payload:", parsed.error.issues);
     return;
   }
   const d = parsed.data;
@@ -228,7 +237,7 @@ const unsubCreate = onGatewayEvent(Opcode.MESSAGE_CREATE, (data) => {
 const unsubUpdate = onGatewayEvent(Opcode.MESSAGE_UPDATE, (data) => {
   const parsed = messageUpdateSchema.safeParse(data);
   if (!parsed.success) {
-    console.warn("Invalid MESSAGE_UPDATE payload:", parsed.error.issues);
+    if (import.meta.env.DEV) console.warn("Invalid MESSAGE_UPDATE payload:", parsed.error.issues);
     return;
   }
   const d = parsed.data;
@@ -241,7 +250,7 @@ const unsubUpdate = onGatewayEvent(Opcode.MESSAGE_UPDATE, (data) => {
 const unsubDelete = onGatewayEvent(Opcode.MESSAGE_DELETE, (data) => {
   const parsed = messageDeleteSchema.safeParse(data);
   if (!parsed.success) {
-    console.warn("Invalid MESSAGE_DELETE payload:", parsed.error.issues);
+    if (import.meta.env.DEV) console.warn("Invalid MESSAGE_DELETE payload:", parsed.error.issues);
     return;
   }
   const d = parsed.data;
@@ -251,7 +260,7 @@ const unsubDelete = onGatewayEvent(Opcode.MESSAGE_DELETE, (data) => {
 const unsubTyping = onGatewayEvent(Opcode.TYPING_START, (data) => {
   const parsed = typingStartSchema.safeParse(data);
   if (!parsed.success) {
-    console.warn("Invalid TYPING_START payload:", parsed.error.issues);
+    if (import.meta.env.DEV) console.warn("Invalid TYPING_START payload:", parsed.error.issues);
     return;
   }
   const d = parsed.data;

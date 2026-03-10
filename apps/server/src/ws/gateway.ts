@@ -9,6 +9,11 @@ import { removeConnection, getConnections, sendToUser, broadcastToServer } from 
 import { handleIdentify } from "./handlers.js";
 
 const FREE_TIER = "free" as const;
+const MAX_SDP_SIZE = 16_384;
+const MAX_FILE_NAME_LENGTH = 255;
+const MAX_CONTENT_TYPE_LENGTH = 127;
+const MAX_MAGNET_URI_LENGTH = 2048;
+const MAX_INFO_HASH_LENGTH = 128;
 
 const typingStartSchema = z.object({ channelId: z.string().min(1) });
 
@@ -16,20 +21,20 @@ const webRtcSignalSchema = z.object({
   targetUserId: z.string().min(1),
   channelId: z.string().min(1),
   data: z.union([
-    z.string().max(16_384),
+    z.string().max(MAX_SDP_SIZE),
     z
       .record(z.string(), z.unknown())
-      .refine((r) => JSON.stringify(r).length <= 16_384, "ICE candidate too large"),
+      .refine((r) => JSON.stringify(r).length <= MAX_SDP_SIZE, "ICE candidate too large"),
   ]),
 });
 
 const fileShareSchema = z.object({
   channelId: z.string().min(1),
-  fileName: z.string().min(1).max(255),
+  fileName: z.string().min(1).max(MAX_FILE_NAME_LENGTH),
   fileSize: z.number().int().positive().max(MAX_FILE_SIZE_BYTES),
-  contentType: z.string().min(1).max(127),
-  magnetUri: z.string().min(1).max(2048).startsWith("magnet:"),
-  infoHash: z.string().min(1).max(128),
+  contentType: z.string().min(1).max(MAX_CONTENT_TYPE_LENGTH),
+  magnetUri: z.string().min(1).max(MAX_MAGNET_URI_LENGTH).startsWith("magnet:"),
+  infoHash: z.string().min(1).max(MAX_INFO_HASH_LENGTH),
 });
 
 const fileAvailabilitySchema = z.object({

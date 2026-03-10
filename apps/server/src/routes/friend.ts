@@ -1,5 +1,6 @@
 import { Elysia } from "elysia";
 import { eq, and, or } from "drizzle-orm";
+import { z } from "zod";
 import {
   friendRequestSchema,
   ValidationError,
@@ -11,6 +12,8 @@ import { db } from "../db/index.js";
 import { friendships, user } from "../db/schema.js";
 import { getSession } from "../middleware/auth.js";
 import { sendToUser } from "../ws/connections.js";
+
+const userIdParamSchema = z.object({ userId: z.string().min(1) });
 
 export const friendRoutes = new Elysia({ prefix: "/api/friends" })
   .resolve(async ({ status, request }) => {
@@ -162,6 +165,9 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
 
   // POST /:userId/accept — Accept friend request
   .post("/:userId/accept", async ({ user: sessionUser, params }) => {
+    const parsedParams = userIdParamSchema.safeParse(params);
+    if (!parsedParams.success) throw new ValidationError("Invalid user ID");
+
     const [existing] = await db
       .select({
         userId: friendships.userId,
@@ -235,6 +241,9 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
 
   // POST /:userId/decline — Decline friend request
   .post("/:userId/decline", async ({ user: sessionUser, params, set }) => {
+    const parsedParams = userIdParamSchema.safeParse(params);
+    if (!parsedParams.success) throw new ValidationError("Invalid user ID");
+
     const result = await db
       .delete(friendships)
       .where(
@@ -255,6 +264,9 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
 
   // POST /:userId/block — Block user
   .post("/:userId/block", async ({ user: sessionUser, params }) => {
+    const parsedParams = userIdParamSchema.safeParse(params);
+    if (!parsedParams.success) throw new ValidationError("Invalid user ID");
+
     const targetId = params.userId;
 
     // Delete any existing friendship in either direction
@@ -284,6 +296,9 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
 
   // DELETE /:userId — Remove friend
   .delete("/:userId", async ({ user: sessionUser, params, set }) => {
+    const parsedParams = userIdParamSchema.safeParse(params);
+    if (!parsedParams.success) throw new ValidationError("Invalid user ID");
+
     const targetId = params.userId;
 
     const result = await db

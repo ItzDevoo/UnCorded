@@ -140,7 +140,7 @@ export const servers = pgTable("servers", {
   iconUrl: text("icon_url"),
   ownerId: text("owner_id")
     .notNull()
-    .references(() => user.id),
+    .references(() => user.id, { onDelete: "restrict" }),
   createdAt: createdAt(),
 });
 

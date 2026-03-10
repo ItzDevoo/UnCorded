@@ -167,7 +167,7 @@ const MessageBubble = (props: MessageBubbleProps) => {
     "rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors";
 
   const Toolbar = () => (
-    <div class="absolute top-1 right-2 z-10 flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5 shadow-sm opacity-0 transition-opacity group-hover:opacity-100">
+    <div class="ml-auto flex shrink-0 items-center gap-0.5 rounded-lg border border-border bg-card px-0.5 shadow-sm opacity-0 transition-opacity group-hover:opacity-100">
       <button class={toolbarBtnClass} title="Copy" onClick={handleCopy}>
         <CopyIcon />
       </button>
@@ -275,30 +275,32 @@ const MessageBubble = (props: MessageBubbleProps) => {
         when={props.showHeader}
         fallback={
           <div
-            class={`group relative px-4 py-0.5 hover:bg-accent/50 ${props.isOwn ? "border-l-2 border-primary/30" : ""}`}
+            class={`group px-4 py-0.5 hover:bg-accent/50 ${props.isOwn ? "border-l-2 border-primary/30" : ""}`}
           >
-            <Toolbar />
             <div class="flex gap-3">
               <div class="w-9 shrink-0" />
-              <div class="min-w-0 flex-1">
-                <MessageContent />
+              <div class="flex min-w-0 flex-1 items-start gap-2">
+                <div class="min-w-0 flex-1">
+                  <MessageContent />
+                </div>
+                <Toolbar />
               </div>
             </div>
           </div>
         }
       >
         <div
-          class={`group relative px-4 pt-3 py-1 hover:bg-accent/50 ${props.isOwn ? "border-l-2 border-primary/30" : ""}`}
+          class={`group px-4 pt-3 py-1 hover:bg-accent/50 ${props.isOwn ? "border-l-2 border-primary/30" : ""}`}
         >
-          <Toolbar />
           <div class="flex gap-3">
             <Avatar />
             <div class="min-w-0 flex-1">
-              <div class="flex items-baseline gap-2">
+              <div class="flex items-center gap-2">
                 <span class="text-sm font-semibold text-foreground">{displayName()}</span>
                 <span class="text-xs text-muted-foreground">
                   {formatTimestamp(props.message.createdAt)}
                 </span>
+                <Toolbar />
               </div>
               <MessageContent />
             </div>

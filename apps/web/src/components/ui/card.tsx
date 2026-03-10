@@ -8,7 +8,7 @@ const Card = (props: DivProps) => {
   return (
     <div
       data-slot="card"
-      class={cn("rounded-lg border border-border bg-card text-card-foreground", local.class)}
+      class={cn("rounded-2xl border border-border bg-card text-card-foreground shadow-sm", local.class)}
       {...rest}
     >
       {local.children}

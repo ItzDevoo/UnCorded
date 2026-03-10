@@ -116,7 +116,7 @@ const DialogContent = (props: DialogContentProps) => {
             aria-modal="true"
             aria-labelledby={titleId}
             class={cn(
-              "relative w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-md",
+              "relative w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-md animate-scale-in",
               local.class,
             )}
             onClick={(e) => e.stopPropagation()}

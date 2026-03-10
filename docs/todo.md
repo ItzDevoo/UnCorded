@@ -259,6 +259,61 @@ Reference: C:\Nexis (monorepo patterns, auth, WS gateway), C:\t3Code (tooling, U
 
 ---
 
+## Week 3.5: UI Overhaul (t3Code-inspired)
+
+Goal: Replace Discord-clone UI with a distinctive, polished design inspired by t3Code's UX. Modern, minimal, refined — not another shadcn template.
+
+### Phase 1: Design Foundation (Day 1)
+
+- [ ] Rework CSS tokens in index.css:
+  - [ ] Refine color palette (alpha-based borders, layered backgrounds)
+  - [ ] Add body noise texture (SVG fractal noise at low opacity)
+  - [ ] Inset shadows on buttons/inputs for depth (t3Code pattern)
+  - [ ] Transition utilities (duration-200 default, scale/opacity for modals)
+- [ ] Upgrade existing UI primitives:
+  - [ ] Button: inset shadow, better hover/active transitions
+  - [ ] Input: shadow-xs, refined focus ring
+  - [ ] Card: shadow depth, rounded-2xl for larger surfaces
+  - [ ] Dialog: scale-98→100 + opacity entrance, backdrop-blur
+  - [ ] Toast: slide-in animation
+- [ ] New UI primitives:
+  - [ ] ScrollArea — custom scrollbar with opacity transitions
+  - [ ] Skeleton — shimmer loading animation
+  - [ ] Empty — centered empty state layout
+
+### Phase 2: Layout Redesign (Day 2)
+
+- [ ] Replace 3-panel Discord layout with single collapsible sidebar + main content
+- [ ] Server switcher: dropdown/select at sidebar top (not icon strip)
+- [ ] Channels + DMs unified in sidebar with collapsible section groups
+- [ ] Sidebar collapse to icon rail on desktop
+- [ ] Mobile: sidebar as sheet/drawer (offcanvas)
+- [ ] Main content inset with proper spacing
+- [ ] User panel redesign at sidebar bottom
+
+### Phase 3: Chat & Messages (Day 3)
+
+- [ ] Message hover toolbar (edit, delete, copy actions)
+- [ ] Edit message UI (inline edit mode, save/cancel)
+- [ ] Delete message UI (confirmation, optimistic removal)
+- [ ] Refined message layout (better spacing, timestamps, avatar circles)
+- [ ] Typing indicator animation upgrade (smoother dots)
+- [ ] Markdown rendering in messages (code blocks, links, bold/italic)
+- [ ] ScrollArea integration in message list
+
+### Phase 4: Pages, Modals, Polish (Day 4)
+
+- [ ] Auth pages redesign (login/register — modern card layout)
+- [ ] Friends page refresh (cleaner tabs, better empty states)
+- [ ] Modal entrance/exit transitions (scale + opacity)
+- [ ] Skeleton loading states for message list, sidebar, channel list
+- [ ] Empty state components (no messages, no channels, no friends)
+- [ ] Final responsive pass (mobile breakpoints)
+
+**Milestone: UnCorded has its own visual identity. Polished, modern, distinctive.**
+
+---
+
 ## Week 4: Subscriptions + Server File Sharing
 
 ### Day 1-2: Stripe Subscriptions

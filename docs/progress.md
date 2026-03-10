@@ -6,7 +6,10 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Pre-Week 4 Review — 12 correctness/validation/accessibility fixes
+## Current Status: Pre-Week 3.5 — UI Overhaul planned (t3Code-inspired redesign)
+
+Main at 43e0084 (pushed). 14+ review cycles complete, health score 9.5/10. All review debt cleared. Schema fully synced.
+Next: Week 3.5 UI overhaul — replace Discord-clone layout with distinctive, modern design inspired by t3Code.
 
 ---
 

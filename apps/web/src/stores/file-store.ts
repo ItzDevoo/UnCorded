@@ -1,7 +1,7 @@
 import { createStore, produce } from "solid-js/store";
 import { z } from "zod";
 import { Opcode } from "@uncorded/protocol";
-import type { ChannelId, FileReceiptId, UserId } from "@uncorded/protocol";
+import type { AnyChannelId, FileReceiptId, UserId } from "@uncorded/protocol";
 import { channelId, fileReceiptId, userId } from "@uncorded/protocol";
 import { onGatewayEvent, sendFrame } from "../lib/gateway.js";
 import {
@@ -15,7 +15,7 @@ import {
 
 export interface FileReceipt {
   id: FileReceiptId;
-  channelId: ChannelId;
+  channelId: AnyChannelId;
   senderId: UserId;
   fileName: string;
   fileSize: number;
@@ -115,7 +115,7 @@ function updateSeeders(frId: FileReceiptId, uId: UserId, available: boolean): vo
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
-export async function shareFile(chId: ChannelId, file: File): Promise<SeedResult> {
+export async function shareFile(chId: AnyChannelId, file: File): Promise<SeedResult> {
   let result: SeedResult;
   try {
     result = await seedFile(file);
@@ -200,7 +200,7 @@ export function cancelTransfer(infoHash: string): void {
   setStore("transfers", infoHash, "status", "cancelled");
 }
 
-export function getReceipts(chId: ChannelId): FileReceipt[] {
+export function getReceipts(chId: AnyChannelId): FileReceipt[] {
   return store.receipts[chId as string] ?? [];
 }
 

@@ -2,7 +2,7 @@ import { createStore, produce } from "solid-js/store";
 import { z } from "zod";
 import { MESSAGE_PAGE_LIMIT } from "@uncorded/shared";
 import { Opcode } from "@uncorded/protocol";
-import type { MessageId, ChannelId, UserId } from "@uncorded/protocol";
+import type { MessageId, AnyChannelId, UserId } from "@uncorded/protocol";
 import { channelId, messageId, userId } from "@uncorded/protocol";
 import { onGatewayEvent } from "../lib/gateway.js";
 import { api } from "../lib/api.js";
@@ -10,7 +10,7 @@ import { readyData } from "../lib/gateway-store.js";
 
 export interface Message {
   id: MessageId;
-  channelId: ChannelId;
+  channelId: AnyChannelId;
   content: string;
   editedAt: string | null;
   createdAt: string;
@@ -89,7 +89,7 @@ const typingStartSchema = z.object({
   username: z.string(),
 });
 
-export async function fetchMessages(cId: ChannelId) {
+export async function fetchMessages(cId: AnyChannelId) {
   const key = cId as string;
   const existing = store.channels[key];
   if (existing?.loading) return;
@@ -128,7 +128,7 @@ export async function fetchMessages(cId: ChannelId) {
   }
 }
 
-export function addMessage(cId: ChannelId, message: Message) {
+export function addMessage(cId: AnyChannelId, message: Message) {
   const key = cId as string;
   if (!store.channels[key]) {
     setStore("channels", key, {
@@ -150,7 +150,7 @@ export function addMessage(cId: ChannelId, message: Message) {
 }
 
 export function updateMessage(
-  cId: ChannelId,
+  cId: AnyChannelId,
   mId: MessageId,
   updates: { content: string; editedAt: string | null },
 ) {
@@ -169,7 +169,7 @@ export function updateMessage(
   );
 }
 
-export function removeMessage(cId: ChannelId, mId: MessageId) {
+export function removeMessage(cId: AnyChannelId, mId: MessageId) {
   const key = cId as string;
   setStore(
     "channels",
@@ -181,11 +181,11 @@ export function removeMessage(cId: ChannelId, mId: MessageId) {
   );
 }
 
-export function getMessages(cId: ChannelId): ChannelMessages | undefined {
+export function getMessages(cId: AnyChannelId): ChannelMessages | undefined {
   return store.channels[cId as string];
 }
 
-export function getTypingUsers(cId: ChannelId): TypingUser[] {
+export function getTypingUsers(cId: AnyChannelId): TypingUser[] {
   const selfId = readyData.data?.user.id;
   const now = Date.now();
   return (store.typing[cId as string] ?? []).filter(
@@ -193,7 +193,7 @@ export function getTypingUsers(cId: ChannelId): TypingUser[] {
   );
 }
 
-export function addTypingUser(cId: ChannelId, uId: UserId, username: string) {
+export function addTypingUser(cId: AnyChannelId, uId: UserId, username: string) {
   const key = cId as string;
   if (!store.typing[key]) {
     setStore("typing", key, [{ userId: uId, username, expiresAt: Date.now() + TYPING_TIMEOUT_MS }]);

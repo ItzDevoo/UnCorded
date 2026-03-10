@@ -57,4 +57,7 @@ export enum Opcode {
 
   /** Server -> Client: DM channel created */
   DM_CHANNEL_CREATE = 80,
+
+  /** Server -> Client: error notification (e.g., tier restriction) */
+  ERROR = 99,
 }

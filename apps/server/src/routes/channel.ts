@@ -5,6 +5,7 @@ import {
   updateChannelSchema,
   ValidationError,
   NotFoundError,
+  InternalError,
 } from "@uncorded/shared";
 import { channelId, serverId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
@@ -50,10 +51,10 @@ const serverChannelRoutes = new Elysia({ prefix: "/api/servers/:serverId/channel
       })
       .returning();
 
+    if (!channel) throw new InternalError("Failed to create channel");
+
     set.status = 201;
-    return channel
-      ? { ...channel, id: channelId(channel.id), serverId: serverId(channel.serverId) }
-      : channel;
+    return { ...channel, id: channelId(channel.id), serverId: serverId(channel.serverId) };
   })
   .get("/", async ({ user: sessionUser, params }) => {
     await requireMember(sessionUser.id, params.serverId);
@@ -116,9 +117,9 @@ const channelIdRoutes = new Elysia({ prefix: "/api/channels/:channelId" })
       .where(eq(channels.id, params.channelId))
       .returning();
 
-    return updated
-      ? { ...updated, id: channelId(updated.id), serverId: serverId(updated.serverId) }
-      : updated;
+    if (!updated) throw new InternalError("Failed to update channel");
+
+    return { ...updated, id: channelId(updated.id), serverId: serverId(updated.serverId) };
   })
   .delete("/", async ({ user: sessionUser, params, set }) => {
     const [channel] = await db

@@ -1,5 +1,5 @@
 import { createSignal, Show } from "solid-js";
-import { Opcode, type ChannelId } from "@uncorded/protocol";
+import { Opcode, type AnyChannelId } from "@uncorded/protocol";
 import { api, ApiRequestError } from "../lib/api.js";
 import { sendFrame } from "../lib/gateway.js";
 import { getTypingUsers } from "../stores/message-store.js";
@@ -11,7 +11,7 @@ const TEXTAREA_MAX_HEIGHT = 200;
 /** Keyed by ChannelId (branded string) — TS index signatures can't use branded types */
 const lastTypingSent: Record<string, number> = {};
 
-const MessageInput = (props: { channelId: ChannelId; onFileSelect?: (file: File) => void }) => {
+const MessageInput = (props: { channelId: AnyChannelId; onFileSelect?: (file: File) => void }) => {
   // oxlint-disable-next-line no-unassigned-vars -- SolidJS ref pattern, assigned via JSX ref={}
   let textareaRef!: HTMLTextAreaElement;
   const [content, setContent] = createSignal("");
@@ -50,8 +50,7 @@ const MessageInput = (props: { channelId: ChannelId; onFileSelect?: (file: File)
       setContent("");
       textareaRef.style.height = "auto";
     } catch (err) {
-      const message =
-        err instanceof ApiRequestError ? err.body.message : "Failed to send message";
+      const message = err instanceof ApiRequestError ? err.body.message : "Failed to send message";
       setSendError(message);
     } finally {
       setSending(false);

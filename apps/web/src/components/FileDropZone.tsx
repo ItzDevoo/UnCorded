@@ -1,5 +1,5 @@
 import { createSignal, Show, type JSX } from "solid-js";
-import type { ChannelId } from "@uncorded/protocol";
+import type { AnyChannelId } from "@uncorded/protocol";
 import { MAX_FILE_SIZE_BYTES } from "@uncorded/shared";
 
 function handleDragOver(e: DragEvent) {
@@ -7,7 +7,7 @@ function handleDragOver(e: DragEvent) {
 }
 
 const FileDropZone = (props: {
-  channelId: ChannelId;
+  channelId: AnyChannelId;
   children: JSX.Element;
   onFileSelect: (file: File) => void;
 }) => {

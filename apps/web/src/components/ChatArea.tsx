@@ -1,5 +1,5 @@
 import { createMemo, createEffect, Show, on } from "solid-js";
-import type { ChannelId } from "@uncorded/protocol";
+import type { AnyChannelId } from "@uncorded/protocol";
 import { selectedChannelId, selectedDmChannelId, currentChannels } from "../stores/app-store.js";
 import { readyData } from "../lib/gateway-store.js";
 import { fetchMessages, getMessages } from "../stores/message-store.js";
@@ -10,7 +10,7 @@ import FileDropZone from "./FileDropZone.js";
 
 const ChatArea = () => {
   const channelId = createMemo(
-    () => selectedChannelId() ?? (selectedDmChannelId() as ChannelId | null),
+    () => selectedChannelId() ?? (selectedDmChannelId() as AnyChannelId | null),
   );
 
   const isDm = createMemo(() => !!selectedDmChannelId() && !selectedChannelId());

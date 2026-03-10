@@ -1,6 +1,6 @@
 import { createMemo, createEffect, on, Show, For } from "solid-js";
 import { createVirtualizer } from "@tanstack/solid-virtual";
-import type { ChannelId } from "@uncorded/protocol";
+import type { AnyChannelId } from "@uncorded/protocol";
 import { readyData } from "../lib/gateway-store.js";
 import { fetchMessages, getMessages } from "../stores/message-store.js";
 import { getReceipts } from "../stores/file-store.js";
@@ -10,7 +10,7 @@ import FileMessage from "./FileMessage.js";
 const SCROLL_BOTTOM_THRESHOLD = 100;
 const OVERSCAN = 5;
 
-const VirtualMessageList = (props: { channelId: ChannelId }) => {
+const VirtualMessageList = (props: { channelId: AnyChannelId }) => {
   // oxlint-disable-next-line no-unassigned-vars -- SolidJS ref pattern, assigned via JSX ref={}
   let scrollRef!: HTMLDivElement;
 

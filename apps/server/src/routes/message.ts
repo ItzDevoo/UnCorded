@@ -1,5 +1,6 @@
 import { Elysia } from "elysia";
 import { eq, and, lt, gt, desc, or, ne } from "drizzle-orm";
+import { z } from "zod";
 import {
   createMessageSchema,
   updateMessageSchema,
@@ -19,6 +20,12 @@ import { broadcastToServer, sendToUser } from "../ws/connections.js";
 
 const DEFAULT_LIMIT = MESSAGE_PAGE_LIMIT;
 const MAX_LIMIT = 100;
+
+const listQuerySchema = z.object({
+  before: z.string().min(1).optional(),
+  after: z.string().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(MAX_LIMIT).optional(),
+});
 
 type ChannelResolution = { type: "server"; serverId: string } | { type: "dm" };
 
@@ -144,10 +151,10 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
   .get("/", async ({ user: sessionUser, params, query }) => {
     await resolveChannel(params.channelId, sessionUser.id);
 
-    const before = query.before as string | undefined;
-    const after = query.after as string | undefined;
-    const rawLimit = Number(query.limit) || DEFAULT_LIMIT;
-    const limit = Math.min(Math.max(rawLimit, 1), MAX_LIMIT);
+    const parsed = listQuerySchema.safeParse(query);
+    if (!parsed.success) throw new ValidationError("Invalid query parameters");
+    const { before, after, limit: rawLimit } = parsed.data;
+    const limit = rawLimit ?? DEFAULT_LIMIT;
 
     const conditions = [eq(messages.channelId, params.channelId)];
 

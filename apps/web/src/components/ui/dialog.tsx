@@ -1,4 +1,13 @@
-import { Show, onMount, onCleanup, createUniqueId, splitProps, type JSX } from "solid-js";
+import {
+  Show,
+  onMount,
+  onCleanup,
+  createUniqueId,
+  createContext,
+  useContext,
+  splitProps,
+  type JSX,
+} from "solid-js";
 import { Portal } from "solid-js/web";
 import { cn } from "../../lib/cn.js";
 
@@ -16,6 +25,14 @@ function unlockScroll() {
   scrollLockCount--;
   if (scrollLockCount === 0) document.body.style.overflow = "";
 }
+
+// ── Context for aria-labelledby ─────────────────────────────────────────────
+
+interface DialogContextValue {
+  titleId: string;
+}
+
+const DialogContext = createContext<DialogContextValue>();
 
 interface DialogProps {
   open: boolean;
@@ -85,31 +102,32 @@ const DialogContent = (props: DialogContentProps) => {
   };
 
   return (
-    <Portal mount={document.body}>
-      <div
-        class="fixed inset-0 z-[--z-modal] flex items-center justify-center"
-        onClick={() => local.onClose?.()}
-      >
-        <DialogOverlay />
+    <DialogContext.Provider value={{ titleId }}>
+      <Portal mount={document.body}>
         <div
-          ref={panelRef}
-          data-slot="dialog-content"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={titleId}
-          class={cn(
-            "relative w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-md",
-            local.class,
-          )}
-          onClick={(e) => e.stopPropagation()}
-          onKeyDown={handleKeyDown}
-          data-title-id={titleId}
-          {...rest}
+          class="fixed inset-0 z-[--z-modal] flex items-center justify-center"
+          onClick={() => local.onClose?.()}
         >
-          {local.children}
+          <DialogOverlay />
+          <div
+            ref={panelRef}
+            data-slot="dialog-content"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
+            class={cn(
+              "relative w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-md",
+              local.class,
+            )}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={handleKeyDown}
+            {...rest}
+          >
+            {local.children}
+          </div>
         </div>
-      </div>
-    </Portal>
+      </Portal>
+    </DialogContext.Provider>
   );
 };
 
@@ -135,8 +153,10 @@ const DialogFooter = (props: DivProps) => {
 
 const DialogTitle = (props: JSX.HTMLAttributes<HTMLHeadingElement>) => {
   const [local, rest] = splitProps(props, ["class", "children"]);
+  const ctx = useContext(DialogContext);
   return (
     <h2
+      id={ctx?.titleId}
       data-slot="dialog-title"
       class={cn("text-xl font-semibold text-foreground", local.class)}
       {...rest}
@@ -158,6 +178,15 @@ const DialogDescription = (props: JSX.HTMLAttributes<HTMLParagraphElement>) => {
     </p>
   );
 };
+
+// ── HMR cleanup ─────────────────────────────────────────────────────────────
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    scrollLockCount = 0;
+    document.body.style.overflow = "";
+  });
+}
 
 export {
   Dialog,

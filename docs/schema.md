@@ -102,10 +102,10 @@ max_uses (nullable, null = unlimited), expires_at (nullable)
 ### subscriptions
 
 id, user_id -> users (cascade),
-tier (subscription_tier enum: supporter | server_owner),
-stripe_subscription_id, stripe_customer_id,
+tier (subscription_tier enum: free | supporter | server_owner),
+stripe_subscription_id (nullable), stripe_customer_id (nullable),
 status (subscription_status, default active),
-current_period_end (timestamp), created_at
+current_period_end (timestamp, nullable), created_at
 
 ### reports
 

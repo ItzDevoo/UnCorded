@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import { z } from "zod";
 import { Opcode, CloseCode, encode, decode } from "@uncorded/protocol";
-import { createId } from "@uncorded/shared";
+import { createId, MAX_FILE_SIZE_BYTES } from "@uncorded/shared";
 import { eq, and } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { user, channels, members, fileReceipts } from "../db/schema.js";
@@ -9,14 +9,18 @@ import { removeConnection, getConnections, sendToUser, broadcastToServer } from 
 import { handleIdentify } from "./handlers.js";
 
 const FREE_TIER = "free" as const;
-const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024;
 
 const typingStartSchema = z.object({ channelId: z.string().min(1) });
 
 const webRtcSignalSchema = z.object({
-  targetUserId: z.string(),
-  channelId: z.string(),
-  data: z.union([z.string().max(16_384), z.record(z.string(), z.unknown())]),
+  targetUserId: z.string().min(1),
+  channelId: z.string().min(1),
+  data: z.union([
+    z.string().max(16_384),
+    z
+      .record(z.string(), z.unknown())
+      .refine((r) => JSON.stringify(r).length <= 16_384, "ICE candidate too large"),
+  ]),
 });
 
 const fileShareSchema = z.object({
@@ -77,7 +81,10 @@ export const gateway = new Elysia().ws("/gateway", {
 
     let frame: { op: number; d: unknown };
     try {
-      frame = decode(raw instanceof Uint8Array ? raw : new Uint8Array(raw as ArrayBuffer));
+      const bytes =
+        raw instanceof Uint8Array ? raw : raw instanceof ArrayBuffer ? new Uint8Array(raw) : null;
+      if (!bytes) return;
+      frame = decode(bytes);
     } catch {
       ws.close(CloseCode.INVALID_FRAME, "Invalid MessagePack frame");
       return;

@@ -145,3 +145,9 @@ This applies to any module that registers global listeners or timers at the top 
 **[W3 D7]** — Console output in production: gate ALL `console.warn` and `console.error` calls in client-side code behind `if (import.meta.env.DEV)`. Server-side console.error stays (useful for production monitoring). This prevents information leakage in production browser consoles.
 
 **[W3 D7]** — Zod `.default([])` on optional array fields in READY schema provides backwards compatibility during development. Old server versions that don't send `dmChannels` or `friends` will parse successfully with empty arrays instead of failing validation.
+
+**[W3 Post-Review]** — When importing branded type constructor functions that share names with function parameters (e.g., `channelId` function vs `channelId: ChannelId` parameter), use aliased imports (`import { channelId as toChannelId }`) to avoid Oxlint's no-shadow warnings.
+
+**[W3 Post-Review]** — Constants shared between server and client (like MAX_FILE_SIZE_BYTES) belong in `packages/shared/src/constants.ts`, not duplicated in both codebases. Create a constants barrel file and export from the shared package index.
+
+**[W3 Post-Review]** — When a server READY payload omits a field that the client needs (e.g., subscriptionTier), the client must cast to access it, which always returns undefined. Fix both ends: add the field to the server select AND the client ReadyUser interface + Zod schema simultaneously.

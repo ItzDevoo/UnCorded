@@ -6,7 +6,25 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Week 3 Day 7 — DMs + Friends + Review Fixes
+## Current Status: Week 3 Post-Review — 9 correctness/validation fixes
+
+---
+
+### Week 3 Post-Review Fixes — 2026-03-09
+
+**What was done:**
+
+- 9 review fixes across P2P file sharing and WebRTC signaling code:
+  - Fix #1: subscriptionTier added to READY user payload (server select + ReadyUser interface + Zod schema). FileMessage.tsx no longer uses unsafe cast — reads subscriptionTier directly from readyData.
+  - Fix #2: FileDropZone shows visible error text when file exceeds 100MB (was silent console.warn). Error clears on next valid drop.
+  - Fix #3: webRtcSignalSchema targetUserId + channelId now have .min(1) — reject empty strings.
+  - Fix #4: signalingEventSchema fromUserId + channelId now have .min(1) — reject empty strings.
+  - Fix #5: z.record() in WebRTC data field bounded with .refine() — JSON.stringify ≤16KB cap.
+  - Fix #6: Branded constructors (userId(), channelId()) used at signaling parse boundary instead of `as SignalingEvent` cast.
+  - Fix #7: MAX_FILE_SIZE_BYTES constant created in packages/shared/src/constants.ts, imported by both server gateway and FileDropZone. Local duplicates removed.
+  - Fix #8: console.warn in FileDropZone gated behind import.meta.env.DEV.
+  - Fix #9: Server gateway `raw as ArrayBuffer` replaced with proper instanceof chain (Uint8Array | ArrayBuffer | bail).
+- All checks pass: typecheck (0 errors), lint (0 warnings), fmt clean
 
 ---
 

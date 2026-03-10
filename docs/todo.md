@@ -228,6 +228,18 @@ Reference: C:\Nexis (monorepo patterns, auth, WS gateway), C:\t3Code (tooling, U
 - [x] Friend store (WS listeners for FRIEND_REQUEST/ACCEPT/REMOVE)
 - [x] Schema docs: member_roles cascade info
 
+### Post-Review Fixes (9 items from Day 7 review)
+
+- [x] Fix #1: subscriptionTier missing from READY user payload + ReadyUser interface + schema
+- [x] Fix #2: Visible error message for oversized files in FileDropZone (was silent console.warn)
+- [x] Fix #3: .min(1) on webRtcSignalSchema targetUserId + channelId
+- [x] Fix #4: .min(1) on signalingEventSchema fromUserId + channelId
+- [x] Fix #5: Bounded z.record() in WebRTC data with JSON.stringify size refine (16KB cap)
+- [x] Fix #6: Branded type constructors at signaling parse boundary (no more `as SignalingEvent`)
+- [x] Fix #7: MAX_FILE_SIZE_BYTES shared constant (removed duplicates from FileDropZone + gateway)
+- [x] Fix #8: console.warn in FileDropZone gated behind import.meta.env.DEV
+- [x] Fix #9: Safe ArrayBuffer type narrowing in server gateway (no more `raw as ArrayBuffer`)
+
 **Milestone: Users can share files in DMs via P2P. Magnet links persist in chat.**
 
 ---

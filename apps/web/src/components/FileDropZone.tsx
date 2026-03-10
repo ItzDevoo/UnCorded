@@ -1,7 +1,6 @@
-import { createSignal, type JSX } from "solid-js";
+import { createSignal, Show, type JSX } from "solid-js";
 import type { ChannelId } from "@uncorded/protocol";
-
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
+import { MAX_FILE_SIZE_BYTES } from "@uncorded/shared";
 
 function handleDragOver(e: DragEvent) {
   e.preventDefault();
@@ -13,6 +12,7 @@ const FileDropZone = (props: {
   onFileSelect: (file: File) => void;
 }) => {
   const [dragging, setDragging] = createSignal(false);
+  const [errorMessage, setErrorMessage] = createSignal<string | null>(null);
   let dragCounter = 0;
 
   function handleDragEnter(e: DragEvent) {
@@ -35,11 +35,14 @@ const FileDropZone = (props: {
     const file = e.dataTransfer?.files[0];
     if (!file) return;
 
-    if (file.size > MAX_FILE_SIZE) {
-      console.warn("[FileDropZone] File too large:", file.size, "bytes (max 100 MB)");
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setErrorMessage("File exceeds 100 MB limit");
+      if (import.meta.env.DEV)
+        console.warn("[FileDropZone] File too large:", file.size, "bytes (max 100 MB)");
       return;
     }
 
+    setErrorMessage(null);
     props.onFileSelect(file);
   }
 
@@ -58,9 +61,11 @@ const FileDropZone = (props: {
           <p class="text-lg font-semibold text-primary">Drop file to share</p>
         </div>
       )}
+      <Show when={errorMessage()}>
+        <div class="px-3 py-1.5 text-xs text-destructive">{errorMessage()}</div>
+      </Show>
     </div>
   );
 };
 
 export default FileDropZone;
-export { MAX_FILE_SIZE };

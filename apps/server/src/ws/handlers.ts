@@ -68,6 +68,7 @@ export async function handleIdentify(
       displayName: user.displayName,
       avatarUrl: user.avatarUrl,
       status: user.status,
+      subscriptionTier: user.subscriptionTier,
     })
     .from(user)
     .where(eq(user.id, identifiedUserId))

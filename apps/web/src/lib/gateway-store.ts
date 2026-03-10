@@ -11,6 +11,7 @@ export interface ReadyUser {
   displayName: string | null;
   avatarUrl: string | null;
   status: string;
+  subscriptionTier: string;
 }
 
 export interface ReadyChannel {
@@ -66,6 +67,7 @@ export const readyDataSchema = z.object({
     displayName: z.string().nullable(),
     avatarUrl: z.string().nullable(),
     status: z.string(),
+    subscriptionTier: z.string(),
   }),
   servers: z.array(
     z.object({

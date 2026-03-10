@@ -31,10 +31,7 @@ const FileMessage = (props: { receipt: FileReceipt; isOwn: boolean }) => {
   const isImage = createMemo(() => IMAGE_TYPES.has(props.receipt.contentType));
 
   const isFreeUser = createMemo(
-    () =>
-      (readyData.data?.user as { subscriptionTier?: string } | undefined)?.subscriptionTier ===
-        "free" ||
-      !(readyData.data?.user as { subscriptionTier?: string } | undefined)?.subscriptionTier,
+    () => !readyData.data?.user.subscriptionTier || readyData.data.user.subscriptionTier === "free",
   );
 
   const status = createMemo(() => {

@@ -17,6 +17,7 @@ const envSchema = z.object({
   BETTER_AUTH_URL: z.string().url(),
   APP_URL: z
     .string()
+    .default("")
     .transform((s) => (s === "" ? "http://localhost:3000" : s))
     .pipe(z.string().url()),
   CORS_ORIGIN: optionalUrl,
@@ -56,6 +57,11 @@ const parsed = envSchema.safeParse(process.env);
 if (!parsed.success) {
   console.error("Invalid environment variables:");
   console.error(parsed.error.flatten().fieldErrors);
+  process.exit(1);
+}
+
+if (parsed.data.NODE_ENV === "production" && parsed.data.APP_URL === "http://localhost:3000") {
+  console.error("APP_URL must be set explicitly in production (currently falling back to localhost)");
   process.exit(1);
 }
 

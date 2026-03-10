@@ -60,6 +60,6 @@ const app = new Elysia()
   })
   .listen(env.PORT);
 
-console.log(`UnCorded server running on http://localhost:${app.server?.port}`);
+console.log(`UnCorded server running on ${env.APP_URL} (port ${app.server?.port})`);
 
 export type App = typeof app;

@@ -8,13 +8,22 @@ import {
   ForbiddenError,
   createId,
 } from "@uncorded/shared";
-import { Opcode, userId as brandUserId, dmChannelId as brandDmChannelId } from "@uncorded/protocol";
+import {
+  Opcode,
+  type UserId,
+  userId as brandUserId,
+  dmChannelId as brandDmChannelId,
+} from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { friendships, user, dmChannels, dmMembers } from "../db/schema.js";
 import { getSession } from "../middleware/auth.js";
 import { sendToUser } from "../ws/connections.js";
 
-/** Create a DM channel between two users if one doesn't already exist, and broadcast to both. */
+/**
+ * Create a DM channel between two users if one doesn't already exist.
+ * Both params are raw user ID strings (not branded) since they come from
+ * session/DB. Broadcasts DM_CHANNEL_CREATE to both users on creation.
+ */
 async function ensureDmChannel(userIdA: string, userIdB: string) {
   // Check for existing DM via intersection query
   const myChannels = db
@@ -414,7 +423,9 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
         ),
       );
 
-    const peerIds = rows.map((r) => (r.myId === sessionUser.id ? r.peerId : r.peerIdAlt));
+    const peerIds: UserId[] = rows.map((r) =>
+      r.myId === sessionUser.id ? brandUserId(r.peerId) : brandUserId(r.peerIdAlt),
+    );
     if (peerIds.length === 0) return { friends: [] };
 
     const users = await db

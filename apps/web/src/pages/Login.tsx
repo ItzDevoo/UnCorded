@@ -24,7 +24,7 @@ const Login = () => {
       if (result.error) {
         setError(result.error.message ?? "Sign in failed");
       } else {
-        navigate("/app", { replace: true });
+        navigate("/home", { replace: true });
       }
     } catch {
       setError("Something went wrong");

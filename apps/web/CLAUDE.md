@@ -12,10 +12,12 @@ Read docs/CLAUDE.md and apps/CLAUDE.md first.
 
 ## Routes
 
-- /login
-- /register
-- /channels/me — DMs + friend list
-- /channels/:serverId/:channelId — server chat view
+- / — public landing page (unauthenticated)
+- /login — login page
+- /register — registration page
+- /home — authenticated home (default landing after login, friends/DMs)
+- /home/friends — friends list page
+- Server/DM selection is store-based via sidebar, not URL-routed
 
 ## Rules
 

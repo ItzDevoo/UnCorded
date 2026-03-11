@@ -102,7 +102,7 @@ const AppSidebar = () => {
         <button
           onClick={() => {
             selectHome();
-            navigate("/app/friends");
+            navigate("/home/friends");
           }}
           class="flex w-full items-center gap-1.5 rounded-lg px-1 py-1 transition-colors hover:bg-accent"
         >

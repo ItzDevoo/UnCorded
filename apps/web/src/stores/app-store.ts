@@ -33,18 +33,6 @@ const dispose = createRoot((d) => {
     return server?.channels.toSorted((a, b) => a.position - b.position) ?? [];
   });
 
-  // Auto-select first server on initial READY only (not after intentional Home navigation)
-  let hasAutoSelected = false;
-  createEffect(() => {
-    const servers = readyData.data?.servers;
-    if (hasAutoSelected) return;
-    if (servers && servers.length > 0 && !selectedServerId() && !selectedDmChannelId()) {
-      hasAutoSelected = true;
-      const first = servers[0];
-      if (first) setSelectedServerId(first.id);
-    }
-  });
-
   // Auto-select first channel when server changes
   createEffect(() => {
     const chs = currentChannels();

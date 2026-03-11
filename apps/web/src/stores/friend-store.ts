@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Opcode, type DmChannelId, type UserId } from "@uncorded/protocol";
+import { Opcode } from "@uncorded/protocol";
 import { userId, dmChannelId } from "@uncorded/protocol";
 import { onGatewayEvent } from "../lib/gateway.js";
 import { addDmChannel, addFriend, removeFriend, updateFriendStatus } from "../lib/gateway-store.js";
@@ -84,9 +84,9 @@ const unsubDmCreate = onGatewayEvent(Opcode.DM_CHANNEL_CREATE, (data) => {
   if (!parsed.success) return;
   const d = parsed.data;
   addDmChannel({
-    id: dmChannelId(d.id) as DmChannelId,
+    id: dmChannelId(d.id),
     otherUser: {
-      id: userId(d.otherUser.id) as UserId,
+      id: userId(d.otherUser.id),
       username: d.otherUser.username,
       displayName: d.otherUser.displayName,
       avatarUrl: d.otherUser.avatarUrl,

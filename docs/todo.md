@@ -314,6 +314,33 @@ Goal: Replace Discord-clone UI with a distinctive, polished design inspired by t
 
 ---
 
+## Pre-Week 4: Code Review Fixes + Route Restructure
+
+### Part A — Code Review Fixes
+
+- [x] A1: Gate startup log behind DEV (apps/server/src/index.ts)
+- [x] A2: Remove redundant `as` casts in friend-store.ts
+- [x] A3: Type peerIds as UserId[] in friend.ts GET / route
+- [x] A4: Verify gateway.ts comment (accurate, no change)
+- [x] A5: Expand ensureDmChannel JSDoc in friend.ts
+
+### Part B — Route Restructure (changes.md #1, #2, #3)
+
+- [x] B1: App.tsx — add Landing, remove RootRedirect, `/` → Landing, `/home` → AppLayout
+- [x] B2: Login.tsx — `/app` → `/home`
+- [x] B3: Register.tsx — `/app` → `/home`
+- [x] B4: AppSidebar.tsx — `/app/friends` → `/home/friends`
+- [x] B5: app-store.ts — remove auto-select-first-server effect + hasAutoSelected flag
+- [x] B6: Landing.tsx — public landing page (hero, features, pricing, CTA)
+- [x] B7: apps/web/CLAUDE.md — routes section updated (already done)
+
+### Verification
+
+- [x] `bun run typecheck` — 0 errors
+- [x] `bun run lint` — 0 warnings
+
+---
+
 ## Week 4: Subscriptions + Server File Sharing
 
 ### Day 1-2: Stripe Subscriptions

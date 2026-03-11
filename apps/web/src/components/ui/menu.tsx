@@ -15,6 +15,8 @@ interface MenuContextValue {
   open: () => boolean;
   setOpen: (v: boolean) => void;
   triggerRef: () => HTMLButtonElement | undefined;
+  setTriggerRef: (el: HTMLButtonElement) => void;
+  repositionVersion: () => number;
 }
 
 const MenuContext = createContext<MenuContextValue>();
@@ -28,6 +30,7 @@ function useMenu() {
 const Menu = (props: { children: JSX.Element }) => {
   const [open, setOpen] = createSignal(false);
   const [triggerRef, setTriggerRef] = createSignal<HTMLButtonElement>();
+  const [repositionVersion, setRepositionVersion] = createSignal(0);
 
   createEffect(() => {
     if (!open()) return;
@@ -38,8 +41,7 @@ const Menu = (props: { children: JSX.Element }) => {
       }
     };
     const handleReposition = () => {
-      // Trigger re-render of MenuContent position on scroll/resize
-      setOpen(true);
+      setRepositionVersion((v) => v + 1);
     };
     document.addEventListener("keydown", handleKeyDown);
     window.addEventListener("scroll", handleReposition, true);
@@ -55,20 +57,16 @@ const Menu = (props: { children: JSX.Element }) => {
     open,
     setOpen,
     triggerRef,
+    setTriggerRef,
+    repositionVersion,
   };
-
-  // Expose setTriggerRef for MenuTrigger
-  (ctx as MenuContextValue & { setTriggerRef: (el: HTMLButtonElement) => void }).setTriggerRef =
-    setTriggerRef;
 
   return <MenuContext.Provider value={ctx}>{props.children}</MenuContext.Provider>;
 };
 
 const MenuTrigger = (props: JSX.ButtonHTMLAttributes<HTMLButtonElement>) => {
   const [local, rest] = splitProps(props, ["class", "children", "onClick"]);
-  const ctx = useMenu() as MenuContextValue & {
-    setTriggerRef: (el: HTMLButtonElement) => void;
-  };
+  const ctx = useMenu();
 
   return (
     <button
@@ -101,6 +99,12 @@ const MenuContent = (props: { children: JSX.Element; class?: string }) => {
     const left = Math.min(rect.right, window.innerWidth - 170);
     setPos({ top, left });
   }
+
+  // Reposition when version bumps (scroll/resize)
+  createEffect(() => {
+    ctx.repositionVersion();
+    updatePosition();
+  });
 
   return (
     <Show when={ctx.open()}>

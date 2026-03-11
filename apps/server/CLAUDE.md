@@ -1,7 +1,7 @@
 # Backend — apps/server
 
 ElysiaJS on Bun. REST API + WebSocket gateway + WebRTC signaling.
-Read docs/CLAUDE.md and apps/CLAUDE.md first.
+Read docs/CLAUDE.md and the root CLAUDE.md first.
 
 ## Structure
 

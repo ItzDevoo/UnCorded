@@ -1,6 +1,8 @@
 // In-memory channel lookup cache for O(1) membership checks.
 // Eliminates repeated DB queries on every WS message.
-// Single-instance only — needs Redis pub/sub for multi-instance.
+// Single-instance only — publishes invalidation events via Redis for future multi-instance.
+
+import { publishCacheInvalidation, PubSubChannel } from "../lib/redis-pubsub.js";
 
 /** channelId → serverId */
 const serverChannelMap = new Map<string, string>();
@@ -32,11 +34,22 @@ export function seedChannelCache(
 /** Add a server channel (on channel creation). */
 export function addChannelToCache(channelId: string, serverId: string): void {
   serverChannelMap.set(channelId, serverId);
+  publishCacheInvalidation(PubSubChannel.CHANNELS, {
+    action: "add",
+    channelId,
+    serverId,
+  });
 }
 
 /** Remove a server channel (on channel deletion). */
 export function removeChannelFromCache(channelId: string): void {
+  const serverId = serverChannelMap.get(channelId);
   serverChannelMap.delete(channelId);
+  publishCacheInvalidation(PubSubChannel.CHANNELS, {
+    action: "remove",
+    channelId,
+    serverId: serverId ?? null,
+  });
 }
 
 /** Add a DM channel (on DM creation). */
@@ -49,6 +62,11 @@ export function addDmChannelToCache(dmChannelId: string, memberIds: string[]): v
   for (const uid of memberIds) {
     members.add(uid);
   }
+  publishCacheInvalidation(PubSubChannel.DM_MEMBERS, {
+    action: "add",
+    dmChannelId,
+    memberIds,
+  });
 }
 
 /** Look up a server channel → serverId. */

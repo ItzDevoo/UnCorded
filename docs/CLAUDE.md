@@ -6,8 +6,8 @@ Real-time chat app built on radical transparency. Files transfer directly betwee
 
 ## Agent Roles
 
-- **Chat Bot Agent** (root: C:\UnCorded) — diagnostic, guidance, code review, and ALL git operations. No code changes. Uses `/review` for session audits and `/git` for version control.
-- **Coding Agent** (root: C:\UnCorded\Project) — all code lives here, references docs/ for context. NEVER runs git commands — that's the Chat Bot Agent's job.
+- **Chat Bot Agent** (root: C:\UnCorded) — diagnostic, guidance, code review, and ALL git operations. No code changes. Instructions: `C:\UnCorded\CLAUDE.md`, memory: `C:\UnCorded\memory.md`.
+- **Coding Agent** (root: C:\UnCorded\Project) — all code lives here. Instructions: `CLAUDE.md` (project root), memory: `memory.md` (project root). NEVER runs git commands — that's the Chat Bot Agent's job.
 
 ## Docs Folder (docs/)
 

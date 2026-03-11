@@ -1,7 +1,7 @@
 # Frontend — apps/web
 
 SolidJS + Vite + Tailwind CSS v4.
-Read docs/CLAUDE.md and apps/CLAUDE.md first.
+Read docs/CLAUDE.md and the root CLAUDE.md first.
 
 ## Structure
 

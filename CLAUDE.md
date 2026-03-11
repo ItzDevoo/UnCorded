@@ -2,6 +2,9 @@
 
 Read docs/CLAUDE.md first. This file adds coding-specific context.
 
+## Memory
+Read `memory.md` at session start — it has current state, technical lessons, and patterns that persist between conversations. Update it when you learn something new.
+
 ## Docs Location
 
 All reference docs are in docs/ (repo root)
@@ -69,3 +72,4 @@ At the end of every session:
 1. Update docs/todo.md — check off completed items
 2. Update docs/lessons.md — log mistakes and decisions
 3. Update docs/progress.md — update what actually works
+4. Update memory.md — save anything learned for next session

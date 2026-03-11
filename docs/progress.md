@@ -6,9 +6,27 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Deep Review Tier 3 Batch 3 Complete
+## Current Status: Deep Review Tier 3 Batch 4 Complete
 
-REST list endpoints paginated, READY payload slimmed, channels lazy-loaded on server select.
+Redis wired up for rate limiting and pub/sub foundation. Graceful degradation when unconfigured.
+
+---
+
+### Deep Review Tier 3 Batch 4 — Redis — 2026-03-11
+
+**What was done:**
+
+- `@upstash/redis` installed, client singleton in `apps/server/src/lib/redis.ts`
+- WS rate limiting (`rate-limit.ts`) backed by Redis with in-memory fallback
+  - Key pattern: `rl:ws:{userId}:{opcode}`, TTL = ceil(windowMs / 1000)s
+- IP rate limiting (`ip-rate-limit.ts`) backed by Redis with in-memory fallback
+  - Key pattern: `rl:ip:{ip}`, same TTL strategy
+- Pub/sub foundation (`redis-pubsub.ts`) — fire-and-forget publish, subscriber side stubbed
+  - Channels: `cache:server-members`, `cache:channels`, `cache:dm-members`
+  - Wired into server-members.ts (join/leave) and channel-cache.ts (channel/DM mutations)
+- `checkRateLimit` and `checkIpRateLimit` now async — all 5 call sites updated
+- Graceful degradation: no Redis env = single info log + in-memory fallback, zero errors
+- All checks pass: typecheck (0 errors), lint (0 warnings)
 
 ---
 

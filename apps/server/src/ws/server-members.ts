@@ -1,5 +1,7 @@
 // In-memory server membership registry for O(1) broadcast lookups.
-// Single-instance only — Redis pub/sub needed for multi-instance deployments.
+// Single-instance only — Redis pub/sub publishes invalidation events for future multi-instance.
+
+import { publishCacheInvalidation, PubSubChannel } from "../lib/redis-pubsub.js";
 
 /** serverId → set of userIds */
 const serverMembers = new Map<string, Set<string>>();
@@ -43,6 +45,12 @@ export function addServerMember(serverId: string, userId: string): void {
     userServers.set(userId, servers);
   }
   servers.add(serverId);
+
+  publishCacheInvalidation(PubSubChannel.SERVER_MEMBERS, {
+    action: "add",
+    serverId,
+    userId,
+  });
 }
 
 /** Remove a single member (leave/kick). */
@@ -58,6 +66,12 @@ export function removeServerMember(serverId: string, userId: string): void {
     servers.delete(serverId);
     if (servers.size === 0) userServers.delete(userId);
   }
+
+  publishCacheInvalidation(PubSubChannel.SERVER_MEMBERS, {
+    action: "remove",
+    serverId,
+    userId,
+  });
 }
 
 /** Remove user from all servers on disconnect (uses reverse index). */

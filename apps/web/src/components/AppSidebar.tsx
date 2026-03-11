@@ -150,7 +150,7 @@ const AppSidebar = () => {
             <>
               <SidebarMenu class="pt-1">
                 <SidebarMenuItem>
-                  <SidebarMenuButton onClick={() => navigate("/app/friends")}>
+                  <SidebarMenuButton onClick={() => navigate("/home/friends")}>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       class="h-4 w-4"

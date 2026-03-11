@@ -31,7 +31,7 @@ function tierFromPriceId(priceId: string): "supporter" | "server_owner" | null {
 
 export const webhookRoutes = new Elysia().post(
   "/api/webhooks/stripe",
-  async ({ request, set }) => {
+  async ({ body, request, set }) => {
     if (!env.STRIPE_WEBHOOK_SECRET) {
       set.status = 503;
       return { error: "Webhook secret not configured" };
@@ -45,11 +45,9 @@ export const webhookRoutes = new Elysia().post(
       return { error: "Missing stripe-signature header" };
     }
 
-    // Read raw body for signature verification.
-    // This must happen before Elysia parses the body — we use request.text()
-    // directly. The route is configured with parse: "text" to prevent Elysia
-    // from consuming the body stream before we read it.
-    const rawBody = await request.text();
+    // Elysia with parse: "text" gives us the raw body as a string via `body`.
+    // We use this for Stripe signature verification.
+    const rawBody = body as string;
 
     let event: Stripe.Event;
     try {
@@ -87,11 +85,6 @@ export const webhookRoutes = new Elysia().post(
 // ── Event handlers ───────────────────────────────────────────────────────
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  const userId = session.metadata?.userId;
-  const tier = session.metadata?.tier as "supporter" | "server_owner" | undefined;
-
-  if (!userId || !tier) return;
-
   const stripeSubscriptionId =
     typeof session.subscription === "string" ? session.subscription : session.subscription?.id;
 
@@ -100,9 +93,16 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   if (!stripeSubscriptionId || !stripeCustomerId) return;
 
-  // Retrieve full subscription for period info
+  // Retrieve full subscription — metadata lives on the subscription object,
+  // NOT on the checkout session (subscription_data.metadata goes there).
   const stripe = getStripe();
   const sub = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+
+  const userId = sub.metadata?.userId;
+  const priceId = sub.items.data[0]?.price.id;
+  const tier = priceId ? tierFromPriceId(priceId) : null;
+
+  if (!userId || !tier) return;
   const periodEnd = sub.items.data[0]?.current_period_end;
   const currentPeriodEnd = periodEnd ? new Date(periodEnd * 1000) : null;
 
@@ -154,7 +154,7 @@ async function handleSubscriptionUpdated(sub: Stripe.Subscription) {
   const periodEnd = sub.items.data[0]?.current_period_end;
   const currentPeriodEnd = periodEnd ? new Date(periodEnd * 1000) : null;
 
-  const updateData: Record<string, unknown> = {
+  const updateData: Partial<typeof subscriptions.$inferInsert> = {
     status,
     currentPeriodEnd,
   };

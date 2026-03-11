@@ -55,7 +55,7 @@ function startHeartbeat(intervalMs: number) {
     // If server doesn't ACK within 10s, consider connection dead
     if (heartbeatAckTimeout !== null) clearTimeout(heartbeatAckTimeout);
     heartbeatAckTimeout = setTimeout(() => {
-      ws?.close();
+      ws?.close(CloseCode.HEARTBEAT_TIMEOUT, "heartbeat_ack_timeout");
     }, HEARTBEAT_ACK_TIMEOUT_MS);
   }, intervalMs);
 }

@@ -11,6 +11,8 @@ export enum CloseCode {
   INVALID_SESSION = 4005,
   /** Client sent opcode before IDENTIFY */
   NOT_IDENTIFIED = 4006,
+  /** Client did not receive HEARTBEAT_ACK within timeout */
+  HEARTBEAT_TIMEOUT = 4007,
   /** Server-side session/context changed — client should reconnect to refresh */
   SESSION_UPDATED = 4010,
 }

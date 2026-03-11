@@ -55,12 +55,14 @@ function startHeartbeat(intervalMs: number) {
     sendFrame({ op: Opcode.HEARTBEAT, d: null });
 
     // If server doesn't ACK within 10s, consider connection dead
-    if (heartbeatAckTimeout !== null) clearTimeout(heartbeatAckTimeout);
-    heartbeatAckTimeout = setTimeout(() => {
-      if (ws === socket) {
-        socket.close(CloseCode.HEARTBEAT_TIMEOUT, "heartbeat_ack_timeout");
-      }
-    }, HEARTBEAT_ACK_TIMEOUT_MS);
+    if (heartbeatAckTimeout === null) {
+      heartbeatAckTimeout = setTimeout(() => {
+        if (ws === socket) {
+          heartbeatAckTimeout = null;
+          socket.close(CloseCode.HEARTBEAT_TIMEOUT, "heartbeat_ack_timeout");
+        }
+      }, HEARTBEAT_ACK_TIMEOUT_MS);
+    }
   }, intervalMs);
 }
 
@@ -96,6 +98,7 @@ function handleMessage(event: MessageEvent) {
       break;
     }
     case Opcode.HEARTBEAT_ACK: {
+      if (event.currentTarget !== ws) break;
       if (heartbeatAckTimeout !== null) {
         clearTimeout(heartbeatAckTimeout);
         heartbeatAckTimeout = null;

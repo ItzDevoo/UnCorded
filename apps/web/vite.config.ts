@@ -4,7 +4,13 @@ import tailwindcss from "@tailwindcss/vite";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 
 export default defineConfig({
-  plugins: [solid(), tailwindcss(), nodePolyfills()],
+  plugins: [
+    solid(),
+    tailwindcss(),
+    nodePolyfills({
+      include: ["buffer", "events", "stream", "process", "util", "path", "crypto"],
+    }),
+  ],
   server: {
     port: 5173,
   },

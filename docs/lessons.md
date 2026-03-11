@@ -187,3 +187,11 @@ This applies to any module that registers global listeners or timers at the top 
 **[W3.5 P4 Review]** — Global event listeners (Escape key, scroll, resize) for dropdowns/menus should only be active while the dropdown is open. Use `createEffect` with `onCleanup` to conditionally add/remove listeners based on open state, rather than permanent `onMount`/`onCleanup` listeners. This prevents stale handlers from firing when the dropdown is closed.
 
 **[W3.5 P4 Review]** — Dropdown position calculated once on open becomes stale if the user scrolls or resizes the viewport. Add scroll (with `capture: true` for nested scrollables) and resize listeners while the dropdown is open, recalculating position on each event.
+
+**[W4 D2]** — CORRECTED W3 D3-4: WebTorrent 2.x removed callback-based `getBlob()` / `getBuffer()` / `getBlobURL()` methods. The new API uses async methods: `file.blob()` → `Promise<Blob>`, `file.arrayBuffer()` → `Promise<ArrayBuffer>`, `file.stream()` → `ReadableStream`. The stale `@types/webtorrent@0.110.x` still declares the old callback methods, masking the issue at compile time. Fix: add a module augmentation `.d.ts` file declaring the new methods on `TorrentFile`, which merges cleanly with the existing type definitions.
+
+**[W4 D2]** — WebTorrent in the browser must disable DHT (`dht: false`) and LSD (`lsd: false`). DHT requires UDP via the `dgram` module which is impossible in browsers — Vite externalizes the `bittorrent-dht` import, causing runtime crashes. Browser peer discovery relies solely on WebSocket trackers.
+
+**[W4 D2]** — WebTorrent's default tracker list includes servers with expired/invalid SSL certs (e.g., `wss://tracker.btorrent.xyz/`). Always pass explicit `announce` URLs to `seed()` and `add()`. Known-good WebSocket trackers: `wss://tracker.openwebtorrent.com` and `wss://tracker.webtorrent.dev` (official WebTorrent project trackers).
+
+**[W4 D2]** — `vite-plugin-node-polyfills` with zero config polyfills all Node built-ins including broken stubs for `dgram`/`net`/`dns`. Use explicit `include: [...]` to only polyfill what WebTorrent actually needs: `buffer`, `events`, `stream`, `process`, `util`, `path`, `crypto`. This prevents Vite from pulling in broken stubs for network modules.

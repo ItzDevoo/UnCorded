@@ -57,12 +57,10 @@ Fix all items before moving to Week 4.
 - Was working in previous test round, now requires browser refresh to see friend request
 - Possibly related to the DM_CHANNEL_CREATE listener addition, or a timing issue with the fresh DB state
 
-### 11. File sharing — WebTorrent browser compatibility errors
-- `bittorrent-dht` module externalized by Vite — cannot access in browser
-- WebSocket connection to `wss://tracker.btorrent.xyz/` fails (cert invalid)
-- `f.getBlob is not a function` — WebTorrent API mismatch, TorrentFile may not have getBlob in current version
-- These are likely pre-existing issues masked by other bugs in earlier testing
-- Need to verify vite-plugin-node-polyfills config and WebTorrent version compatibility
+### ~~11. File sharing — WebTorrent browser compatibility errors~~ ✅ RESOLVED
+- ~~`bittorrent-dht` module externalized by Vite — cannot access in browser~~ → Fixed: `dht: false`, `lsd: false` in constructor + explicit polyfill includes
+- ~~WebSocket connection to `wss://tracker.btorrent.xyz/` fails (cert invalid)~~ → Fixed: explicit `announce` with known-good trackers (`openwebtorrent.com`, `webtorrent.dev`)
+- ~~`f.getBlob is not a function` — WebTorrent API mismatch~~ → Fixed: replaced callback `getBlob()` with async `blob()` (WebTorrent 2.x API) + module augmentation for stale `@types/webtorrent`
 
 ### 3. Always open to /home, not last server
 - Currently auto-selects the first server on load — user lands in a server channel

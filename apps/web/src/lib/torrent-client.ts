@@ -1,6 +1,14 @@
 import WebTorrent from "webtorrent";
-import type { Instance as WebTorrentInstance, Torrent, TorrentFile } from "webtorrent";
+import type { Instance as WebTorrentInstance, Torrent } from "webtorrent";
 import { rtcConfig } from "./rtc-config.js";
+
+// Known-good WebSocket trackers for browser peer discovery.
+// DHT/LSD are disabled (require UDP dgram, impossible in browsers),
+// so trackers are the sole discovery mechanism.
+const TRACKER_URLS = [
+  "wss://tracker.openwebtorrent.com",
+  "wss://tracker.webtorrent.dev",
+];
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -41,7 +49,7 @@ export function initTorrentClient(): WebTorrentInstance {
     if (import.meta.env.DEV) console.warn("[torrent] Failed to configure simple-peer:", err);
   }
 
-  client = new WebTorrent();
+  client = new WebTorrent({ dht: false, lsd: false });
 
   client.on("error", (err) => {
     if (import.meta.env.DEV) console.error("[torrent-client] Error:", err);
@@ -65,7 +73,7 @@ export function seedFile(file: File): Promise<SeedResult> {
     const onError = (err: Error | string) => reject(typeof err === "string" ? new Error(err) : err);
     c.once("error", onError);
 
-    c.seed(file, (torrent: Torrent) => {
+    c.seed(file, { announce: TRACKER_URLS }, (torrent: Torrent) => {
       c.removeListener("error", onError);
       resolve({
         magnetUri: torrent.magnetURI,
@@ -90,7 +98,7 @@ export function downloadFromMagnet(
   const c = initTorrentClient();
 
   return new Promise((resolve, reject) => {
-    const torrent = c.add(magnetUri);
+    const torrent = c.add(magnetUri, { announce: TRACKER_URLS });
 
     const timeout = setTimeout(() => {
       torrent.destroy();
@@ -108,26 +116,19 @@ export function downloadFromMagnet(
       });
     }
 
-    torrent.on("done", () => {
+    torrent.on("done", async () => {
       clearTimeout(timeout);
-      const filePromises = torrent.files.map(
-        (f: TorrentFile) =>
-          new Promise<File>((res, rej) => {
-            f.getBlob((err, blob) => {
-              if (err) {
-                rej(typeof err === "string" ? new Error(err) : err);
-                return;
-              }
-              if (!blob) {
-                rej(new Error(`Failed to get blob for ${f.name}`));
-                return;
-              }
-              res(new File([blob], f.name, { type: blob.type }));
-            });
+      try {
+        const files = await Promise.all(
+          torrent.files.map(async (f) => {
+            const blob = await f.blob();
+            return new File([blob], f.name, { type: blob.type });
           }),
-      );
-
-      Promise.all(filePromises).then(resolve, reject);
+        );
+        resolve(files);
+      } catch (err) {
+        reject(err instanceof Error ? err : new Error(String(err)));
+      }
     });
   });
 }

@@ -6,9 +6,48 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Week 3.5 complete + merged to main — ready for Week 4
+## Current Status: Pre-Week 4 stabilization — 10 of 11 test bugs resolved
 
-All Weeks 1–3 + Week 2.5 tooling + Week 3.5 UI overhaul complete. Merged to main at 3d52ef4. Friend request by username fix at f6a49f6. Next: Week 2 leftovers (member list panel, markdown rendering), then Week 4 (Stripe subscriptions).
+All Weeks 1–3 + Week 2.5 tooling + Week 3.5 UI overhaul complete. Fresh DB testing found 11 bugs (docs/changes.md) — 10 resolved, 1 needs verification (#9: live updates after server join). Public landing page added, routes restructured (/app → /home), WebTorrent browser compat fixed. Next: verify #9, then Week 4 (Stripe subscriptions).
+
+---
+
+### WebTorrent browser compatibility fix — 2026-03-10
+
+**What was done:**
+
+- Disabled DHT/LSD in WebTorrent constructor (browser can't do UDP dgram)
+- Replaced default trackers with known-good WSS endpoints (openwebtorrent.com, webtorrent.dev)
+- Replaced stale callback `getBlob()` with async `blob()` (WebTorrent 2.x API)
+- Added proper module augmentation (`webtorrent.d.ts`) for TorrentFile async methods
+- Scoped Vite node polyfills to only what WebTorrent needs
+- Commit 2a2c097
+
+---
+
+### Public landing page + route restructure + code review fixes — 2026-03-10
+
+**What was done:**
+
+- New public landing page at `/` (hero, features grid, pricing tiers, CTA)
+- Route restructure: removed `/app` prefix, authenticated routes under `/home`
+- Auto-select-first-server removed — app always opens to `/home`
+- 5 code review fixes: DEV-gated startup log, redundant cast removal, branded peerIds, ensureDmChannel JSDoc
+- Commit 66f7279
+
+---
+
+### Fresh DB test bug fixes — 2026-03-10
+
+**What was done:**
+
+- DM_CHANNEL_CREATE WS listener added to friend-store (commit 031a824)
+- 5 bugs fixed in commit 9bbc941:
+  - api.ts handles 204 No Content without JSON parse (false delete toast)
+  - message-store uses array replacement for SolidJS reactivity (real-time delivery)
+  - Invite accept response includes channels (empty channel list after join)
+  - Hard navigation on logout clears stale session (two-click login)
+  - ensureDmChannel auto-creates DM on friend accept
 
 ---
 

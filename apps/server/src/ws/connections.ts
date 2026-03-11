@@ -1,7 +1,10 @@
 /** Loose WS type — Elysia's ws.raw generic varies, so we use a structural type */
-export type AnyServerWebSocket = { send(data: string | Buffer): number };
+export type AnyServerWebSocket = {
+  send(data: string | Buffer): number;
+  close(code?: number, reason?: string): void;
+};
 import { eq, and, ne } from "drizzle-orm";
-import { encode } from "@uncorded/protocol";
+import { encode, CloseCode } from "@uncorded/protocol";
 import type { GatewayFrame } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { dmMembers } from "../db/schema.js";
@@ -29,6 +32,21 @@ export function removeConnection(userId: string, ws: AnyServerWebSocket): void {
 
 export function getConnections(userId: string): Set<AnyServerWebSocket> | undefined {
   return clients.get(userId);
+}
+
+/** Close all WS connections for a user, forcing reconnect with fresh context. */
+export function disconnectUser(targetUserId: string): void {
+  const set = clients.get(targetUserId);
+  if (!set) return;
+  for (const ws of set) {
+    try {
+      ws.close(CloseCode.SESSION_UPDATED, "Session updated");
+    } catch {
+      // Already closed — ignore
+    }
+  }
+  set.clear();
+  clients.delete(targetUserId);
 }
 
 export function sendToUser(userId: string, frame: GatewayFrame): void {

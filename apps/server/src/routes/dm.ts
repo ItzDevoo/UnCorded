@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { eq, and, or, ne } from "drizzle-orm";
+import { eq, and, or, ne, inArray } from "drizzle-orm";
 import { createDmSchema, ValidationError, ForbiddenError } from "@uncorded/shared";
 import { Opcode, dmChannelId as brandDmChannelId, userId as brandUserId } from "@uncorded/protocol";
 import { createId } from "@uncorded/shared";
@@ -164,7 +164,7 @@ export const dmRoutes = new Elysia({ prefix: "/api/dms" })
       .from(dmMembers)
       .where(
         and(
-          or(...channelIds.map((cid) => eq(dmMembers.channelId, cid))),
+          inArray(dmMembers.channelId, channelIds),
           ne(dmMembers.userId, sessionUser.id),
         ),
       );

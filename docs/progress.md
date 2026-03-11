@@ -6,9 +6,22 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Deep Review Tier 1 Complete — All hardening landed
+## Current Status: Deep Review Tier 1 + Tier 2 Complete
 
-WS rate limiting, DB transactions, missing indexes, and in-memory caching all landed. Gateway hot paths now hit zero DB queries when cached. Foundation hardened before continuing feature work.
+All hardening and bug fixes from deep review landed. Foundation solid for feature work.
+
+---
+
+### Deep Review Tier 2 — Bug Fixes & Quality — 2026-03-11
+
+**What was done:**
+
+- **leftJoin for deleted authors** — `message.ts` fetchMessageWithAuthor and GET list now use leftJoin. Deleted users show as "[deleted user]" instead of silently dropping messages.
+- **Webhook logging** — all silent early returns in webhook.ts now log with context (priceId, sub.id). tierFromPriceId logs unrecognized prices.
+- **Friend request privacy** — nonexistent usernames return same 200 `{ status: "pending" }` as success. Prevents username enumeration.
+- **DM inArray** — replaced N OR conditions with single `inArray()` clause in DM list query.
+- **Force reconnect on tier change** — new `disconnectUser()` in connections.ts, called from all 3 webhook handlers. CloseCode.SESSION_UPDATED (4010) triggers auto-reconnect with fresh WsContext.
+- All checks pass: typecheck (0 errors), lint (0 warnings)
 
 ---
 

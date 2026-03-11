@@ -11,7 +11,7 @@ import {
   ForbiddenError,
   InternalError,
 } from "@uncorded/shared";
-import { Opcode, messageId, channelId, userId } from "@uncorded/protocol";
+import { Opcode, messageId, channelId, userId, type UserId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { messages, servers, user } from "../db/schema.js";
 import { getSession } from "../middleware/auth.js";
@@ -33,7 +33,14 @@ async function resolveChannel(chanId: string, reqUserId: string) {
   return resolution;
 }
 
-/** Fetch a single message with author info. */
+const DELETED_AUTHOR = {
+  id: null as UserId | null,
+  username: "[deleted user]",
+  displayName: null as string | null,
+  avatarUrl: null as string | null,
+};
+
+/** Fetch a single message with author info. Uses leftJoin to include messages from deleted users. */
 async function fetchMessageWithAuthor(msgId: string) {
   const [row] = await db
     .select({
@@ -50,16 +57,19 @@ async function fetchMessageWithAuthor(msgId: string) {
       },
     })
     .from(messages)
-    .innerJoin(user, eq(user.id, messages.authorId))
+    .leftJoin(user, eq(user.id, messages.authorId))
     .where(eq(messages.id, msgId))
     .limit(1);
 
   if (!row) return null;
+  const author = row.author?.id
+    ? { ...row.author, id: userId(row.author.id) }
+    : DELETED_AUTHOR;
   return {
     ...row,
     id: messageId(row.id),
     channelId: channelId(row.channelId),
-    author: { ...row.author, id: userId(row.author.id) },
+    author,
   };
 }
 
@@ -173,20 +183,23 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
         },
       })
       .from(messages)
-      .innerJoin(user, eq(user.id, messages.authorId))
+      .leftJoin(user, eq(user.id, messages.authorId))
       .where(and(...conditions))
       .orderBy(desc(messages.createdAt), desc(messages.id))
       .limit(limit);
 
     // Reverse for oldest-first display order
     return {
-      messages: rows.toReversed().map((row) =>
-        Object.assign(row, {
+      messages: rows.toReversed().map((row) => {
+        const author = row.author?.id
+          ? Object.assign(row.author, { id: userId(row.author.id) })
+          : DELETED_AUTHOR;
+        return Object.assign(row, {
           id: messageId(row.id),
           channelId: channelId(row.channelId),
-          author: Object.assign(row.author, { id: userId(row.author.id) }),
-        }),
-      ),
+          author,
+        });
+      }),
     };
   })
 

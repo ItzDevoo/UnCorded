@@ -119,7 +119,10 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
       .where(eq(user.username, parsed.data.username))
       .limit(1);
     if (!target) {
-      throw new NotFoundError("User not found");
+      // Return same shape as success to prevent username enumeration.
+      // No DB records created — this is intentional for privacy.
+      set.status = 200;
+      return { status: "pending" };
     }
 
     const targetId = target.id;

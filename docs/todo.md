@@ -461,12 +461,12 @@ Goal: Replace Discord-clone UI with a distinctive, polished design inspired by t
 
 ### Tier 2 — Fix This Week
 
-- [ ] Switch message list to `leftJoin` for deleted authors — `apps/server/src/routes/message.ts` lines 161-179
-- [ ] Switch `fetchMessageWithAuthor` to `leftJoin` — `apps/server/src/routes/message.ts` lines 37-64
-- [ ] Add logging to webhook handler early returns — `apps/server/src/routes/webhook.ts`
-- [ ] Friend request: return consistent response for nonexistent users — `apps/server/src/routes/friend.ts` lines 111-118
-- [ ] DM endpoint: `or()` chain → `inArray()` — `apps/server/src/routes/dm.ts` lines 154-165
-- [ ] Broadcast tier change to WS connections on webhook update — `apps/server/src/routes/webhook.ts`
+- [x] Switch message list to `leftJoin` for deleted authors — `apps/server/src/routes/message.ts` lines 161-179
+- [x] Switch `fetchMessageWithAuthor` to `leftJoin` — `apps/server/src/routes/message.ts` lines 37-64
+- [x] Add logging to webhook handler early returns — `apps/server/src/routes/webhook.ts`
+- [x] Friend request: return consistent response for nonexistent users — `apps/server/src/routes/friend.ts` lines 111-118
+- [x] DM endpoint: `or()` chain → `inArray()` — `apps/server/src/routes/dm.ts` lines 154-165
+- [x] Broadcast tier change to WS connections on webhook update — `apps/server/src/routes/webhook.ts`
 
 ---
 

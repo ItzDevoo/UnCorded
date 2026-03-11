@@ -301,7 +301,7 @@ Goal: Replace Discord-clone UI with a distinctive, polished design inspired by t
 - [ ] Markdown rendering in messages (descoped — Week 2 leftover)
 - [x] ScrollArea integration in message list
 
-### Phase 4: Pages, Modals, Polish (Day 4)
+### Phase 4: Pages, Modals, Polish (Day 4 — DONE)
 
 - [x] Auth pages redesign (login/register — brand wordmark, gradient bg, animation, label update)
 - [x] Friends page refresh (Input/Empty components, header spacing)

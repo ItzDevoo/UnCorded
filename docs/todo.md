@@ -447,4 +447,27 @@ Goal: Replace Discord-clone UI with a distinctive, polished design inspired by t
 
 ---
 
+## From Deep Review — 2026-03-11
+
+### Tier 1 — Fix Before Next Feature
+
+- [x] WS gateway rate limiting — per-user per-opcode token bucket in `apps/server/src/ws/gateway.ts`
+- [x] Wrap server creation in `db.transaction()` — `apps/server/src/routes/server.ts` lines 36-63
+- [x] Wrap DM channel creation in `db.transaction()` — `apps/server/src/routes/dm.ts` + `apps/server/src/routes/friend.ts` ensureDmChannel
+- [x] Add missing DB indexes — `subscriptions.user_id`, `subscriptions.stripe_subscription_id`, `dm_members.user_id`, `file_receipts.channel_id`, `invites.server_id`
+- [ ] Cache `resolveChannelMembership` in-memory — `apps/server/src/helpers/resolve-channel.ts` (2 DB queries per WS message)
+- [ ] Cache DM membership in-memory (like server-members.ts) — `apps/server/src/ws/connections.ts` broadcastToDm
+- [ ] Cache username in WsContext on IDENTIFY — `apps/server/src/ws/gateway.ts` TYPING_START handler
+
+### Tier 2 — Fix This Week
+
+- [ ] Switch message list to `leftJoin` for deleted authors — `apps/server/src/routes/message.ts` lines 161-179
+- [ ] Switch `fetchMessageWithAuthor` to `leftJoin` — `apps/server/src/routes/message.ts` lines 37-64
+- [ ] Add logging to webhook handler early returns — `apps/server/src/routes/webhook.ts`
+- [ ] Friend request: return consistent response for nonexistent users — `apps/server/src/routes/friend.ts` lines 111-118
+- [ ] DM endpoint: `or()` chain → `inArray()` — `apps/server/src/routes/dm.ts` lines 154-165
+- [ ] Broadcast tier change to WS connections on webhook update — `apps/server/src/routes/webhook.ts`
+
+---
+
 _Update this file at the end of every coding session._

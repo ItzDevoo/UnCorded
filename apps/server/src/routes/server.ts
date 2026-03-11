@@ -6,6 +6,7 @@ import {
   ValidationError,
   NotFoundError,
   InternalError,
+  createId,
 } from "@uncorded/shared";
 import { serverId, userId, channelId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
@@ -33,32 +34,41 @@ export const serverRoutes = new Elysia({ prefix: "/api/servers" })
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
     }
 
-    const [server] = await db
-      .insert(servers)
-      .values({
-        name: parsed.data.name,
-        iconUrl: parsed.data.iconUrl ?? null,
-        ownerId: sessionUser.id,
-      })
-      .returning();
+    const newServerId = createId();
+    const newChannelId = createId();
 
-    if (!server) {
-      throw new InternalError("Failed to create server");
-    }
+    const { server, channel } = await db.transaction(async (tx) => {
+      const [srv] = await tx
+        .insert(servers)
+        .values({
+          id: newServerId,
+          name: parsed.data.name,
+          iconUrl: parsed.data.iconUrl ?? null,
+          ownerId: sessionUser.id,
+        })
+        .returning();
 
-    const [channel] = await db
-      .insert(channels)
-      .values({
-        serverId: server.id,
-        name: "general",
-        fileSharingEnabled: true,
-        position: 0,
-      })
-      .returning();
+      if (!srv) {
+        throw new InternalError("Failed to create server");
+      }
 
-    await db.insert(members).values({
-      userId: sessionUser.id,
-      serverId: server.id,
+      const [ch] = await tx
+        .insert(channels)
+        .values({
+          id: newChannelId,
+          serverId: newServerId,
+          name: "general",
+          fileSharingEnabled: true,
+          position: 0,
+        })
+        .returning();
+
+      await tx.insert(members).values({
+        userId: sessionUser.id,
+        serverId: newServerId,
+      });
+
+      return { server: srv, channel: ch };
     });
 
     addServerMember(server.id, sessionUser.id);

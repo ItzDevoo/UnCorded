@@ -6,9 +6,21 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Week 4 Day 1-2 — Stripe subscriptions wired
+## Current Status: Deep Review Tier 1A — Hardening complete
 
-Stripe checkout flow, webhook handling, customer portal, and frontend integration complete. Users can subscribe to Supporter ($5/mo) or Server Owner ($10/mo), manage via Customer Portal, and have their tier synced via webhooks.
+WS rate limiting, DB transactions, and missing indexes landed. Foundation hardened before continuing feature work.
+
+---
+
+### Deep Review Tier 1A — Hardening — 2026-03-11
+
+**What was done:**
+
+- **WS gateway rate limiting** — new `apps/server/src/ws/rate-limit.ts` with per-user per-opcode sliding window. Limits: TYPING_START (5/10s), FILE_SHARE (10/60s), FILE_AVAILABILITY (20/60s), WebRTC signals (30/60s). Sends ERROR frame with RATE_LIMITED code on violation. Periodic 60s sweep of expired entries with `.unref()`.
+- **Transaction wrapping** — server creation (server + channel + member), DM creation in `dm.ts` POST, and `ensureDmChannel()` in `friend.ts` all wrapped in `db.transaction()`. Pre-generated IDs via `createId()` for atomicity.
+- **Missing DB indexes** — 5 indexes added to schema: `subscriptions.user_id`, `subscriptions.stripe_subscription_id`, `dm_members.user_id`, `file_receipts.channel_id`, `invites.server_id`. Migration 0006 generated.
+- Rate limit constants added to `@uncorded/shared/constants.ts`
+- All checks pass: typecheck (0 errors), lint (0 warnings)
 
 ---
 

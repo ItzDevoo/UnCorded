@@ -20,3 +20,9 @@ export const CHANNEL_NAME_MAX = 100;
 export const TYPING_THROTTLE_MS = 5_000;
 /** Must exceed TYPING_THROTTLE_MS to prevent typing indicator flicker */
 export const TYPING_TIMEOUT_MS = 6_000;
+
+// ── WebSocket rate limits ────────────────────────────────────────────────
+export const RATE_LIMIT_TYPING_START = { limit: 5, windowMs: 10_000 };
+export const RATE_LIMIT_FILE_SHARE = { limit: 10, windowMs: 60_000 };
+export const RATE_LIMIT_FILE_AVAILABILITY = { limit: 20, windowMs: 60_000 };
+export const RATE_LIMIT_WEBRTC = { limit: 30, windowMs: 60_000 };

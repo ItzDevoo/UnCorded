@@ -40,11 +40,13 @@ async function ensureDmChannel(userIdA: string, userIdB: string) {
   if (existingDm) return; // DM already exists
 
   const dmId = createId();
-  await db.insert(dmChannels).values({ id: dmId });
-  await db.insert(dmMembers).values([
-    { channelId: dmId, userId: userIdA },
-    { channelId: dmId, userId: userIdB },
-  ]);
+  await db.transaction(async (tx) => {
+    await tx.insert(dmChannels).values({ id: dmId });
+    await tx.insert(dmMembers).values([
+      { channelId: dmId, userId: userIdA },
+      { channelId: dmId, userId: userIdB },
+    ]);
+  });
 
   const [userA] = await db
     .select({

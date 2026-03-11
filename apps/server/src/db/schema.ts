@@ -174,18 +174,22 @@ export const messages = pgTable(
   (t) => [index("messages_channel_created_idx").on(t.channelId, t.createdAt.desc())],
 );
 
-export const fileReceipts = pgTable("file_receipts", {
-  id: id(),
-  channelId: text("channel_id").notNull(),
-  senderId: text("sender_id").references(() => user.id, { onDelete: "set null" }),
-  fileName: text("file_name").notNull(),
-  fileSize: bigint("file_size", { mode: "number" }).notNull(),
-  contentType: text("content_type").notNull(),
-  magnetUri: text("magnet_uri").notNull(),
-  infoHash: text("info_hash").notNull(),
-  messageId: text("message_id").references(() => messages.id, { onDelete: "cascade" }),
-  createdAt: createdAt(),
-});
+export const fileReceipts = pgTable(
+  "file_receipts",
+  {
+    id: id(),
+    channelId: text("channel_id").notNull(),
+    senderId: text("sender_id").references(() => user.id, { onDelete: "set null" }),
+    fileName: text("file_name").notNull(),
+    fileSize: bigint("file_size", { mode: "number" }).notNull(),
+    contentType: text("content_type").notNull(),
+    magnetUri: text("magnet_uri").notNull(),
+    infoHash: text("info_hash").notNull(),
+    messageId: text("message_id").references(() => messages.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("idx_file_receipts_channel_id").on(t.channelId)],
+);
 
 export const members = pgTable(
   "members",
@@ -261,34 +265,48 @@ export const dmMembers = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
   },
-  (t) => [primaryKey({ columns: [t.channelId, t.userId] })],
+  (t) => [
+    primaryKey({ columns: [t.channelId, t.userId] }),
+    index("idx_dm_members_user_id").on(t.userId),
+  ],
 );
 
-export const invites = pgTable("invites", {
-  code: text("code")
-    .primaryKey()
-    .$defaultFn(() => nanoid(8)),
-  serverId: text("server_id")
-    .notNull()
-    .references(() => servers.id, { onDelete: "cascade" }),
-  creatorId: text("creator_id").references(() => user.id, { onDelete: "set null" }),
-  uses: integer("uses").default(0).notNull(),
-  maxUses: integer("max_uses"),
-  expiresAt: timestamp("expires_at", { mode: "date" }),
-});
+export const invites = pgTable(
+  "invites",
+  {
+    code: text("code")
+      .primaryKey()
+      .$defaultFn(() => nanoid(8)),
+    serverId: text("server_id")
+      .notNull()
+      .references(() => servers.id, { onDelete: "cascade" }),
+    creatorId: text("creator_id").references(() => user.id, { onDelete: "set null" }),
+    uses: integer("uses").default(0).notNull(),
+    maxUses: integer("max_uses"),
+    expiresAt: timestamp("expires_at", { mode: "date" }),
+  },
+  (t) => [index("idx_invites_server_id").on(t.serverId)],
+);
 
-export const subscriptions = pgTable("subscriptions", {
-  id: id(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  tier: subscriptionTierEnum("tier").notNull(),
-  stripeSubscriptionId: text("stripe_subscription_id"),
-  stripeCustomerId: text("stripe_customer_id"),
-  status: subscriptionStatusEnum("status").default("active").notNull(),
-  currentPeriodEnd: timestamp("current_period_end", { mode: "date" }),
-  createdAt: createdAt(),
-});
+export const subscriptions = pgTable(
+  "subscriptions",
+  {
+    id: id(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    tier: subscriptionTierEnum("tier").notNull(),
+    stripeSubscriptionId: text("stripe_subscription_id"),
+    stripeCustomerId: text("stripe_customer_id"),
+    status: subscriptionStatusEnum("status").default("active").notNull(),
+    currentPeriodEnd: timestamp("current_period_end", { mode: "date" }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("idx_subscriptions_user_id").on(t.userId),
+    index("idx_subscriptions_stripe_sub_id").on(t.stripeSubscriptionId),
+  ],
+);
 
 export const reports = pgTable("reports", {
   id: id(),

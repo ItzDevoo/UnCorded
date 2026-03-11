@@ -11,7 +11,12 @@ import {
   MAX_INFO_HASH_LENGTH,
   HEARTBEAT_INTERVAL_MS,
   HEARTBEAT_TIMEOUT_MS,
+  RATE_LIMIT_TYPING_START,
+  RATE_LIMIT_FILE_SHARE,
+  RATE_LIMIT_FILE_AVAILABILITY,
+  RATE_LIMIT_WEBRTC,
 } from "@uncorded/shared";
+import { checkRateLimit } from "./rate-limit.js";
 import { eq, and } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { user, fileReceipts, dmMembers } from "../db/schema.js";
@@ -141,6 +146,11 @@ export const gateway = new Elysia().ws("/gateway", {
             return;
           }
 
+          if (!checkRateLimit(ctx.userId, frame.op, RATE_LIMIT_TYPING_START.limit, RATE_LIMIT_TYPING_START.windowMs)) {
+            sendToUser(ctx.userId, { op: Opcode.ERROR, d: { code: "RATE_LIMITED", message: "Too many typing events" } });
+            break;
+          }
+
           const parsed = typingStartSchema.safeParse(frame.d);
           if (!parsed.success) break;
           const d = parsed.data;
@@ -173,6 +183,11 @@ export const gateway = new Elysia().ws("/gateway", {
           if (!ctx.userId) {
             ws.close(CloseCode.NOT_IDENTIFIED, "Not identified");
             return;
+          }
+
+          if (!checkRateLimit(ctx.userId, frame.op, RATE_LIMIT_WEBRTC.limit, RATE_LIMIT_WEBRTC.windowMs)) {
+            sendToUser(ctx.userId, { op: Opcode.ERROR, d: { code: "RATE_LIMITED", message: "Too many WebRTC signals" } });
+            break;
           }
 
           const parsed = webRtcSignalSchema.safeParse(frame.d);
@@ -216,6 +231,11 @@ export const gateway = new Elysia().ws("/gateway", {
           if (!ctx.userId) {
             ws.close(CloseCode.NOT_IDENTIFIED, "Not identified");
             return;
+          }
+
+          if (!checkRateLimit(ctx.userId, frame.op, RATE_LIMIT_FILE_SHARE.limit, RATE_LIMIT_FILE_SHARE.windowMs)) {
+            sendToUser(ctx.userId, { op: Opcode.ERROR, d: { code: "RATE_LIMITED", message: "Too many file shares" } });
+            break;
           }
 
           const parsed = fileShareSchema.safeParse(frame.d);
@@ -285,6 +305,11 @@ export const gateway = new Elysia().ws("/gateway", {
           if (!ctx.userId) {
             ws.close(CloseCode.NOT_IDENTIFIED, "Not identified");
             return;
+          }
+
+          if (!checkRateLimit(ctx.userId, frame.op, RATE_LIMIT_FILE_AVAILABILITY.limit, RATE_LIMIT_FILE_AVAILABILITY.windowMs)) {
+            sendToUser(ctx.userId, { op: Opcode.ERROR, d: { code: "RATE_LIMITED", message: "Too many availability updates" } });
+            break;
           }
 
           const parsed = fileAvailabilitySchema.safeParse(frame.d);

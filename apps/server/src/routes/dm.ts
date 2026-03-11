@@ -86,11 +86,13 @@ export const dmRoutes = new Elysia({ prefix: "/api/dms" })
 
     // Create new DM channel
     const dmId = createId();
-    await db.insert(dmChannels).values({ id: dmId });
-    await db.insert(dmMembers).values([
-      { channelId: dmId, userId: sessionUser.id },
-      { channelId: dmId, userId: targetId },
-    ]);
+    await db.transaction(async (tx) => {
+      await tx.insert(dmChannels).values({ id: dmId });
+      await tx.insert(dmMembers).values([
+        { channelId: dmId, userId: sessionUser.id },
+        { channelId: dmId, userId: targetId },
+      ]);
+    });
 
     const [otherUser] = await db
       .select({

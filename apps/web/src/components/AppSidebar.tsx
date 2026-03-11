@@ -2,7 +2,7 @@ import { createSignal, For, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
 import { useSession, signOut } from "../lib/auth.js";
 import { readyData } from "../lib/gateway-store.js";
-import { createPortalSession } from "../lib/api.js";
+import { createCheckout, createPortalSession } from "../lib/api.js";
 import { showToast } from "./ui/toast.js";
 import {
   selectedServerId,
@@ -46,6 +46,15 @@ const AppSidebar = () => {
   const isPaidUser = () =>
     readyData.data?.user.subscriptionTier !== undefined &&
     readyData.data?.user.subscriptionTier !== "free";
+
+  const handleUpgrade = async () => {
+    try {
+      const url = await createCheckout("supporter");
+      window.location.href = url;
+    } catch {
+      showToast("Failed to start checkout", "error");
+    }
+  };
 
   const handleManageSubscription = async () => {
     try {
@@ -246,9 +255,34 @@ const AppSidebar = () => {
               <span class="text-xs text-muted-foreground">Online</span>
             </div>
           </div>
-          <Show when={isPaidUser()}>
+          <Show
+            when={isPaidUser()}
+            fallback={
+              <button
+                onClick={handleUpgrade}
+                class="rounded p-1.5 text-primary transition-colors hover:bg-accent hover:text-primary"
+                title="Upgrade to Supporter"
+                aria-label="Upgrade to Supporter"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M5 10l7-7m0 0l7 7m-7-7v18"
+                  />
+                </svg>
+              </button>
+            }
+          >
             <button
-              onClick={() => handleManageSubscription()}
+              onClick={handleManageSubscription}
               class="rounded p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               title="Manage Subscription"
               aria-label="Manage Subscription"

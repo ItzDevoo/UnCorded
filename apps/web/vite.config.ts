@@ -8,7 +8,7 @@ export default defineConfig({
     solid(),
     tailwindcss(),
     nodePolyfills({
-      include: ["buffer", "events", "stream", "process", "util", "path", "crypto"],
+      include: ["buffer", "events", "stream", "process", "util", "path", "crypto", "fs", "os"],
     }),
   ],
   server: {

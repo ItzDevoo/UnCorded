@@ -68,8 +68,8 @@ export const stripeRoutes = new Elysia({ prefix: "/api/stripe" })
       mode: "subscription",
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${env.APP_URL}/home?checkout=success`,
-      cancel_url: `${env.APP_URL}/home?checkout=cancelled`,
+      success_url: `${env.CORS_ORIGIN ?? env.APP_URL}/home?checkout=success`,
+      cancel_url: `${env.CORS_ORIGIN ?? env.APP_URL}/home?checkout=cancelled`,
       subscription_data: {
         metadata: { userId: sessionUser.id, tier: parsed.data.tier },
       },
@@ -95,7 +95,7 @@ export const stripeRoutes = new Elysia({ prefix: "/api/stripe" })
 
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: existing.stripeCustomerId,
-      return_url: `${env.APP_URL}/home`,
+      return_url: `${env.CORS_ORIGIN ?? env.APP_URL}/home`,
     });
 
     return { portalUrl: portalSession.url };

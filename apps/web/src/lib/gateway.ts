@@ -75,7 +75,12 @@ async function fetchTicketAndIdentify() {
       ws?.close(CloseCode.INVALID_SESSION, "ticket_fetch_failed");
       return;
     }
-    const { ticket } = (await res.json()) as { ticket: string };
+    const data = (await res.json()) as Record<string, unknown>;
+    const ticket = typeof data?.ticket === "string" ? data.ticket : null;
+    if (!ticket) {
+      ws?.close(CloseCode.INVALID_SESSION, "invalid_ticket_response");
+      return;
+    }
     sendFrame({ op: Opcode.IDENTIFY, d: { ticket } });
   } catch {
     ws?.close(CloseCode.INVALID_SESSION, "ticket_fetch_failed");

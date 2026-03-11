@@ -25,6 +25,10 @@ import { addDmChannelToCache } from "../ws/channel-cache.js";
  * Create a DM channel between two users if one doesn't already exist.
  * Both params are raw user ID strings (not branded) since they come from
  * session/DB. Broadcasts DM_CHANNEL_CREATE to both users on creation.
+ *
+ * @returns The raw DM channel ID string if a new channel was created
+ *          (creation + broadcast performed), or `null` if the DM channel
+ *          already existed (no action taken).
  */
 async function ensureDmChannel(userIdA: string, userIdB: string): Promise<string | null> {
   // Check for existing DM via intersection query

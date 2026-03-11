@@ -1,15 +1,19 @@
 import { Elysia } from "elysia";
+import { AppError } from "@uncorded/shared";
 import { authResolve } from "../middleware/auth.js";
 import { redis } from "../lib/redis.js";
 
 // ── In-memory fallback (same pattern as ip-rate-limit.ts) ───────────────────
 
+const MAX_IN_MEMORY_TICKETS = 10_000;
 const tickets = new Map<string, string>();
 
-function storeTicketInMemory(ticket: string, uid: string, ttlMs: number) {
+function storeTicketInMemory(ticket: string, uid: string, ttlMs: number): boolean {
+  if (tickets.size >= MAX_IN_MEMORY_TICKETS) return false;
   tickets.set(ticket, uid);
   const timer = setTimeout(() => tickets.delete(ticket), ttlMs);
   timer.unref();
+  return true;
 }
 
 // ── Public helpers ──────────────────────────────────────────────────────────
@@ -47,10 +51,14 @@ export const gatewayTicketRoutes = new Elysia({ prefix: "/api/gateway" })
       try {
         await redis.set(redisKey, sessionUser.id, { ex: TICKET_TTL_SECONDS });
       } catch {
-        storeTicketInMemory(ticket, sessionUser.id, TICKET_TTL_SECONDS * 1000);
+        if (!storeTicketInMemory(ticket, sessionUser.id, TICKET_TTL_SECONDS * 1000)) {
+          throw new AppError("ServiceUnavailableError", 503, "SERVICE_UNAVAILABLE", "Ticket store at capacity");
+        }
       }
     } else {
-      storeTicketInMemory(ticket, sessionUser.id, TICKET_TTL_SECONDS * 1000);
+      if (!storeTicketInMemory(ticket, sessionUser.id, TICKET_TTL_SECONDS * 1000)) {
+        throw new AppError("ServiceUnavailableError", 503, "SERVICE_UNAVAILABLE", "Ticket store at capacity");
+      }
     }
 
     return { ticket };

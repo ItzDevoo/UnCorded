@@ -16,6 +16,7 @@ const BASE_RECONNECT_DELAY = 1_000;
 let ws: WebSocket | null = null;
 let token: string | null = null;
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+let heartbeatAckTimeout: ReturnType<typeof setTimeout> | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectAttempts = 0;
 let intentionalClose = false;
@@ -26,6 +27,10 @@ function clearTimers() {
   if (heartbeatTimer !== null) {
     clearInterval(heartbeatTimer);
     heartbeatTimer = null;
+  }
+  if (heartbeatAckTimeout !== null) {
+    clearTimeout(heartbeatAckTimeout);
+    heartbeatAckTimeout = null;
   }
   if (reconnectTimer !== null) {
     clearTimeout(reconnectTimer);
@@ -40,10 +45,18 @@ function dispatch(opcode: Opcode, data: unknown) {
   }
 }
 
+const HEARTBEAT_ACK_TIMEOUT_MS = 10_000;
+
 function startHeartbeat(intervalMs: number) {
   if (heartbeatTimer !== null) clearInterval(heartbeatTimer);
   heartbeatTimer = setInterval(() => {
     sendFrame({ op: Opcode.HEARTBEAT, d: null });
+
+    // If server doesn't ACK within 10s, consider connection dead
+    if (heartbeatAckTimeout !== null) clearTimeout(heartbeatAckTimeout);
+    heartbeatAckTimeout = setTimeout(() => {
+      ws?.close();
+    }, HEARTBEAT_ACK_TIMEOUT_MS);
   }, intervalMs);
 }
 
@@ -76,6 +89,13 @@ function handleMessage(event: MessageEvent) {
       setGatewayStatus("connected");
       setReadyPayload(parsed.data as ReadyData);
       dispatch(Opcode.READY, parsed.data);
+      break;
+    }
+    case Opcode.HEARTBEAT_ACK: {
+      if (heartbeatAckTimeout !== null) {
+        clearTimeout(heartbeatAckTimeout);
+        heartbeatAckTimeout = null;
+      }
       break;
     }
     default: {

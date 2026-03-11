@@ -23,11 +23,15 @@ export function addConnection(userId: string, ws: AnyServerWebSocket): void {
   set.add(ws);
 }
 
-export function removeConnection(userId: string, ws: AnyServerWebSocket): void {
+export function removeConnection(userId: string, ws: AnyServerWebSocket): boolean {
   const set = clients.get(userId);
-  if (!set) return;
+  if (!set) return false;
   set.delete(ws);
-  if (set.size === 0) clients.delete(userId);
+  if (set.size === 0) {
+    clients.delete(userId);
+    return true;
+  }
+  return false;
 }
 
 export function getConnections(userId: string): Set<AnyServerWebSocket> | undefined {

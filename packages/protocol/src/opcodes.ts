@@ -7,6 +7,8 @@ export enum Opcode {
   IDENTIFY = 2,
   /** Server -> Client: user, servers, channels */
   READY = 3,
+  /** Server -> Client: heartbeat acknowledged */
+  HEARTBEAT_ACK = 4,
 
   /** Both: new message */
   MESSAGE_CREATE = 10,

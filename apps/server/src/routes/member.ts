@@ -58,7 +58,7 @@ export const memberRoutes = new Elysia({ prefix: "/api/servers/:serverId/members
       .delete(members)
       .where(and(eq(members.userId, sessionUser.id), eq(members.serverId, params.serverId)));
 
-    // Remove from cache first so broadcast skips the leaving user
+    // Remove from registry before broadcast so leaving user doesn't receive MEMBER_REMOVE
     removeServerMember(params.serverId, sessionUser.id);
 
     broadcastToServer(params.serverId, {
@@ -94,7 +94,7 @@ export const memberRoutes = new Elysia({ prefix: "/api/servers/:serverId/members
       .delete(members)
       .where(and(eq(members.userId, params.userId), eq(members.serverId, params.serverId)));
 
-    // Remove from cache first so broadcast skips the kicked user
+    // Remove from registry before broadcast so kicked user doesn't receive MEMBER_REMOVE
     removeServerMember(params.serverId, params.userId);
 
     broadcastToServer(params.serverId, {

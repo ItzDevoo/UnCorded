@@ -6,9 +6,26 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Pre-Week 4 stabilization — All 11 test bugs resolved
+## Current Status: Pre-Week 4 stabilization complete — ready for Week 4
 
-All Weeks 1–3 + Week 2.5 tooling + Week 3.5 UI overhaul complete. Fresh DB testing found 11 bugs (docs/changes.md) — all 11 resolved (#9 was a symptom of #5 + #6). Public landing page added, routes restructured (/app → /home), WebTorrent browser compat fixed. Next: verify #9, then Week 4 (Stripe subscriptions).
+All Weeks 1–3 + Week 2.5 tooling + Week 3.5 UI overhaul complete. All 11 fresh DB test bugs resolved. In-memory server membership registry replaces DB queries for broadcast. Real-time join/leave/kick events wired. Next: Week 4 (Stripe subscriptions).
+
+---
+
+### In-memory server membership registry + real-time events — 2026-03-10
+
+**What was done:**
+
+- New `server-members.ts`: dual Map registry (`serverId→Set<userId>`, `userId→Set<serverId>`) for O(1) broadcast lookups and O(1) disconnect cleanup via reverse index
+- `broadcastToServer()` rewritten from async DB query to sync in-memory set lookup
+- Registry populated on IDENTIFY, updated on join/create/leave/kick/disconnect/server-delete
+- SERVER_CREATE event sent to joining user on invite accept (full server + channels payload)
+- MEMBER_ADD broadcast to existing server members on join
+- MEMBER_REMOVE broadcast to remaining members on leave/kick
+- SERVER_DELETE sent to leaving/kicked user and all members on server deletion
+- Client `server-store.ts`: 4 WS listeners with Zod validation, dedup, HMR cleanup
+- `removeServer()` navigates away if deleted server was selected
+- Commit 9c7561b
 
 ---
 

@@ -145,14 +145,15 @@ export const serverRoutes = new Elysia({ prefix: "/api/servers" })
   .delete("/:serverId", async ({ user: sessionUser, params, set }) => {
     await requireOwner(sessionUser.id, params.serverId);
 
+    // Broadcast before registry cleanup (broadcastToServer reads the member set)
     broadcastToServer(params.serverId, {
       op: Opcode.SERVER_DELETE,
       d: { id: serverId(params.serverId) },
     });
 
-    await db.delete(servers).where(eq(servers.id, params.serverId));
-
+    // Remove from registry to prevent new joins, then commit DB delete
     removeServer(params.serverId);
+    await db.delete(servers).where(eq(servers.id, params.serverId));
 
     set.status = 204;
   });

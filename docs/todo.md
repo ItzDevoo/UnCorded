@@ -341,6 +341,19 @@ Goal: Replace Discord-clone UI with a distinctive, polished design inspired by t
 
 ---
 
+## Pre-Week 4: Infrastructure — In-Memory Membership Registry
+
+- [x] In-memory dual-map registry (serverId→users, userId→servers) in server-members.ts
+- [x] broadcastToServer() rewritten from async DB query to sync cache lookup
+- [x] Registry seeded on IDENTIFY, updated on join/create/leave/kick/disconnect/delete
+- [x] SERVER_CREATE event to joining user on invite accept
+- [x] MEMBER_ADD/REMOVE broadcast on join/leave/kick
+- [x] SERVER_DELETE on leave/kick/server deletion
+- [x] Client listeners (server-store.ts) with Zod validation, dedup, HMR cleanup
+- [x] websocket-protocol.md updated with 4 new event payload docs
+
+---
+
 ## Week 4: Subscriptions + Server File Sharing
 
 ### Day 1-2: Stripe Subscriptions

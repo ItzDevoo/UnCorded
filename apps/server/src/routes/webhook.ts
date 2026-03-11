@@ -29,9 +29,15 @@ function tierFromPriceId(priceId: string): "supporter" | "server_owner" | null {
 
 // ── Webhook route ────────────────────────────────────────────────────────
 
-export const webhookRoutes = new Elysia().post(
-  "/api/webhooks/stripe",
-  async ({ body, request, set }) => {
+// Elysia consumes the request body stream during parsing. We use onParse
+// to intercept the raw body as text, which Elysia then passes as `body`.
+export const webhookRoutes = new Elysia()
+  .onParse({ as: "local" }, async ({ request, contentType }) => {
+    if (contentType === "application/json") {
+      return await request.text();
+    }
+  })
+  .post("/api/webhooks/stripe", async ({ body, request, set }) => {
     if (!env.STRIPE_WEBHOOK_SECRET) {
       set.status = 503;
       return { error: "Webhook secret not configured" };
@@ -45,13 +51,11 @@ export const webhookRoutes = new Elysia().post(
       return { error: "Missing stripe-signature header" };
     }
 
-    // Elysia with parse: "text" gives us the raw body as a string via `body`.
-    // We use this for Stripe signature verification.
     const rawBody = body as string;
 
     let event: Stripe.Event;
     try {
-      event = stripe.webhooks.constructEvent(rawBody, signature, env.STRIPE_WEBHOOK_SECRET);
+      event = await stripe.webhooks.constructEventAsync(rawBody, signature, env.STRIPE_WEBHOOK_SECRET);
     } catch {
       set.status = 400;
       return { error: "Invalid signature" };
@@ -74,13 +78,7 @@ export const webhookRoutes = new Elysia().post(
     }
 
     return { received: true };
-  },
-  {
-    // Prevent Elysia from auto-parsing the JSON body — we need the raw
-    // string for Stripe signature verification via constructEvent().
-    parse: "text",
-  },
-);
+  });
 
 // ── Event handlers ───────────────────────────────────────────────────────
 

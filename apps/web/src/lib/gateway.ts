@@ -112,6 +112,10 @@ function handleMessage(event: MessageEvent) {
 }
 
 function handleClose(event: CloseEvent) {
+  // Stale-socket guard: if connect() already replaced ws with a new
+  // WebSocket, the old socket's close event is irrelevant.
+  if (event.currentTarget !== ws) return;
+
   clearTimers();
   setGatewayStatus("disconnected");
   ws = null;

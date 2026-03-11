@@ -41,6 +41,8 @@ const envSchema = z.object({
   // Stripe — optional until billing is implemented
   STRIPE_SECRET_KEY: optionalString,
   STRIPE_WEBHOOK_SECRET: optionalString,
+  STRIPE_SUPPORTER_PRICE_ID: optionalString,
+  STRIPE_SERVER_OWNER_PRICE_ID: optionalString,
 });
 
 const parsed = envSchema.safeParse(process.env);

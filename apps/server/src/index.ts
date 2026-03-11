@@ -12,6 +12,8 @@ import { inviteRoutes } from "./routes/invite.js";
 import { messageRoutes } from "./routes/message.js";
 import { friendRoutes } from "./routes/friend.js";
 import { dmRoutes } from "./routes/dm.js";
+import { webhookRoutes } from "./routes/webhook.js";
+import { stripeRoutes } from "./routes/stripe.js";
 import { gateway } from "./ws/gateway.js";
 
 const app = new Elysia()
@@ -22,12 +24,14 @@ const app = new Elysia()
     }),
   )
   .use(betterAuthPlugin)
+  .use(webhookRoutes)
   .use(
     rateLimit({
       max: env.RATE_LIMIT_MAX,
       duration: env.RATE_LIMIT_WINDOW_MS,
     }),
   )
+  .use(stripeRoutes)
   .use(userRoutes)
   .use(serverRoutes)
   .use(channelRoutes)

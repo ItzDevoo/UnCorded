@@ -36,3 +36,18 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   // TODO: validate API responses with Zod at call sites
   return res.json() as Promise<T>;
 }
+
+export async function createCheckout(tier: "supporter" | "server_owner"): Promise<string> {
+  const res = await api<{ checkoutUrl: string }>("/api/stripe/checkout", {
+    method: "POST",
+    body: JSON.stringify({ tier }),
+  });
+  return res.checkoutUrl;
+}
+
+export async function createPortalSession(): Promise<string> {
+  const res = await api<{ portalUrl: string }>("/api/stripe/customer-portal", {
+    method: "POST",
+  });
+  return res.portalUrl;
+}

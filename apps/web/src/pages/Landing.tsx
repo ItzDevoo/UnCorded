@@ -1,7 +1,13 @@
 import { A } from "@solidjs/router";
 import { For } from "solid-js";
 import { buttonVariants } from "../components/ui/button.js";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/card.js";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "../components/ui/card.js";
 import { cn } from "../lib/cn.js";
 
 const features = [
@@ -31,6 +37,7 @@ const tiers = [
     features: ["Unlimited messaging", "DM file sharing (P2P)", "Join any server", "Basic presence"],
     cta: "Get Started",
     highlighted: false,
+    tier: null,
   },
   {
     name: "Supporter",
@@ -45,6 +52,7 @@ const tiers = [
     ],
     cta: "Get Started",
     highlighted: true,
+    tier: "supporter" as const,
   },
   {
     name: "Server Owner",
@@ -59,6 +67,7 @@ const tiers = [
     ],
     cta: "Get Started",
     highlighted: false,
+    tier: "server_owner" as const,
   },
 ];
 
@@ -148,7 +157,7 @@ const Landing = () => {
                       </For>
                     </ul>
                     <A
-                      href="/register"
+                      href={tier.tier ? `/register?tier=${tier.tier}` : "/register"}
                       class={cn(
                         buttonVariants({
                           variant: tier.highlighted ? "default" : "outline",

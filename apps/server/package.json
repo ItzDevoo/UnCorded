@@ -19,6 +19,7 @@
     "elysia": "^1",
     "elysia-rate-limit": "^4",
     "nanoid": "^5",
+    "stripe": "^20.4.1",
     "zod": "^3"
   },
   "devDependencies": {

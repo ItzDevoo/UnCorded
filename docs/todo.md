@@ -362,10 +362,10 @@ Goal: Replace Discord-clone UI with a distinctive, polished design inspired by t
 - [ ] Supporter tier — $5/mo
 - [ ] Server Owner tier — $10/mo base (traffic scaling TBD after cost data)
 - [ ] Transparency receipt UI (subscription cost, our cost, our margin)
-- [ ] Stripe checkout flow for tier upgrades
-- [ ] Stripe webhook handler (subscription created/updated/cancelled)
-- [ ] Subscription status sync to DB (users.subscription_tier)
-- [ ] Stripe Customer Portal for self-serve management
+- [x] Stripe checkout flow for tier upgrades
+- [x] Stripe webhook handler (subscription created/updated/cancelled)
+- [x] Subscription status sync to DB (users.subscription_tier)
+- [x] Stripe Customer Portal for self-serve management
 
 ### Day 3-4: Server File Sharing (Supporter+)
 

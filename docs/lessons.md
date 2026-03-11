@@ -199,3 +199,13 @@ This applies to any module that registers global listeners or timers at the top 
 **[W4 D3]** — `broadcastToServer()` was querying the DB `members` table on every broadcast (message, typing, file events). Replaced with an in-memory `Map<serverId, Set<userId>>` registry (`server-members.ts`) for O(1) lookups. A reverse index `Map<userId, Set<serverId>>` enables O(1) cleanup on disconnect — avoids iterating all servers. Single-instance only; multi-instance would need Redis pub/sub.
 
 **[W4 D3]** — SERVER_CREATE/SERVER_DELETE/MEMBER_ADD/MEMBER_REMOVE WS events coexist with HTTP responses. The HTTP response returns data to the requester; the WS event notifies other connected clients. Both are necessary — the REST caller already has the data in the response, but other tabs/users need real-time sync.
+
+**[W4 D4]** — Stripe webhook raw body: use `request.text()` in Elysia webhook handler, with `parse: "text"` option on the route to prevent Elysia from auto-consuming the body stream before the handler reads it. Without `parse: "text"`, Elysia may pre-parse the JSON body, causing `request.text()` to return empty and webhook signature verification to fail. The Nexis project (LemonSqueezy) used `request.text()` without `parse: "text"`, but Elysia behavior may vary by version.
+
+**[W4 D4]** — Webhook routes must be mounted BEFORE rate limiting middleware. Stripe retries on 429, and excessive retries can cause webhook delivery to be disabled. Mount order: `cors → auth → webhookRoutes → rateLimit → stripeRoutes → userRoutes → ...`.
+
+**[W4 D4]** — Tier updates flow only through webhooks, never from the checkout route. The checkout route creates a Stripe Checkout Session and returns the URL — the actual subscription creation happens asynchronously via Stripe's `checkout.session.completed` webhook event. This prevents race conditions where the user's tier is set before payment is confirmed.
+
+**[W4 D4]** — Stripe customer creation happens on first checkout, not on user registration. The `stripeCustomerId` is persisted in the subscriptions table via the `checkout.session.completed` webhook. Subsequent checkouts reuse the existing customer ID.
+
+**[W4 D4]** — Stripe SDK v20+ moved `current_period_end` from `Subscription` to `SubscriptionItem`. Access via `sub.items.data[0]?.current_period_end` instead of `sub.current_period_end`. The `subscriptions.retrieve()` return type is `Response<Subscription>` which auto-unwraps.

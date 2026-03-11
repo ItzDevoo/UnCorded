@@ -67,7 +67,10 @@ const Register = () => {
           />
         </div>
         <div>
-          <label for="register-username" class="mb-1 block text-sm font-medium text-muted-foreground">
+          <label
+            for="register-username"
+            class="mb-1 block text-sm font-medium text-muted-foreground"
+          >
             Username
           </label>
           <Input
@@ -81,7 +84,10 @@ const Register = () => {
           />
         </div>
         <div>
-          <label for="register-password" class="mb-1 block text-sm font-medium text-muted-foreground">
+          <label
+            for="register-password"
+            class="mb-1 block text-sm font-medium text-muted-foreground"
+          >
             Password
           </label>
           <Input

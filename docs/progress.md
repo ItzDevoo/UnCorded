@@ -6,9 +6,28 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Pre-Week 4 stabilization complete — ready for Week 4
+## Current Status: Week 4 Day 1-2 — Stripe subscriptions wired
 
-All Weeks 1–3 + Week 2.5 tooling + Week 3.5 UI overhaul complete. All 11 fresh DB test bugs resolved. In-memory server membership registry replaces DB queries for broadcast. Real-time join/leave/kick events wired. Next: Week 4 (Stripe subscriptions).
+Stripe checkout flow, webhook handling, customer portal, and frontend integration complete. Users can subscribe to Supporter ($5/mo) or Server Owner ($10/mo), manage via Customer Portal, and have their tier synced via webhooks.
+
+---
+
+### Stripe subscriptions — 2026-03-11
+
+**What was done:**
+
+- Stripe SDK installed (stripe@20.4.1)
+- `apps/server/src/lib/stripe.ts`: lazy-initialized Stripe singleton (no crash when unconfigured)
+- `apps/server/src/routes/stripe.ts`: POST /api/stripe/checkout (creates Stripe Checkout Session, maps tier → price ID, creates/reuses Stripe customer), POST /api/stripe/customer-portal (creates Customer Portal session)
+- `apps/server/src/routes/webhook.ts`: POST /api/webhooks/stripe with signature verification via `request.text()` + `parse: "text"` option, handles checkout.session.completed (upserts subscription + sets user tier), customer.subscription.updated (syncs status/tier changes), customer.subscription.deleted (reverts to free)
+- `packages/shared/src/schemas/subscription.ts`: checkoutRequestSchema (Zod)
+- `apps/server/src/env.ts`: added STRIPE_SUPPORTER_PRICE_ID and STRIPE_SERVER_OWNER_PRICE_ID
+- Webhook routes mounted before rate limiting, stripe routes after
+- `apps/web/src/lib/api.ts`: createCheckout() and createPortalSession() helpers
+- `apps/web/src/pages/Landing.tsx`: paid tier CTAs link to /register?tier=supporter|server_owner
+- `apps/web/src/pages/Home.tsx`: checkout result toast (success/cancelled) via search params
+- `apps/web/src/components/AppSidebar.tsx`: "Manage Subscription" button (credit card icon) for paid users, opens Customer Portal
+- All checks pass: typecheck (0 errors), lint (0 warnings)
 
 ---
 

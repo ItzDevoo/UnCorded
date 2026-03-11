@@ -2,6 +2,8 @@ import { createSignal, For, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
 import { useSession, signOut } from "../lib/auth.js";
 import { readyData } from "../lib/gateway-store.js";
+import { createPortalSession } from "../lib/api.js";
+import { showToast } from "./ui/toast.js";
 import {
   selectedServerId,
   selectedChannelId,
@@ -39,8 +41,20 @@ const AppSidebar = () => {
   );
 
   const isServerOwner = () =>
-    currentServer()?.ownerId != null &&
-    currentServer()?.ownerId === readyData.data?.user.id;
+    currentServer()?.ownerId != null && currentServer()?.ownerId === readyData.data?.user.id;
+
+  const isPaidUser = () =>
+    readyData.data?.user.subscriptionTier !== undefined &&
+    readyData.data?.user.subscriptionTier !== "free";
+
+  const handleManageSubscription = async () => {
+    try {
+      const portalUrl = await createPortalSession();
+      window.location.href = portalUrl;
+    } catch {
+      showToast("Failed to open subscription portal", "error");
+    }
+  };
 
   const handleLogout = async () => {
     await signOut();
@@ -93,7 +107,6 @@ const AppSidebar = () => {
       </Show>
     </>
   );
-
 
   return (
     <Sidebar>
@@ -233,6 +246,29 @@ const AppSidebar = () => {
               <span class="text-xs text-muted-foreground">Online</span>
             </div>
           </div>
+          <Show when={isPaidUser()}>
+            <button
+              onClick={() => handleManageSubscription()}
+              class="rounded p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              title="Manage Subscription"
+              aria-label="Manage Subscription"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                />
+              </svg>
+            </button>
+          </Show>
           <button
             onClick={handleLogout}
             class="rounded p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-destructive"
@@ -268,9 +304,7 @@ const AppSidebar = () => {
         {(server) => <InviteModal serverId={server().id} onClose={() => setModal(null)} />}
       </Show>
       <Show when={modal() === "create-channel" && currentServer()}>
-        {(server) => (
-          <CreateChannelModal serverId={server().id} onClose={() => setModal(null)} />
-        )}
+        {(server) => <CreateChannelModal serverId={server().id} onClose={() => setModal(null)} />}
       </Show>
     </Sidebar>
   );

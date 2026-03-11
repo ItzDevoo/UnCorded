@@ -11,7 +11,7 @@ Reference: C:\t3Code\apps\web for proven component patterns and styling approach
 - **Consistent** — every component follows the same spacing, radius, and color rules.
 - **Accessible** — focus rings, keyboard navigation, ARIA attributes, minimum touch targets.
 - **Responsive** — mobile-first breakpoints. Desktop is the enhanced experience.
-- **No visual clutter** — minimal shadows, subtle borders, clean typography.
+- **Refined depth** — alpha borders, brand-tinted shadows, inset highlights, noise texture.
 
 ---
 
@@ -22,10 +22,10 @@ Railway-inspired green-tinted dark palette. All surfaces carry the brand hue (~1
 ### Design Principles
 
 - Backgrounds at hue ~150° with low chroma (subtle, not sickly)
-- Borders and muted colors share the green hue at low saturation
+- Borders and overlays use white-alpha (`oklch(1 0 0 / N%)`) so they adapt to any surface
 - Text has very slight green warmth (not pure neutral)
 - Brand green appears at full saturation for actions, low saturation for tints
-- Shadows remain neutral (tinted shadows look artificial)
+- Shadows are brand-tinted (hue 155) at low chroma for subtle depth
 
 ### Semantic Tokens
 
@@ -39,16 +39,16 @@ Railway-inspired green-tinted dark palette. All surfaces carry the brand hue (~1
 | `--popover-foreground`     | Popover text           | `oklch(0.955 0.008 155)` |
 | `--primary`                | Brand green            | `oklch(0.66 0.17 155)`   |
 | `--primary-foreground`     | Text on primary        | `oklch(1 0 0)` (white)   |
-| `--secondary`              | Subtle bg elements     | `oklch(0.24 0.014 155)`  |
+| `--secondary`              | Subtle bg elements     | `oklch(1 0 0 / 4%)`     |
 | `--secondary-foreground`   | Text on secondary      | `oklch(0.91 0.008 155)`  |
-| `--muted`                  | Muted backgrounds      | `oklch(0.27 0.012 155)`  |
+| `--muted`                  | Muted backgrounds      | `oklch(1 0 0 / 5%)`     |
 | `--muted-foreground`       | Subdued text           | `oklch(0.62 0.008 155)`  |
-| `--accent`                 | Hover backgrounds      | `oklch(0.27 0.014 155)`  |
+| `--accent`                 | Hover backgrounds      | `oklch(1 0 0 / 4%)`     |
 | `--accent-foreground`      | Text on accent         | `oklch(0.955 0.008 155)` |
 | `--destructive`            | Danger/delete          | `oklch(0.55 0.2 25)`     |
 | `--destructive-foreground` | Text for destructive   | `oklch(0.78 0.12 25)`    |
-| `--border`                 | Borders, dividers      | `oklch(0.29 0.012 155)`  |
-| `--input`                  | Input field bg         | `oklch(0.25 0.014 155)`  |
+| `--border`                 | Borders, dividers      | `oklch(1 0 0 / 6%)`     |
+| `--input`                  | Input field bg         | `oklch(1 0 0 / 8%)`     |
 | `--ring`                   | Focus ring (= primary) | `oklch(0.66 0.17 155)`   |
 | `--success`                | Success states         | `oklch(0.66 0.17 155)`   |
 | `--success-foreground`     | Success text           | `oklch(0.78 0.12 155)`   |
@@ -124,15 +124,21 @@ Use Tailwind's default spacing scale. Common patterns:
 ### App Shell
 
 ```
-┌──────┬──────────┬──────────────────────┐
-│ 72px │  240px   │       flex-1         │
-│Server│ Channel  │     Main Area        │
-│ List │  List    │                      │
-│      │          │                      │
-│      │──────────│                      │
-│      │User Panel│                      │
-└──────┴──────────┴──────────────────────┘
+┌────────────┬───────────────────────────┐
+│   288px    │         flex-1            │
+│  Sidebar   │       Main Area          │
+│ ┌────────┐ │                           │
+│ │Switcher│ │                           │
+│ ├────────┤ │                           │
+│ │Channels│ │                           │
+│ │ or DMs │ │                           │
+│ ├────────┤ │                           │
+│ │  User  │ │                           │
+│ └────────┘ │                           │
+└────────────┴───────────────────────────┘
 ```
+
+Single sidebar with dropdown server switcher, unified channel/DM list, and user panel.
 
 ---
 
@@ -154,18 +160,21 @@ Base radius: `0.625rem` (10px). All other sizes derived from this.
 
 ## Shadows
 
-Minimal shadows. Dark mode relies on borders and subtle background differences, not shadows.
+Brand-tinted shadow scale (hue 155) for refined depth. Defined as CSS custom properties overriding Tailwind defaults.
 
-| Class       | Usage                                      |
-| ----------- | ------------------------------------------ |
-| `shadow-xs` | Subtle elevation (dropdowns)               |
-| `shadow-md` | Modals, popovers                           |
-| None        | Most cards and panels (use border instead) |
+| Class       | Value                                                | Usage                          |
+| ----------- | ---------------------------------------------------- | ------------------------------ |
+| `shadow-xs` | `0 1px 2px oklch(0.15 0.01 155 / 20%)`              | Buttons, inputs                |
+| `shadow-sm` | Two-layer, 3px + 2px blur                            | Cards, elevated panels         |
+| `shadow-md` | Two-layer, 6px + 4px blur                            | Modals, popovers               |
+| `shadow-lg` | Two-layer, 15px + 6px blur                           | Large floating elements        |
 
 ### Rules
 
-- Prefer `border border-border` over shadows for separation in dark mode.
-- Shadows at low opacity: `shadow-md/5` (5% opacity).
+- Use `shadow-xs` on interactive elements (buttons, inputs) for subtle lift.
+- Use `shadow-sm` on cards and panels for separation.
+- Use `shadow-md` on modals and popovers.
+- Combine with `border border-border` — shadows complement, not replace borders.
 - Use `backdrop-blur-sm` for overlay glassmorphism effects.
 
 ---
@@ -195,20 +204,23 @@ Minimal shadows. Dark mode relies on borders and subtle background differences, 
 
 **Rules:**
 
-- Minimum touch target: 44x44px on touch devices (`pointer-coarse:after:min-h-11 min-w-11`)
-- Disabled state: `opacity-64`, `pointer-events-none`
+- Inset shadow highlight on default/destructive: `inset-shadow-[0_1px_--theme(--color-white/16%)]`
+- Active press: `active:scale-[0.98]`, shadow removed, inset darkens
+- Minimum touch target: 44x44px on touch devices (`pointer-coarse:after:absolute after:min-h-11 after:min-w-11`)
+- Disabled state: `opacity-50`, `pointer-events-none`
 - Focus: `focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1`
 - Loading state: swap icon for spinner, disable button
 - Icon + text buttons: icon before text, `gap-2`
+- SVGs: `[&_svg]:pointer-events-none [&_svg]:shrink-0`
 
 ### Inputs
 
 **States:**
 
-- Default: `border-border bg-background`
-- Focus: `ring-2 ring-ring` (3px ring width)
-- Error: `border-destructive` + `aria-invalid="true"`
-- Disabled: `opacity-64`, `pointer-events-none`
+- Default: `border-border bg-input shadow-xs`
+- Focus: `ring-2 ring-ring/50` with `transition-shadow duration-200`
+- Error: `border-destructive/50` + `aria-invalid="true"`
+- Disabled: `opacity-50`, `pointer-events-none`
 
 **Rules:**
 
@@ -234,7 +246,7 @@ Minimal shadows. Dark mode relies on borders and subtle background differences, 
 
 - Standard padding: `p-6`
 - Background: `bg-card`
-- Border: `border border-border rounded-lg`
+- Border: `border border-border rounded-2xl shadow-sm`
 
 ### Modals / Dialogs
 
@@ -242,7 +254,7 @@ Minimal shadows. Dark mode relies on borders and subtle background differences, 
 - Content: centered, `rounded-xl`, max-width constraint
 - Close: Escape key + backdrop click + explicit close button
 - Mobile: full-width bottom sheet (`max-sm:` variant)
-- Animation: scale + opacity transition, 200ms duration
+- Animation: `animate-scale-in` (scale 0.98→1 + opacity, 200ms ease-out)
 - Nested dialogs supported (z-index stacking)
 
 ### Badges
@@ -287,16 +299,25 @@ Semantic color mapping:
 
 ### Standard Transitions
 
-- `transition-colors duration-150` — hover color changes
-- `transition-shadow duration-200` — focus ring appearance
-- `transition-all duration-200` — modal/dialog open/close
+- `transition-all duration-200` — buttons (covers color, shadow, scale)
+- `transition-shadow duration-200` — inputs (focus ring appearance)
 - `transition-transform duration-200` — scale effects
 
-### Entry/Exit Animations
+### Animation Keyframes
 
-- Modals: `scale-98 opacity-0` → `scale-100 opacity-100`
-- Popovers: `opacity-0` → `opacity-100` with transform-origin
-- Toasts: slide in from edge
+Defined as CSS custom properties in `@theme inline`:
+
+| Class              | Keyframe     | Duration | Easing   | Usage              |
+| ------------------ | ------------ | -------- | -------- | ------------------ |
+| `animate-scale-in` | `scale-in`   | 200ms    | ease-out | Dialogs, popovers  |
+| `animate-slide-in` | `slide-in`   | 300ms    | ease-out | Toasts             |
+| `animate-fade-in`  | `fade-in`    | 200ms    | ease-out | General fade entry |
+| `animate-skeleton` | `skeleton`   | 2s loop  | linear   | Skeleton loader    |
+
+- `scale-in`: scale 0.98→1 + opacity 0→1
+- `slide-in`: translateY 16px→0 + opacity 0→1
+- `fade-in`: opacity 0→1
+- `skeleton`: background-position sweep -200%→0
 
 ### Rules
 
@@ -307,22 +328,131 @@ Semantic color mapping:
 
 ---
 
+## Noise Texture
+
+A subtle SVG noise overlay on `body::after` adds texture to all surfaces:
+
+- `position: fixed; inset: 0; pointer-events: none` — covers viewport, non-interactive
+- `opacity: 0.035` — barely perceptible, adds depth without distraction
+- `z-index: 9999` — above all content
+- Uses inline SVG `feTurbulence` filter for fractal noise at 256×256px tile size
+- `body` has `relative` for stacking context
+
+---
+
+## Sidebar
+
+Composable sidebar primitives for the app shell. File: `components/ui/sidebar.tsx`
+
+### Subcomponents
+
+| Component | Element | Purpose |
+|-----------|---------|---------|
+| `Sidebar` | `<aside>` | Root container — `w-72`, `bg-sidebar`, `border-r` |
+| `SidebarHeader` | `<div>` | Top section — houses ServerSwitcher |
+| `SidebarContent` | `ScrollArea` | Scrollable middle — channels or DMs |
+| `SidebarFooter` | `<div>` | Bottom section — user panel, `border-t` |
+| `SidebarGroup` | `<div>` | Labeled section with optional collapse (`collapsible`, `defaultOpen`) |
+| `SidebarMenu` | `<ul>` | Menu list container |
+| `SidebarMenuItem` | `<li>` | Menu item with `group/menu-item` for hover actions |
+| `SidebarMenuButton` | `<button>` | Interactive item — `active` prop toggles `bg-accent` |
+| `SidebarMenuAction` | `<button>` | Hover-revealed action button (right-aligned) |
+
+### SidebarGroup Collapsible
+
+```tsx
+<SidebarGroup label="Channels" collapsible defaultOpen>
+  <SidebarMenu>{/* items */}</SidebarMenu>
+</SidebarGroup>
+```
+
+When `collapsible` is set, the label header shows a chevron and toggles children visibility on click.
+
+### ServerSwitcher
+
+Dropdown in `SidebarHeader` for switching between Home and servers. Uses `Portal` + fixed backdrop for click-outside dismiss (same pattern as Dialog). File: `components/ServerSwitcher.tsx`
+
+### AppSidebar
+
+Composes all sidebar primitives with app data. Owns modal signals for Create/Join/Invite. File: `components/AppSidebar.tsx`
+
+- **Server view:** Channels group + Invite People button
+- **Home view:** Friends button + Direct Messages group
+- **Footer:** User avatar, username, online status, logout
+
+---
+
+## ScrollArea
+
+Styled scrollable container with thin scrollbar. Use instead of raw `overflow-auto` for consistent scrollbar styling.
+
+```tsx
+<ScrollArea class="h-64">
+  {/* scrollable content */}
+</ScrollArea>
+```
+
+- `scrollbar-width: thin` + custom webkit scrollbar (1.5px wide)
+- Thumb: `foreground/15`, hover: `foreground/25`
+- File: `components/ui/scroll-area.tsx`
+
+---
+
+## Skeleton
+
+Loading placeholder with animated shimmer effect.
+
+```tsx
+<Skeleton class="h-4 w-48" />
+<Skeleton class="size-10 rounded-full" />
+```
+
+- Uses `animate-skeleton` keyframe (2s linear loop)
+- Gradient sweep over `--color-muted` background
+- File: `components/ui/skeleton.tsx`
+
+---
+
+## Empty
+
+Empty state component for lists and panels with no content.
+
+```tsx
+<Empty
+  icon={<InboxIcon />}
+  title="No messages yet"
+  description="Start a conversation!"
+>
+  <Button>Send Message</Button>
+</Empty>
+```
+
+- Centers content vertically and horizontally
+- Optional icon (rendered at 48px), title (required), description, and action slot
+- File: `components/ui/empty.tsx`
+
+---
+
 ## Scrollbar Styling
 
 ```css
+* {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(1 0 0 / 12%) transparent;
+}
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1); /* dark mode */
+  background: oklch(1 0 0 / 12%);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: oklch(1 0 0 / 20%);
 }
 ```
 

@@ -30,6 +30,7 @@ function unlockScroll() {
 
 interface DialogContextValue {
   titleId: string;
+  descriptionId: string;
 }
 
 const DialogContext = createContext<DialogContextValue>();
@@ -70,6 +71,7 @@ interface DialogContentProps extends JSX.HTMLAttributes<HTMLDivElement> {
 const DialogContent = (props: DialogContentProps) => {
   const [local, rest] = splitProps(props, ["class", "children", "onClose"]);
   const titleId = createUniqueId();
+  const descriptionId = createUniqueId();
   // oxlint-disable-next-line eslint(no-unassigned-vars) -- SolidJS ref pattern
   let panelRef!: HTMLDivElement;
 
@@ -102,7 +104,7 @@ const DialogContent = (props: DialogContentProps) => {
   };
 
   return (
-    <DialogContext.Provider value={{ titleId }}>
+    <DialogContext.Provider value={{ titleId, descriptionId }}>
       <Portal mount={document.body}>
         <div
           class="fixed inset-0 z-[--z-modal] flex items-center justify-center"
@@ -115,8 +117,9 @@ const DialogContent = (props: DialogContentProps) => {
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
+            aria-describedby={descriptionId}
             class={cn(
-              "relative w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-md",
+              "relative mx-4 max-h-[85vh] w-full max-w-md overflow-y-auto rounded-xl border border-border bg-card p-6 shadow-md animate-scale-in sm:mx-0",
               local.class,
             )}
             onClick={(e) => e.stopPropagation()}
@@ -168,8 +171,10 @@ const DialogTitle = (props: JSX.HTMLAttributes<HTMLHeadingElement>) => {
 
 const DialogDescription = (props: JSX.HTMLAttributes<HTMLParagraphElement>) => {
   const [local, rest] = splitProps(props, ["class", "children"]);
+  const ctx = useContext(DialogContext);
   return (
     <p
+      id={ctx?.descriptionId}
       data-slot="dialog-description"
       class={cn("text-sm text-muted-foreground", local.class)}
       {...rest}

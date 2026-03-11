@@ -34,7 +34,7 @@ export function dismissToast(id: string): void {
 // ── Variants ────────────────────────────────────────────────────────────────
 
 export const toastVariants = cva(
-  "rounded-lg border px-4 py-3 text-sm shadow-md cursor-pointer select-none",
+  "rounded-lg border px-4 py-3 text-sm shadow-sm cursor-pointer select-none animate-slide-in",
   {
     variants: {
       variant: {

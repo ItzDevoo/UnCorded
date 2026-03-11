@@ -13,6 +13,9 @@ export const MAX_INFO_HASH_LENGTH = 128;
 export const HEARTBEAT_INTERVAL_MS = 30_000;
 export const HEARTBEAT_TIMEOUT_MS = 45_000;
 
+// ── Channel limits ──────────────────────────────────────────────────────────
+export const CHANNEL_NAME_MAX = 100;
+
 // ── Typing indicator timing ────────────────────────────────────────────────
 export const TYPING_THROTTLE_MS = 5_000;
 /** Must exceed TYPING_THROTTLE_MS to prevent typing indicator flicker */

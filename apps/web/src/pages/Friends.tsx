@@ -8,6 +8,8 @@ import {
 } from "../stores/friend-store.js";
 import { Button } from "../components/ui/button.js";
 import { Badge } from "../components/ui/badge.js";
+import { Input } from "../components/ui/input.js";
+import { Empty } from "../components/ui/empty.js";
 
 type Tab = "all" | "pending" | "blocked";
 
@@ -51,7 +53,7 @@ const Friends = () => {
 
   return (
     <div class="flex h-full flex-col">
-      <div class="flex h-12 shrink-0 items-center gap-4 border-b border-border px-4">
+      <div class="flex h-14 shrink-0 items-center gap-3 border-b border-border px-4">
         <span class="font-semibold text-foreground">Friends</span>
         <div class="flex gap-1">
           <Button
@@ -91,7 +93,7 @@ const Friends = () => {
         <div class="mb-6">
           <h3 class="mb-2 text-sm font-semibold uppercase text-muted-foreground">Add Friend</h3>
           <div class="flex gap-2">
-            <input
+            <Input
               type="text"
               placeholder="Enter a User ID"
               value={addUserId()}
@@ -99,7 +101,7 @@ const Friends = () => {
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleAddFriend();
               }}
-              class="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              class="flex-1"
             />
             <Button onClick={handleAddFriend} disabled={sending() || !addUserId().trim()}>
               Send Request
@@ -116,9 +118,7 @@ const Friends = () => {
             All Friends — {allFriends().length}
           </h3>
           <Show when={allFriends().length === 0}>
-            <p class="text-sm text-muted-foreground">
-              No friends yet. Send a friend request above!
-            </p>
+            <Empty title="No friends yet" description="Send a friend request to get started!" />
           </Show>
           <For each={allFriends()}>
             {(friend) => (
@@ -161,7 +161,7 @@ const Friends = () => {
             Incoming Requests — {pendingFriends().length}
           </h3>
           <Show when={pendingFriends().length === 0}>
-            <p class="text-sm text-muted-foreground">No pending friend requests.</p>
+            <Empty title="No pending requests" description="Friend requests you receive will appear here." />
           </Show>
           <For each={pendingFriends()}>
             {(friend) => (
@@ -217,7 +217,7 @@ const Friends = () => {
             Blocked — {blockedFriends().length}
           </h3>
           <Show when={blockedFriends().length === 0}>
-            <p class="text-sm text-muted-foreground">No blocked users.</p>
+            <Empty title="No blocked users" description="Users you block will appear here." />
           </Show>
           <For each={blockedFriends()}>
             {(friend) => (

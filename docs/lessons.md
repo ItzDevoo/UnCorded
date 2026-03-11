@@ -175,3 +175,15 @@ This applies to any module that registers global listeners or timers at the top 
 **[Pre-W4 Cleanup]** — Server WS gateway should wrap the switch dispatch in try/catch to prevent a single handler error from crashing the connection. Send an ERROR frame to the client (if identified) and log server-side. Never close the connection on transient errors.
 
 **[Pre-W4 Cleanup]** — When both a parent (ChatArea) and child (VirtualMessageList) component register the same `createEffect(on(channelId, fetchMessages))`, messages get fetched twice on channel switch. Keep the effect in the parent only.
+
+**[W3.5 P4 Review]** — SolidJS JSX `&&` pattern can leak falsy values (e.g., `""`, `0`, `null`) to the DOM. Always use `<Show when={...}>` instead of `{value && <span>...</span>}`. React swallows falsy values; SolidJS does not.
+
+**[W3.5 P4 Review]** — Icon-only buttons need both `title` (hover tooltip) AND `aria-label` (screen reader). Adding just `title` isn't sufficient for accessibility — screen readers don't reliably announce title attributes. Add `aria-label` matching the `title` on every icon button.
+
+**[W3.5 P4 Review]** — ARIA dialog pattern needs both `aria-labelledby` (title) and `aria-describedby` (description). When using a compound Dialog component with context, generate IDs for both and pass them through context to DialogTitle and DialogDescription.
+
+**[W3.5 P4 Review]** — HTML labels must be associated with inputs via `for`/`id` (SolidJS uses `for`, not `htmlFor`). Without this, clicking the label doesn't focus the input, and screen readers can't associate them. Use unique prefixes per page (e.g., `login-email`, `register-email`) to avoid ID collisions.
+
+**[W3.5 P4 Review]** — Global event listeners (Escape key, scroll, resize) for dropdowns/menus should only be active while the dropdown is open. Use `createEffect` with `onCleanup` to conditionally add/remove listeners based on open state, rather than permanent `onMount`/`onCleanup` listeners. This prevents stale handlers from firing when the dropdown is closed.
+
+**[W3.5 P4 Review]** — Dropdown position calculated once on open becomes stale if the user scrolls or resizes the viewport. Add scroll (with `capture: true` for nested scrollables) and resize listeners while the dropdown is open, recalculating position on each event.

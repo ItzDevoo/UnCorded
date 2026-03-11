@@ -1,5 +1,13 @@
 import { createSignal, Show } from "solid-js";
-import { serverId, userId, type ServerId, type UserId, type InviteCode } from "@uncorded/protocol";
+import {
+  serverId,
+  userId,
+  channelId,
+  type ServerId,
+  type UserId,
+  type ChannelId,
+  type InviteCode,
+} from "@uncorded/protocol";
 import { api, ApiRequestError } from "../../lib/api.js";
 import { addServer } from "../../lib/gateway-store.js";
 import { setSelectedServerId } from "../../stores/app-store.js";
@@ -13,6 +21,16 @@ interface InvitePreview {
   memberCount: number;
 }
 
+interface AcceptChannel {
+  id: ChannelId;
+  serverId: ServerId;
+  name: string;
+  type: string;
+  position: number;
+  topic: string | null;
+  fileSharingEnabled: boolean;
+}
+
 interface AcceptResponse {
   server: {
     id: ServerId;
@@ -20,6 +38,7 @@ interface AcceptResponse {
     iconUrl: string | null;
     ownerId: UserId;
   };
+  channels: AcceptChannel[];
 }
 
 interface Props {
@@ -69,7 +88,11 @@ const JoinServerModal = (props: Props) => {
         name: data.server.name,
         iconUrl: data.server.iconUrl,
         ownerId: userId(data.server.ownerId),
-        channels: [],
+        channels: data.channels.map((ch) => ({
+          ...ch,
+          id: channelId(ch.id),
+          serverId: serverId(ch.serverId),
+        })),
       });
       setSelectedServerId(serverId(data.server.id));
       props.onClose();

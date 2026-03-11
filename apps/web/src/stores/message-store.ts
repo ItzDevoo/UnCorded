@@ -137,14 +137,10 @@ export function addMessage(cId: AnyChannelId, message: Message) {
     });
     return;
   }
-  setStore(
-    "channels",
-    key,
-    produce((ch) => {
-      if (ch.messages.some((m) => m.id === message.id)) return;
-      ch.messages.push(message);
-    }),
-  );
+  setStore("channels", key, "messages", (prev) => {
+    if (prev.some((m) => m.id === message.id)) return prev;
+    return [...prev, message];
+  });
 }
 
 export function updateMessage(

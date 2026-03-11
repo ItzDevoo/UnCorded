@@ -8,7 +8,8 @@ import {
 } from "@uncorded/shared";
 import { inviteCode, serverId, userId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
-import { invites, servers, members } from "../db/schema.js";
+import { invites, servers, members, channels } from "../db/schema.js";
+import { channelId } from "@uncorded/protocol";
 import { getSession } from "../middleware/auth.js";
 import { requireMember, isMember } from "../helpers/permissions.js";
 
@@ -135,11 +136,29 @@ export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
       .where(eq(servers.id, invite.serverId))
       .limit(1);
 
+    const serverChannels = await db
+      .select({
+        id: channels.id,
+        serverId: channels.serverId,
+        name: channels.name,
+        type: channels.type,
+        position: channels.position,
+        topic: channels.topic,
+        fileSharingEnabled: channels.fileSharingEnabled,
+      })
+      .from(channels)
+      .where(eq(channels.serverId, invite.serverId));
+
+    /* oxlint-disable no-map-spread -- copy-on-write required, DB rows must not be mutated */
     return {
       server: server
         ? { ...server, id: serverId(server.id), ownerId: userId(server.ownerId) }
         : server,
+      channels: serverChannels
+        .toSorted((a, b) => a.position - b.position)
+        .map((ch) => ({ ...ch, id: channelId(ch.id), serverId: serverId(ch.serverId) })),
     };
+    /* oxlint-enable no-map-spread */
   });
 
 export const inviteRoutes = new Elysia().use(serverInviteRoutes).use(inviteCodeRoutes);

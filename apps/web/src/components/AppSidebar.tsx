@@ -44,7 +44,7 @@ const AppSidebar = () => {
 
   const handleLogout = async () => {
     await signOut();
-    navigate("/login", { replace: true });
+    window.location.href = "/login";
   };
 
   // ── Group header actions ─────────────────────────────────────────────────

@@ -6,12 +6,76 @@ import {
   ValidationError,
   NotFoundError,
   ForbiddenError,
+  createId,
 } from "@uncorded/shared";
-import { Opcode, userId as brandUserId } from "@uncorded/protocol";
+import { Opcode, userId as brandUserId, dmChannelId as brandDmChannelId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
-import { friendships, user } from "../db/schema.js";
+import { friendships, user, dmChannels, dmMembers } from "../db/schema.js";
 import { getSession } from "../middleware/auth.js";
 import { sendToUser } from "../ws/connections.js";
+
+/** Create a DM channel between two users if one doesn't already exist, and broadcast to both. */
+async function ensureDmChannel(userIdA: string, userIdB: string) {
+  // Check for existing DM via intersection query
+  const myChannels = db
+    .select({ channelId: dmMembers.channelId })
+    .from(dmMembers)
+    .where(eq(dmMembers.userId, userIdA));
+
+  const [existingDm] = await db
+    .select({ channelId: dmMembers.channelId })
+    .from(dmMembers)
+    .where(and(eq(dmMembers.userId, userIdB), eq(dmMembers.channelId, myChannels)))
+    .limit(1);
+
+  if (existingDm) return; // DM already exists
+
+  const dmId = createId();
+  await db.insert(dmChannels).values({ id: dmId });
+  await db.insert(dmMembers).values([
+    { channelId: dmId, userId: userIdA },
+    { channelId: dmId, userId: userIdB },
+  ]);
+
+  const [userA] = await db
+    .select({
+      id: user.id,
+      username: user.username,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+      status: user.status,
+    })
+    .from(user)
+    .where(eq(user.id, userIdA))
+    .limit(1);
+
+  const [userB] = await db
+    .select({
+      id: user.id,
+      username: user.username,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+      status: user.status,
+    })
+    .from(user)
+    .where(eq(user.id, userIdB))
+    .limit(1);
+
+  sendToUser(userIdA, {
+    op: Opcode.DM_CHANNEL_CREATE,
+    d: {
+      id: brandDmChannelId(dmId),
+      otherUser: userB ? { ...userB, id: brandUserId(userB.id) } : null,
+    },
+  });
+  sendToUser(userIdB, {
+    op: Opcode.DM_CHANNEL_CREATE,
+    d: {
+      id: brandDmChannelId(dmId),
+      otherUser: userA ? { ...userA, id: brandUserId(userA.id) } : null,
+    },
+  });
+}
 
 const userIdParamSchema = z.object({ userId: z.string().min(1) });
 
@@ -122,6 +186,8 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
             status: them?.status ?? "offline",
           },
         });
+
+        await ensureDmChannel(sessionUser.id, targetId);
 
         set.status = 200;
         return { status: "accepted" };
@@ -235,6 +301,8 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
         status: them?.status ?? "offline",
       },
     });
+
+    await ensureDmChannel(sessionUser.id, params.userId);
 
     return { status: "accepted" };
   })

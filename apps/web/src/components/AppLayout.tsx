@@ -16,8 +16,8 @@ const AppLayout: ParentComponent = (props) => {
 
   createEffect(() => {
     const s = session();
-    if (s.data?.session?.token && gatewayStatus() === "disconnected") {
-      connectGateway(s.data.session.token);
+    if (s.data?.session && gatewayStatus() === "disconnected") {
+      connectGateway();
     }
   });
 

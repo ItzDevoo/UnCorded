@@ -26,7 +26,7 @@ import { addDmChannelToCache } from "../ws/channel-cache.js";
  * Both params are raw user ID strings (not branded) since they come from
  * session/DB. Broadcasts DM_CHANNEL_CREATE to both users on creation.
  */
-async function ensureDmChannel(userIdA: string, userIdB: string) {
+async function ensureDmChannel(userIdA: string, userIdB: string): Promise<string | null> {
   // Check for existing DM via intersection query
   const myChannels = db
     .select({ channelId: dmMembers.channelId })
@@ -39,7 +39,7 @@ async function ensureDmChannel(userIdA: string, userIdB: string) {
     .where(and(eq(dmMembers.userId, userIdB), eq(dmMembers.channelId, myChannels)))
     .limit(1);
 
-  if (existingDm) return; // DM already exists
+  if (existingDm) return null; // DM already exists
 
   const dmId = createId();
   await db.transaction(async (tx) => {
@@ -90,6 +90,8 @@ async function ensureDmChannel(userIdA: string, userIdB: string) {
       otherUser: userA ? { ...userA, id: brandUserId(userA.id) } : null,
     },
   });
+
+  return dmId;
 }
 
 const userIdParamSchema = z.object({ userId: z.string().min(1) });
@@ -196,10 +198,13 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
           },
         });
 
-        await ensureDmChannel(sessionUser.id, targetId);
+        const dmId = await ensureDmChannel(sessionUser.id, targetId);
 
         set.status = 200;
-        return { status: "accepted" };
+        return {
+          status: "accepted",
+          ...(dmId ? { dmChannelId: brandDmChannelId(dmId) } : {}),
+        };
       }
       throw new ValidationError("Friend request already pending");
     }
@@ -311,9 +316,12 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
       },
     });
 
-    await ensureDmChannel(sessionUser.id, params.userId);
+    const dmId = await ensureDmChannel(sessionUser.id, params.userId);
 
-    return { status: "accepted" };
+    return {
+      status: "accepted",
+      ...(dmId ? { dmChannelId: brandDmChannelId(dmId) } : {}),
+    };
   })
 
   // POST /:userId/decline — Decline friend request

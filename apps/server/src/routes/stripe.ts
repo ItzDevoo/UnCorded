@@ -81,7 +81,7 @@ export const stripeRoutes = new Elysia({ prefix: "/api/stripe" })
       .limit(1);
 
     if (!existing?.stripeCustomerId) {
-      throw new NotFoundError("No active subscription");
+      throw new NotFoundError("Subscription");
     }
 
     const portalSession = await stripe.billingPortal.sessions.create({

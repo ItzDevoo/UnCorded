@@ -10,18 +10,11 @@ import {
 } from "@uncorded/protocol";
 import { LIST_PAGE_LIMIT } from "@uncorded/shared";
 import { db } from "../db/index.js";
-import {
-  user,
-  session as sessionTable,
-  servers,
-  channels,
-  members,
-  dmMembers,
-  friendships,
-} from "../db/schema.js";
+import { user, servers, channels, members, dmMembers, friendships } from "../db/schema.js";
 import { addConnection, type AnyServerWebSocket } from "./connections.js";
 import { registerUserServers } from "./server-members.js";
 import { seedChannelCache } from "./channel-cache.js";
+import { consumeTicket } from "../routes/gateway.js";
 
 type IdentifyResult =
   | { success: true; userId: string; username: string | null; subscriptionTier: string }
@@ -36,28 +29,23 @@ export async function handleIdentify(
     return {
       success: false,
       closeCode: CloseCode.MISSING_TOKEN,
-      closeReason: "Missing token in IDENTIFY",
+      closeReason: "Missing ticket in IDENTIFY",
     };
   }
-  const token = parsed.data.token;
+  const ticket = parsed.data.ticket;
 
   try {
-    // Validate session
-    const [sessionRow] = await db
-      .select({ userId: sessionTable.userId, expiresAt: sessionTable.expiresAt })
-      .from(sessionTable)
-      .where(eq(sessionTable.token, token))
-      .limit(1);
-
-    if (!sessionRow || new Date(sessionRow.expiresAt) < new Date()) {
+    // Validate one-time ticket
+    const ticketUserId = await consumeTicket(ticket);
+    if (!ticketUserId) {
       return {
         success: false,
         closeCode: CloseCode.INVALID_SESSION,
-        closeReason: "Invalid session",
+        closeReason: "Invalid or expired ticket",
       };
     }
 
-    const identifiedUserId = sessionRow.userId;
+    const identifiedUserId = ticketUserId;
 
     // Register connection
     addConnection(identifiedUserId, ws);

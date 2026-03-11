@@ -14,6 +14,7 @@ import { friendRoutes } from "./routes/friend.js";
 import { dmRoutes } from "./routes/dm.js";
 import { webhookRoutes } from "./routes/webhook.js";
 import { stripeRoutes } from "./routes/stripe.js";
+import { gatewayTicketRoutes } from "./routes/gateway.js";
 import { gateway } from "./ws/gateway.js";
 
 const app = new Elysia()
@@ -55,6 +56,7 @@ const app = new Elysia()
   .use(messageRoutes)
   .use(friendRoutes)
   .use(dmRoutes)
+  .use(gatewayTicketRoutes)
   .use(gateway)
   .get("/health", () => ({ status: "ok" }))
   .onError(({ code, error, set }) => {

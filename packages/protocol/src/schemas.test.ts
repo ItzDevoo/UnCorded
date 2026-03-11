@@ -10,18 +10,18 @@ import {
 } from "./schemas.js";
 
 describe("identifyRequestSchema", () => {
-  it("accepts valid token", () => {
-    const result = identifyRequestSchema.safeParse({ token: "my-auth-token" });
+  it("accepts valid ticket", () => {
+    const result = identifyRequestSchema.safeParse({ ticket: "my-ticket-uuid" });
     expect(result.success).toBe(true);
   });
 
-  it("rejects missing token", () => {
+  it("rejects missing ticket", () => {
     const result = identifyRequestSchema.safeParse({});
     expect(result.success).toBe(false);
   });
 
-  it("rejects non-string token", () => {
-    const result = identifyRequestSchema.safeParse({ token: 123 });
+  it("rejects non-string ticket", () => {
+    const result = identifyRequestSchema.safeParse({ ticket: 123 });
     expect(result.success).toBe(false);
   });
 });

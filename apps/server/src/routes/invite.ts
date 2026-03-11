@@ -7,10 +7,11 @@ import {
   ConflictError,
 } from "@uncorded/shared";
 import { Opcode, inviteCode, serverId, userId, channelId } from "@uncorded/protocol";
+import { NeonDbError } from "@neondatabase/serverless";
 import { db } from "../db/index.js";
 import { invites, servers, members, channels, user } from "../db/schema.js";
 import { getSession } from "../middleware/auth.js";
-import { requireMember, isMember } from "../helpers/permissions.js";
+import { requireMember } from "../helpers/permissions.js";
 import { addServerMember } from "../ws/server-members.js";
 import { sendToUser, broadcastToServer } from "../ws/connections.js";
 
@@ -116,15 +117,17 @@ export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
       throw new NotFoundError("Invite not found or expired");
     }
 
-    const alreadyMember = await isMember(sessionUser.id, invite.serverId);
-    if (alreadyMember) {
-      throw new ConflictError("ALREADY_MEMBER", "Already a member of this server");
+    try {
+      await db.insert(members).values({
+        userId: sessionUser.id,
+        serverId: invite.serverId,
+      });
+    } catch (err) {
+      if (err instanceof NeonDbError && err.code === "23505") {
+        throw new ConflictError("ALREADY_MEMBER", "Already a member of this server");
+      }
+      throw err;
     }
-
-    await db.insert(members).values({
-      userId: sessionUser.id,
-      serverId: invite.serverId,
-    });
 
     addServerMember(invite.serverId, sessionUser.id);
 

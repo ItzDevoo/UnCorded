@@ -84,6 +84,9 @@ const MenuTrigger = (props: JSX.ButtonHTMLAttributes<HTMLButtonElement>) => {
   );
 };
 
+const FLIP_THRESHOLD = 200;
+const ESTIMATED_MENU_WIDTH = 170;
+
 const MenuContent = (props: { children: JSX.Element; class?: string }) => {
   const ctx = useMenu();
   const [pos, setPos] = createSignal({ top: 0, left: 0 });
@@ -93,10 +96,8 @@ const MenuContent = (props: { children: JSX.Element; class?: string }) => {
     if (!trigger) return;
     const rect = trigger.getBoundingClientRect();
     const spaceBelow = window.innerHeight - rect.bottom;
-    // 200 = flip threshold: if menu would extend beyond this distance from viewport bottom, flip upward
-    const top = spaceBelow < 200 ? rect.top - 8 : rect.bottom + 4;
-    // 170 = estimated menu width for horizontal flip calculation
-    const left = Math.min(rect.right, window.innerWidth - 170);
+    const top = spaceBelow < FLIP_THRESHOLD ? rect.top - 8 : rect.bottom + 4;
+    const left = Math.min(rect.right, window.innerWidth - ESTIMATED_MENU_WIDTH);
     setPos({ top, left });
   }
 
@@ -113,7 +114,6 @@ const MenuContent = (props: { children: JSX.Element; class?: string }) => {
         <div class="fixed inset-0 z-[--z-dropdown]" onClick={() => ctx.setOpen(false)} />
         {/* Content */}
         <div
-          ref={() => updatePosition()}
           data-slot="menu-content"
           class={cn(
             "fixed z-[--z-dropdown] min-w-[160px] rounded-xl border border-border bg-popover p-1 shadow-md animate-scale-in",

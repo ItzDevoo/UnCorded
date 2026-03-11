@@ -27,6 +27,8 @@ const MessageSkeleton = (props: { showHeader?: boolean }) => (
 const SCROLL_BOTTOM_THRESHOLD = 100;
 const OVERSCAN = 5;
 const GROUP_GAP_MS = 5 * 60 * 1000;
+const HEADER_MESSAGE_HEIGHT = 52;
+const COMPACT_MESSAGE_HEIGHT = 28;
 
 const VirtualMessageList = (props: { channelId: AnyChannelId }) => {
   // oxlint-disable-next-line no-unassigned-vars -- SolidJS ref pattern, assigned via JSX ref={}
@@ -56,7 +58,7 @@ const VirtualMessageList = (props: { channelId: AnyChannelId }) => {
       return messages().length;
     },
     getScrollElement: () => scrollRef,
-    estimateSize: (i) => (shouldShowHeader(i) ? 52 : 28),
+    estimateSize: (i) => (shouldShowHeader(i) ? HEADER_MESSAGE_HEIGHT : COMPACT_MESSAGE_HEIGHT),
     overscan: OVERSCAN,
     measureElement: (el) => el.getBoundingClientRect().height,
   });

@@ -90,7 +90,7 @@ const ChatArea = () => {
                         }
                       >
                         {(url) => (
-                          <img src={url()} alt="" class="h-7 w-7 shrink-0 rounded-full object-cover" />
+                          <img src={url()} alt={channelName() ?? "User avatar"} class="h-7 w-7 shrink-0 rounded-full object-cover" />
                         )}
                       </Show>
                       <span class="font-semibold text-foreground">{channelName()}</span>

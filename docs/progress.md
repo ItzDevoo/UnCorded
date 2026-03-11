@@ -6,10 +6,40 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Week 3.5 Phase 4 complete — UI Overhaul nearly done
+## Current Status: Week 3.5 complete + merged to main — ready for Week 4
 
-Phase 4 (pages, modals, polish) complete. Auth pages have brand wordmark + gradient + fade-in. Friends page uses Input/Empty components. Message list has skeleton loading + Empty states. Dialogs responsive on mobile. Accessibility polish on logout button.
-Next: Final verification pass, then Week 4 (Stripe subscriptions + server file sharing).
+All Weeks 1–3 + Week 2.5 tooling + Week 3.5 UI overhaul complete. Merged to main at 3d52ef4. Friend request by username fix at f6a49f6. Next: Week 2 leftovers (member list panel, markdown rendering), then Week 4 (Stripe subscriptions).
+
+---
+
+### Friend request by username fix — 2026-03-10
+
+**What was done:**
+
+- Friend request now searches by username instead of user ID (4 files changed)
+- Backend: friend.ts POST /request route looks up target user by username instead of userId
+- Shared schema: friendRequestSchema updated from `{ userId }` to `{ username }` with USERNAME_MAX bound
+- Frontend: friend-store.ts sendFriendRequest sends `{ username }`, Friends.tsx input renamed and placeholder updated
+- Commit f6a49f6
+
+---
+
+### Final cleanup — 2026-03-10
+
+**What was done:**
+
+- Named constants extracted, descriptive alt text on images, font preload moved to HTML
+- Commit 2546b64
+
+---
+
+### Merge to main — 2026-03-10
+
+**What was done:**
+
+- feat/ui-overhaul branch merged to main via --no-ff merge commit
+- All Week 3.5 UI overhaul phases (1–4) complete
+- Commit 3d52ef4
 
 ---
 
@@ -367,7 +397,7 @@ Next: Final verification pass, then Week 4 (Stripe subscriptions + server file s
 - Files NEVER touch our servers — all transfers are direct P2P between users
 - WebTorrent handles torrent creation, magnet URIs, and swarm coordination in the browser
 - Existing WebSocket gateway becomes the WebRTC signaling relay
-- Desktop app (Tauri) planned for persistent seeding from local folder
+- Desktop app (Electron) planned for persistent seeding from local folder
 - Pricing changed from a-la-carte items to subscription tiers (Free / Supporter $5 / Server Owner $10+)
 - TURN relay restricted to paid users — honest monetization tied to real infrastructure cost
 

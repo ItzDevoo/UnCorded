@@ -21,11 +21,18 @@ Reference: C:\Nexis\packages\protocol\src\opcodes.ts for implementation.
 | 32  | WEBRTC_ICE_CANDIDATE         | Client -> Server (forwarded to peer) |
 | 33  | FILE_SHARE                   | Both                                 |
 | 34  | FILE_AVAILABILITY_UPDATE     | Both                                 |
-| 40  | CHANNEL_CREATE/UPDATE/DELETE | Server -> Client                     |
-| 50  | MEMBER_ADD/REMOVE            | Server -> Client                     |
-| 60  | SERVER_CREATE/DELETE         | Server -> Client                     |
-| 70  | FRIEND_REQUEST/ACCEPT/REMOVE | Server -> Client                     |
+| 40  | CHANNEL_CREATE               | Server -> Client                     |
+| 41  | CHANNEL_UPDATE               | Server -> Client                     |
+| 42  | CHANNEL_DELETE               | Server -> Client                     |
+| 50  | MEMBER_ADD                   | Server -> Client                     |
+| 51  | MEMBER_REMOVE                | Server -> Client                     |
+| 60  | SERVER_CREATE                | Server -> Client                     |
+| 61  | SERVER_DELETE                | Server -> Client                     |
+| 70  | FRIEND_REQUEST               | Server -> Client                     |
+| 71  | FRIEND_ACCEPT                | Server -> Client                     |
+| 72  | FRIEND_REMOVE                | Server -> Client                     |
 | 80  | DM_CHANNEL_CREATE            | Server -> Client                     |
+| 99  | ERROR                        | Server -> Client                     |
 
 ## Lifecycle
 

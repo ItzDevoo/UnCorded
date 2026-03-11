@@ -280,18 +280,18 @@ Semantic color mapping:
 
 ## Icons
 
-### Library: Lucide (SolidJS)
+### Approach: Inline SVGs
 
-- Package: `lucide-solid`
-- Consistent sizing: `size-4.5` (18px) default, `size-4` (16px) in compact contexts
-- Color: `currentColor` (inherits from parent text color)
-- Custom icons in `components/Icons.tsx` for brand logos
+- No icon component library installed — all icons are inline `<svg>` elements (Heroicons-style)
+- Consistent sizing via Tailwind classes: `class="h-4 w-4"` (16px) or `class="h-5 w-5"` (20px)
+- Color: `currentColor` via `stroke="currentColor"` — inherits from parent text color
+- `stroke-width="2"` for consistent weight across all icons
 
 ### Rules
 
-- Never use raw SVGs inline — always wrap in a component or use Lucide
-- Icon-only buttons must have `aria-label` or a tooltip
-- Size classes on icons: `[&_svg]:size-4.5` pattern on parent
+- Icon-only buttons must have both `aria-label` (screen reader) and `title` (hover tooltip)
+- SVGs on buttons: `[&_svg]:pointer-events-none [&_svg]:shrink-0` pattern on parent
+- Keep SVGs inline for tree-shaking — no barrel icon files
 
 ---
 
@@ -392,8 +392,8 @@ Styled scrollable container with thin scrollbar. Use instead of raw `overflow-au
 </ScrollArea>
 ```
 
-- `scrollbar-width: thin` + custom webkit scrollbar (1.5px wide)
-- Thumb: `foreground/15`, hover: `foreground/25`
+- `scrollbar-width: thin` + custom webkit scrollbar (`w-1.5`, 6px)
+- Thumb: `foreground/12`, hover: `foreground/20`
 - File: `components/ui/scroll-area.tsx`
 
 ---
@@ -534,7 +534,6 @@ apps/web/src/
 │   │   ├── card.tsx
 │   │   └── ...
 │   ├── modals/           # Modal dialogs (CreateServerModal, InviteModal, etc.)
-│   ├── Icons.tsx          # Custom brand icons
 │   ├── ChatArea.tsx       # Feature components
 │   ├── MessageBubble.tsx
 │   └── ...

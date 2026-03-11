@@ -20,7 +20,6 @@ C:\UnCorded\Project\
 │                         # Schema-only where possible, minimal runtime
 ├── scripts/
 │   └── dev-runner.ts     # Single-command dev orchestrator (all apps + TUI process viewer)
-├── .plans/               # Architectural refactor roadmaps (numbered: 01-*.md, 02-*.md)
 ├── turbo.json            # Task orchestration
 ├── tsconfig.base.json    # Shared TypeScript config
 ├── .oxlintrc.json        # Linter config
@@ -120,107 +119,64 @@ Reference: t3Code's `packages/contracts/src/baseSchemas.ts` for pattern.
 
 Every error is a tagged class with context. No raw `throw new Error("something broke")`.
 
-### Pattern
+### Pattern (packages/shared/src/errors/)
 
 ```typescript
-// Base error with tag discrimination
-export class UnCordedError extends Error {
+// Base error with tag discrimination, status code, and error code
+export class AppError extends Error {
   readonly _tag: string;
-  constructor(tag: string, message: string, options?: { cause?: unknown }) {
+  readonly statusCode: number;
+  readonly code: string;
+
+  constructor(
+    tag: string,
+    statusCode: number,
+    code: string,
+    message: string,
+    options?: { cause?: unknown },
+  ) {
     super(message, options);
     this._tag = tag;
+    this.statusCode = statusCode;
+    this.code = code;
   }
 }
 
-// Specific errors
-export class AuthError extends UnCordedError {
-  constructor(
-    public readonly operation: string,
-    public readonly detail: string,
-    options?: { cause?: unknown }
-  ) {
-    super("AuthError", `${operation}: ${detail}`, options);
-  }
+// HTTP error classes — each sets its own tag, statusCode, and code
+export class UnauthorizedError extends AppError {   // 401, "UNAUTHORIZED"
+  constructor(message = "Authentication required", options?: { cause?: unknown });
 }
-
-export class GatewayError extends UnCordedError { ... }
-export class ValidationError extends UnCordedError { ... }
-export class PermissionError extends UnCordedError { ... }
-export class NotFoundError extends UnCordedError { ... }
-```
-
-### Error Composition
-
-```typescript
-// Union types for error boundaries
-type ChannelOperationError = PermissionError | NotFoundError | ValidationError;
-type FileShareError = GatewayError | PermissionError | WebRTCError;
+export class ForbiddenError extends AppError {      // 403, "FORBIDDEN"
+  constructor(message = "Insufficient permissions", options?: { cause?: unknown });
+}
+export class SessionExpiredError extends AppError { // 401, "SESSION_EXPIRED"
+  constructor(message = "Session has expired", options?: { cause?: unknown });
+}
+export class ValidationError extends AppError {     // 400, "VALIDATION_ERROR"
+  constructor(message = "Validation failed", options?: { cause?: unknown });
+}
+export class NotFoundError extends AppError {       // 404, "NOT_FOUND"
+  constructor(resource = "Resource", options?: { cause?: unknown });
+  // message becomes "${resource} not found"
+}
+export class ConflictError extends AppError {       // 409, custom code
+  constructor(code: string, message: string, options?: { cause?: unknown });
+}
+export class RateLimitError extends AppError {      // 429, "RATE_LIMITED"
+  constructor(message = "Too many requests", options?: { cause?: unknown });
+}
+export class InternalError extends AppError {       // 500, "INTERNAL_ERROR"
+  constructor(message = "Internal server error", options?: { cause?: unknown });
+}
 ```
 
 ### Rules
 
-- Every thrown error includes: operation name, detail message, and optional cause chain
-- Route handlers catch typed errors and map to HTTP status codes
-- WS handlers catch typed errors and send appropriate close codes
+- Every thrown error is an `AppError` subclass with `_tag`, `statusCode`, `code`, and `message`
+- Route handlers `throw` error subclasses — the central `.onError()` handler catches `AppError` and maps to HTTP responses
+- WS handlers catch typed errors and send appropriate close codes or ERROR frames
 - Never catch `unknown` and silently swallow — always log or re-throw
-
-Reference: t3Code's tagged error classes with operation context.
-
----
-
-## `.plans/` Directory
-
-Track architectural evolution formally. Each plan is a numbered markdown file.
-
-### Format
-
-```
-.plans/
-├── 01-tooling-migration.md      # ESLint→Oxlint, Prettier→Oxfmt
-├── 02-branded-types.md          # Add branded IDs across codebase
-├── 03-typed-errors.md           # Replace raw Error throws
-├── 04-dev-runner-tui.md         # Single-command dev orchestrator
-└── ...
-```
-
-### Plan Template
-
-```markdown
-# Plan XX: Title
-
-## Motivation
-
-Why this change matters.
-
-## Scope
-
-What files/packages are affected.
-
-## Steps
-
-1. Step one
-2. Step two
-   ...
-
-## Risks
-
-What could go wrong.
-
-## Validation
-
-How to verify the change worked.
-
-## Status
-
-- [ ] Not started / In progress / Complete
-```
-
-### Rules
-
-- Create a plan before starting any cross-cutting refactor
-- Plans are living documents — update status as work progresses
-- Plans survive completion — they're documentation of decisions made
-- Number plans sequentially, never reuse numbers
+- All subclasses accept an optional `{ cause }` for error chaining
 
 ---
 
@@ -230,18 +186,14 @@ How to verify the change worked.
 
 Launches all services through `scripts/dev-runner.ts`:
 
-- Builds `@uncorded/protocol` first
-- Starts ElysiaJS server (API + WS gateway)
-- Starts Vite dev server (SolidJS frontend)
-- Shows interactive TUI with process status, logs, and port info
-- Ctrl+C cleanly kills all child processes (process group isolation)
-
-### TUI Features (modeled after t3Code's dev-runner)
-
-- Real-time process status (running / crashed / restarting)
-- Interleaved log output with color-coded process labels
-- Port assignments displayed on startup
-- Error highlighting in log output
+- Spawns ElysiaJS server + Vite dev server in parallel via `bun run --filter`
+- Interactive TUI with startup banner (box-drawing border, port assignments, status icons per process)
+- Color-coded prefixed log output: `[server]` (cyan), `[web]` (magenta)
+- Error highlighting: lines matching error patterns shown with red background
+- Keyboard shortcuts (when TTY): `q` quit, `c` clear, `1`/`2` filter by service, `a`/`0` show all
+- Port availability check before spawning — auto-kills occupied ports (use `--no-kill` to disable)
+- Port offset via `UNCORDED_PORT_OFFSET` env var for multiple instances
+- Ctrl+C / SIGINT / SIGTERM clean shutdown of all child processes
 
 ### Modes
 
@@ -256,8 +208,7 @@ bun run dev:desktop      # Desktop + web (Electron dev)
 
 - Server: 3000 (base)
 - Web: 5173 (Vite default)
-- Support port offset via `UNCORDED_PORT_OFFSET` env var for multiple instances
-- Hash-based offset from `UNCORDED_DEV_INSTANCE` for deterministic multi-instance support
+- Port offset via `UNCORDED_PORT_OFFSET` env var (rejects offsets that would exceed port 65535)
 - Port availability check before spawning (fail fast, don't collide)
 
 ---
@@ -377,7 +328,7 @@ jobs:
 
 ### Exports
 
-- Named exports only. No default exports.
+- Named exports preferred for utilities and shared packages. Default exports acceptable for page components and feature components.
 - Packages use explicit subpath exports in package.json — no barrel re-exports of everything.
 
 ### Imports

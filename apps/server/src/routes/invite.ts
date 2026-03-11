@@ -95,80 +95,84 @@ export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
   })
   .resolve(authResolve())
   .post("/accept", async ({ user: sessionUser, params }) => {
-    const [invite] = await db
-      .select()
-      .from(invites)
-      .where(
-        and(
-          eq(invites.code, params.code),
-          or(isNull(invites.maxUses), gt(invites.maxUses, invites.uses)),
-          or(isNull(invites.expiresAt), gt(invites.expiresAt, new Date())),
-        ),
-      )
-      .limit(1);
+    const { invite, server, joinerProfile, serverChannels } = await db.transaction(async (tx) => {
+      const [inv] = await tx
+        .select()
+        .from(invites)
+        .where(
+          and(
+            eq(invites.code, params.code),
+            or(isNull(invites.maxUses), gt(invites.maxUses, invites.uses)),
+            or(isNull(invites.expiresAt), gt(invites.expiresAt, new Date())),
+          ),
+        )
+        .limit(1);
 
-    if (!invite) {
-      throw new NotFoundError("Invite not found or expired");
-    }
-
-    try {
-      await db.insert(members).values({
-        userId: sessionUser.id,
-        serverId: invite.serverId,
-      });
-    } catch (err) {
-      if (err instanceof NeonDbError && err.code === "23505") {
-        throw new ConflictError("ALREADY_MEMBER", "Already a member of this server");
+      if (!inv) {
+        throw new NotFoundError("Invite not found or expired");
       }
-      throw err;
-    }
+
+      const [srv] = await tx
+        .select()
+        .from(servers)
+        .where(eq(servers.id, inv.serverId))
+        .limit(1);
+
+      if (!srv) {
+        throw new NotFoundError("Server");
+      }
+
+      try {
+        await tx.insert(members).values({
+          userId: sessionUser.id,
+          serverId: inv.serverId,
+        });
+      } catch (err) {
+        if (err instanceof NeonDbError && err.code === "23505") {
+          throw new ConflictError("ALREADY_MEMBER", "Already a member of this server");
+        }
+        throw err;
+      }
+
+      await tx
+        .update(invites)
+        .set({ uses: sql`${invites.uses} + 1` })
+        .where(eq(invites.code, params.code));
+
+      const [joiner] = await tx
+        .select({
+          id: user.id,
+          username: user.username,
+          displayName: user.displayName,
+          avatarUrl: user.avatarUrl,
+        })
+        .from(user)
+        .where(eq(user.id, sessionUser.id))
+        .limit(1);
+
+      const chans = await tx
+        .select({
+          id: channels.id,
+          serverId: channels.serverId,
+          name: channels.name,
+          type: channels.type,
+          position: channels.position,
+          topic: channels.topic,
+          fileSharingEnabled: channels.fileSharingEnabled,
+        })
+        .from(channels)
+        .where(eq(channels.serverId, inv.serverId));
+
+      return { invite: inv, server: srv, joinerProfile: joiner, serverChannels: chans };
+    });
 
     addServerMember(invite.serverId, sessionUser.id);
 
-    await db
-      .update(invites)
-      .set({ uses: sql`${invites.uses} + 1` })
-      .where(eq(invites.code, params.code));
-
-    // Query joining user's profile for MEMBER_ADD broadcast
-    const [joinerProfile] = await db
-      .select({
-        id: user.id,
-        username: user.username,
-        displayName: user.displayName,
-        avatarUrl: user.avatarUrl,
-      })
-      .from(user)
-      .where(eq(user.id, sessionUser.id))
-      .limit(1);
-
-    const [server] = await db
-      .select()
-      .from(servers)
-      .where(eq(servers.id, invite.serverId))
-      .limit(1);
-
-    const serverChannels = await db
-      .select({
-        id: channels.id,
-        serverId: channels.serverId,
-        name: channels.name,
-        type: channels.type,
-        position: channels.position,
-        topic: channels.topic,
-        fileSharingEnabled: channels.fileSharingEnabled,
-      })
-      .from(channels)
-      .where(eq(channels.serverId, invite.serverId));
-
-    /* oxlint-disable no-map-spread -- copy-on-write required, DB rows must not be mutated */
     const serverPayload = {
-      server: server
-        ? { ...server, id: serverId(server.id), ownerId: userId(server.ownerId) }
-        : server,
+      server: Object.assign(server, { id: serverId(server.id), ownerId: userId(server.ownerId) }),
       channels: serverChannels
         .toSorted((a, b) => a.position - b.position)
-        .map((ch) => ({ ...ch, id: channelId(ch.id), serverId: serverId(ch.serverId) })),
+        .map((ch) => Object.assign(ch, { id: channelId(ch.id), serverId: serverId(ch.serverId) })),
     };
 
     // Send SERVER_CREATE to the joining user so their client adds the server
@@ -185,7 +189,7 @@ export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
           op: Opcode.MEMBER_ADD,
           d: {
             serverId: serverId(invite.serverId),
-            user: { ...joinerProfile, id: userId(joinerProfile.id) },
+            user: Object.assign(joinerProfile, { id: userId(joinerProfile.id) }),
           },
         },
         sessionUser.id,
@@ -193,7 +197,6 @@ export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
     }
 
     return serverPayload;
-    /* oxlint-enable no-map-spread */
   });
 
 export const inviteRoutes = new Elysia().use(serverInviteRoutes).use(inviteCodeRoutes);

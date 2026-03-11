@@ -50,6 +50,13 @@
       "when": 1741651200000,
       "tag": "0006_add_missing_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1741737600000,
+      "tag": "0007_drop_roles_tables",
+      "breakpoints": true
     }
   ]
 }

@@ -9,7 +9,7 @@ import {
   index,
   primaryKey,
 } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
+
 import { nanoid } from "nanoid";
 
 // ─── Helpers ─────────────────────────────────────────────
@@ -204,35 +204,6 @@ export const members = pgTable(
     joinedAt: timestamp("joined_at", { mode: "date" }).defaultNow().notNull(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.serverId] })],
-);
-
-export const roles = pgTable("roles", {
-  id: id(),
-  serverId: text("server_id")
-    .notNull()
-    .references(() => servers.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  color: text("color"),
-  permissions: bigint("permissions", { mode: "number" })
-    .default(sql`0`)
-    .notNull(),
-  position: integer("position").default(0).notNull(),
-});
-
-export const memberRoles = pgTable(
-  "member_roles",
-  {
-    userId: text("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
-    serverId: text("server_id")
-      .notNull()
-      .references(() => servers.id, { onDelete: "cascade" }),
-    roleId: text("role_id")
-      .notNull()
-      .references(() => roles.id, { onDelete: "cascade" }),
-  },
-  (t) => [primaryKey({ columns: [t.userId, t.serverId, t.roleId] })],
 );
 
 export const friendships = pgTable(

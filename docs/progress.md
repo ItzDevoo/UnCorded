@@ -8,6 +8,7 @@ Updated by the coding agent at the end of every session.
 ## Current Status: Week 4 In Progress
 
 Stripe subscriptions working. Deep review complete (all 5 batches). 93 tests passing. All issues migrated to GitHub Issues.
+Quick-wins batch: invite accept race condition fixed (db.transaction), roles/member_roles tables removed, Object.assign consistency applied.
 
 ---
 

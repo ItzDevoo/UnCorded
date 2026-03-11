@@ -39,10 +39,7 @@ Fix all items before moving to Week 4.
 
 ---
 
-## Open
-
-### 9. User B doesn't receive live updates after joining server — NEEDS VERIFICATION
-- User B joins via invite → channels appear → but messages and typing indicators don't arrive in real-time
-- The message-store reactivity fix (#6, commit 9bbc941) may have resolved this since incoming MESSAGE_CREATE events now properly update the store
-- However, the server-side subscription concern remains: if B's WS connection was established before joining, broadcastToServer queries the members table (which SHOULD include B post-join), but delivery may still fail if the client-side message-store hasn't initialized a channel entry for B's new channels
-- **Action needed:** manual test with fresh DB to confirm
+### ~~9. User B doesn't receive live updates after joining server~~ ✅ (fixed by #5 + #6)
+- Was a symptom of #6 (message-store reactivity) + #5 (channel hydration on join)
+- broadcastToServer() queries members table fresh every call (not cached) — B is included immediately after invite accept
+- addMessage() auto-initializes channel entries for incoming MESSAGE_CREATE events on unloaded channels

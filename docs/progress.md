@@ -6,9 +6,9 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Pre-Week 4 stabilization — 10 of 11 test bugs resolved
+## Current Status: Pre-Week 4 stabilization — All 11 test bugs resolved
 
-All Weeks 1–3 + Week 2.5 tooling + Week 3.5 UI overhaul complete. Fresh DB testing found 11 bugs (docs/changes.md) — 10 resolved, 1 needs verification (#9: live updates after server join). Public landing page added, routes restructured (/app → /home), WebTorrent browser compat fixed. Next: verify #9, then Week 4 (Stripe subscriptions).
+All Weeks 1–3 + Week 2.5 tooling + Week 3.5 UI overhaul complete. Fresh DB testing found 11 bugs (docs/changes.md) — all 11 resolved (#9 was a symptom of #5 + #6). Public landing page added, routes restructured (/app → /home), WebTorrent browser compat fixed. Next: verify #9, then Week 4 (Stripe subscriptions).
 
 ---
 

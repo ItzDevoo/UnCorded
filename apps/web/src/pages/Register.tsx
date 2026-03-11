@@ -55,10 +55,11 @@ const Register = () => {
 
       <form onSubmit={handleSubmit} class="animate-fade-in space-y-4">
         <div>
-          <label class="mb-1 block text-sm font-medium text-muted-foreground">
+          <label for="register-email" class="mb-1 block text-sm font-medium text-muted-foreground">
             Email
           </label>
           <Input
+            id="register-email"
             type="email"
             required
             value={email()}
@@ -66,10 +67,11 @@ const Register = () => {
           />
         </div>
         <div>
-          <label class="mb-1 block text-sm font-medium text-muted-foreground">
+          <label for="register-username" class="mb-1 block text-sm font-medium text-muted-foreground">
             Username
           </label>
           <Input
+            id="register-username"
             type="text"
             required
             minLength={USERNAME_MIN}
@@ -79,10 +81,11 @@ const Register = () => {
           />
         </div>
         <div>
-          <label class="mb-1 block text-sm font-medium text-muted-foreground">
+          <label for="register-password" class="mb-1 block text-sm font-medium text-muted-foreground">
             Password
           </label>
           <Input
+            id="register-password"
             type="password"
             required
             minLength={PASSWORD_MIN}

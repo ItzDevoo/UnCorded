@@ -1,4 +1,4 @@
-import { createSignal, For, Show, onMount, onCleanup } from "solid-js";
+import { createSignal, createEffect, For, Show, onCleanup } from "solid-js";
 import { Portal } from "solid-js/web";
 import { readyData } from "../lib/gateway-store.js";
 import { selectedServerId, setSelectedServerId, currentServer } from "../stores/app-store.js";
@@ -27,12 +27,24 @@ const ServerSwitcher = (props: ServerSwitcherProps) => {
 
   const close = () => setOpen(false);
 
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === "Escape") close();
+  const handleReposition = () => {
+    if (open()) updatePosition();
   };
 
-  onMount(() => document.addEventListener("keydown", handleKeyDown));
-  onCleanup(() => document.removeEventListener("keydown", handleKeyDown));
+  createEffect(() => {
+    if (!open()) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("scroll", handleReposition, true);
+    window.addEventListener("resize", handleReposition);
+    onCleanup(() => {
+      document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("scroll", handleReposition, true);
+      window.removeEventListener("resize", handleReposition);
+    });
+  });
 
   const label = () => {
     const server = currentServer();
@@ -49,6 +61,7 @@ const ServerSwitcher = (props: ServerSwitcherProps) => {
       <button
         ref={triggerRef}
         onClick={handleOpen}
+        aria-label="Switch server"
         class="flex w-full items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
       >
         {/* Icon */}
@@ -114,6 +127,7 @@ const ServerSwitcher = (props: ServerSwitcherProps) => {
                 <button
                   class="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-colors hover:bg-accent"
                   classList={{ "bg-accent font-medium": selectedServerId() === server.id }}
+                  aria-label={server.name}
                   onClick={() => {
                     setSelectedServerId(server.id);
                     close();
@@ -141,6 +155,7 @@ const ServerSwitcher = (props: ServerSwitcherProps) => {
             {/* Create Server */}
             <button
               class="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-success transition-colors hover:bg-accent"
+              aria-label="Create Server"
               onClick={() => {
                 props.onCreateServer();
                 close();
@@ -162,6 +177,7 @@ const ServerSwitcher = (props: ServerSwitcherProps) => {
             {/* Join Server */}
             <button
               class="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-primary transition-colors hover:bg-accent"
+              aria-label="Join Server"
               onClick={() => {
                 props.onJoinServer();
                 close();

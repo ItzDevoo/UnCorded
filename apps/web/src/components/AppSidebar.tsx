@@ -54,6 +54,7 @@ const AppSidebar = () => {
       <button
         class={iconBtnClass}
         title="Invite People"
+        aria-label="Invite People"
         onClick={() => setModal("invite")}
       >
         <svg
@@ -75,6 +76,7 @@ const AppSidebar = () => {
         <button
           class={iconBtnClass}
           title="Create Channel"
+          aria-label="Create Channel"
           onClick={() => setModal("create-channel")}
         >
           <svg

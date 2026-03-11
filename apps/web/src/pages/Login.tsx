@@ -51,10 +51,11 @@ const Login = () => {
 
       <form onSubmit={handleSubmit} class="animate-fade-in space-y-4">
         <div>
-          <label class="mb-1 block text-sm font-medium text-muted-foreground">
+          <label for="login-email" class="mb-1 block text-sm font-medium text-muted-foreground">
             Email
           </label>
           <Input
+            id="login-email"
             type="email"
             required
             value={email()}
@@ -62,10 +63,11 @@ const Login = () => {
           />
         </div>
         <div>
-          <label class="mb-1 block text-sm font-medium text-muted-foreground">
+          <label for="login-password" class="mb-1 block text-sm font-medium text-muted-foreground">
             Password
           </label>
           <Input
+            id="login-password"
             type="password"
             required
             value={password()}

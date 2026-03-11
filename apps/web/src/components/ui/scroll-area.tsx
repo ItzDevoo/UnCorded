@@ -9,7 +9,7 @@ const ScrollArea = (props: ScrollAreaProps) => {
     <div
       data-slot="scroll-area"
       class={cn(
-        "overflow-auto [scrollbar-width:thin] [scrollbar-color:oklch(1_0_0/15%)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-foreground/15 hover:[&::-webkit-scrollbar-thumb]:bg-foreground/25",
+        "overflow-auto [scrollbar-width:thin] [scrollbar-color:oklch(1_0_0/12%)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-foreground/12 hover:[&::-webkit-scrollbar-thumb]:bg-foreground/20",
         local.class,
       )}
       {...rest}

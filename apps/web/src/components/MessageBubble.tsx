@@ -76,6 +76,7 @@ interface MessageBubbleProps {
 
 const MessageBubble = (props: MessageBubbleProps) => {
   const [editing, setEditing] = createSignal(false);
+  // Initial value doesn't matter — startEdit() refreshes from props before use
   const [editContent, setEditContent] = createSignal(props.message.content);
   const [saving, setSaving] = createSignal(false);
   const [showDeleteDialog, setShowDeleteDialog] = createSignal(false);
@@ -168,11 +169,11 @@ const MessageBubble = (props: MessageBubbleProps) => {
 
   const Toolbar = () => (
     <div class="ml-auto flex shrink-0 items-center gap-0.5 rounded-lg border border-border bg-card px-0.5 shadow-sm opacity-0 transition-opacity group-hover:opacity-100">
-      <button class={toolbarBtnClass} title="Copy" onClick={handleCopy}>
+      <button class={toolbarBtnClass} title="Copy" aria-label="Copy" onClick={handleCopy}>
         <CopyIcon />
       </button>
       <Show when={props.isOwn}>
-        <button class={toolbarBtnClass} title="Edit" onClick={startEdit}>
+        <button class={toolbarBtnClass} title="Edit" aria-label="Edit" onClick={startEdit}>
           <PencilIcon />
         </button>
       </Show>
@@ -180,6 +181,7 @@ const MessageBubble = (props: MessageBubbleProps) => {
         <button
           class={toolbarBtnClass}
           title="Delete"
+          aria-label="Delete"
           onClick={() => setShowDeleteDialog(true)}
         >
           <TrashIcon />
@@ -218,9 +220,9 @@ const MessageBubble = (props: MessageBubbleProps) => {
     >
       <p class="break-words text-sm leading-relaxed text-foreground/90">
         {props.message.content}
-        {props.message.editedAt && (
+        <Show when={props.message.editedAt}>
           <span class="ml-1 text-xs italic text-muted-foreground">(edited)</span>
-        )}
+        </Show>
       </p>
     </Show>
   );

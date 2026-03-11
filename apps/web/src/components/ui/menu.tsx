@@ -1,8 +1,8 @@
 import {
   createSignal,
+  createEffect,
   createContext,
   useContext,
-  onMount,
   onCleanup,
   Show,
   splitProps,
@@ -29,15 +29,27 @@ const Menu = (props: { children: JSX.Element }) => {
   const [open, setOpen] = createSignal(false);
   const [triggerRef, setTriggerRef] = createSignal<HTMLButtonElement>();
 
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === "Escape" && open()) {
-      e.stopPropagation();
-      setOpen(false);
-    }
-  };
-
-  onMount(() => document.addEventListener("keydown", handleKeyDown));
-  onCleanup(() => document.removeEventListener("keydown", handleKeyDown));
+  createEffect(() => {
+    if (!open()) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        setOpen(false);
+      }
+    };
+    const handleReposition = () => {
+      // Trigger re-render of MenuContent position on scroll/resize
+      setOpen(true);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("scroll", handleReposition, true);
+    window.addEventListener("resize", handleReposition);
+    onCleanup(() => {
+      document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("scroll", handleReposition, true);
+      window.removeEventListener("resize", handleReposition);
+    });
+  });
 
   const ctx: MenuContextValue = {
     open,
@@ -83,7 +95,9 @@ const MenuContent = (props: { children: JSX.Element; class?: string }) => {
     if (!trigger) return;
     const rect = trigger.getBoundingClientRect();
     const spaceBelow = window.innerHeight - rect.bottom;
+    // 200 = flip threshold: if menu would extend beyond this distance from viewport bottom, flip upward
     const top = spaceBelow < 200 ? rect.top - 8 : rect.bottom + 4;
+    // 170 = estimated menu width for horizontal flip calculation
     const left = Math.min(rect.right, window.innerWidth - 170);
     setPos({ top, left });
   }

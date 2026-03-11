@@ -1,6 +1,7 @@
 import { createSignal, Show } from "solid-js";
 import type { ServerId, ChannelId } from "@uncorded/protocol";
 import { channelId, serverId as toServerId } from "@uncorded/protocol";
+import { CHANNEL_NAME_MAX } from "@uncorded/shared";
 import { api, ApiRequestError } from "../../lib/api.js";
 import { addChannel, type ReadyChannel } from "../../lib/gateway-store.js";
 import { setSelectedChannelId } from "../../stores/app-store.js";
@@ -37,8 +38,8 @@ const CreateChannelModal = (props: Props) => {
       setError("Channel name is required");
       return;
     }
-    if (trimmed.length > 100) {
-      setError("Channel name must be 100 characters or less");
+    if (trimmed.length > CHANNEL_NAME_MAX) {
+      setError(`Channel name must be ${CHANNEL_NAME_MAX} characters or less`);
       return;
     }
 
@@ -84,14 +85,15 @@ const CreateChannelModal = (props: Props) => {
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
-          <label class="mb-1 block text-sm font-medium text-secondary-foreground">
+          <label for="channel-name" class="mb-1 block text-sm font-medium text-secondary-foreground">
             Channel Name
           </label>
           <Input
+            id="channel-name"
             type="text"
             value={name()}
             onInput={(e) => setName(e.currentTarget.value)}
-            maxLength={100}
+            maxLength={CHANNEL_NAME_MAX}
             placeholder="general"
             autofocus
             class="mb-4"

@@ -20,6 +20,8 @@ Stripe subscriptions working. Deep review complete (all 5 batches). 93 tests pas
 - TypeScript strict mode, branded ID types, typed error hierarchy
 - Oxlint + Oxfmt (zero warnings/errors)
 - Vitest — 93 tests (rate limiting, webhooks, permissions, schemas)
+- GitHub Actions CI (typecheck, lint, test on push/PR to main)
+- Turbo pipeline: typecheck depends on ^build, lint task registered
 - Dev runner TUI (colored prefixed output for server + web)
 
 ### Auth
@@ -38,7 +40,8 @@ Stripe subscriptions working. Deep review complete (all 5 batches). 93 tests pas
 
 ### WebSocket Gateway
 - HELLO → IDENTIFY → READY lifecycle with MessagePack binary frames
-- Heartbeat (30s client, 45s server timeout)
+- Heartbeat (30s client, 45s server timeout) with HEARTBEAT_ACK (10s client timeout)
+- Close handler race condition fixed (atomic last-connection check)
 - Per-user per-opcode rate limiting (token bucket, Redis-backed)
 - Per-IP rate limiting on unauthenticated endpoints
 - In-memory connection registry (WeakMap for WS context)

@@ -11,6 +11,7 @@ Reference: packages/protocol/src/opcodes.ts
 | 1   | HEARTBEAT                    | Client -> Server                     |
 | 2   | IDENTIFY (session token)     | Client -> Server                     |
 | 3   | READY (user, servers, chans) | Server -> Client                     |
+| 4   | HEARTBEAT_ACK                | Server -> Client                     |
 | 10  | MESSAGE_CREATE               | Both                                 |
 | 11  | MESSAGE_UPDATE               | Both                                 |
 | 12  | MESSAGE_DELETE               | Both                                 |
@@ -41,7 +42,8 @@ Reference: packages/protocol/src/opcodes.ts
 3. Client sends IDENTIFY with session token
 4. Server validates session, sends READY with full user payload
 5. Client sends HEARTBEAT every 30s
-6. Server drops connection after 45s with no heartbeat
+6. Server replies with HEARTBEAT_ACK — client expects ACK within 10s or closes connection
+7. Server drops connection after 45s with no heartbeat
 
 ## WebRTC Signaling (ops 30-32)
 

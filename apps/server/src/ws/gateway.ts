@@ -24,7 +24,6 @@ import { db } from "../db/index.js";
 import { user, fileReceipts, dmMembers } from "../db/schema.js";
 import {
   removeConnection,
-  getConnections,
   sendToUser,
   broadcastToServer,
   broadcastToDm,
@@ -115,6 +114,7 @@ export const gateway = new Elysia().ws("/gateway", {
             return;
           }
           resetHeartbeatTimeout(ws);
+          ws.send(Buffer.from(encode({ op: Opcode.HEARTBEAT_ACK, d: null })));
           break;
         }
 
@@ -328,11 +328,9 @@ export const gateway = new Elysia().ws("/gateway", {
     if (ctx.heartbeatTimeout) clearTimeout(ctx.heartbeatTimeout);
 
     if (ctx.userId) {
-      removeConnection(ctx.userId, ws.raw);
+      const wasLast = removeConnection(ctx.userId, ws.raw);
 
-      // If no more connections for this user, set offline
-      const remaining = getConnections(ctx.userId);
-      if (!remaining) {
+      if (wasLast) {
         removeUserFromAllServers(ctx.userId);
         await db.update(user).set({ status: "offline" }).where(eq(user.id, ctx.userId));
       }

@@ -16,6 +16,7 @@ const BASE_RECONNECT_DELAY = 1_000;
 let ws: WebSocket | null = null;
 let token: string | null = null;
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+let heartbeatAckTimeout: ReturnType<typeof setTimeout> | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectAttempts = 0;
 let intentionalClose = false;
@@ -26,6 +27,10 @@ function clearTimers() {
   if (heartbeatTimer !== null) {
     clearInterval(heartbeatTimer);
     heartbeatTimer = null;
+  }
+  if (heartbeatAckTimeout !== null) {
+    clearTimeout(heartbeatAckTimeout);
+    heartbeatAckTimeout = null;
   }
   if (reconnectTimer !== null) {
     clearTimeout(reconnectTimer);
@@ -40,10 +45,24 @@ function dispatch(opcode: Opcode, data: unknown) {
   }
 }
 
+const HEARTBEAT_ACK_TIMEOUT_MS = 10_000;
+
 function startHeartbeat(intervalMs: number) {
   if (heartbeatTimer !== null) clearInterval(heartbeatTimer);
+  const socket = ws;
   heartbeatTimer = setInterval(() => {
+    if (socket === null || socket !== ws || socket.readyState !== WebSocket.OPEN) return;
     sendFrame({ op: Opcode.HEARTBEAT, d: null });
+
+    // If server doesn't ACK within 10s, consider connection dead
+    if (heartbeatAckTimeout === null) {
+      heartbeatAckTimeout = setTimeout(() => {
+        heartbeatAckTimeout = null;
+        if (ws === socket) {
+          socket.close(CloseCode.HEARTBEAT_TIMEOUT, "heartbeat_ack_timeout");
+        }
+      }, HEARTBEAT_ACK_TIMEOUT_MS);
+    }
   }, intervalMs);
 }
 
@@ -78,6 +97,14 @@ function handleMessage(event: MessageEvent) {
       dispatch(Opcode.READY, parsed.data);
       break;
     }
+    case Opcode.HEARTBEAT_ACK: {
+      if (event.currentTarget !== ws) break;
+      if (heartbeatAckTimeout !== null) {
+        clearTimeout(heartbeatAckTimeout);
+        heartbeatAckTimeout = null;
+      }
+      break;
+    }
     default: {
       dispatch(frame.op, frame.d);
     }
@@ -85,6 +112,10 @@ function handleMessage(event: MessageEvent) {
 }
 
 function handleClose(event: CloseEvent) {
+  // Stale-socket guard: if connect() already replaced ws with a new
+  // WebSocket, the old socket's close event is irrelevant.
+  if (event.currentTarget !== ws) return;
+
   clearTimers();
   setGatewayStatus("disconnected");
   ws = null;

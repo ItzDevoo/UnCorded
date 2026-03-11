@@ -116,7 +116,8 @@ export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
         .select()
         .from(servers)
         .where(eq(servers.id, inv.serverId))
-        .limit(1);
+        .limit(1)
+        .for("update");
 
       if (!srv) {
         throw new NotFoundError("Server");

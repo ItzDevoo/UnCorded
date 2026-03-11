@@ -200,7 +200,7 @@ This applies to any module that registers global listeners or timers at the top 
 
 **[W4 D3]** — SERVER_CREATE/SERVER_DELETE/MEMBER_ADD/MEMBER_REMOVE WS events coexist with HTTP responses. The HTTP response returns data to the requester; the WS event notifies other connected clients. Both are necessary — the REST caller already has the data in the response, but other tabs/users need real-time sync.
 
-**[W4 D4]** — Stripe webhook raw body: use `request.text()` in Elysia webhook handler, with `parse: "text"` option on the route to prevent Elysia from auto-consuming the body stream before the handler reads it. Without `parse: "text"`, Elysia may pre-parse the JSON body, causing `request.text()` to return empty and webhook signature verification to fail. The Nexis project (LemonSqueezy) used `request.text()` without `parse: "text"`, but Elysia behavior may vary by version.
+**[W4 D4]** — CORRECTED: Elysia consumes the request body stream during its parse phase, making `request.text()` fail with "Body already used" and `request.clone().text()` also fail. Neither `parse: "text"` nor `parse: () => {}` reliably preserves the raw body for Stripe signature verification. The working pattern: use an `onParse` lifecycle hook (`{ as: "local" }`) to intercept the raw body via `request.text()` before Elysia's default parser runs, then access it as `body` (a string) in the handler. This is the only approach that works in Elysia for webhook signature verification.
 
 **[W4 D4]** — Webhook routes must be mounted BEFORE rate limiting middleware. Stripe retries on 429, and excessive retries can cause webhook delivery to be disabled. Mount order: `cors → auth → webhookRoutes → rateLimit → stripeRoutes → userRoutes → ...`.
 
@@ -209,3 +209,11 @@ This applies to any module that registers global listeners or timers at the top 
 **[W4 D4]** — Stripe customer creation happens on first checkout, not on user registration. The `stripeCustomerId` is persisted in the subscriptions table via the `checkout.session.completed` webhook. Subsequent checkouts reuse the existing customer ID.
 
 **[W4 D4]** — Stripe SDK v20+ moved `current_period_end` from `Subscription` to `SubscriptionItem`. Access via `sub.items.data[0]?.current_period_end` instead of `sub.current_period_end`. The `subscriptions.retrieve()` return type is `Response<Subscription>` which auto-unwraps.
+
+**[W4 D4]** — Stripe SDK v20+ uses `SubtleCrypto` (Web Crypto API) instead of Node's `crypto` module. In Bun's runtime, `stripe.webhooks.constructEvent()` fails with "SubtleCryptoProvider cannot be used in a synchronous context". Fix: use `await stripe.webhooks.constructEventAsync()` instead. This is async because `SubtleCrypto.verify()` returns a Promise.
+
+**[W4 D4]** — `subscription_data.metadata` in `stripe.checkout.sessions.create()` puts the metadata on the **Subscription** object, NOT the Checkout Session. Reading `session.metadata?.userId` in the `checkout.session.completed` webhook returns undefined — the session's own metadata is empty. Fix: retrieve the full subscription via `stripe.subscriptions.retrieve(subId)` and read `sub.metadata`.
+
+**[W4 D4]** — In dev, `APP_URL` points to the backend (`localhost:3000`) but the frontend runs on `localhost:5173`. Stripe checkout `success_url`/`cancel_url` must point to the frontend. Use `CORS_ORIGIN ?? APP_URL` for redirect URLs — `CORS_ORIGIN` is the frontend origin in dev, and in production both will be the same domain.
+
+**[W4 D4]** — `vite-plugin-node-polyfills` include list must cover ALL Node built-ins that WebTorrent references. Missing `fs` and `os` causes "Cannot access fs.statSync/os.tmpdir in client code" warnings. Add them to the include array even though they're shimmed as no-ops.

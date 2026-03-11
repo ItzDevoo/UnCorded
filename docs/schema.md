@@ -1,7 +1,7 @@
 # Database Schema
 
 All IDs are nanoid (TEXT). Managed by Drizzle ORM.
-Reference: C:\Nexis\apps\server\src\db\schema.ts for implementation patterns.
+Reference: apps/server/src/db/schema.ts
 
 ## Enums
 

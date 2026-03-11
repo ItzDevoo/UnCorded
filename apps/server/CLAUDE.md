@@ -8,7 +8,7 @@ Read docs/CLAUDE.md and apps/CLAUDE.md first.
 - src/routes/ — auth, servers, channels, messages, subscriptions, webhooks
 - src/ws/ — WebSocket gateway (lifecycle, opcodes, pub/sub, WebRTC signaling)
 - src/db/ — Drizzle schema + migrations
-- src/middleware/ — auth guard, rate limiter
+- src/middleware/ — auth guard, rate limiter (not yet implemented)
 
 ## Rules
 

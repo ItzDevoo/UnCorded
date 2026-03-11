@@ -1,7 +1,7 @@
 # WebSocket Protocol
 
 Binary MessagePack frames only. Each frame: { op: number, d: unknown }
-Reference: C:\Nexis\packages\protocol\src\opcodes.ts for implementation.
+Reference: packages/protocol/src/opcodes.ts
 
 ## Opcodes
 

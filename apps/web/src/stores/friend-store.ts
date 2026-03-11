@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { Opcode } from "@uncorded/protocol";
-import { userId } from "@uncorded/protocol";
+import { Opcode, type DmChannelId, type UserId } from "@uncorded/protocol";
+import { userId, dmChannelId } from "@uncorded/protocol";
 import { onGatewayEvent } from "../lib/gateway.js";
-import { addFriend, removeFriend, updateFriendStatus } from "../lib/gateway-store.js";
+import { addDmChannel, addFriend, removeFriend, updateFriendStatus } from "../lib/gateway-store.js";
 import { api } from "../lib/api.js";
 import { showToast } from "../components/ui/toast.js";
 
@@ -26,6 +26,17 @@ const friendAcceptSchema = z.object({
 
 const friendRemoveSchema = z.object({
   userId: z.string(),
+});
+
+const dmChannelCreateSchema = z.object({
+  id: z.string(),
+  otherUser: z.object({
+    id: z.string(),
+    username: z.string().nullable(),
+    displayName: z.string().nullable(),
+    avatarUrl: z.string().nullable(),
+    status: z.string(),
+  }),
 });
 
 // ── WS listeners ────────────────────────────────────────────────────────────
@@ -66,6 +77,22 @@ const unsubRemove = onGatewayEvent(Opcode.FRIEND_REMOVE, (data) => {
   const parsed = friendRemoveSchema.safeParse(data);
   if (!parsed.success) return;
   removeFriend(userId(parsed.data.userId));
+});
+
+const unsubDmCreate = onGatewayEvent(Opcode.DM_CHANNEL_CREATE, (data) => {
+  const parsed = dmChannelCreateSchema.safeParse(data);
+  if (!parsed.success) return;
+  const d = parsed.data;
+  addDmChannel({
+    id: dmChannelId(d.id) as DmChannelId,
+    otherUser: {
+      id: userId(d.otherUser.id) as UserId,
+      username: d.otherUser.username,
+      displayName: d.otherUser.displayName,
+      avatarUrl: d.otherUser.avatarUrl,
+      status: d.otherUser.status,
+    },
+  });
 });
 
 // ── API functions ───────────────────────────────────────────────────────────
@@ -125,5 +152,6 @@ if (import.meta.hot) {
     unsubRequest();
     unsubAccept();
     unsubRemove();
+    unsubDmCreate();
   });
 }

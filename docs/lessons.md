@@ -220,44 +220,18 @@ This applies to any module that registers global listeners or timers at the top 
 
 ---
 
-## Known Issues (unresolved)
+## Known Issues
 
-### Gateway (gateway.ts / connections.ts)
+All known issues are now tracked on GitHub Issues: https://github.com/ItzDevoo/UnCorded/issues
 
-**Race condition in close()** — When two tabs for the same user disconnect simultaneously, the close handler removes from the connection Set and checks `set.size === 0` to mark offline. Two concurrent close events could both see size=1, both delete, and the second one fails silently — or worse, the offline broadcast fires twice. Fix: use atomic check-and-delete, or a mutex/lock on the per-user connection set.
-
-**No HEARTBEAT_ACK** — Server receives HEARTBEAT from the client but never sends HEARTBEAT_ACK back. The client has no way to confirm the server actually received the heartbeat. If the server's heartbeat timeout fires due to a missed frame, the client has no warning. Standard WS protocol sends ACK so the client can detect dead connections from its side too.
-
-**broadcastToDm hits DB on every typing event** — `broadcastToDm()` queries the `dm_members` table to find the other user in the DM channel on every call (typing, message send, etc.). For typing events (throttled to 1 per 5s per channel), this is a DB query every 5 seconds per active DM conversation. Fix: cache DM channel membership in-memory (like server-members.ts dual-map pattern).
-
-**Username fetched from DB on every TYPING_START** — The TYPING_START handler queries the DB to get the username for the typing broadcast. This should be cached in WsContext alongside userId when the user IDENTIFYs, since username doesn't change during a session.
-
-### Turbo Pipeline (turbo.json)
-
-**typecheck doesn't depend on ^build** — `bun run typecheck` runs `tsc --noEmit` across all packages, but turbo.json doesn't declare that typecheck depends on `^build` (build of dependencies). If a dependent package's types changed but hasn't been rebuilt, typecheck runs against stale `.d.ts` outputs. Fix: add `"dependsOn": ["^build"]` to the typecheck task.
-
-**No lint task in pipeline** — Oxlint runs from root but isn't declared as a turbo task. This means `turbo run lint` doesn't work, and lint can't be cached or parallelized by turbo. Add a lint task to turbo.json.
-
-**No CI/GitHub Actions workflow** — No `.github/workflows/` directory exists. Typecheck, lint, and build aren't validated on PR or push. Any breakage only shows up locally. Need at minimum a CI workflow that runs typecheck + lint + build on push/PR to main.
-
-### Server Routes (server.ts)
-
-**Server creation not transactional** — `POST /api/servers` inserts the server, then creates the "general" channel, then adds the creator as a member — but these aren't wrapped in a `db.transaction()`. If the channel or member insert fails, the server row persists as an orphan with no channels and no owner member. Fix: wrap all three inserts in a single transaction.
-
-### Stripe (stripe.ts / webhook.ts)
-
-**Missing invoice.payment_failed handler** — The webhook only handles `checkout.session.completed`, `customer.subscription.updated`, and `customer.subscription.deleted`. When a recurring payment fails (card declined, expired, etc.), Stripe fires `invoice.payment_failed` — but the app doesn't handle it. The user stays on their paid tier until Stripe eventually cancels the subscription (which could be 3-7 retry attempts over weeks). Fix: handle `invoice.payment_failed` to warn the user and/or immediately downgrade.
-
-**tierFromPriceId silent null on unknown prices** — `tierFromPriceId()` returns `null` when it encounters a price ID that doesn't match any known tier. This silently drops the tier update, leaving the user on whatever tier they had before. If Stripe products are reconfigured or a new tier is added, this fails silently. Fix: log a warning with the unrecognized price ID so it shows up in production logs.
-
-**resolveChannelMembership is the hottest DB path** — Every TYPING_START, FILE_SHARE, and WebRTC signaling frame triggers 1-2 DB queries through `resolveChannelMembership`. Under load this dominates DB usage. Fix: in-memory channel→server cache seeded on IDENTIFY, updated on channel create/delete. DM membership needs the same treatment (dual-map like server-members.ts).
-
-**innerJoin drops deleted-author messages** — Message list and fetchMessageWithAuthor use `innerJoin(user)` which silently excludes messages where authorId is null (deleted user). Must use `leftJoin` and handle null author fields to show "[deleted user]" messages.
-
-**Drizzle `or()` with zero args returns undefined (matches all rows)** — Pattern `or(...arr.map(x => eq(col, x)))` is dangerous if the array can be empty. Even with guards, use `inArray(col, arr)` instead — it's safer and generates a single IN clause instead of N OR conditions.
-
-**WS gateway needs per-user rate limiting** — HTTP rate limiter doesn't apply to WS messages. Any authenticated user can flood opcodes that trigger DB queries. Need per-user per-opcode token bucket in the message handler.
-
-**Multi-insert routes need transactions** — Server creation (server + channel + member) and DM creation (dm_channel + dm_members) are multi-insert flows that can leave orphan rows on partial failure. Always wrap in `db.transaction()`.
-
-**Cache user profile in WsContext** — Username, subscriptionTier, and serverIds should be stored in WsContext on IDENTIFY. Eliminates repeated DB lookups on TYPING_START (username) and FILE_SHARE (tier check). Update via targeted WS message when profile changes (e.g., webhook tier update).
+Previously resolved issues from this section (deep review batches):
+- ~~broadcastToDm DB on every call~~ → cached in-memory (deep review tier 1)
+- ~~Username DB lookup on TYPING_START~~ → cached in WsContext (deep review tier 1)
+- ~~Server creation not transactional~~ → wrapped in db.transaction() (deep review tier 1)
+- ~~Missing invoice.payment_failed~~ → handler added (deep review tier 1)
+- ~~resolveChannelMembership hot path~~ → in-memory channel cache (deep review tier 1)
+- ~~innerJoin drops deleted authors~~ → leftJoin (deep review tier 2)
+- ~~or() chain → inArray()~~ → fixed (deep review tier 2)
+- ~~WS rate limiting~~ → per-user per-opcode token bucket (deep review tier 1)
+- ~~Multi-insert transactions~~ → wrapped (deep review tier 1)
+- ~~Cache user profile in WsContext~~ → username cached (deep review tier 1)

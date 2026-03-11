@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { checkoutRequestSchema, ValidationError, NotFoundError } from "@uncorded/shared";
 import { db } from "../db/index.js";
 import { subscriptions } from "../db/schema.js";
-import { getSession } from "../middleware/auth.js";
+import { authResolve } from "../middleware/auth.js";
 import { getStripe } from "../lib/stripe.js";
 import { env } from "../env.js";
 
@@ -25,16 +25,7 @@ function getPriceId(tier: "supporter" | "server_owner"): string {
 }
 
 export const stripeRoutes = new Elysia({ prefix: "/api/stripe" })
-  .resolve(async ({ status, request }) => {
-    const session = await getSession(request.headers);
-    if (!session) {
-      return status(401, { code: "UNAUTHORIZED", message: "Authentication required" });
-    }
-    return {
-      user: session.user,
-      session: session.session,
-    };
-  })
+  .resolve(authResolve())
 
   // ── POST /api/stripe/checkout ────────────────────────────────────────
   .post("/checkout", async ({ user: sessionUser, body }) => {

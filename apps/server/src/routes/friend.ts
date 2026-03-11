@@ -16,7 +16,7 @@ import {
 } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { friendships, user, dmChannels, dmMembers } from "../db/schema.js";
-import { getSession } from "../middleware/auth.js";
+import { authResolve } from "../middleware/auth.js";
 import { sendToUser } from "../ws/connections.js";
 import { addDmChannelToCache } from "../ws/channel-cache.js";
 
@@ -94,16 +94,7 @@ async function ensureDmChannel(userIdA: string, userIdB: string) {
 const userIdParamSchema = z.object({ userId: z.string().min(1) });
 
 export const friendRoutes = new Elysia({ prefix: "/api/friends" })
-  .resolve(async ({ status, request }) => {
-    const session = await getSession(request.headers);
-    if (!session) {
-      return status(401, { code: "UNAUTHORIZED", message: "Authentication required" });
-    }
-    return {
-      user: session.user,
-      session: session.session,
-    };
-  })
+  .resolve(authResolve())
 
   // POST /request — Send friend request
   .post("/request", async ({ user: sessionUser, body, set }) => {

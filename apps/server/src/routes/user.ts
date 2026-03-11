@@ -4,19 +4,10 @@ import { updateUserSchema, NotFoundError, ValidationError, ConflictError } from 
 import { userId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { user } from "../db/schema.js";
-import { getSession } from "../middleware/auth.js";
+import { authResolve } from "../middleware/auth.js";
 
 export const userRoutes = new Elysia({ prefix: "/api/users" })
-  .resolve(async ({ status, request }) => {
-    const session = await getSession(request.headers);
-    if (!session) {
-      return status(401, { code: "UNAUTHORIZED", message: "Authentication required" });
-    }
-    return {
-      user: session.user,
-      session: session.session,
-    };
-  })
+  .resolve(authResolve())
   .get("/@me", async ({ user: sessionUser }) => {
     const [dbUser] = await db.select().from(user).where(eq(user.id, sessionUser.id)).limit(1);
 

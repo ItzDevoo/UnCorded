@@ -11,23 +11,14 @@ import {
 import { serverId, userId, channelId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { servers, channels, members } from "../db/schema.js";
-import { getSession } from "../middleware/auth.js";
+import { authResolve } from "../middleware/auth.js";
 import { requireMember, requireOwner } from "../helpers/permissions.js";
 import { addServerMember, removeServer } from "../ws/server-members.js";
 import { broadcastToServer } from "../ws/connections.js";
 import { Opcode } from "@uncorded/protocol";
 
 export const serverRoutes = new Elysia({ prefix: "/api/servers" })
-  .resolve(async ({ status, request }) => {
-    const session = await getSession(request.headers);
-    if (!session) {
-      return status(401, { code: "UNAUTHORIZED", message: "Authentication required" });
-    }
-    return {
-      user: session.user,
-      session: session.session,
-    };
-  })
+  .resolve(authResolve())
   .post("/", async ({ user: sessionUser, body, set }) => {
     const parsed = createServerSchema.safeParse(body);
     if (!parsed.success) {

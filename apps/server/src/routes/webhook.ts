@@ -77,6 +77,10 @@ export const webhookRoutes = new Elysia()
       case "customer.subscription.deleted":
         await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
         break;
+
+      case "invoice.payment_failed":
+        await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
+        break;
     }
 
     return { received: true };
@@ -197,6 +201,37 @@ async function handleSubscriptionDeleted(sub: Stripe.Subscription) {
   await db
     .update(subscriptions)
     .set({ status: "cancelled" })
+    .where(eq(subscriptions.id, existing.id));
+
+  await db.update(user).set({ subscriptionTier: "free" }).where(eq(user.id, existing.userId));
+  disconnectUser(existing.userId);
+}
+
+async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
+  const sub = invoice.parent?.subscription_details?.subscription;
+  const stripeSubscriptionId = typeof sub === "string" ? sub : sub?.id;
+
+  if (!stripeSubscriptionId) {
+    console.error(`Webhook invoice.payment_failed: missing subscription ID (invoice: ${invoice.id})`);
+    return;
+  }
+
+  const [existing] = await db
+    .select({ id: subscriptions.id, userId: subscriptions.userId })
+    .from(subscriptions)
+    .where(eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId))
+    .limit(1);
+
+  if (!existing) {
+    console.error(
+      `Webhook invoice.payment_failed: no matching subscription record (sub: ${stripeSubscriptionId}, invoice: ${invoice.id})`,
+    );
+    return;
+  }
+
+  await db
+    .update(subscriptions)
+    .set({ status: "past_due" })
     .where(eq(subscriptions.id, existing.id));
 
   await db.update(user).set({ subscriptionTier: "free" }).where(eq(user.id, existing.userId));

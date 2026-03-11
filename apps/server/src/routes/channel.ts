@@ -10,21 +10,12 @@ import {
 import { channelId, serverId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { channels } from "../db/schema.js";
-import { getSession } from "../middleware/auth.js";
+import { authResolve } from "../middleware/auth.js";
 import { requireMember, requireOwner } from "../helpers/permissions.js";
 import { addChannelToCache, removeChannelFromCache } from "../ws/channel-cache.js";
 
 const serverChannelRoutes = new Elysia({ prefix: "/api/servers/:serverId/channels" })
-  .resolve(async ({ status, request }) => {
-    const session = await getSession(request.headers);
-    if (!session) {
-      return status(401, { code: "UNAUTHORIZED", message: "Authentication required" });
-    }
-    return {
-      user: session.user,
-      session: session.session,
-    };
-  })
+  .resolve(authResolve())
   .post("/", async ({ user: sessionUser, params, body, set }) => {
     await requireOwner(sessionUser.id, params.serverId);
 
@@ -74,16 +65,7 @@ const serverChannelRoutes = new Elysia({ prefix: "/api/servers/:serverId/channel
   });
 
 const channelIdRoutes = new Elysia({ prefix: "/api/channels/:channelId" })
-  .resolve(async ({ status, request }) => {
-    const session = await getSession(request.headers);
-    if (!session) {
-      return status(401, { code: "UNAUTHORIZED", message: "Authentication required" });
-    }
-    return {
-      user: session.user,
-      session: session.session,
-    };
-  })
+  .resolve(authResolve())
   .patch("/", async ({ user: sessionUser, params, body }) => {
     const [channel] = await db
       .select()

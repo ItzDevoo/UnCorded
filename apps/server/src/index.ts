@@ -31,6 +31,21 @@ const app = new Elysia()
       duration: env.RATE_LIMIT_WINDOW_MS,
     }),
   )
+  .onBeforeHandle({ as: "global" }, ({ request, set }) => {
+    const method = request.method;
+    if (method !== "POST" && method !== "PATCH" && method !== "DELETE" && method !== "PUT") return;
+
+    const path = new URL(request.url).pathname;
+    if (path.startsWith("/api/auth/") || path.startsWith("/api/webhooks/")) return;
+
+    const contentType = request.headers.get("content-type");
+    if (!contentType) return;
+
+    if (!contentType.startsWith("application/json")) {
+      set.status = 415;
+      return { code: "UNSUPPORTED_MEDIA_TYPE", message: "Content-Type must be application/json" };
+    }
+  })
   .use(stripeRoutes)
   .use(userRoutes)
   .use(serverRoutes)

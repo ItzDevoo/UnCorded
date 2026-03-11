@@ -14,7 +14,7 @@ import {
 import { Opcode, messageId, channelId, userId, type UserId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { messages, servers, user } from "../db/schema.js";
-import { getSession } from "../middleware/auth.js";
+import { authResolve } from "../middleware/auth.js";
 import { resolveChannelMembership } from "../helpers/resolve-channel.js";
 import { broadcastToServer, broadcastToDm, sendToUser } from "../ws/connections.js";
 
@@ -74,16 +74,7 @@ async function fetchMessageWithAuthor(msgId: string) {
 }
 
 export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/messages" })
-  .resolve(async ({ status, request }) => {
-    const session = await getSession(request.headers);
-    if (!session) {
-      return status(401, { code: "UNAUTHORIZED", message: "Authentication required" });
-    }
-    return {
-      user: session.user,
-      session: session.session,
-    };
-  })
+  .resolve(authResolve())
 
   // POST / — Create message
   .post("/", async ({ user: sessionUser, params, body, set }) => {

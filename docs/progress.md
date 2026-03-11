@@ -6,9 +6,21 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Deep Review Complete + App Icon
+## Current Status: Deep Review Tier 3 Batch 1 Complete
 
-All hardening and bug fixes from deep review landed. App icon and branding integrated.
+Security hardening, auth refactor, and webhook improvements landed.
+
+---
+
+### Deep Review Tier 3 Batch 1 — Security & Auth — 2026-03-11
+
+**What was done:**
+
+- **Invite preview rate limit** — per-IP rate limiting (10/min) on unauthenticated GET /api/invites/:code via new `ip-rate-limit.ts` middleware
+- **invoice.payment_failed webhook** — immediately revokes paid tier on payment failure, sets subscription to past_due, forces WS reconnect
+- **authResolve() factory** — replaced 11 inline .resolve() blocks across 9 route files with single factory function. Uses throw UnauthorizedError() for clean Elysia type inference.
+- **CSRF content-type guard** — global .onBeforeHandle() rejects non-JSON POST/PATCH/DELETE/PUT with 415. Skips /api/auth/ and /api/webhooks/ paths.
+- All checks pass: typecheck (0 errors), lint (0 warnings)
 
 ---
 

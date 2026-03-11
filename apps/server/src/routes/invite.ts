@@ -5,27 +5,20 @@ import {
   ValidationError,
   NotFoundError,
   ConflictError,
+  RateLimitError,
 } from "@uncorded/shared";
 import { Opcode, inviteCode, serverId, userId, channelId } from "@uncorded/protocol";
 import { NeonDbError } from "@neondatabase/serverless";
 import { db } from "../db/index.js";
 import { invites, servers, members, channels, user } from "../db/schema.js";
-import { getSession } from "../middleware/auth.js";
+import { authResolve } from "../middleware/auth.js";
+import { checkIpRateLimit } from "../middleware/ip-rate-limit.js";
 import { requireMember } from "../helpers/permissions.js";
 import { addServerMember } from "../ws/server-members.js";
 import { sendToUser, broadcastToServer } from "../ws/connections.js";
 
 export const serverInviteRoutes = new Elysia({ prefix: "/api/servers/:serverId/invites" })
-  .resolve(async ({ status, request }) => {
-    const session = await getSession(request.headers);
-    if (!session) {
-      return status(401, { code: "UNAUTHORIZED", message: "Authentication required" });
-    }
-    return {
-      user: session.user,
-      session: session.session,
-    };
-  })
+  .resolve(authResolve())
   .post("/", async ({ user: sessionUser, params, body, set }) => {
     await requireMember(sessionUser.id, params.serverId);
 
@@ -56,6 +49,16 @@ export const serverInviteRoutes = new Elysia({ prefix: "/api/servers/:serverId/i
   });
 
 export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
+  .onBeforeHandle({ as: "local" }, ({ request }) => {
+    if (request.method !== "GET") return;
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      request.headers.get("x-real-ip") ??
+      "unknown";
+    if (!checkIpRateLimit(ip, 10, 60_000)) {
+      throw new RateLimitError("Too many requests, try again later");
+    }
+  })
   .get("/", async ({ params }) => {
     const [invite] = await db.select().from(invites).where(eq(invites.code, params.code)).limit(1);
 
@@ -90,16 +93,7 @@ export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
       memberCount: memberCount?.count ?? 0,
     };
   })
-  .resolve(async ({ status, request }) => {
-    const session = await getSession(request.headers);
-    if (!session) {
-      return status(401, { code: "UNAUTHORIZED", message: "Authentication required" });
-    }
-    return {
-      user: session.user,
-      session: session.session,
-    };
-  })
+  .resolve(authResolve())
   .post("/accept", async ({ user: sessionUser, params }) => {
     const [invite] = await db
       .select()

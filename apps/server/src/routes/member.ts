@@ -4,22 +4,13 @@ import { ForbiddenError, ValidationError, NotFoundError } from "@uncorded/shared
 import { Opcode, userId, serverId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { members, servers, user } from "../db/schema.js";
-import { getSession } from "../middleware/auth.js";
+import { authResolve } from "../middleware/auth.js";
 import { requireMember, requireOwner } from "../helpers/permissions.js";
 import { removeServerMember } from "../ws/server-members.js";
 import { broadcastToServer, sendToUser } from "../ws/connections.js";
 
 export const memberRoutes = new Elysia({ prefix: "/api/servers/:serverId/members" })
-  .resolve(async ({ status, request }) => {
-    const session = await getSession(request.headers);
-    if (!session) {
-      return status(401, { code: "UNAUTHORIZED", message: "Authentication required" });
-    }
-    return {
-      user: session.user,
-      session: session.session,
-    };
-  })
+  .resolve(authResolve())
   .get("/", async ({ user: sessionUser, params }) => {
     await requireMember(sessionUser.id, params.serverId);
 

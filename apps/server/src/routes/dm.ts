@@ -5,21 +5,12 @@ import { Opcode, dmChannelId as brandDmChannelId, userId as brandUserId } from "
 import { createId } from "@uncorded/shared";
 import { db } from "../db/index.js";
 import { friendships, dmChannels, dmMembers, user } from "../db/schema.js";
-import { getSession } from "../middleware/auth.js";
+import { authResolve } from "../middleware/auth.js";
 import { sendToUser } from "../ws/connections.js";
 import { addDmChannelToCache } from "../ws/channel-cache.js";
 
 export const dmRoutes = new Elysia({ prefix: "/api/dms" })
-  .resolve(async ({ status, request }) => {
-    const session = await getSession(request.headers);
-    if (!session) {
-      return status(401, { code: "UNAUTHORIZED", message: "Authentication required" });
-    }
-    return {
-      user: session.user,
-      session: session.session,
-    };
-  })
+  .resolve(authResolve())
 
   // POST / — Create or get DM
   .post("/", async ({ user: sessionUser, body, set }) => {

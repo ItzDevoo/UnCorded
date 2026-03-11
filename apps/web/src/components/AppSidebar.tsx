@@ -128,7 +128,8 @@ const AppSidebar = () => {
           }}
           class="flex w-full items-center gap-1.5 rounded-lg px-1 py-1 transition-colors hover:bg-accent"
         >
-          <div class="flex min-w-0 flex-1 items-center justify-center gap-1.5">
+          <div class="flex min-w-0 flex-1 items-center justify-center gap-2">
+            <img src="/icon-192.png" alt="UnCorded" class="h-12 w-12 rounded-lg" />
             <span class="text-sm font-semibold tracking-tight text-foreground">UnCorded</span>
             <span class="rounded-full bg-muted/50 px-1.5 py-0.5 text-[8px] font-medium uppercase tracking-[0.18em] text-muted-foreground/60">
               Alpha

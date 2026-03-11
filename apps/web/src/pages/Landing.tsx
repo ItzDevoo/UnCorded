@@ -77,7 +77,10 @@ const Landing = () => {
       {/* ── Nav ──────────────────────────────────────────────────────────── */}
       <nav class="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
         <div class="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
-          <span class="text-lg font-bold tracking-tight">UnCorded</span>
+          <div class="flex items-center gap-2">
+            <img src="/icon-192.png" alt="UnCorded" class="h-12 w-12 rounded-lg" />
+            <span class="text-lg font-bold tracking-tight">UnCorded</span>
+          </div>
           <div class="flex items-center gap-2">
             <A href="/login" class={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
               Sign In
@@ -91,6 +94,10 @@ const Landing = () => {
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section class="mx-auto max-w-3xl px-4 py-24 text-center sm:py-32">
+        <div class="mb-6 flex items-center justify-center gap-3">
+          <img src="/icon-192.png" alt="UnCorded" class="h-16 w-16 rounded-xl" />
+          <span class="text-3xl font-bold tracking-tight">UnCorded</span>
+        </div>
         <h1 class="text-4xl font-bold tracking-tight sm:text-5xl">
           You know exactly where your files go.
         </h1>

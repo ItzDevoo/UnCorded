@@ -19,6 +19,7 @@
   "devDependencies": {
     "oxfmt": "^0.36.0",
     "oxlint": "^1.51.0",
+    "sharp": "^0.34.5",
     "turbo": "^2",
     "typescript": "^5.7"
   },

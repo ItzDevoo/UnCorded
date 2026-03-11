@@ -6,9 +6,21 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Deep Review Tier 1 + Tier 2 Complete
+## Current Status: Deep Review Complete + App Icon
 
-All hardening and bug fixes from deep review landed. Foundation solid for feature work.
+All hardening and bug fixes from deep review landed. App icon and branding integrated.
+
+---
+
+### App Icon + Branding — 2026-03-11
+
+**What was done:**
+
+- Brand icon (1024x1024 source) added to project with all standard sizes generated via sharp
+- Favicon meta tags in index.html (16, 32, apple-touch-icon, theme-color)
+- Icon in sidebar header (32px) next to "UnCorded" text
+- Icon in landing page nav (36px) and hero section (64px)
+- Icon generation script at scripts/generate-icons.ts for future re-generation
 
 ---
 

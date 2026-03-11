@@ -6,9 +6,27 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Deep Review Tier 3 Batch 2 Complete
+## Current Status: Deep Review Tier 3 Batch 3 Complete
 
-WS Zod schemas consolidated into @uncorded/protocol — single source of truth.
+REST list endpoints paginated, READY payload slimmed, channels lazy-loaded on server select.
+
+---
+
+### Deep Review Tier 3 Batch 3 — Pagination + Lazy READY — 2026-03-11
+
+**What was done:**
+
+- Shared pagination constants: `LIST_PAGE_LIMIT` (50), `LIST_FETCH_MAX_LIMIT` (100) in @uncorded/shared
+- Shared `paginationQuerySchema` (Zod, coerced limit/offset) in server helpers
+- REST pagination added to: member list, friend list, pending friends, DM list — all return `{ items, hasMore }`
+- READY payload slimmed: servers no longer include channels array; DMs/friends capped at 50 with `hasMoreDmChannels`/`hasMoreFriends` flags
+- Server-side channel cache seeding unchanged (still loads all channels for WS routing)
+- Client channel cache: separate store, lazy-fetched via `GET /api/servers/:serverId/channels` on server select
+- Auto-select first channel after lazy fetch completes
+- "Load more" buttons in AppSidebar (DMs) and Friends page
+- `fetchMoreFriends()` and `fetchMoreDms()` in friend-store with loading signals
+- Dedup on append for DMs and friends (prevents duplicates from WS events between pages)
+- All checks pass: typecheck (0 errors), lint (0 warnings)
 
 ---
 

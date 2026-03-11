@@ -1,7 +1,7 @@
 import { createSignal, For, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
 import { useSession, signOut } from "../lib/auth.js";
-import { readyData } from "../lib/gateway-store.js";
+import { readyData, channelCacheLoading } from "../lib/gateway-store.js";
 import { createCheckout, createPortalSession } from "../lib/api.js";
 import { showToast } from "./ui/toast.js";
 import {
@@ -14,6 +14,7 @@ import {
   currentServer,
   currentChannels,
 } from "../stores/app-store.js";
+import { fetchMoreDms, loadingMoreDms } from "../stores/friend-store.js";
 import {
   Sidebar,
   SidebarHeader,
@@ -207,36 +208,52 @@ const AppSidebar = () => {
                     }}
                   </For>
                 </SidebarMenu>
+                <Show when={readyData.data?.hasMoreDmChannels}>
+                  <button
+                    class="mx-3 mt-1 rounded px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
+                    disabled={loadingMoreDms()}
+                    onClick={() => fetchMoreDms()}
+                  >
+                    {loadingMoreDms() ? "Loading..." : "Load more"}
+                  </button>
+                </Show>
               </Show>
             </>
           }
         >
           {/* ── Server: Channels ─────────────────────────────────────── */}
           <SidebarGroup label="Channels" actions={channelActions()} collapsible defaultOpen>
-            <SidebarMenu>
-              <For each={currentChannels()}>
-                {(channel) => {
-                  const isActive = () => selectedChannelId() === channel.id;
-                  return (
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        active={isActive()}
-                        onClick={() => setSelectedChannelId(channel.id)}
-                      >
-                        <span class="text-muted-foreground">#</span>
-                        <span class="truncate">{channel.name}</span>
-                        <Show when={channel.fileSharingEnabled}>
-                          <span
-                            class="ml-auto h-2 w-2 shrink-0 rounded-full bg-success"
-                            title="File sharing enabled"
-                          />
-                        </Show>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                }}
-              </For>
-            </SidebarMenu>
+            <Show
+              when={channelCacheLoading() !== selectedServerId()}
+              fallback={
+                <p class="px-4 py-3 text-xs text-muted-foreground">Loading channels...</p>
+              }
+            >
+              <SidebarMenu>
+                <For each={currentChannels()}>
+                  {(channel) => {
+                    const isActive = () => selectedChannelId() === channel.id;
+                    return (
+                      <SidebarMenuItem>
+                        <SidebarMenuButton
+                          active={isActive()}
+                          onClick={() => setSelectedChannelId(channel.id)}
+                        >
+                          <span class="text-muted-foreground">#</span>
+                          <span class="truncate">{channel.name}</span>
+                          <Show when={channel.fileSharingEnabled}>
+                            <span
+                              class="ml-auto h-2 w-2 shrink-0 rounded-full bg-success"
+                              title="File sharing enabled"
+                            />
+                          </Show>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  }}
+                </For>
+              </SidebarMenu>
+            </Show>
           </SidebarGroup>
         </Show>
       </SidebarContent>

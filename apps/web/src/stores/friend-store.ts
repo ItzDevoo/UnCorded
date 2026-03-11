@@ -1,3 +1,4 @@
+import { createSignal } from "solid-js";
 import {
   Opcode,
   userId,
@@ -7,10 +8,28 @@ import {
   friendRemoveEventSchema,
   dmChannelCreateEventSchema,
 } from "@uncorded/protocol";
+import { LIST_PAGE_LIMIT } from "@uncorded/shared";
 import { onGatewayEvent } from "../lib/gateway.js";
-import { addDmChannel, addFriend, removeFriend, updateFriendStatus } from "../lib/gateway-store.js";
+import {
+  readyData,
+  addDmChannel,
+  addFriend,
+  removeFriend,
+  updateFriendStatus,
+  appendFriends,
+  setHasMoreFriends,
+  appendDmChannels,
+  setHasMoreDmChannels,
+  type ReadyFriend,
+  type ReadyDmChannel,
+} from "../lib/gateway-store.js";
 import { api } from "../lib/api.js";
 import { showToast } from "../components/ui/toast.js";
+
+// ── Loading signals ─────────────────────────────────────────────────────────
+
+const [loadingMoreFriends, setLoadingMoreFriends] = createSignal(false);
+const [loadingMoreDms, setLoadingMoreDms] = createSignal(false);
 
 // ── WS listeners ────────────────────────────────────────────────────────────
 
@@ -68,6 +87,40 @@ const unsubDmCreate = onGatewayEvent(Opcode.DM_CHANNEL_CREATE, (data) => {
   });
 });
 
+// ── Pagination: fetch more ──────────────────────────────────────────────────
+
+export async function fetchMoreFriends(): Promise<void> {
+  const currentCount = readyData.data?.friends.length ?? 0;
+  setLoadingMoreFriends(true);
+  try {
+    const res = await api<{ friends: ReadyFriend[]; hasMore: boolean }>(
+      `/api/friends?limit=${LIST_PAGE_LIMIT}&offset=${currentCount}`,
+    );
+    appendFriends(res.friends);
+    setHasMoreFriends(res.hasMore);
+  } catch (err) {
+    showToast(err instanceof Error ? err.message : "Failed to load more friends", "error");
+  } finally {
+    setLoadingMoreFriends(false);
+  }
+}
+
+export async function fetchMoreDms(): Promise<void> {
+  const currentCount = readyData.data?.dmChannels.length ?? 0;
+  setLoadingMoreDms(true);
+  try {
+    const res = await api<{ dmChannels: ReadyDmChannel[]; hasMore: boolean }>(
+      `/api/dms?limit=${LIST_PAGE_LIMIT}&offset=${currentCount}`,
+    );
+    appendDmChannels(res.dmChannels);
+    setHasMoreDmChannels(res.hasMore);
+  } catch (err) {
+    showToast(err instanceof Error ? err.message : "Failed to load more conversations", "error");
+  } finally {
+    setLoadingMoreDms(false);
+  }
+}
+
 // ── API functions ───────────────────────────────────────────────────────────
 
 export async function sendFriendRequest(username: string): Promise<void> {
@@ -117,6 +170,8 @@ export async function blockUser(targetUserId: string): Promise<void> {
     throw err;
   }
 }
+
+export { loadingMoreFriends, loadingMoreDms };
 
 // ── HMR cleanup ─────────────────────────────────────────────────────────────
 

@@ -5,6 +5,8 @@ import {
   acceptFriendRequest,
   declineFriendRequest,
   removeFriendApi,
+  fetchMoreFriends,
+  loadingMoreFriends,
 } from "../stores/friend-store.js";
 import { Button } from "../components/ui/button.js";
 import { Badge } from "../components/ui/badge.js";
@@ -153,6 +155,18 @@ const Friends = () => {
               </div>
             )}
           </For>
+          <Show when={readyData.data?.hasMoreFriends}>
+            <div class="mt-2 flex justify-center">
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={loadingMoreFriends()}
+                onClick={() => fetchMoreFriends()}
+              >
+                {loadingMoreFriends() ? "Loading..." : "Load more"}
+              </Button>
+            </div>
+          </Show>
         </Show>
 
         {/* Pending */}

@@ -29,7 +29,7 @@ const userProfileSchema = z.object({
   status: z.string(),
 });
 
-const channelSchema = z.object({
+export const channelSchema = z.object({
   id: z.string(),
   serverId: z.string(),
   name: z.string(),
@@ -88,7 +88,6 @@ export const readyEventSchema = z.object({
       name: z.string(),
       iconUrl: z.string().nullable(),
       ownerId: z.string(),
-      channels: z.array(channelSchema),
     }),
   ),
   dmChannels: z
@@ -99,6 +98,7 @@ export const readyEventSchema = z.object({
       }),
     )
     .default([]),
+  hasMoreDmChannels: z.boolean(),
   friends: z
     .array(
       z.object({
@@ -112,6 +112,7 @@ export const readyEventSchema = z.object({
       }),
     )
     .default([]),
+  hasMoreFriends: z.boolean(),
 });
 
 export const messageCreateEventSchema = z.object({

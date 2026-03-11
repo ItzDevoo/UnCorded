@@ -9,7 +9,7 @@ import {
   type InviteCode,
 } from "@uncorded/protocol";
 import { api, ApiRequestError } from "../../lib/api.js";
-import { addServer } from "../../lib/gateway-store.js";
+import { addServer, setChannelsForServer } from "../../lib/gateway-store.js";
 import { setSelectedServerId } from "../../stores/app-store.js";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog.js";
 import { Input } from "../ui/input.js";
@@ -88,12 +88,15 @@ const JoinServerModal = (props: Props) => {
         name: data.server.name,
         iconUrl: data.server.iconUrl,
         ownerId: userId(data.server.ownerId),
-        channels: data.channels.map((ch) => ({
+      });
+      setChannelsForServer(
+        serverId(data.server.id),
+        data.channels.map((ch) => ({
           ...ch,
           id: channelId(ch.id),
           serverId: serverId(ch.serverId),
         })),
-      });
+      );
       setSelectedServerId(serverId(data.server.id));
       props.onClose();
     } catch (err) {

@@ -5,10 +5,10 @@ import {
   encode,
   userId,
   serverId,
-  channelId,
   dmChannelId,
   identifyRequestSchema,
 } from "@uncorded/protocol";
+import { LIST_PAGE_LIMIT } from "@uncorded/shared";
 import { db } from "../db/index.js";
 import {
   user,
@@ -128,25 +128,11 @@ export async function handleIdentify(
         .where(inArray(channels.serverId, serverIds));
     }
 
-    // Build nested READY payload
-    const channelsByServer = new Map<string, typeof userChannels>();
-    for (const ch of userChannels) {
-      let list = channelsByServer.get(ch.serverId);
-      if (!list) {
-        list = [];
-        channelsByServer.set(ch.serverId, list);
-      }
-      list.push(ch);
-    }
-
     /* oxlint-disable no-map-spread -- copy-on-write required, DB rows must not be mutated */
     const readyServers = userServers.map((s) => ({
       ...s,
       id: serverId(s.id),
       ownerId: userId(s.ownerId),
-      channels: (channelsByServer.get(s.id) ?? [])
-        .toSorted((a, b) => a.position - b.position)
-        .map((ch) => ({ ...ch, id: channelId(ch.id), serverId: serverId(ch.serverId) })),
     }));
     /* oxlint-enable no-map-spread */
 
@@ -257,6 +243,14 @@ export async function handleIdentify(
       });
     }
 
+    // Paginate DMs and friends in READY payload
+    const hasMoreDmChannels = readyDmChannels.length > LIST_PAGE_LIMIT;
+    const hasMoreFriends = readyFriends.length > LIST_PAGE_LIMIT;
+    const slicedDmChannels = hasMoreDmChannels
+      ? readyDmChannels.slice(0, LIST_PAGE_LIMIT)
+      : readyDmChannels;
+    const slicedFriends = hasMoreFriends ? readyFriends.slice(0, LIST_PAGE_LIMIT) : readyFriends;
+
     // Send READY
     ws.send(
       Buffer.from(
@@ -265,8 +259,10 @@ export async function handleIdentify(
           d: {
             user: dbUser,
             servers: readyServers,
-            dmChannels: readyDmChannels,
-            friends: readyFriends,
+            dmChannels: slicedDmChannels,
+            hasMoreDmChannels,
+            friends: slicedFriends,
+            hasMoreFriends,
           },
         }),
       ),

@@ -8,6 +8,7 @@ import {
   ForbiddenError,
   createId,
 } from "@uncorded/shared";
+import { paginationQuerySchema } from "../helpers/pagination.js";
 import {
   Opcode,
   type UserId,
@@ -407,7 +408,9 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
   })
 
   // GET / — List accepted friends
-  .get("/", async ({ user: sessionUser }) => {
+  .get("/", async ({ user: sessionUser, query }) => {
+    const { limit, offset } = paginationQuerySchema.parse(query);
+
     const rows = await db
       .select({
         peerId: friendships.friendId,
@@ -420,12 +423,17 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
           or(eq(friendships.userId, sessionUser.id), eq(friendships.friendId, sessionUser.id)),
           eq(friendships.status, "accepted"),
         ),
-      );
+      )
+      .limit(limit + 1)
+      .offset(offset);
 
-    const peerIds: UserId[] = rows.map((r) =>
+    const hasMore = rows.length > limit;
+    const page = hasMore ? rows.slice(0, limit) : rows;
+
+    const peerIds: UserId[] = page.map((r) =>
       r.myId === sessionUser.id ? brandUserId(r.peerId) : brandUserId(r.peerIdAlt),
     );
-    if (peerIds.length === 0) return { friends: [] };
+    if (peerIds.length === 0) return { friends: [], hasMore: false };
 
     const users = await db
       .select({
@@ -446,19 +454,27 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
         avatarUrl: u.avatarUrl,
         status: u.status,
       })),
+      hasMore,
     };
   })
 
   // GET /pending — List incoming pending requests
-  .get("/pending", async ({ user: sessionUser }) => {
+  .get("/pending", async ({ user: sessionUser, query }) => {
+    const { limit, offset } = paginationQuerySchema.parse(query);
+
     const rows = await db
       .select({
         requesterId: friendships.userId,
       })
       .from(friendships)
-      .where(and(eq(friendships.friendId, sessionUser.id), eq(friendships.status, "pending")));
+      .where(and(eq(friendships.friendId, sessionUser.id), eq(friendships.status, "pending")))
+      .limit(limit + 1)
+      .offset(offset);
 
-    if (rows.length === 0) return { pending: [] };
+    const hasMore = rows.length > limit;
+    const page = hasMore ? rows.slice(0, limit) : rows;
+
+    if (page.length === 0) return { pending: [], hasMore: false };
 
     const users = await db
       .select({
@@ -469,7 +485,7 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
         status: user.status,
       })
       .from(user)
-      .where(or(...rows.map((r) => eq(user.id, r.requesterId))));
+      .where(or(...page.map((r) => eq(user.id, r.requesterId))));
 
     return {
       pending: users.map((u) => ({
@@ -479,5 +495,6 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
         avatarUrl: u.avatarUrl,
         status: u.status,
       })),
+      hasMore,
     };
   });

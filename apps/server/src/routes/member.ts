@@ -8,11 +8,14 @@ import { authResolve } from "../middleware/auth.js";
 import { requireMember, requireOwner } from "../helpers/permissions.js";
 import { removeServerMember } from "../ws/server-members.js";
 import { broadcastToServer, sendToUser } from "../ws/connections.js";
+import { paginationQuerySchema } from "../helpers/pagination.js";
 
 export const memberRoutes = new Elysia({ prefix: "/api/servers/:serverId/members" })
   .resolve(authResolve())
-  .get("/", async ({ user: sessionUser, params }) => {
+  .get("/", async ({ user: sessionUser, params, query }) => {
     await requireMember(sessionUser.id, params.serverId);
+
+    const { limit, offset } = paginationQuerySchema.parse(query);
 
     const memberList = await db
       .select({
@@ -26,9 +29,18 @@ export const memberRoutes = new Elysia({ prefix: "/api/servers/:serverId/members
       })
       .from(members)
       .innerJoin(user, eq(user.id, members.userId))
-      .where(eq(members.serverId, params.serverId));
+      .where(eq(members.serverId, params.serverId))
+      .orderBy(members.joinedAt)
+      .limit(limit + 1)
+      .offset(offset);
 
-    return memberList.map((m) => Object.assign(m, { userId: userId(m.userId) }));
+    const hasMore = memberList.length > limit;
+    const page = hasMore ? memberList.slice(0, limit) : memberList;
+
+    return {
+      members: page.map((m) => Object.assign(m, { userId: userId(m.userId) })),
+      hasMore,
+    };
   })
   .delete("/@me", async ({ user: sessionUser, params, set }) => {
     await requireMember(sessionUser.id, params.serverId);

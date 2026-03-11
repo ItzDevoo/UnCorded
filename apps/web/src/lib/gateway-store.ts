@@ -28,7 +28,6 @@ export interface ReadyServer {
   name: string;
   iconUrl: string | null;
   ownerId: UserId;
-  channels: ReadyChannel[];
 }
 
 export interface ReadyDmChannel {
@@ -56,11 +55,17 @@ export interface ReadyData {
   user: ReadyUser;
   servers: ReadyServer[];
   dmChannels: ReadyDmChannel[];
+  hasMoreDmChannels: boolean;
   friends: ReadyFriend[];
+  hasMoreFriends: boolean;
 }
 
 const [gatewayStatus, setGatewayStatus] = createSignal<GatewayStatus>("disconnected");
 const [readyData, setReadyData] = createStore<{ data: ReadyData | null }>({ data: null });
+
+// Separate channel cache — channels are fetched lazily per server
+const [channelCache, setChannelCache] = createStore<Record<string, ReadyChannel[]>>({});
+const [channelCacheLoading, setChannelCacheLoading] = createSignal<string | null>(null);
 
 function setReadyPayload(data: ReadyData) {
   setReadyData(reconcile({ data }));
@@ -68,28 +73,64 @@ function setReadyPayload(data: ReadyData) {
 
 function clearReadyPayload() {
   setReadyData(reconcile({ data: null }));
+  setChannelCache(reconcile({}));
 }
 
 function addServer(server: ReadyServer) {
   setReadyData("data", "servers", (prev) => [...prev, server]);
 }
 
+function setChannelsForServer(sId: ServerId, chs: ReadyChannel[]) {
+  setChannelCache(sId, chs);
+}
+
 function addChannel(sId: ServerId, channel: ReadyChannel) {
-  setReadyData("data", "servers", (servers) =>
-    servers.map((s) => (s.id === sId ? { ...s, channels: [...s.channels, channel] } : s)),
-  );
+  setChannelCache(sId, (prev) => (prev ? [...prev, channel] : [channel]));
 }
 
 function addDmChannel(dm: ReadyDmChannel) {
-  setReadyData("data", "dmChannels", (prev) => [...prev, dm]);
+  // Dedup by channel ID
+  setReadyData("data", "dmChannels", (prev) => {
+    if (prev.some((d) => d.id === dm.id)) return prev;
+    return [...prev, dm];
+  });
+}
+
+function appendDmChannels(dms: ReadyDmChannel[]) {
+  setReadyData("data", "dmChannels", (prev) => {
+    const existingIds = new Set(prev.map((d) => d.id));
+    const newDms = dms.filter((d) => !existingIds.has(d.id));
+    return [...prev, ...newDms];
+  });
+}
+
+function setHasMoreDmChannels(value: boolean) {
+  setReadyData("data", "hasMoreDmChannels", value);
 }
 
 function addFriend(friend: ReadyFriend) {
-  setReadyData("data", "friends", (prev) => [...prev, friend]);
+  // Dedup by userId
+  setReadyData("data", "friends", (prev) => {
+    if (prev.some((f) => f.userId === friend.userId)) return prev;
+    return [...prev, friend];
+  });
+}
+
+function appendFriends(friends: ReadyFriend[]) {
+  setReadyData("data", "friends", (prev) => {
+    const existingIds = new Set(prev.map((f) => f.userId));
+    const newFriends = friends.filter((f) => !existingIds.has(f.userId));
+    return [...prev, ...newFriends];
+  });
+}
+
+function setHasMoreFriends(value: boolean) {
+  setReadyData("data", "hasMoreFriends", value);
 }
 
 function removeServer(targetServerId: ServerId) {
   setReadyData("data", "servers", (prev) => prev.filter((s) => s.id !== targetServerId));
+  setChannelCache(targetServerId, undefined!);
 }
 
 function removeFriend(targetUserId: UserId) {
@@ -105,14 +146,22 @@ function updateFriendStatus(targetUserId: UserId, friendshipStatus: string) {
 export {
   gatewayStatus,
   readyData,
+  channelCache,
+  channelCacheLoading,
+  setChannelCacheLoading,
   setGatewayStatus,
   setReadyPayload,
   clearReadyPayload,
   addServer,
   removeServer,
+  setChannelsForServer,
   addChannel,
   addDmChannel,
+  appendDmChannels,
+  setHasMoreDmChannels,
   addFriend,
+  appendFriends,
+  setHasMoreFriends,
   removeFriend,
   updateFriendStatus,
 };

@@ -9,7 +9,7 @@ import {
   type ChannelId,
 } from "@uncorded/protocol";
 import { api, ApiRequestError } from "../../lib/api.js";
-import { addServer, type ReadyServer } from "../../lib/gateway-store.js";
+import { addServer, setChannelsForServer } from "../../lib/gateway-store.js";
 import { setSelectedServerId } from "../../stores/app-store.js";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog.js";
 import { Input } from "../ui/input.js";
@@ -63,12 +63,15 @@ const CreateServerModal = (props: Props) => {
         body: JSON.stringify(body),
       });
 
-      const readyServer: ReadyServer = {
+      addServer({
         id: serverId(server.id),
         name: server.name,
         iconUrl: server.iconUrl,
         ownerId: userId(server.ownerId),
-        channels: server.channels.map((ch) => ({
+      });
+      setChannelsForServer(
+        serverId(server.id),
+        server.channels.map((ch) => ({
           id: channelId(ch.id),
           serverId: serverId(ch.serverId),
           name: ch.name,
@@ -77,9 +80,7 @@ const CreateServerModal = (props: Props) => {
           topic: ch.topic,
           fileSharingEnabled: ch.fileSharingEnabled,
         })),
-      };
-
-      addServer(readyServer);
+      );
       setSelectedServerId(serverId(server.id));
       props.onClose();
     } catch (err) {

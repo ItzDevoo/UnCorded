@@ -9,7 +9,7 @@ import {
   memberRemoveEventSchema,
 } from "@uncorded/protocol";
 import { onGatewayEvent } from "../lib/gateway.js";
-import { readyData, addServer, removeServer } from "../lib/gateway-store.js";
+import { readyData, addServer, removeServer, setChannelsForServer } from "../lib/gateway-store.js";
 import { selectedServerId, selectHome } from "./app-store.js";
 
 // ── WS listeners ────────────────────────────────────────────────────────────
@@ -27,10 +27,14 @@ const unsubServerCreate = onGatewayEvent(Opcode.SERVER_CREATE, (data) => {
     name: d.server.name,
     iconUrl: d.server.iconUrl,
     ownerId: userId(d.server.ownerId),
-    channels: d.channels.map((ch) =>
+  });
+
+  setChannelsForServer(
+    serverId(d.server.id),
+    d.channels.map((ch) =>
       Object.assign(ch, { id: channelId(ch.id), serverId: serverId(ch.serverId) }),
     ),
-  });
+  );
 });
 
 const unsubServerDelete = onGatewayEvent(Opcode.SERVER_DELETE, (data) => {

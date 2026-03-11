@@ -8,6 +8,7 @@ import { friendships, dmChannels, dmMembers, user } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
 import { sendToUser } from "../ws/connections.js";
 import { addDmChannelToCache } from "../ws/channel-cache.js";
+import { paginationQuerySchema } from "../helpers/pagination.js";
 
 export const dmRoutes = new Elysia({ prefix: "/api/dms" })
   .resolve(authResolve())
@@ -135,16 +136,24 @@ export const dmRoutes = new Elysia({ prefix: "/api/dms" })
   })
 
   // GET / — List user's DMs
-  .get("/", async ({ user: sessionUser }) => {
-    // Get all DM channel IDs for this user
+  .get("/", async ({ user: sessionUser, query }) => {
+    const { limit, offset } = paginationQuerySchema.parse(query);
+
+    // Get DM channel IDs for this user (paginated)
     const myDmMembers = await db
       .select({ channelId: dmMembers.channelId })
       .from(dmMembers)
-      .where(eq(dmMembers.userId, sessionUser.id));
+      .where(eq(dmMembers.userId, sessionUser.id))
+      .orderBy(dmMembers.channelId)
+      .limit(limit + 1)
+      .offset(offset);
 
-    if (myDmMembers.length === 0) return { dmChannels: [] };
+    const hasMore = myDmMembers.length > limit;
+    const page = hasMore ? myDmMembers.slice(0, limit) : myDmMembers;
 
-    const channelIds = myDmMembers.map((m) => m.channelId);
+    if (page.length === 0) return { dmChannels: [], hasMore: false };
+
+    const channelIds = page.map((m) => m.channelId);
 
     // Get the other members of those channels
     const otherMembers = await db
@@ -160,7 +169,7 @@ export const dmRoutes = new Elysia({ prefix: "/api/dms" })
         ),
       );
 
-    if (otherMembers.length === 0) return { dmChannels: [] };
+    if (otherMembers.length === 0) return { dmChannels: [], hasMore };
 
     // Get user info for other members
     const otherUserIds = otherMembers.map((m) => m.userId);
@@ -193,5 +202,6 @@ export const dmRoutes = new Elysia({ prefix: "/api/dms" })
             : null,
         };
       }),
+      hasMore,
     };
   });

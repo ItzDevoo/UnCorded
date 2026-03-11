@@ -1,6 +1,14 @@
 import { createSignal, createMemo, createEffect, createRoot } from "solid-js";
 import type { ServerId, ChannelId, DmChannelId } from "@uncorded/protocol";
-import { readyData, type ReadyServer, type ReadyChannel } from "../lib/gateway-store.js";
+import {
+  readyData,
+  channelCache,
+  setChannelsForServer,
+  setChannelCacheLoading,
+  type ReadyServer,
+  type ReadyChannel,
+} from "../lib/gateway-store.js";
+import { api } from "../lib/api.js";
 
 const [selectedServerId, setSelectedServerId] = createSignal<ServerId | null>(null);
 const [selectedChannelId, setSelectedChannelId] = createSignal<ChannelId | null>(null);
@@ -29,11 +37,32 @@ const dispose = createRoot((d) => {
   });
 
   currentChannels = createMemo<ReadyChannel[]>(() => {
-    const server = currentServer();
-    return server?.channels.toSorted((a, b) => a.position - b.position) ?? [];
+    const id = selectedServerId();
+    if (!id) return [];
+    const cached = channelCache[id];
+    return cached?.toSorted((a, b) => a.position - b.position) ?? [];
   });
 
-  // Auto-select first channel when server changes
+  // Fetch channels lazily when a server is selected and not cached
+  createEffect(() => {
+    const id = selectedServerId();
+    if (!id) return;
+    if (channelCache[id]) return; // Already cached
+
+    setChannelCacheLoading(id);
+    api<ReadyChannel[]>(`/api/servers/${id}/channels`)
+      .then((channels) => {
+        setChannelsForServer(id, channels);
+      })
+      .catch((err) => {
+        console.error("[app-store] Failed to fetch channels:", err);
+      })
+      .finally(() => {
+        setChannelCacheLoading((prev) => (prev === id ? null : prev));
+      });
+  });
+
+  // Auto-select first channel when channels change
   createEffect(() => {
     const chs = currentChannels();
     if (chs.length > 0 && !chs.find((c) => c.id === selectedChannelId())) {

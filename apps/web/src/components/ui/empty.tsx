@@ -12,7 +12,10 @@ const Empty = (props: EmptyProps) => {
   return (
     <div
       data-slot="empty"
-      class={cn("flex min-w-0 flex-1 flex-col items-center justify-center gap-4 p-6 text-center", local.class)}
+      class={cn(
+        "flex min-w-0 flex-1 flex-col items-center justify-center gap-4 p-6 text-center",
+        local.class,
+      )}
       {...rest}
     >
       <Show when={local.icon}>

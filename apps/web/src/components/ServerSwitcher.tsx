@@ -90,7 +90,11 @@ const ServerSwitcher = (props: ServerSwitcherProps) => {
               }
             >
               {(url) => (
-                <img src={url()} alt={server().name} class="h-5 w-5 shrink-0 rounded-md object-cover" />
+                <img
+                  src={url()}
+                  alt={server().name}
+                  class="h-5 w-5 shrink-0 rounded-md object-cover"
+                />
               )}
             </Show>
           )}
@@ -142,7 +146,11 @@ const ServerSwitcher = (props: ServerSwitcherProps) => {
                     }
                   >
                     {(url) => (
-                      <img src={url()} alt={server.name} class="h-5 w-5 shrink-0 rounded-md object-cover" />
+                      <img
+                        src={url()}
+                        alt={server.name}
+                        class="h-5 w-5 shrink-0 rounded-md object-cover"
+                      />
                     )}
                   </Show>
                   <span class="truncate">{server.name}</span>

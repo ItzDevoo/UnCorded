@@ -11,7 +11,10 @@ const Sidebar = (props: SidebarProps) => {
   return (
     <aside
       data-slot="sidebar"
-      class={cn("flex h-full w-72 shrink-0 flex-col border-r border-border bg-sidebar", local.class)}
+      class={cn(
+        "flex h-full w-72 shrink-0 flex-col border-r border-border bg-sidebar",
+        local.class,
+      )}
       {...rest}
     >
       {local.children}
@@ -26,7 +29,11 @@ type SidebarHeaderProps = ParentProps<JSX.HTMLAttributes<HTMLDivElement>>;
 const SidebarHeader = (props: SidebarHeaderProps) => {
   const [local, rest] = splitProps(props, ["class", "children"]);
   return (
-    <div data-slot="sidebar-header" class={cn("flex shrink-0 flex-col gap-2 p-3", local.class)} {...rest}>
+    <div
+      data-slot="sidebar-header"
+      class={cn("flex shrink-0 flex-col gap-2 p-3", local.class)}
+      {...rest}
+    >
       {local.children}
     </div>
   );
@@ -39,7 +46,11 @@ type SidebarContentProps = ParentProps<JSX.HTMLAttributes<HTMLDivElement>>;
 const SidebarContent = (props: SidebarContentProps) => {
   const [local, rest] = splitProps(props, ["class", "children"]);
   return (
-    <ScrollArea data-slot="sidebar-content" class={cn("flex-1 overflow-hidden", local.class)} {...rest}>
+    <ScrollArea
+      data-slot="sidebar-content"
+      class={cn("flex-1 overflow-hidden", local.class)}
+      {...rest}
+    >
       {local.children}
     </ScrollArea>
   );
@@ -72,7 +83,14 @@ interface SidebarGroupProps extends ParentProps<JSX.HTMLAttributes<HTMLDivElemen
 }
 
 const SidebarGroup = (props: SidebarGroupProps) => {
-  const [local, rest] = splitProps(props, ["class", "children", "label", "actions", "collapsible", "defaultOpen"]);
+  const [local, rest] = splitProps(props, [
+    "class",
+    "children",
+    "label",
+    "actions",
+    "collapsible",
+    "defaultOpen",
+  ]);
   const [open, setOpen] = createSignal(local.defaultOpen ?? true);
 
   return (
@@ -149,7 +167,9 @@ const SidebarMenuButton = (props: SidebarMenuButtonProps) => {
       data-slot="sidebar-menu-button"
       class={cn(
         "flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-colors",
-        local.active ? "bg-accent font-medium text-foreground" : "text-secondary-foreground hover:bg-accent hover:text-foreground",
+        local.active
+          ? "bg-accent font-medium text-foreground"
+          : "text-secondary-foreground hover:bg-accent hover:text-foreground",
         local.class,
       )}
       {...rest}

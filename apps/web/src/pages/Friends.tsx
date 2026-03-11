@@ -161,7 +161,10 @@ const Friends = () => {
             Incoming Requests — {pendingFriends().length}
           </h3>
           <Show when={pendingFriends().length === 0}>
-            <Empty title="No pending requests" description="Friend requests you receive will appear here." />
+            <Empty
+              title="No pending requests"
+              description="Friend requests you receive will appear here."
+            />
           </Show>
           <For each={pendingFriends()}>
             {(friend) => (

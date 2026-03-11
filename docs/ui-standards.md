@@ -39,16 +39,16 @@ Railway-inspired green-tinted dark palette. All surfaces carry the brand hue (~1
 | `--popover-foreground`     | Popover text           | `oklch(0.955 0.008 155)` |
 | `--primary`                | Brand green            | `oklch(0.66 0.17 155)`   |
 | `--primary-foreground`     | Text on primary        | `oklch(1 0 0)` (white)   |
-| `--secondary`              | Subtle bg elements     | `oklch(1 0 0 / 4%)`     |
+| `--secondary`              | Subtle bg elements     | `oklch(1 0 0 / 4%)`      |
 | `--secondary-foreground`   | Text on secondary      | `oklch(0.91 0.008 155)`  |
-| `--muted`                  | Muted backgrounds      | `oklch(1 0 0 / 5%)`     |
+| `--muted`                  | Muted backgrounds      | `oklch(1 0 0 / 5%)`      |
 | `--muted-foreground`       | Subdued text           | `oklch(0.62 0.008 155)`  |
-| `--accent`                 | Hover backgrounds      | `oklch(1 0 0 / 4%)`     |
+| `--accent`                 | Hover backgrounds      | `oklch(1 0 0 / 4%)`      |
 | `--accent-foreground`      | Text on accent         | `oklch(0.955 0.008 155)` |
 | `--destructive`            | Danger/delete          | `oklch(0.55 0.2 25)`     |
 | `--destructive-foreground` | Text for destructive   | `oklch(0.78 0.12 25)`    |
-| `--border`                 | Borders, dividers      | `oklch(1 0 0 / 6%)`     |
-| `--input`                  | Input field bg         | `oklch(1 0 0 / 8%)`     |
+| `--border`                 | Borders, dividers      | `oklch(1 0 0 / 6%)`      |
+| `--input`                  | Input field bg         | `oklch(1 0 0 / 8%)`      |
 | `--ring`                   | Focus ring (= primary) | `oklch(0.66 0.17 155)`   |
 | `--success`                | Success states         | `oklch(0.66 0.17 155)`   |
 | `--success-foreground`     | Success text           | `oklch(0.78 0.12 155)`   |
@@ -162,12 +162,12 @@ Base radius: `0.625rem` (10px). All other sizes derived from this.
 
 Brand-tinted shadow scale (hue 155) for refined depth. Defined as CSS custom properties overriding Tailwind defaults.
 
-| Class       | Value                                                | Usage                          |
-| ----------- | ---------------------------------------------------- | ------------------------------ |
-| `shadow-xs` | `0 1px 2px oklch(0.15 0.01 155 / 20%)`              | Buttons, inputs                |
-| `shadow-sm` | Two-layer, 3px + 2px blur                            | Cards, elevated panels         |
-| `shadow-md` | Two-layer, 6px + 4px blur                            | Modals, popovers               |
-| `shadow-lg` | Two-layer, 15px + 6px blur                           | Large floating elements        |
+| Class       | Value                                  | Usage                   |
+| ----------- | -------------------------------------- | ----------------------- |
+| `shadow-xs` | `0 1px 2px oklch(0.15 0.01 155 / 20%)` | Buttons, inputs         |
+| `shadow-sm` | Two-layer, 3px + 2px blur              | Cards, elevated panels  |
+| `shadow-md` | Two-layer, 6px + 4px blur              | Modals, popovers        |
+| `shadow-lg` | Two-layer, 15px + 6px blur             | Large floating elements |
 
 ### Rules
 
@@ -307,12 +307,12 @@ Semantic color mapping:
 
 Defined as CSS custom properties in `@theme inline`:
 
-| Class              | Keyframe     | Duration | Easing   | Usage              |
-| ------------------ | ------------ | -------- | -------- | ------------------ |
-| `animate-scale-in` | `scale-in`   | 200ms    | ease-out | Dialogs, popovers  |
-| `animate-slide-in` | `slide-in`   | 300ms    | ease-out | Toasts             |
-| `animate-fade-in`  | `fade-in`    | 200ms    | ease-out | General fade entry |
-| `animate-skeleton` | `skeleton`   | 2s loop  | linear   | Skeleton loader    |
+| Class              | Keyframe   | Duration | Easing   | Usage              |
+| ------------------ | ---------- | -------- | -------- | ------------------ |
+| `animate-scale-in` | `scale-in` | 200ms    | ease-out | Dialogs, popovers  |
+| `animate-slide-in` | `slide-in` | 300ms    | ease-out | Toasts             |
+| `animate-fade-in`  | `fade-in`  | 200ms    | ease-out | General fade entry |
+| `animate-skeleton` | `skeleton` | 2s loop  | linear   | Skeleton loader    |
 
 - `scale-in`: scale 0.98→1 + opacity 0→1
 - `slide-in`: translateY 16px→0 + opacity 0→1
@@ -346,17 +346,17 @@ Composable sidebar primitives for the app shell. File: `components/ui/sidebar.ts
 
 ### Subcomponents
 
-| Component | Element | Purpose |
-|-----------|---------|---------|
-| `Sidebar` | `<aside>` | Root container — `w-72`, `bg-sidebar`, `border-r` |
-| `SidebarHeader` | `<div>` | Top section — houses ServerSwitcher |
-| `SidebarContent` | `ScrollArea` | Scrollable middle — channels or DMs |
-| `SidebarFooter` | `<div>` | Bottom section — user panel, `border-t` |
-| `SidebarGroup` | `<div>` | Labeled section with optional collapse (`collapsible`, `defaultOpen`) |
-| `SidebarMenu` | `<ul>` | Menu list container |
-| `SidebarMenuItem` | `<li>` | Menu item with `group/menu-item` for hover actions |
-| `SidebarMenuButton` | `<button>` | Interactive item — `active` prop toggles `bg-accent` |
-| `SidebarMenuAction` | `<button>` | Hover-revealed action button (right-aligned) |
+| Component           | Element      | Purpose                                                               |
+| ------------------- | ------------ | --------------------------------------------------------------------- |
+| `Sidebar`           | `<aside>`    | Root container — `w-72`, `bg-sidebar`, `border-r`                     |
+| `SidebarHeader`     | `<div>`      | Top section — houses ServerSwitcher                                   |
+| `SidebarContent`    | `ScrollArea` | Scrollable middle — channels or DMs                                   |
+| `SidebarFooter`     | `<div>`      | Bottom section — user panel, `border-t`                               |
+| `SidebarGroup`      | `<div>`      | Labeled section with optional collapse (`collapsible`, `defaultOpen`) |
+| `SidebarMenu`       | `<ul>`       | Menu list container                                                   |
+| `SidebarMenuItem`   | `<li>`       | Menu item with `group/menu-item` for hover actions                    |
+| `SidebarMenuButton` | `<button>`   | Interactive item — `active` prop toggles `bg-accent`                  |
+| `SidebarMenuAction` | `<button>`   | Hover-revealed action button (right-aligned)                          |
 
 ### SidebarGroup Collapsible
 
@@ -387,9 +387,7 @@ Composes all sidebar primitives with app data. Owns modal signals for Create/Joi
 Styled scrollable container with thin scrollbar. Use instead of raw `overflow-auto` for consistent scrollbar styling.
 
 ```tsx
-<ScrollArea class="h-64">
-  {/* scrollable content */}
-</ScrollArea>
+<ScrollArea class="h-64">{/* scrollable content */}</ScrollArea>
 ```
 
 - `scrollbar-width: thin` + custom webkit scrollbar (`w-1.5`, 6px)
@@ -418,11 +416,7 @@ Loading placeholder with animated shimmer effect.
 Empty state component for lists and panels with no content.
 
 ```tsx
-<Empty
-  icon={<InboxIcon />}
-  title="No messages yet"
-  description="Start a conversation!"
->
+<Empty icon={<InboxIcon />} title="No messages yet" description="Start a conversation!">
   <Button>Send Message</Button>
 </Empty>
 ```

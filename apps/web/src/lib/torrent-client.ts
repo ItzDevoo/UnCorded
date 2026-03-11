@@ -5,10 +5,7 @@ import { rtcConfig } from "./rtc-config.js";
 // Known-good WebSocket trackers for browser peer discovery.
 // DHT/LSD are disabled (require UDP dgram, impossible in browsers),
 // so trackers are the sole discovery mechanism.
-const TRACKER_URLS = [
-  "wss://tracker.openwebtorrent.com",
-  "wss://tracker.webtorrent.dev",
-];
+const TRACKER_URLS = ["wss://tracker.openwebtorrent.com", "wss://tracker.webtorrent.dev"];
 
 // ── Types ───────────────────────────────────────────────────────────────────
 

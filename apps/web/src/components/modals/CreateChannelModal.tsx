@@ -45,13 +45,10 @@ const CreateChannelModal = (props: Props) => {
 
     setLoading(true);
     try {
-      const ch = await api<CreateChannelResponse>(
-        `/api/servers/${props.serverId}/channels`,
-        {
-          method: "POST",
-          body: JSON.stringify({ name: trimmed }),
-        },
-      );
+      const ch = await api<CreateChannelResponse>(`/api/servers/${props.serverId}/channels`, {
+        method: "POST",
+        body: JSON.stringify({ name: trimmed }),
+      });
 
       const readyChannel: ReadyChannel = {
         id: channelId(ch.id),
@@ -85,7 +82,10 @@ const CreateChannelModal = (props: Props) => {
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
-          <label for="channel-name" class="mb-1 block text-sm font-medium text-secondary-foreground">
+          <label
+            for="channel-name"
+            class="mb-1 block text-sm font-medium text-secondary-foreground"
+          >
             Channel Name
           </label>
           <Input

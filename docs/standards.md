@@ -143,29 +143,37 @@ export class AppError extends Error {
 }
 
 // HTTP error classes — each sets its own tag, statusCode, and code
-export class UnauthorizedError extends AppError {   // 401, "UNAUTHORIZED"
+export class UnauthorizedError extends AppError {
+  // 401, "UNAUTHORIZED"
   constructor(message = "Authentication required", options?: { cause?: unknown });
 }
-export class ForbiddenError extends AppError {      // 403, "FORBIDDEN"
+export class ForbiddenError extends AppError {
+  // 403, "FORBIDDEN"
   constructor(message = "Insufficient permissions", options?: { cause?: unknown });
 }
-export class SessionExpiredError extends AppError { // 401, "SESSION_EXPIRED"
+export class SessionExpiredError extends AppError {
+  // 401, "SESSION_EXPIRED"
   constructor(message = "Session has expired", options?: { cause?: unknown });
 }
-export class ValidationError extends AppError {     // 400, "VALIDATION_ERROR"
+export class ValidationError extends AppError {
+  // 400, "VALIDATION_ERROR"
   constructor(message = "Validation failed", options?: { cause?: unknown });
 }
-export class NotFoundError extends AppError {       // 404, "NOT_FOUND"
+export class NotFoundError extends AppError {
+  // 404, "NOT_FOUND"
   constructor(resource = "Resource", options?: { cause?: unknown });
   // message becomes "${resource} not found"
 }
-export class ConflictError extends AppError {       // 409, custom code
+export class ConflictError extends AppError {
+  // 409, custom code
   constructor(code: string, message: string, options?: { cause?: unknown });
 }
-export class RateLimitError extends AppError {      // 429, "RATE_LIMITED"
+export class RateLimitError extends AppError {
+  // 429, "RATE_LIMITED"
   constructor(message = "Too many requests", options?: { cause?: unknown });
 }
-export class InternalError extends AppError {       // 500, "INTERNAL_ERROR"
+export class InternalError extends AppError {
+  // 500, "INTERNAL_ERROR"
   constructor(message = "Internal server error", options?: { cause?: unknown });
 }
 ```

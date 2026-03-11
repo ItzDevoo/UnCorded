@@ -14,7 +14,6 @@ const MAX_RECONNECT_DELAY = 30_000;
 const BASE_RECONNECT_DELAY = 1_000;
 
 let ws: WebSocket | null = null;
-let token: string | null = null;
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 let heartbeatAckTimeout: ReturnType<typeof setTimeout> | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -66,6 +65,28 @@ function startHeartbeat(intervalMs: number) {
   }, intervalMs);
 }
 
+async function fetchTicketAndIdentify() {
+  try {
+    const res = await fetch(`${API_BASE}/api/gateway/ticket`, {
+      method: "POST",
+      credentials: "include",
+    });
+    if (!res.ok) {
+      ws?.close(CloseCode.INVALID_SESSION, "ticket_fetch_failed");
+      return;
+    }
+    const data = (await res.json()) as Record<string, unknown>;
+    const ticket = typeof data?.ticket === "string" ? data.ticket : null;
+    if (!ticket) {
+      ws?.close(CloseCode.INVALID_SESSION, "invalid_ticket_response");
+      return;
+    }
+    sendFrame({ op: Opcode.IDENTIFY, d: { ticket } });
+  } catch {
+    ws?.close(CloseCode.INVALID_SESSION, "ticket_fetch_failed");
+  }
+}
+
 function handleMessage(event: MessageEvent) {
   if (!(event.data instanceof ArrayBuffer)) return;
   const frame = decode(new Uint8Array(event.data));
@@ -79,7 +100,7 @@ function handleMessage(event: MessageEvent) {
       const interval = Number(raw);
       if (!Number.isFinite(interval) || interval <= 0) break;
       startHeartbeat(interval);
-      sendFrame({ op: Opcode.IDENTIFY, d: { token } });
+      fetchTicketAndIdentify();
       break;
     }
     case Opcode.READY: {
@@ -150,8 +171,10 @@ function connect() {
   });
 }
 
-export function connectGateway(sessionToken: string): void {
-  token = sessionToken;
+export function connectGateway(): void {
+  if (import.meta.env.PROD && !WS_URL.startsWith("wss://")) {
+    throw new Error("WebSocket must use wss:// in production");
+  }
   reconnectAttempts = 0;
   intentionalClose = false;
   connect();

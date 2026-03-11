@@ -41,7 +41,7 @@ export const channelSchema = z.object({
 
 // ── Client → Server (request schemas) ────────────────────────────────────────
 
-export const identifyRequestSchema = z.object({ token: z.string() });
+export const identifyRequestSchema = z.object({ ticket: z.string() });
 
 export const typingStartRequestSchema = z.object({ channelId: z.string().min(1) });
 

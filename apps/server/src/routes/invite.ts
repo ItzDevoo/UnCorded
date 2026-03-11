@@ -109,7 +109,7 @@ export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
         .limit(1);
 
       if (!inv) {
-        throw new NotFoundError("Invite not found or expired");
+        throw new NotFoundError("Invite");
       }
 
       const [srv] = await tx
@@ -169,12 +169,14 @@ export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
 
     addServerMember(invite.serverId, sessionUser.id);
 
+    /* oxlint-disable no-map-spread -- copy-on-write required, DB rows must not be mutated */
     const serverPayload = {
-      server: Object.assign(server, { id: serverId(server.id), ownerId: userId(server.ownerId) }),
+      server: { ...server, id: serverId(server.id), ownerId: userId(server.ownerId) },
       channels: serverChannels
         .toSorted((a, b) => a.position - b.position)
-        .map((ch) => Object.assign(ch, { id: channelId(ch.id), serverId: serverId(ch.serverId) })),
+        .map((ch) => ({ ...ch, id: channelId(ch.id), serverId: serverId(ch.serverId) })),
     };
+    /* oxlint-enable no-map-spread */
 
     // Send SERVER_CREATE to the joining user so their client adds the server
     sendToUser(sessionUser.id, {
@@ -190,7 +192,7 @@ export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
           op: Opcode.MEMBER_ADD,
           d: {
             serverId: serverId(invite.serverId),
-            user: Object.assign(joinerProfile, { id: userId(joinerProfile.id) }),
+            user: { ...joinerProfile, id: userId(joinerProfile.id) },
           },
         },
         sessionUser.id,

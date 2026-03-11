@@ -146,6 +146,10 @@ function addFriend(friend: ReadyFriend) {
   setReadyData("data", "friends", (prev) => [...prev, friend]);
 }
 
+function removeServer(targetServerId: ServerId) {
+  setReadyData("data", "servers", (prev) => prev.filter((s) => s.id !== targetServerId));
+}
+
 function removeFriend(targetUserId: UserId) {
   setReadyData("data", "friends", (prev) => prev.filter((f) => f.userId !== targetUserId));
 }
@@ -163,6 +167,7 @@ export {
   setReadyPayload,
   clearReadyPayload,
   addServer,
+  removeServer,
   addChannel,
   addDmChannel,
   addFriend,

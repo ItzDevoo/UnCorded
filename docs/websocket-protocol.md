@@ -68,6 +68,30 @@ Sent by clients to indicate seeding status for a file.
 Payload: { fileReceiptId: string, channelId: string, available: boolean }
 Server broadcasts to channel members so UI can show "X seeders" or "No seeders online."
 
+## MEMBER_ADD (op 50)
+
+Sent to all server members (except the joiner) when a new member joins.
+Payload: { serverId: string, user: { id: string, username: string | null, displayName: string | null, avatarUrl: string | null } }
+Triggered by invite accept (REST POST /api/invites/:code/accept).
+
+## MEMBER_REMOVE (op 51)
+
+Sent to remaining server members when a member leaves or is kicked.
+Payload: { serverId: string, userId: string }
+Triggered by REST DELETE /api/servers/:serverId/members/@me (leave) or DELETE /api/servers/:serverId/members/:userId (kick).
+
+## SERVER_CREATE (op 60)
+
+Sent to the joining user when they accept an invite.
+Payload: { server: { id, name, iconUrl, ownerId }, channels: [{ id, serverId, name, type, position, topic, fileSharingEnabled }] }
+Triggered by invite accept. The client uses this to add the server to the sidebar without re-fetching.
+
+## SERVER_DELETE (op 61)
+
+Sent when a server is deleted (to all members), or when a user leaves/is kicked (to that user only).
+Payload: { id: string }
+On delete: broadcast to all members before DB delete. On leave/kick: sent to the departing user so their client removes the server.
+
 ## FRIEND_REQUEST (op 70)
 
 Sent to target user when someone sends a friend request.

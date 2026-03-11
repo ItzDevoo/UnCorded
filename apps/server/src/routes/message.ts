@@ -105,7 +105,7 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
 
     const frame = { op: Opcode.MESSAGE_CREATE, d: messageWithAuthor } as const;
     if (resolution.type === "server") {
-      await broadcastToServer(resolution.serverId, frame);
+      broadcastToServer(resolution.serverId, frame);
     } else {
       await broadcastToDm(params.channelId, frame, sessionUser.id);
       // Also send to self so other tabs get the message
@@ -233,7 +233,7 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
     } as const;
 
     if (resolution.type === "server") {
-      await broadcastToServer(resolution.serverId, frame);
+      broadcastToServer(resolution.serverId, frame);
     } else {
       await broadcastToDm(params.channelId, frame, sessionUser.id);
       sendToUser(sessionUser.id, frame);
@@ -281,7 +281,7 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
     } as const;
 
     if (resolution.type === "server") {
-      await broadcastToServer(resolution.serverId, frame);
+      broadcastToServer(resolution.serverId, frame);
     } else {
       await broadcastToDm(params.channelId, frame, sessionUser.id);
       sendToUser(sessionUser.id, frame);

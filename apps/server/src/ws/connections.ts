@@ -4,7 +4,8 @@ import { eq, and, ne } from "drizzle-orm";
 import { encode } from "@uncorded/protocol";
 import type { GatewayFrame } from "@uncorded/protocol";
 import { db } from "../db/index.js";
-import { members, dmMembers } from "../db/schema.js";
+import { dmMembers } from "../db/schema.js";
+import { getServerMembers } from "./server-members.js";
 
 /** userId → set of active WebSocket connections (supports multiple tabs) */
 export const clients = new Map<string, Set<AnyServerWebSocket>>();
@@ -44,28 +45,25 @@ export function sendToUser(userId: string, frame: GatewayFrame): void {
   }
 }
 
-// TODO: cache server membership for broadcast performance
-export async function broadcastToServer(
+export function broadcastToServer(
   serverId: string,
   frame: GatewayFrame,
   excludeUserId?: string,
-): Promise<void> {
-  const memberRows = await db
-    .select({ userId: members.userId })
-    .from(members)
-    .where(eq(members.serverId, serverId));
+): void {
+  const memberIds = getServerMembers(serverId);
+  if (!memberIds) return;
 
   const buf = Buffer.from(encode(frame));
-  for (const row of memberRows) {
-    if (row.userId === excludeUserId) continue;
-    const set = clients.get(row.userId);
+  for (const uid of memberIds) {
+    if (uid === excludeUserId) continue;
+    const set = clients.get(uid);
     if (!set) continue;
     for (const ws of set) {
       try {
         ws.send(buf);
       } catch {
         set.delete(ws);
-        if (set.size === 0) clients.delete(row.userId);
+        if (set.size === 0) clients.delete(uid);
       }
     }
   }

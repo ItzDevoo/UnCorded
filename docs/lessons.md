@@ -195,3 +195,7 @@ This applies to any module that registers global listeners or timers at the top 
 **[W4 D2]** — WebTorrent's default tracker list includes servers with expired/invalid SSL certs (e.g., `wss://tracker.btorrent.xyz/`). Always pass explicit `announce` URLs to `seed()` and `add()`. Known-good WebSocket trackers: `wss://tracker.openwebtorrent.com` and `wss://tracker.webtorrent.dev` (official WebTorrent project trackers).
 
 **[W4 D2]** — `vite-plugin-node-polyfills` with zero config polyfills all Node built-ins including broken stubs for `dgram`/`net`/`dns`. Use explicit `include: [...]` to only polyfill what WebTorrent actually needs: `buffer`, `events`, `stream`, `process`, `util`, `path`, `crypto`. This prevents Vite from pulling in broken stubs for network modules.
+
+**[W4 D3]** — `broadcastToServer()` was querying the DB `members` table on every broadcast (message, typing, file events). Replaced with an in-memory `Map<serverId, Set<userId>>` registry (`server-members.ts`) for O(1) lookups. A reverse index `Map<userId, Set<serverId>>` enables O(1) cleanup on disconnect — avoids iterating all servers. Single-instance only; multi-instance would need Redis pub/sub.
+
+**[W4 D3]** — SERVER_CREATE/SERVER_DELETE/MEMBER_ADD/MEMBER_REMOVE WS events coexist with HTTP responses. The HTTP response returns data to the requester; the WS event notifies other connected clients. Both are necessary — the REST caller already has the data in the response, but other tabs/users need real-time sync.

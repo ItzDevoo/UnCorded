@@ -20,6 +20,7 @@ import {
   friendships,
 } from "../db/schema.js";
 import { addConnection, type AnyServerWebSocket } from "./connections.js";
+import { registerUserServers } from "./server-members.js";
 
 const identifySchema = z.object({ token: z.string() });
 
@@ -265,6 +266,8 @@ export async function handleIdentify(
         }),
       ),
     );
+
+    registerUserServers(identifiedUserId, serverIds);
 
     return { success: true, userId: identifiedUserId };
   } catch (err) {

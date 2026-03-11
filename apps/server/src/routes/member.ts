@@ -1,11 +1,13 @@
 import { Elysia } from "elysia";
 import { eq, and } from "drizzle-orm";
 import { ForbiddenError, ValidationError, NotFoundError } from "@uncorded/shared";
-import { userId } from "@uncorded/protocol";
+import { Opcode, userId, serverId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { members, servers, user } from "../db/schema.js";
 import { getSession } from "../middleware/auth.js";
 import { requireMember, requireOwner } from "../helpers/permissions.js";
+import { removeServerMember } from "../ws/server-members.js";
+import { broadcastToServer, sendToUser } from "../ws/connections.js";
 
 export const memberRoutes = new Elysia({ prefix: "/api/servers/:serverId/members" })
   .resolve(async ({ status, request }) => {
@@ -56,6 +58,19 @@ export const memberRoutes = new Elysia({ prefix: "/api/servers/:serverId/members
       .delete(members)
       .where(and(eq(members.userId, sessionUser.id), eq(members.serverId, params.serverId)));
 
+    // Remove from cache first so broadcast skips the leaving user
+    removeServerMember(params.serverId, sessionUser.id);
+
+    broadcastToServer(params.serverId, {
+      op: Opcode.MEMBER_REMOVE,
+      d: { serverId: serverId(params.serverId), userId: userId(sessionUser.id) },
+    });
+
+    sendToUser(sessionUser.id, {
+      op: Opcode.SERVER_DELETE,
+      d: { id: serverId(params.serverId) },
+    });
+
     set.status = 204;
   })
   .delete("/:userId", async ({ user: sessionUser, params, set }) => {
@@ -78,6 +93,19 @@ export const memberRoutes = new Elysia({ prefix: "/api/servers/:serverId/members
     await db
       .delete(members)
       .where(and(eq(members.userId, params.userId), eq(members.serverId, params.serverId)));
+
+    // Remove from cache first so broadcast skips the kicked user
+    removeServerMember(params.serverId, params.userId);
+
+    broadcastToServer(params.serverId, {
+      op: Opcode.MEMBER_REMOVE,
+      d: { serverId: serverId(params.serverId), userId: userId(params.userId) },
+    });
+
+    sendToUser(params.userId, {
+      op: Opcode.SERVER_DELETE,
+      d: { id: serverId(params.serverId) },
+    });
 
     set.status = 204;
   });

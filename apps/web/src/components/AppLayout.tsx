@@ -4,6 +4,7 @@ import { connectGateway, disconnectGateway } from "../lib/gateway.js";
 import { gatewayStatus } from "../lib/gateway-store.js";
 import { selectedServerId, selectedDmChannelId } from "../stores/app-store.js";
 import "../lib/gateway-errors.js";
+import "../stores/server-store.js";
 import AuthGuard from "./AuthGuard.js";
 import AppSidebar from "./AppSidebar.js";
 import ChatArea from "./ChatArea.js";

@@ -12,6 +12,9 @@ import { db } from "../db/index.js";
 import { servers, channels, members } from "../db/schema.js";
 import { getSession } from "../middleware/auth.js";
 import { requireMember, requireOwner } from "../helpers/permissions.js";
+import { addServerMember, removeServer } from "../ws/server-members.js";
+import { broadcastToServer } from "../ws/connections.js";
+import { Opcode } from "@uncorded/protocol";
 
 export const serverRoutes = new Elysia({ prefix: "/api/servers" })
   .resolve(async ({ status, request }) => {
@@ -57,6 +60,8 @@ export const serverRoutes = new Elysia({ prefix: "/api/servers" })
       userId: sessionUser.id,
       serverId: server.id,
     });
+
+    addServerMember(server.id, sessionUser.id);
 
     set.status = 201;
     return {
@@ -140,7 +145,14 @@ export const serverRoutes = new Elysia({ prefix: "/api/servers" })
   .delete("/:serverId", async ({ user: sessionUser, params, set }) => {
     await requireOwner(sessionUser.id, params.serverId);
 
+    broadcastToServer(params.serverId, {
+      op: Opcode.SERVER_DELETE,
+      d: { id: serverId(params.serverId) },
+    });
+
     await db.delete(servers).where(eq(servers.id, params.serverId));
+
+    removeServer(params.serverId);
 
     set.status = 204;
   });

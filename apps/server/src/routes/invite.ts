@@ -6,12 +6,13 @@ import {
   NotFoundError,
   ConflictError,
 } from "@uncorded/shared";
-import { inviteCode, serverId, userId } from "@uncorded/protocol";
+import { Opcode, inviteCode, serverId, userId, channelId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
-import { invites, servers, members, channels } from "../db/schema.js";
-import { channelId } from "@uncorded/protocol";
+import { invites, servers, members, channels, user } from "../db/schema.js";
 import { getSession } from "../middleware/auth.js";
 import { requireMember, isMember } from "../helpers/permissions.js";
+import { addServerMember } from "../ws/server-members.js";
+import { sendToUser, broadcastToServer } from "../ws/connections.js";
 
 export const serverInviteRoutes = new Elysia({ prefix: "/api/servers/:serverId/invites" })
   .resolve(async ({ status, request }) => {
@@ -125,10 +126,24 @@ export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
       serverId: invite.serverId,
     });
 
+    addServerMember(invite.serverId, sessionUser.id);
+
     await db
       .update(invites)
       .set({ uses: sql`${invites.uses} + 1` })
       .where(eq(invites.code, params.code));
+
+    // Query joining user's profile for MEMBER_ADD broadcast
+    const [joinerProfile] = await db
+      .select({
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+      })
+      .from(user)
+      .where(eq(user.id, sessionUser.id))
+      .limit(1);
 
     const [server] = await db
       .select()
@@ -150,7 +165,7 @@ export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
       .where(eq(channels.serverId, invite.serverId));
 
     /* oxlint-disable no-map-spread -- copy-on-write required, DB rows must not be mutated */
-    return {
+    const serverPayload = {
       server: server
         ? { ...server, id: serverId(server.id), ownerId: userId(server.ownerId) }
         : server,
@@ -158,6 +173,29 @@ export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
         .toSorted((a, b) => a.position - b.position)
         .map((ch) => ({ ...ch, id: channelId(ch.id), serverId: serverId(ch.serverId) })),
     };
+
+    // Send SERVER_CREATE to the joining user so their client adds the server
+    sendToUser(sessionUser.id, {
+      op: Opcode.SERVER_CREATE,
+      d: serverPayload,
+    });
+
+    // Broadcast MEMBER_ADD to existing members (exclude joiner)
+    if (joinerProfile) {
+      broadcastToServer(
+        invite.serverId,
+        {
+          op: Opcode.MEMBER_ADD,
+          d: {
+            serverId: serverId(invite.serverId),
+            user: { ...joinerProfile, id: userId(joinerProfile.id) },
+          },
+        },
+        sessionUser.id,
+      );
+    }
+
+    return serverPayload;
     /* oxlint-enable no-map-spread */
   });
 

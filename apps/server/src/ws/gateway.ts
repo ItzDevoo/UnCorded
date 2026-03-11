@@ -23,6 +23,7 @@ import {
   broadcastToDm,
 } from "./connections.js";
 import { handleIdentify } from "./handlers.js";
+import { removeUserFromAllServers } from "./server-members.js";
 import { resolveChannelMembership } from "../helpers/resolve-channel.js";
 
 const FREE_TIER = "free" as const;
@@ -159,7 +160,7 @@ export const gateway = new Elysia().ws("/gateway", {
           } as const;
 
           if (resolution.type === "server") {
-            await broadcastToServer(resolution.serverId, typingFrame, ctx.userId);
+            broadcastToServer(resolution.serverId, typingFrame, ctx.userId);
           } else {
             await broadcastToDm(d.channelId, typingFrame, ctx.userId);
           }
@@ -273,7 +274,7 @@ export const gateway = new Elysia().ws("/gateway", {
           } as const;
 
           if (resolution.type === "server") {
-            await broadcastToServer(resolution.serverId, shareFrame);
+            broadcastToServer(resolution.serverId, shareFrame);
           } else {
             await broadcastToDm(d.channelId, shareFrame, ctx.userId);
           }
@@ -304,7 +305,7 @@ export const gateway = new Elysia().ws("/gateway", {
           } as const;
 
           if (resolution.type === "server") {
-            await broadcastToServer(resolution.serverId, availFrame);
+            broadcastToServer(resolution.serverId, availFrame);
           } else {
             await broadcastToDm(d.channelId, availFrame, ctx.userId);
           }
@@ -339,6 +340,7 @@ export const gateway = new Elysia().ws("/gateway", {
       // If no more connections for this user, set offline
       const remaining = getConnections(ctx.userId);
       if (!remaining) {
+        removeUserFromAllServers(ctx.userId);
         await db.update(user).set({ status: "offline" }).where(eq(user.id, ctx.userId));
       }
     }

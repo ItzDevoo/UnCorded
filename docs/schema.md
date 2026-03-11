@@ -54,7 +54,7 @@ INDEX: (channel_id, created_at DESC)
 
 ### file_receipts
 
-id, channel_id (TEXT), sender_id -> users (set null, nullable — "[deleted user]"),
+id, channel_id (TEXT NOT NULL), sender_id -> users (set null, nullable — "[deleted user]"),
 file_name, file_size (bigint bytes), content_type,
 magnet_uri (TEXT NOT NULL — WebTorrent magnet link, persists in chat),
 info_hash (TEXT NOT NULL — torrent info hash for swarm identification),

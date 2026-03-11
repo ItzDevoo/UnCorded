@@ -1,5 +1,4 @@
 import { eq, and, or, ne, inArray } from "drizzle-orm";
-import { z } from "zod";
 import {
   Opcode,
   CloseCode,
@@ -8,6 +7,7 @@ import {
   serverId,
   channelId,
   dmChannelId,
+  identifyRequestSchema,
 } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import {
@@ -23,8 +23,6 @@ import { addConnection, type AnyServerWebSocket } from "./connections.js";
 import { registerUserServers } from "./server-members.js";
 import { seedChannelCache } from "./channel-cache.js";
 
-const identifySchema = z.object({ token: z.string() });
-
 type IdentifyResult =
   | { success: true; userId: string; username: string | null; subscriptionTier: string }
   | { success: false; closeCode: number; closeReason: string };
@@ -33,7 +31,7 @@ export async function handleIdentify(
   ws: AnyServerWebSocket,
   data: unknown,
 ): Promise<IdentifyResult> {
-  const parsed = identifySchema.safeParse(data);
+  const parsed = identifyRequestSchema.safeParse(data);
   if (!parsed.success) {
     return {
       success: false,

@@ -1,14 +1,16 @@
 import { Elysia } from "elysia";
-import { z } from "zod";
-import { Opcode, CloseCode, encode, decode } from "@uncorded/protocol";
+import {
+  Opcode,
+  CloseCode,
+  encode,
+  decode,
+  typingStartRequestSchema,
+  webRtcSignalRequestSchema,
+  fileShareRequestSchema,
+  fileAvailabilityRequestSchema,
+} from "@uncorded/protocol";
 import {
   createId,
-  MAX_FILE_SIZE_BYTES,
-  MAX_SDP_SIZE,
-  MAX_FILE_NAME_LENGTH,
-  MAX_CONTENT_TYPE_LENGTH,
-  MAX_MAGNET_URI_LENGTH,
-  MAX_INFO_HASH_LENGTH,
   HEARTBEAT_INTERVAL_MS,
   HEARTBEAT_TIMEOUT_MS,
   RATE_LIMIT_TYPING_START,
@@ -32,34 +34,6 @@ import { removeUserFromAllServers } from "./server-members.js";
 import { resolveChannelMembership } from "../helpers/resolve-channel.js";
 
 const FREE_TIER = "free" as const;
-
-const typingStartSchema = z.object({ channelId: z.string().min(1) });
-
-const webRtcSignalSchema = z.object({
-  targetUserId: z.string().min(1),
-  channelId: z.string().min(1),
-  data: z.union([
-    z.string().max(MAX_SDP_SIZE),
-    z
-      .record(z.string(), z.unknown())
-      .refine((r) => JSON.stringify(r).length <= MAX_SDP_SIZE, "ICE candidate too large"),
-  ]),
-});
-
-const fileShareSchema = z.object({
-  channelId: z.string().min(1),
-  fileName: z.string().min(1).max(MAX_FILE_NAME_LENGTH),
-  fileSize: z.number().int().positive().max(MAX_FILE_SIZE_BYTES),
-  contentType: z.string().min(1).max(MAX_CONTENT_TYPE_LENGTH),
-  magnetUri: z.string().min(1).max(MAX_MAGNET_URI_LENGTH).startsWith("magnet:"),
-  infoHash: z.string().min(1).max(MAX_INFO_HASH_LENGTH),
-});
-
-const fileAvailabilitySchema = z.object({
-  fileReceiptId: z.string().min(1),
-  channelId: z.string().min(1),
-  available: z.boolean(),
-});
 
 interface WsContext {
   userId: string | null;
@@ -155,7 +129,7 @@ export const gateway = new Elysia().ws("/gateway", {
             break;
           }
 
-          const parsed = typingStartSchema.safeParse(frame.d);
+          const parsed = typingStartRequestSchema.safeParse(frame.d);
           if (!parsed.success) break;
           const d = parsed.data;
 
@@ -188,7 +162,7 @@ export const gateway = new Elysia().ws("/gateway", {
             break;
           }
 
-          const parsed = webRtcSignalSchema.safeParse(frame.d);
+          const parsed = webRtcSignalRequestSchema.safeParse(frame.d);
           if (!parsed.success) break;
           const d = parsed.data;
 
@@ -236,7 +210,7 @@ export const gateway = new Elysia().ws("/gateway", {
             break;
           }
 
-          const parsed = fileShareSchema.safeParse(frame.d);
+          const parsed = fileShareRequestSchema.safeParse(frame.d);
           if (!parsed.success) break;
           const d = parsed.data;
 
@@ -306,7 +280,7 @@ export const gateway = new Elysia().ws("/gateway", {
             break;
           }
 
-          const parsed = fileAvailabilitySchema.safeParse(frame.d);
+          const parsed = fileAvailabilityRequestSchema.safeParse(frame.d);
           if (!parsed.success) break;
           const d = parsed.data;
 

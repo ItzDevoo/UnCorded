@@ -1,15 +1,11 @@
-import { z } from "zod";
-import { Opcode, userId, channelId as toChannelId } from "@uncorded/protocol";
+import {
+  Opcode,
+  userId,
+  channelId as toChannelId,
+  signalingEventSchema,
+} from "@uncorded/protocol";
 import type { UserId, ChannelId } from "@uncorded/protocol";
 import { sendFrame, onGatewayEvent } from "./gateway.js";
-
-// ── Inbound validation ──────────────────────────────────────────────────────
-
-const signalingEventSchema = z.object({
-  fromUserId: z.string().min(1),
-  channelId: z.string().min(1),
-  data: z.unknown(),
-});
 
 // ── Outbound signaling ──────────────────────────────────────────────────────
 

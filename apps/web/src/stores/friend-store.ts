@@ -1,48 +1,21 @@
-import { z } from "zod";
-import { Opcode } from "@uncorded/protocol";
-import { userId, dmChannelId } from "@uncorded/protocol";
+import {
+  Opcode,
+  userId,
+  dmChannelId,
+  friendRequestEventSchema,
+  friendAcceptEventSchema,
+  friendRemoveEventSchema,
+  dmChannelCreateEventSchema,
+} from "@uncorded/protocol";
 import { onGatewayEvent } from "../lib/gateway.js";
 import { addDmChannel, addFriend, removeFriend, updateFriendStatus } from "../lib/gateway-store.js";
 import { api } from "../lib/api.js";
 import { showToast } from "../components/ui/toast.js";
 
-// ── Zod schemas for WS events ──────────────────────────────────────────────
-
-const friendRequestSchema = z.object({
-  userId: z.string(),
-  username: z.string().nullable(),
-  displayName: z.string().nullable(),
-  avatarUrl: z.string().nullable(),
-  status: z.string(),
-});
-
-const friendAcceptSchema = z.object({
-  userId: z.string(),
-  username: z.string().nullable(),
-  displayName: z.string().nullable(),
-  avatarUrl: z.string().nullable(),
-  status: z.string(),
-});
-
-const friendRemoveSchema = z.object({
-  userId: z.string(),
-});
-
-const dmChannelCreateSchema = z.object({
-  id: z.string(),
-  otherUser: z.object({
-    id: z.string(),
-    username: z.string().nullable(),
-    displayName: z.string().nullable(),
-    avatarUrl: z.string().nullable(),
-    status: z.string(),
-  }),
-});
-
 // ── WS listeners ────────────────────────────────────────────────────────────
 
 const unsubRequest = onGatewayEvent(Opcode.FRIEND_REQUEST, (data) => {
-  const parsed = friendRequestSchema.safeParse(data);
+  const parsed = friendRequestEventSchema.safeParse(data);
   if (!parsed.success) return;
   const d = parsed.data;
   addFriend({
@@ -57,7 +30,7 @@ const unsubRequest = onGatewayEvent(Opcode.FRIEND_REQUEST, (data) => {
 });
 
 const unsubAccept = onGatewayEvent(Opcode.FRIEND_ACCEPT, (data) => {
-  const parsed = friendAcceptSchema.safeParse(data);
+  const parsed = friendAcceptEventSchema.safeParse(data);
   if (!parsed.success) return;
   const d = parsed.data;
   // If not in friends list yet (we sent the request), add them
@@ -74,13 +47,13 @@ const unsubAccept = onGatewayEvent(Opcode.FRIEND_ACCEPT, (data) => {
 });
 
 const unsubRemove = onGatewayEvent(Opcode.FRIEND_REMOVE, (data) => {
-  const parsed = friendRemoveSchema.safeParse(data);
+  const parsed = friendRemoveEventSchema.safeParse(data);
   if (!parsed.success) return;
   removeFriend(userId(parsed.data.userId));
 });
 
 const unsubDmCreate = onGatewayEvent(Opcode.DM_CHANNEL_CREATE, (data) => {
-  const parsed = dmChannelCreateSchema.safeParse(data);
+  const parsed = dmChannelCreateEventSchema.safeParse(data);
   if (!parsed.success) return;
   const d = parsed.data;
   addDmChannel({

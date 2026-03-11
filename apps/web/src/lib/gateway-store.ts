@@ -1,6 +1,5 @@
 import { createSignal } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
-import { z } from "zod";
 import type { UserId, ServerId, ChannelId, DmChannelId } from "@uncorded/protocol";
 
 export type GatewayStatus = "disconnected" | "connecting" | "connected";
@@ -59,63 +58,6 @@ export interface ReadyData {
   dmChannels: ReadyDmChannel[];
   friends: ReadyFriend[];
 }
-
-export const readyDataSchema = z.object({
-  user: z.object({
-    id: z.string(),
-    username: z.string().nullable(),
-    displayName: z.string().nullable(),
-    avatarUrl: z.string().nullable(),
-    status: z.string(),
-    subscriptionTier: z.string(),
-  }),
-  servers: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string(),
-      iconUrl: z.string().nullable(),
-      ownerId: z.string(),
-      channels: z.array(
-        z.object({
-          id: z.string(),
-          serverId: z.string(),
-          name: z.string(),
-          type: z.string(),
-          position: z.number(),
-          topic: z.string().nullable(),
-          fileSharingEnabled: z.boolean(),
-        }),
-      ),
-    }),
-  ),
-  dmChannels: z
-    .array(
-      z.object({
-        id: z.string(),
-        otherUser: z.object({
-          id: z.string(),
-          username: z.string().nullable(),
-          displayName: z.string().nullable(),
-          avatarUrl: z.string().nullable(),
-          status: z.string(),
-        }),
-      }),
-    )
-    .default([]),
-  friends: z
-    .array(
-      z.object({
-        userId: z.string(),
-        username: z.string().nullable(),
-        displayName: z.string().nullable(),
-        avatarUrl: z.string().nullable(),
-        status: z.string(),
-        friendshipStatus: z.string(),
-        incoming: z.boolean(),
-      }),
-    )
-    .default([]),
-});
 
 const [gatewayStatus, setGatewayStatus] = createSignal<GatewayStatus>("disconnected");
 const [readyData, setReadyData] = createStore<{ data: ReadyData | null }>({ data: null });

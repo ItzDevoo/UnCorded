@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@msgpack/msgpack": "^3"
+    "@msgpack/msgpack": "^3",
+    "zod": "^3"
   }
 }

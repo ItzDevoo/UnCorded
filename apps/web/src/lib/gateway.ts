@@ -1,11 +1,10 @@
-import { Opcode, CloseCode, encode, decode } from "@uncorded/protocol";
+import { Opcode, CloseCode, encode, decode, readyEventSchema } from "@uncorded/protocol";
 import type { GatewayFrame } from "@uncorded/protocol";
 import { API_BASE } from "./config.js";
 import {
   setGatewayStatus,
   setReadyPayload,
   clearReadyPayload,
-  readyDataSchema,
   type ReadyData,
 } from "./gateway-store.js";
 
@@ -65,7 +64,7 @@ function handleMessage(event: MessageEvent) {
       break;
     }
     case Opcode.READY: {
-      const parsed = readyDataSchema.safeParse(frame.d);
+      const parsed = readyEventSchema.safeParse(frame.d);
       if (!parsed.success) {
         if (import.meta.env.DEV) {
           console.error("[gateway] Invalid READY payload:", parsed.error.issues);

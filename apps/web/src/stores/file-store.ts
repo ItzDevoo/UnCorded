@@ -1,8 +1,13 @@
 import { createStore, produce } from "solid-js/store";
-import { z } from "zod";
 import { Opcode } from "@uncorded/protocol";
 import type { AnyChannelId, FileReceiptId, UserId } from "@uncorded/protocol";
-import { channelId, fileReceiptId, userId } from "@uncorded/protocol";
+import {
+  channelId,
+  fileReceiptId,
+  userId,
+  fileShareEventSchema,
+  fileAvailabilityEventSchema,
+} from "@uncorded/protocol";
 import { onGatewayEvent, sendFrame } from "../lib/gateway.js";
 import {
   seedFile,
@@ -48,26 +53,6 @@ const [store, setStore] = createStore<FileStoreState>({
   receipts: {},
   transfers: {},
   seeders: {},
-});
-
-// ── Zod schemas for WS event validation ─────────────────────────────────────
-
-const fileShareBroadcastSchema = z.object({
-  senderId: z.string(),
-  fileReceiptId: z.string(),
-  channelId: z.string(),
-  fileName: z.string(),
-  fileSize: z.number(),
-  contentType: z.string(),
-  magnetUri: z.string(),
-  infoHash: z.string(),
-});
-
-const fileAvailabilitySchema = z.object({
-  fileReceiptId: z.string(),
-  channelId: z.string(),
-  userId: z.string(),
-  available: z.boolean(),
 });
 
 // ── Internal helpers ────────────────────────────────────────────────────────
@@ -215,7 +200,7 @@ export function getSeeders(frId: FileReceiptId): string[] {
 // ── WS listeners (run once on import) ───────────────────────────────────────
 
 const unsubFileShare = onGatewayEvent(Opcode.FILE_SHARE, (data) => {
-  const parsed = fileShareBroadcastSchema.safeParse(data);
+  const parsed = fileShareEventSchema.safeParse(data);
   if (!parsed.success) {
     if (import.meta.env.DEV) console.warn("Invalid FILE_SHARE payload:", parsed.error.issues);
     return;
@@ -234,7 +219,7 @@ const unsubFileShare = onGatewayEvent(Opcode.FILE_SHARE, (data) => {
 });
 
 const unsubAvailability = onGatewayEvent(Opcode.FILE_AVAILABILITY_UPDATE, (data) => {
-  const parsed = fileAvailabilitySchema.safeParse(data);
+  const parsed = fileAvailabilityEventSchema.safeParse(data);
   if (!parsed.success) {
     if (import.meta.env.DEV)
       console.warn("Invalid FILE_AVAILABILITY_UPDATE payload:", parsed.error.issues);

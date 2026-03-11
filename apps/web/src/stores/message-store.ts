@@ -1,9 +1,16 @@
 import { createStore, produce } from "solid-js/store";
-import { z } from "zod";
 import { MESSAGE_PAGE_LIMIT, TYPING_TIMEOUT_MS } from "@uncorded/shared";
 import { Opcode } from "@uncorded/protocol";
 import type { MessageId, AnyChannelId, UserId } from "@uncorded/protocol";
-import { channelId, messageId, userId } from "@uncorded/protocol";
+import {
+  channelId,
+  messageId,
+  userId,
+  messageCreateEventSchema,
+  messageUpdateEventSchema,
+  messageDeleteEventSchema,
+  typingStartEventSchema,
+} from "@uncorded/protocol";
 import { onGatewayEvent } from "../lib/gateway.js";
 import { api } from "../lib/api.js";
 import { readyData } from "../lib/gateway-store.js";
@@ -45,46 +52,6 @@ const LIMIT = MESSAGE_PAGE_LIMIT;
 const [store, setStore] = createStore<MessageStoreState>({
   channels: {},
   typing: {},
-});
-
-// --- Zod schemas for WS event validation ---
-
-const authorSchema = z.object({
-  id: z.string(),
-  username: z.string().nullable(),
-  displayName: z.string().nullable(),
-  avatarUrl: z.string().nullable(),
-});
-
-/** Accepts both ISO strings and Date objects (MessagePack preserves Dates). */
-const coerceDate = z.union([z.string(), z.date().transform((d) => d.toISOString())]);
-const coerceDateNullable = coerceDate.nullable();
-
-const messageCreateSchema = z.object({
-  id: z.string(),
-  channelId: z.string(),
-  content: z.string(),
-  editedAt: coerceDateNullable,
-  createdAt: coerceDate,
-  author: authorSchema,
-});
-
-const messageUpdateSchema = z.object({
-  id: z.string(),
-  channelId: z.string(),
-  content: z.string(),
-  editedAt: coerceDateNullable,
-});
-
-const messageDeleteSchema = z.object({
-  id: z.string(),
-  channelId: z.string(),
-});
-
-const typingStartSchema = z.object({
-  channelId: z.string(),
-  userId: z.string(),
-  username: z.string(),
 });
 
 export async function fetchMessages(cId: AnyChannelId) {
@@ -210,7 +177,7 @@ export function addTypingUser(cId: AnyChannelId, uId: UserId, username: string) 
 // --- WS listeners (run once on import) ---
 
 const unsubCreate = onGatewayEvent(Opcode.MESSAGE_CREATE, (data) => {
-  const parsed = messageCreateSchema.safeParse(data);
+  const parsed = messageCreateEventSchema.safeParse(data);
   if (!parsed.success) {
     if (import.meta.env.DEV) console.warn("Invalid MESSAGE_CREATE payload:", parsed.error.issues);
     return;
@@ -233,7 +200,7 @@ const unsubCreate = onGatewayEvent(Opcode.MESSAGE_CREATE, (data) => {
 });
 
 const unsubUpdate = onGatewayEvent(Opcode.MESSAGE_UPDATE, (data) => {
-  const parsed = messageUpdateSchema.safeParse(data);
+  const parsed = messageUpdateEventSchema.safeParse(data);
   if (!parsed.success) {
     if (import.meta.env.DEV) console.warn("Invalid MESSAGE_UPDATE payload:", parsed.error.issues);
     return;
@@ -246,7 +213,7 @@ const unsubUpdate = onGatewayEvent(Opcode.MESSAGE_UPDATE, (data) => {
 });
 
 const unsubDelete = onGatewayEvent(Opcode.MESSAGE_DELETE, (data) => {
-  const parsed = messageDeleteSchema.safeParse(data);
+  const parsed = messageDeleteEventSchema.safeParse(data);
   if (!parsed.success) {
     if (import.meta.env.DEV) console.warn("Invalid MESSAGE_DELETE payload:", parsed.error.issues);
     return;
@@ -256,7 +223,7 @@ const unsubDelete = onGatewayEvent(Opcode.MESSAGE_DELETE, (data) => {
 });
 
 const unsubTyping = onGatewayEvent(Opcode.TYPING_START, (data) => {
-  const parsed = typingStartSchema.safeParse(data);
+  const parsed = typingStartEventSchema.safeParse(data);
   if (!parsed.success) {
     if (import.meta.env.DEV) console.warn("Invalid TYPING_START payload:", parsed.error.issues);
     return;

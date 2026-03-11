@@ -6,9 +6,23 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Deep Review Tier 3 Batch 1 Complete
+## Current Status: Deep Review Tier 3 Batch 2 Complete
 
-Security hardening, auth refactor, and webhook improvements landed.
+WS Zod schemas consolidated into @uncorded/protocol — single source of truth.
+
+---
+
+### Deep Review Tier 3 Batch 2 — Protocol Consolidation — 2026-03-11
+
+**What was done:**
+
+- All WS Zod schemas moved to `packages/protocol/src/schemas.ts` (5 request + 14 event schemas)
+- Server gateway/handlers and all client stores import from `@uncorded/protocol`
+- Zero inline WS schemas remain in consumer files
+- Includes coerceDate helpers for MessagePack Date handling
+- All checks pass: typecheck (0 errors), lint (0 warnings)
+
+---
 
 ---
 

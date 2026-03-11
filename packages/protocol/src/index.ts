@@ -9,3 +9,4 @@ export type {
   FileShareBroadcast,
   FileAvailabilityPayload,
 } from "./signaling.js";
+export * from "./schemas.js";

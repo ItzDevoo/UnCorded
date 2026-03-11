@@ -7,7 +7,8 @@
     "dev": "bun run --env-file=../../.env --hot src/index.ts",
     "typecheck": "tsc --noEmit",
     "db:migrate": "bun run --env-file=../../.env src/db/migrate.ts",
-    "db:generate": "bun run --env-file=../../.env bunx drizzle-kit generate"
+    "db:generate": "bun run --env-file=../../.env bunx drizzle-kit generate",
+    "test": "vitest run"
   },
   "dependencies": {
     "@elysiajs/cors": "^1",
@@ -25,6 +26,7 @@
   },
   "devDependencies": {
     "@types/bun": "^1",
-    "drizzle-kit": "^0.31"
+    "drizzle-kit": "^0.31",
+    "vitest": "^4.0.18"
   }
 }

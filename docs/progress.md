@@ -6,9 +6,31 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Deep Review Tier 3 Batch 4 Complete
+## Current Status: Deep Review Tier 3 Complete (All 5 Batches)
 
-Redis wired up for rate limiting and pub/sub foundation. Graceful degradation when unconfigured.
+Test infrastructure set up, 93 tests covering rate limiting, webhooks, permissions, and schemas.
+
+---
+
+### Deep Review Tier 3 Batch 5 — Tests — 2026-03-11
+
+**What was done:**
+
+- Vitest v4.0.18 installed in apps/server, packages/shared, packages/protocol
+- vitest.config.ts per workspace, `test` task in turbo.json, `bun run test` works
+- 6 test files, 93 tests, all passing:
+  - `rate-limit.test.ts` (6) — in-memory WS rate limiting, per-user/per-opcode buckets, window reset
+  - `ip-rate-limit.test.ts` (5) — IP rate limiting, per-IP buckets, window reset
+  - `webhook.test.ts` (15) — Stripe webhook handlers: checkout, subscription update/delete, payment_failed, edge cases
+  - `permissions.test.ts` (7) — requireMember, requireOwner, isMember with mocked DB
+  - `shared/schemas.test.ts` (36) — all Zod schemas: server, channel, message, user, DM validation
+  - `protocol/schemas.test.ts` (24) — WS payload schemas: identify, typing, file share, ready event, coerceDate
+- All tests mock external deps (DB, Stripe, Redis) — no real services required
+- All checks pass: typecheck (0 errors), lint (0 warnings), test (93 passed)
+
+---
+
+### Deep Review Tier 3 Batch 4 — Redis — 2026-03-11
 
 ---
 

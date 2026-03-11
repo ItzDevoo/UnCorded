@@ -19,7 +19,7 @@ function displayName(f: { displayName: string | null; username: string | null })
 
 const Friends = () => {
   const [tab, setTab] = createSignal<Tab>("all");
-  const [addUserId, setAddUserId] = createSignal("");
+  const [addUsername, setAddUsername] = createSignal("");
   const [error, setError] = createSignal<string | null>(null);
   const [actionError, setActionError] = createSignal<string | null>(null);
   const [sending, setSending] = createSignal(false);
@@ -37,13 +37,13 @@ const Friends = () => {
   );
 
   async function handleAddFriend() {
-    const id = addUserId().trim();
-    if (!id) return;
+    const name = addUsername().trim();
+    if (!name) return;
     setError(null);
     setSending(true);
     try {
-      await sendFriendRequest(id);
-      setAddUserId("");
+      await sendFriendRequest(name);
+      setAddUsername("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to send request");
     } finally {
@@ -95,15 +95,15 @@ const Friends = () => {
           <div class="flex gap-2">
             <Input
               type="text"
-              placeholder="Enter a User ID"
-              value={addUserId()}
-              onInput={(e) => setAddUserId(e.currentTarget.value)}
+              placeholder="Enter a username"
+              value={addUsername()}
+              onInput={(e) => setAddUsername(e.currentTarget.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleAddFriend();
               }}
               class="flex-1"
             />
-            <Button onClick={handleAddFriend} disabled={sending() || !addUserId().trim()}>
+            <Button onClick={handleAddFriend} disabled={sending() || !addUsername().trim()}>
               Send Request
             </Button>
           </div>

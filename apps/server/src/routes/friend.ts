@@ -34,20 +34,20 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
     }
 
-    const targetId = parsed.data.userId;
-
-    if (targetId === sessionUser.id) {
-      throw new ValidationError("Cannot send a friend request to yourself");
-    }
-
-    // Check target user exists
+    // Look up target user by username
     const [target] = await db
       .select({ id: user.id })
       .from(user)
-      .where(eq(user.id, targetId))
+      .where(eq(user.username, parsed.data.username))
       .limit(1);
     if (!target) {
-      throw new NotFoundError("User");
+      throw new NotFoundError("User not found");
+    }
+
+    const targetId = target.id;
+
+    if (targetId === sessionUser.id) {
+      throw new ValidationError("Cannot send a friend request to yourself");
     }
 
     // Check for existing friendship in either direction

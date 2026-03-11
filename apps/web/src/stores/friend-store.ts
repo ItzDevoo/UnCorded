@@ -70,11 +70,11 @@ const unsubRemove = onGatewayEvent(Opcode.FRIEND_REMOVE, (data) => {
 
 // ── API functions ───────────────────────────────────────────────────────────
 
-export async function sendFriendRequest(targetUserId: string): Promise<void> {
+export async function sendFriendRequest(username: string): Promise<void> {
   try {
     await api("/api/friends/request", {
       method: "POST",
-      body: JSON.stringify({ userId: targetUserId }),
+      body: JSON.stringify({ username }),
     });
   } catch (err) {
     showToast(err instanceof Error ? err.message : "Something went wrong", "error");

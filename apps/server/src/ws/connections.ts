@@ -6,6 +6,7 @@ import type { GatewayFrame } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { dmMembers } from "../db/schema.js";
 import { getServerMembers } from "./server-members.js";
+import { lookupDmChannel } from "./channel-cache.js";
 
 /** userId → set of active WebSocket connections (supports multiple tabs) */
 export const clients = new Map<string, Set<AnyServerWebSocket>>();
@@ -75,6 +76,27 @@ export async function broadcastToDm(
   frame: GatewayFrame,
   excludeUserId?: string,
 ): Promise<void> {
+  // Cache-first: use in-memory DM member set
+  const cachedMembers = lookupDmChannel(channelId);
+  if (cachedMembers) {
+    const buf = Buffer.from(encode(frame));
+    for (const uid of cachedMembers) {
+      if (uid === excludeUserId) continue;
+      const set = clients.get(uid);
+      if (!set) continue;
+      for (const ws of set) {
+        try {
+          ws.send(buf);
+        } catch {
+          set.delete(ws);
+          if (set.size === 0) clients.delete(uid);
+        }
+      }
+    }
+    return;
+  }
+
+  // DB fallback on cache miss
   const dmRows = await db
     .select({ userId: dmMembers.userId })
     .from(dmMembers)

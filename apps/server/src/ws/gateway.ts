@@ -63,6 +63,8 @@ const fileAvailabilitySchema = z.object({
 
 interface WsContext {
   userId: string | null;
+  username: string | null;
+  subscriptionTier: string;
   heartbeatTimeout: Timer | null;
 }
 
@@ -71,7 +73,7 @@ const wsContexts = new WeakMap<object, WsContext>();
 function getCtx(ws: { raw: object }): WsContext {
   let ctx = wsContexts.get(ws.raw);
   if (!ctx) {
-    ctx = { userId: null, heartbeatTimeout: null };
+    ctx = { userId: null, username: null, subscriptionTier: "free", heartbeatTimeout: null };
     wsContexts.set(ws.raw, ctx);
   }
   return ctx;
@@ -127,6 +129,8 @@ export const gateway = new Elysia().ws("/gateway", {
           }
 
           ctx.userId = result.userId;
+          ctx.username = result.username;
+          ctx.subscriptionTier = result.subscriptionTier;
           resetHeartbeatTimeout(ws);
           break;
         }
@@ -158,15 +162,9 @@ export const gateway = new Elysia().ws("/gateway", {
           const resolution = await resolveChannelMembership(ctx.userId, d.channelId);
           if (!resolution) break;
 
-          const [usr] = await db
-            .select({ username: user.username })
-            .from(user)
-            .where(eq(user.id, ctx.userId))
-            .limit(1);
-
           const typingFrame = {
             op: Opcode.TYPING_START,
-            d: { channelId: d.channelId, userId: ctx.userId, username: usr?.username ?? null },
+            d: { channelId: d.channelId, userId: ctx.userId, username: ctx.username },
           } as const;
 
           if (resolution.type === "server") {
@@ -246,14 +244,10 @@ export const gateway = new Elysia().ws("/gateway", {
           if (!resolution) break;
 
           // Free users cannot share files in server channels (DM sharing is always P2P/free)
+          // Note: subscriptionTier is cached from IDENTIFY — may be stale if changed via webhook
+          // between sessions. Acceptable trade-off: user reconnects to pick up tier changes.
           if (resolution.type === "server") {
-            const [fsUser] = await db
-              .select({ subscriptionTier: user.subscriptionTier })
-              .from(user)
-              .where(eq(user.id, ctx.userId))
-              .limit(1);
-
-            if (!fsUser || fsUser.subscriptionTier === FREE_TIER) {
+            if (ctx.subscriptionTier === FREE_TIER) {
               sendToUser(ctx.userId, {
                 op: Opcode.ERROR,
                 d: {

@@ -6,9 +6,22 @@ This is the real state of the codebase — not what is planned, but what works.
 
 ---
 
-## Current Status: Deep Review Tier 1A — Hardening complete
+## Current Status: Deep Review Tier 1 Complete — All hardening landed
 
-WS rate limiting, DB transactions, and missing indexes landed. Foundation hardened before continuing feature work.
+WS rate limiting, DB transactions, missing indexes, and in-memory caching all landed. Gateway hot paths now hit zero DB queries when cached. Foundation hardened before continuing feature work.
+
+---
+
+### Deep Review Tier 1B — Caching — 2026-03-11
+
+**What was done:**
+
+- **Channel resolution cache** — new `apps/server/src/ws/channel-cache.ts` with dual Maps (channelId→serverId, dmChannelId→Set\<userId\>). Seeded on IDENTIFY, updated on channel/DM create/delete.
+- **resolveChannelMembership cache-first** — checks in-memory channel cache + server-members registry before hitting DB. DB fallback on cache miss only.
+- **broadcastToDm cache-first** — uses cached DM member set instead of DB query. DB fallback preserved.
+- **WsContext caching** — username and subscriptionTier stored in WsContext on IDENTIFY. TYPING_START and FILE_SHARE no longer query DB for these values.
+- Net result: gateway hot paths (typing, file share, signaling) go from 2-5 DB queries per message to 0 when cached.
+- All checks pass: typecheck (0 errors), lint (0 warnings)
 
 ---
 

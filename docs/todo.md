@@ -455,9 +455,9 @@ Goal: Replace Discord-clone UI with a distinctive, polished design inspired by t
 - [x] Wrap server creation in `db.transaction()` — `apps/server/src/routes/server.ts` lines 36-63
 - [x] Wrap DM channel creation in `db.transaction()` — `apps/server/src/routes/dm.ts` + `apps/server/src/routes/friend.ts` ensureDmChannel
 - [x] Add missing DB indexes — `subscriptions.user_id`, `subscriptions.stripe_subscription_id`, `dm_members.user_id`, `file_receipts.channel_id`, `invites.server_id`
-- [ ] Cache `resolveChannelMembership` in-memory — `apps/server/src/helpers/resolve-channel.ts` (2 DB queries per WS message)
-- [ ] Cache DM membership in-memory (like server-members.ts) — `apps/server/src/ws/connections.ts` broadcastToDm
-- [ ] Cache username in WsContext on IDENTIFY — `apps/server/src/ws/gateway.ts` TYPING_START handler
+- [x] Cache `resolveChannelMembership` in-memory — `apps/server/src/helpers/resolve-channel.ts` (2 DB queries per WS message)
+- [x] Cache DM membership in-memory (like server-members.ts) — `apps/server/src/ws/connections.ts` broadcastToDm
+- [x] Cache username in WsContext on IDENTIFY — `apps/server/src/ws/gateway.ts` TYPING_START handler
 
 ### Tier 2 — Fix This Week
 

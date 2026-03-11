@@ -1,6 +1,8 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { channels, members, dmMembers } from "../db/schema.js";
+import { lookupServerChannel, lookupDmChannel } from "../ws/channel-cache.js";
+import { getServerMembers } from "../ws/server-members.js";
 
 export type ChannelResolution = { type: "server"; serverId: string } | { type: "dm" };
 
@@ -8,12 +10,29 @@ export type ChannelResolution = { type: "server"; serverId: string } | { type: "
  * Resolve a channel ID to either a server channel or DM channel,
  * verifying that the given user is a member.
  * Returns null if the channel doesn't exist or the user isn't a member.
+ *
+ * Uses in-memory cache first, falls back to DB on cache miss.
  */
 export async function resolveChannelMembership(
   userId: string,
   channelId: string,
 ): Promise<ChannelResolution | null> {
-  // Try server channel first
+  // Cache-first: server channel
+  const cachedServerId = lookupServerChannel(channelId);
+  if (cachedServerId) {
+    const memberSet = getServerMembers(cachedServerId);
+    if (!memberSet?.has(userId)) return null;
+    return { type: "server", serverId: cachedServerId };
+  }
+
+  // Cache-first: DM channel
+  const cachedDmMembers = lookupDmChannel(channelId);
+  if (cachedDmMembers) {
+    if (!cachedDmMembers.has(userId)) return null;
+    return { type: "dm" };
+  }
+
+  // DB fallback on cache miss
   const [serverCh] = await db
     .select({ serverId: channels.serverId })
     .from(channels)
@@ -30,7 +49,6 @@ export async function resolveChannelMembership(
     return { type: "server", serverId: serverCh.serverId };
   }
 
-  // Try DM channel
   const [dmMem] = await db
     .select({ channelId: dmMembers.channelId })
     .from(dmMembers)

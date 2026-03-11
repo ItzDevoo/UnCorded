@@ -21,11 +21,12 @@ import {
 } from "../db/schema.js";
 import { addConnection, type AnyServerWebSocket } from "./connections.js";
 import { registerUserServers } from "./server-members.js";
+import { seedChannelCache } from "./channel-cache.js";
 
 const identifySchema = z.object({ token: z.string() });
 
 type IdentifyResult =
-  | { success: true; userId: string }
+  | { success: true; userId: string; username: string | null; subscriptionTier: string }
   | { success: false; closeCode: number; closeReason: string };
 
 export async function handleIdentify(
@@ -167,6 +168,7 @@ export async function handleIdentify(
         status: string;
       };
     }[] = [];
+    let dmCacheSeed: { id: string; memberIds: string[] }[] = [];
 
     if (myDmMemberships.length > 0) {
       const dmChannelIds = myDmMemberships.map((m) => m.channelId);
@@ -194,6 +196,11 @@ export async function handleIdentify(
           avatarUrl: m.avatarUrl,
           status: m.status,
         },
+      }));
+
+      dmCacheSeed = otherDmMembers.map((m) => ({
+        id: m.channelId,
+        memberIds: [identifiedUserId, m.userId],
       }));
     }
 
@@ -267,9 +274,20 @@ export async function handleIdentify(
       ),
     );
 
+    // Seed channel cache for O(1) lookups during message handling
+    seedChannelCache(
+      userChannels.map((ch) => ({ id: ch.id, serverId: ch.serverId })),
+      dmCacheSeed,
+    );
+
     registerUserServers(identifiedUserId, serverIds);
 
-    return { success: true, userId: identifiedUserId };
+    return {
+      success: true,
+      userId: identifiedUserId,
+      username: dbUserRow.username,
+      subscriptionTier: dbUserRow.subscriptionTier,
+    };
   } catch (err) {
     console.error(
       "[handlers] Unexpected error in IDENTIFY:",

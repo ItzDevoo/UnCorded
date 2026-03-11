@@ -18,6 +18,7 @@ import { db } from "../db/index.js";
 import { friendships, user, dmChannels, dmMembers } from "../db/schema.js";
 import { getSession } from "../middleware/auth.js";
 import { sendToUser } from "../ws/connections.js";
+import { addDmChannelToCache } from "../ws/channel-cache.js";
 
 /**
  * Create a DM channel between two users if one doesn't already exist.
@@ -47,6 +48,8 @@ async function ensureDmChannel(userIdA: string, userIdB: string) {
       { channelId: dmId, userId: userIdB },
     ]);
   });
+
+  addDmChannelToCache(dmId, [userIdA, userIdB]);
 
   const [userA] = await db
     .select({

@@ -12,6 +12,7 @@ import { db } from "../db/index.js";
 import { channels } from "../db/schema.js";
 import { getSession } from "../middleware/auth.js";
 import { requireMember, requireOwner } from "../helpers/permissions.js";
+import { addChannelToCache, removeChannelFromCache } from "../ws/channel-cache.js";
 
 const serverChannelRoutes = new Elysia({ prefix: "/api/servers/:serverId/channels" })
   .resolve(async ({ status, request }) => {
@@ -52,6 +53,8 @@ const serverChannelRoutes = new Elysia({ prefix: "/api/servers/:serverId/channel
       .returning();
 
     if (!channel) throw new InternalError("Failed to create channel");
+
+    addChannelToCache(channel.id, channel.serverId);
 
     set.status = 201;
     return { ...channel, id: channelId(channel.id), serverId: serverId(channel.serverId) };
@@ -135,6 +138,8 @@ const channelIdRoutes = new Elysia({ prefix: "/api/channels/:channelId" })
     await requireOwner(sessionUser.id, channel.serverId);
 
     await db.delete(channels).where(eq(channels.id, params.channelId));
+
+    removeChannelFromCache(params.channelId);
 
     set.status = 204;
   });

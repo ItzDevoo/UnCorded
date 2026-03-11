@@ -7,6 +7,7 @@ import { db } from "../db/index.js";
 import { friendships, dmChannels, dmMembers, user } from "../db/schema.js";
 import { getSession } from "../middleware/auth.js";
 import { sendToUser } from "../ws/connections.js";
+import { addDmChannelToCache } from "../ws/channel-cache.js";
 
 export const dmRoutes = new Elysia({ prefix: "/api/dms" })
   .resolve(async ({ status, request }) => {
@@ -93,6 +94,8 @@ export const dmRoutes = new Elysia({ prefix: "/api/dms" })
         { channelId: dmId, userId: targetId },
       ]);
     });
+
+    addDmChannelToCache(dmId, [sessionUser.id, targetId]);
 
     const [otherUser] = await db
       .select({

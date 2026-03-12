@@ -52,12 +52,22 @@ export const gatewayTicketRoutes = new Elysia({ prefix: "/api/gateway" })
         await redis.set(redisKey, sessionUser.id, { ex: TICKET_TTL_SECONDS });
       } catch {
         if (!storeTicketInMemory(ticket, sessionUser.id, TICKET_TTL_SECONDS * 1000)) {
-          throw new AppError("ServiceUnavailableError", 503, "SERVICE_UNAVAILABLE", "Ticket store at capacity");
+          throw new AppError(
+            "ServiceUnavailableError",
+            503,
+            "SERVICE_UNAVAILABLE",
+            "Ticket store at capacity",
+          );
         }
       }
     } else {
       if (!storeTicketInMemory(ticket, sessionUser.id, TICKET_TTL_SECONDS * 1000)) {
-        throw new AppError("ServiceUnavailableError", 503, "SERVICE_UNAVAILABLE", "Ticket store at capacity");
+        throw new AppError(
+          "ServiceUnavailableError",
+          503,
+          "SERVICE_UNAVAILABLE",
+          "Ticket store at capacity",
+        );
       }
     }
 

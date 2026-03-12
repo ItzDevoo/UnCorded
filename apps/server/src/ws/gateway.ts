@@ -22,12 +22,7 @@ import { checkRateLimit } from "./rate-limit.js";
 import { eq, and } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { user, fileReceipts, dmMembers } from "../db/schema.js";
-import {
-  removeConnection,
-  sendToUser,
-  broadcastToServer,
-  broadcastToDm,
-} from "./connections.js";
+import { removeConnection, sendToUser, broadcastToServer, broadcastToDm } from "./connections.js";
 import { handleIdentify } from "./handlers.js";
 import { removeUserFromAllServers } from "./server-members.js";
 import { resolveChannelMembership } from "../helpers/resolve-channel.js";
@@ -124,8 +119,18 @@ export const gateway = new Elysia().ws("/gateway", {
             return;
           }
 
-          if (!(await checkRateLimit(ctx.userId, frame.op, RATE_LIMIT_TYPING_START.limit, RATE_LIMIT_TYPING_START.windowMs))) {
-            sendToUser(ctx.userId, { op: Opcode.ERROR, d: { code: "RATE_LIMITED", message: "Too many typing events" } });
+          if (
+            !(await checkRateLimit(
+              ctx.userId,
+              frame.op,
+              RATE_LIMIT_TYPING_START.limit,
+              RATE_LIMIT_TYPING_START.windowMs,
+            ))
+          ) {
+            sendToUser(ctx.userId, {
+              op: Opcode.ERROR,
+              d: { code: "RATE_LIMITED", message: "Too many typing events" },
+            });
             break;
           }
 
@@ -157,8 +162,18 @@ export const gateway = new Elysia().ws("/gateway", {
             return;
           }
 
-          if (!(await checkRateLimit(ctx.userId, frame.op, RATE_LIMIT_WEBRTC.limit, RATE_LIMIT_WEBRTC.windowMs))) {
-            sendToUser(ctx.userId, { op: Opcode.ERROR, d: { code: "RATE_LIMITED", message: "Too many WebRTC signals" } });
+          if (
+            !(await checkRateLimit(
+              ctx.userId,
+              frame.op,
+              RATE_LIMIT_WEBRTC.limit,
+              RATE_LIMIT_WEBRTC.windowMs,
+            ))
+          ) {
+            sendToUser(ctx.userId, {
+              op: Opcode.ERROR,
+              d: { code: "RATE_LIMITED", message: "Too many WebRTC signals" },
+            });
             break;
           }
 
@@ -205,8 +220,18 @@ export const gateway = new Elysia().ws("/gateway", {
             return;
           }
 
-          if (!(await checkRateLimit(ctx.userId, frame.op, RATE_LIMIT_FILE_SHARE.limit, RATE_LIMIT_FILE_SHARE.windowMs))) {
-            sendToUser(ctx.userId, { op: Opcode.ERROR, d: { code: "RATE_LIMITED", message: "Too many file shares" } });
+          if (
+            !(await checkRateLimit(
+              ctx.userId,
+              frame.op,
+              RATE_LIMIT_FILE_SHARE.limit,
+              RATE_LIMIT_FILE_SHARE.windowMs,
+            ))
+          ) {
+            sendToUser(ctx.userId, {
+              op: Opcode.ERROR,
+              d: { code: "RATE_LIMITED", message: "Too many file shares" },
+            });
             break;
           }
 
@@ -275,8 +300,18 @@ export const gateway = new Elysia().ws("/gateway", {
             return;
           }
 
-          if (!(await checkRateLimit(ctx.userId, frame.op, RATE_LIMIT_FILE_AVAILABILITY.limit, RATE_LIMIT_FILE_AVAILABILITY.windowMs))) {
-            sendToUser(ctx.userId, { op: Opcode.ERROR, d: { code: "RATE_LIMITED", message: "Too many availability updates" } });
+          if (
+            !(await checkRateLimit(
+              ctx.userId,
+              frame.op,
+              RATE_LIMIT_FILE_AVAILABILITY.limit,
+              RATE_LIMIT_FILE_AVAILABILITY.windowMs,
+            ))
+          ) {
+            sendToUser(ctx.userId, {
+              op: Opcode.ERROR,
+              d: { code: "RATE_LIMITED", message: "Too many availability updates" },
+            });
             break;
           }
 

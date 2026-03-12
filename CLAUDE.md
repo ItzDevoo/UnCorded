@@ -3,6 +3,7 @@
 Read docs/CLAUDE.md first. This file adds coding-specific context.
 
 ## Memory
+
 Read `memory.md` at session start — it has current state, technical lessons, and patterns that persist between conversations. Update it when you learn something new.
 
 ## Docs Location

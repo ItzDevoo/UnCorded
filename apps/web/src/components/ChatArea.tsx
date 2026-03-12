@@ -1,21 +1,52 @@
-import { createMemo, createEffect, Show, on } from "solid-js";
+import { createMemo, createEffect, createSignal, Show, on } from "solid-js";
 import type { AnyChannelId } from "@uncorded/protocol";
-import { selectedChannelId, selectedDmChannelId, currentChannels } from "../stores/app-store.js";
+import {
+  selectedChannelId,
+  selectedDmChannelId,
+  selectedServerId,
+  currentChannels,
+  currentServer,
+} from "../stores/app-store.js";
 import { readyData } from "../lib/gateway-store.js";
 import { fetchMessages, getMessages } from "../stores/message-store.js";
 import { shareFile } from "../stores/file-store.js";
+import { fetchMembers, getMembers } from "../stores/member-store.js";
 import { showToast } from "./ui/toast.js";
 import { Empty } from "./ui/empty.js";
 import VirtualMessageList from "./VirtualMessageList.js";
 import MessageInput from "./MessageInput.js";
 import FileDropZone from "./FileDropZone.js";
+import MemberList from "./MemberList.js";
+
+const UsersIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>
+);
 
 const ChatArea = () => {
+  const [showMembers, setShowMembers] = createSignal(false);
+
   const channelId = createMemo(
     () => selectedChannelId() ?? (selectedDmChannelId() as AnyChannelId | null),
   );
 
   const isDm = createMemo(() => !!selectedDmChannelId() && !selectedChannelId());
+  const isServerChannel = createMemo(() => !!selectedChannelId() && !!selectedServerId());
 
   const dmChannel = createMemo(() => {
     if (!isDm()) return null;
@@ -43,6 +74,15 @@ const ChatArea = () => {
     on(channelId, (id) => {
       if (id && !getMessages(id)) {
         fetchMessages(id);
+      }
+    }),
+  );
+
+  // Fetch members when a server channel is selected
+  createEffect(
+    on(selectedServerId, (sId) => {
+      if (sId && getMembers(sId).length === 0) {
+        fetchMembers(sId);
       }
     }),
   );
@@ -108,12 +148,37 @@ const ChatArea = () => {
                   )}
                 </Show>
               </Show>
+
+              {/* Spacer + member list toggle (server channels only) */}
+              <Show when={isServerChannel()}>
+                <div class="ml-auto">
+                  <button
+                    type="button"
+                    class={`rounded p-1.5 transition-colors ${showMembers() ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
+                    title="Toggle member list"
+                    aria-label="Toggle member list"
+                    onClick={() => setShowMembers((prev) => !prev)}
+                  >
+                    <UsersIcon />
+                  </button>
+                </div>
+              </Show>
             </div>
 
-            <FileDropZone channelId={id()} onFileSelect={handleFileSelect}>
-              <VirtualMessageList channelId={id()} />
-              <MessageInput channelId={id()} onFileSelect={handleFileSelect} />
-            </FileDropZone>
+            <div class="flex min-h-0 flex-1">
+              <FileDropZone
+                channelId={id()}
+                onFileSelect={handleFileSelect}
+                class="flex min-w-0 flex-1 flex-col"
+              >
+                <VirtualMessageList channelId={id()} />
+                <MessageInput channelId={id()} onFileSelect={handleFileSelect} />
+              </FileDropZone>
+
+              <Show when={isServerChannel() && showMembers() && currentServer()}>
+                {(server) => <MemberList serverId={server().id} ownerId={server().ownerId} />}
+              </Show>
+            </div>
           </>
         )}
       </Show>

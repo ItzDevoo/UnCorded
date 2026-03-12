@@ -7,6 +7,7 @@ import {
   clearReadyPayload,
   type ReadyData,
 } from "./gateway-store.js";
+import { setupStores } from "../stores/index.js";
 
 const WS_URL = API_BASE.replace(/^http/, "ws") + "/gateway";
 
@@ -19,6 +20,7 @@ let heartbeatAckTimeout: ReturnType<typeof setTimeout> | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectAttempts = 0;
 let intentionalClose = false;
+let storesInitialized = false;
 
 const listeners = new Map<Opcode, Set<(data: unknown) => void>>();
 
@@ -115,6 +117,10 @@ function handleMessage(event: MessageEvent) {
       reconnectAttempts = 0;
       setGatewayStatus("connected");
       setReadyPayload(parsed.data as ReadyData);
+      if (!storesInitialized) {
+        storesInitialized = true;
+        setupStores();
+      }
       dispatch(Opcode.READY, parsed.data);
       break;
     }
@@ -182,6 +188,7 @@ export function connectGateway(): void {
 
 export function disconnectGateway(): void {
   intentionalClose = true;
+  storesInitialized = false;
   clearTimers();
   listeners.clear();
   if (ws) {

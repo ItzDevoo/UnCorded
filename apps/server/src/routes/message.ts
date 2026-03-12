@@ -62,9 +62,7 @@ async function fetchMessageWithAuthor(msgId: string) {
     .limit(1);
 
   if (!row) return null;
-  const author = row.author?.id
-    ? { ...row.author, id: userId(row.author.id) }
-    : DELETED_AUTHOR;
+  const author = row.author?.id ? { ...row.author, id: userId(row.author.id) } : DELETED_AUTHOR;
   return {
     ...row,
     id: messageId(row.id),

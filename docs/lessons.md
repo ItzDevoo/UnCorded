@@ -225,6 +225,7 @@ This applies to any module that registers global listeners or timers at the top 
 All known issues are now tracked on GitHub Issues: https://github.com/ItzDevoo/UnCorded/issues
 
 Previously resolved issues from this section (deep review batches):
+
 - ~~broadcastToDm DB on every call~~ → cached in-memory (deep review tier 1)
 - ~~Username DB lookup on TYPING_START~~ → cached in WsContext (deep review tier 1)
 - ~~Server creation not transactional~~ → wrapped in db.transaction() (deep review tier 1)

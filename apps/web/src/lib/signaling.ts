@@ -1,9 +1,4 @@
-import {
-  Opcode,
-  userId,
-  channelId as toChannelId,
-  signalingEventSchema,
-} from "@uncorded/protocol";
+import { Opcode, userId, channelId as toChannelId, signalingEventSchema } from "@uncorded/protocol";
 import type { UserId, ChannelId } from "@uncorded/protocol";
 import { sendFrame, onGatewayEvent } from "./gateway.js";
 

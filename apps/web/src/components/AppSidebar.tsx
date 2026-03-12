@@ -225,9 +225,7 @@ const AppSidebar = () => {
           <SidebarGroup label="Channels" actions={channelActions()} collapsible defaultOpen>
             <Show
               when={channelCacheLoading() !== selectedServerId()}
-              fallback={
-                <p class="px-4 py-3 text-xs text-muted-foreground">Loading channels...</p>
-              }
+              fallback={<p class="px-4 py-3 text-xs text-muted-foreground">Loading channels...</p>}
             >
               <SidebarMenu>
                 <For each={currentChannels()}>

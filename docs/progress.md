@@ -15,6 +15,7 @@ Quick-wins batch: invite accept race condition fixed (db.transaction), roles/mem
 ## What Works
 
 ### Infrastructure
+
 - Bun monorepo with Turborepo (apps/web, apps/server, packages/shared, packages/protocol)
 - PostgreSQL (Neon) + Drizzle ORM — 17+ tables, 6 migrations applied
 - Redis (Upstash) — rate limiting with in-memory fallback, pub/sub foundation (subscriber stubbed)
@@ -26,11 +27,13 @@ Quick-wins batch: invite accept race condition fixed (db.transaction), roles/mem
 - Dev runner TUI (colored prefixed output for server + web)
 
 ### Auth
+
 - Better Auth (email/password + Discord OAuth + Google OAuth)
 - Session-based auth with cookie credentials
 - authResolve() factory (single source of truth for all routes)
 
 ### Backend API
+
 - Server CRUD, Channel CRUD, Member management, Invites
 - Message CRUD with cursor-based pagination (composite cursor with tiebreaking)
 - Friend system (request, accept, decline, block, remove)
@@ -40,6 +43,7 @@ Quick-wins batch: invite accept race condition fixed (db.transaction), roles/mem
 - CSRF content-type guard on all state-changing endpoints
 
 ### WebSocket Gateway
+
 - HELLO → IDENTIFY → READY lifecycle with MessagePack binary frames
 - Heartbeat (30s client, 45s server timeout) with HEARTBEAT_ACK (10s client timeout)
 - Close handler race condition fixed (atomic last-connection check)
@@ -52,6 +56,7 @@ Quick-wins batch: invite accept race condition fixed (db.transaction), roles/mem
 - Events: MESSAGE_CREATE/UPDATE/DELETE, TYPING_START, FILE_SHARE, FILE_AVAILABILITY_UPDATE, WEBRTC_OFFER/ANSWER/ICE_CANDIDATE, SERVER_CREATE/DELETE, MEMBER_ADD/REMOVE, FRIEND_REQUEST/ACCEPT/REMOVE, DM_CHANNEL_CREATE
 
 ### Stripe Subscriptions
+
 - Supporter ($5/mo) and Server Owner ($10/mo) products created
 - Checkout flow (creates Stripe Checkout Session, redirects to Stripe)
 - Webhook handlers: checkout.session.completed, subscription.updated, subscription.deleted, invoice.payment_failed
@@ -60,6 +65,7 @@ Quick-wins batch: invite accept race condition fixed (db.transaction), roles/mem
 - Force WS reconnect on tier change (CloseCode.SESSION_UPDATED)
 
 ### P2P File Sharing
+
 - WebTorrent in browser (seed + download via WebRTC DataChannels)
 - WebRTC signaling through WS gateway
 - STUN configuration (Google public servers)
@@ -70,6 +76,7 @@ Quick-wins batch: invite accept race condition fixed (db.transaction), roles/mem
 - Error messaging when P2P fails (NAT blocked, no TURN for free users)
 
 ### Frontend
+
 - SolidJS + Vite + Tailwind v4
 - Green-tinted OKLCH design system with DM Sans font
 - UI primitives: Button, Input, Badge, Card, Dialog, Tooltip, ScrollArea, Skeleton, Empty
@@ -88,6 +95,7 @@ Quick-wins batch: invite accept race condition fixed (db.transaction), roles/mem
 - "Load more" pagination for DMs and friends
 
 ### Domain
+
 - uncorded.app (Cloudflare)
 
 ---

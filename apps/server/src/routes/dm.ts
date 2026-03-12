@@ -162,12 +162,7 @@ export const dmRoutes = new Elysia({ prefix: "/api/dms" })
         userId: dmMembers.userId,
       })
       .from(dmMembers)
-      .where(
-        and(
-          inArray(dmMembers.channelId, channelIds),
-          ne(dmMembers.userId, sessionUser.id),
-        ),
-      );
+      .where(and(inArray(dmMembers.channelId, channelIds), ne(dmMembers.userId, sessionUser.id)));
 
     if (otherMembers.length === 0) return { dmChannels: [], hasMore };
 
@@ -186,22 +181,28 @@ export const dmRoutes = new Elysia({ prefix: "/api/dms" })
 
     const userMap = new Map(users.map((u) => [u.id, u]));
 
+    const otherMemberMap = new Map(otherMembers.map((m) => [m.channelId, m.userId]));
+
     return {
-      dmChannels: otherMembers.map((m) => {
-        const u = userMap.get(m.userId);
-        return {
-          id: brandDmChannelId(m.channelId),
-          otherUser: u
-            ? {
-                id: brandUserId(u.id),
-                username: u.username,
-                displayName: u.displayName,
-                avatarUrl: u.avatarUrl,
-                status: u.status,
-              }
-            : null,
-        };
-      }),
+      dmChannels: page
+        .map((p) => {
+          const otherUserId = otherMemberMap.get(p.channelId);
+          if (!otherUserId) return null;
+          const u = userMap.get(otherUserId);
+          return {
+            id: brandDmChannelId(p.channelId),
+            otherUser: u
+              ? {
+                  id: brandUserId(u.id),
+                  username: u.username,
+                  displayName: u.displayName,
+                  avatarUrl: u.avatarUrl,
+                  status: u.status,
+                }
+              : null,
+          };
+        })
+        .filter(Boolean),
       hasMore,
     };
   });

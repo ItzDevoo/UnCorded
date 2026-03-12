@@ -17,12 +17,14 @@ Reference: C:\Nexis (monorepo patterns, auth, WS gateway), C:\t3Code (tooling, U
 ## Current: Week 4 — Subscriptions + Server File Sharing
 
 ### Done
+
 - [x] Stripe checkout flow for tier upgrades
 - [x] Stripe webhook handler (subscription created/updated/cancelled/payment_failed)
 - [x] Subscription status sync to DB (users.subscription_tier)
 - [x] Stripe Customer Portal for self-serve management
 
 ### Remaining (see GitHub Issues)
+
 - [ ] Stripe Tax + transparency receipt UI (#18)
 - [ ] Server file sharing gate + TURN relay (#19)
 - [ ] Presence system (#20)

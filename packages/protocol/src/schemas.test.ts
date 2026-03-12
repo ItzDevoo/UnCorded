@@ -103,9 +103,7 @@ describe("readyEventSchema", () => {
       status: "online",
       subscriptionTier: "free",
     },
-    servers: [
-      { id: "s1", name: "Test Server", iconUrl: null, ownerId: "u1" },
-    ],
+    servers: [{ id: "s1", name: "Test Server", iconUrl: null, ownerId: "u1" }],
     dmChannels: [],
     hasMoreDmChannels: false,
     friends: [],

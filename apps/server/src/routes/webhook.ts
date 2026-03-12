@@ -57,7 +57,11 @@ export const webhookRoutes = new Elysia()
 
     let event: Stripe.Event;
     try {
-      event = await stripe.webhooks.constructEventAsync(rawBody, signature, env.STRIPE_WEBHOOK_SECRET);
+      event = await stripe.webhooks.constructEventAsync(
+        rawBody,
+        signature,
+        env.STRIPE_WEBHOOK_SECRET,
+      );
     } catch {
       set.status = 400;
       return { error: "Invalid signature" };
@@ -212,7 +216,9 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
   const stripeSubscriptionId = typeof sub === "string" ? sub : sub?.id;
 
   if (!stripeSubscriptionId) {
-    console.error(`Webhook invoice.payment_failed: missing subscription ID (invoice: ${invoice.id})`);
+    console.error(
+      `Webhook invoice.payment_failed: missing subscription ID (invoice: ${invoice.id})`,
+    );
     return;
   }
 

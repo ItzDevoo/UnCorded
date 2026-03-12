@@ -174,94 +174,108 @@ export function addTypingUser(cId: AnyChannelId, uId: UserId, username: string) 
   );
 }
 
-// --- WS listeners (run once on import) ---
+// --- WS listener unsub refs (module-level for HMR dispose access) ---
 
-const unsubCreate = onGatewayEvent(Opcode.MESSAGE_CREATE, (data) => {
-  const parsed = messageCreateEventSchema.safeParse(data);
-  if (!parsed.success) {
-    if (import.meta.env.DEV) console.warn("Invalid MESSAGE_CREATE payload:", parsed.error.issues);
-    return;
-  }
-  const d = parsed.data;
-  const msg: Message = {
-    id: messageId(d.id),
-    channelId: channelId(d.channelId),
-    content: d.content,
-    editedAt: d.editedAt,
-    createdAt: d.createdAt,
-    author: {
-      id: userId(d.author.id),
-      username: d.author.username,
-      displayName: d.author.displayName,
-      avatarUrl: d.author.avatarUrl,
-    },
-  };
-  addMessage(msg.channelId, msg);
-});
-
-const unsubUpdate = onGatewayEvent(Opcode.MESSAGE_UPDATE, (data) => {
-  const parsed = messageUpdateEventSchema.safeParse(data);
-  if (!parsed.success) {
-    if (import.meta.env.DEV) console.warn("Invalid MESSAGE_UPDATE payload:", parsed.error.issues);
-    return;
-  }
-  const d = parsed.data;
-  updateMessage(channelId(d.channelId), messageId(d.id), {
-    content: d.content,
-    editedAt: d.editedAt,
-  });
-});
-
-const unsubDelete = onGatewayEvent(Opcode.MESSAGE_DELETE, (data) => {
-  const parsed = messageDeleteEventSchema.safeParse(data);
-  if (!parsed.success) {
-    if (import.meta.env.DEV) console.warn("Invalid MESSAGE_DELETE payload:", parsed.error.issues);
-    return;
-  }
-  const d = parsed.data;
-  removeMessage(channelId(d.channelId), messageId(d.id));
-});
-
-const unsubTyping = onGatewayEvent(Opcode.TYPING_START, (data) => {
-  const parsed = typingStartEventSchema.safeParse(data);
-  if (!parsed.success) {
-    if (import.meta.env.DEV) console.warn("Invalid TYPING_START payload:", parsed.error.issues);
-    return;
-  }
-  const d = parsed.data;
-  addTypingUser(channelId(d.channelId), userId(d.userId), d.username);
-});
-
-// --- Typing cleanup interval ---
+let unsubCreate: (() => void) | null = null;
+let unsubUpdate: (() => void) | null = null;
+let unsubDelete: (() => void) | null = null;
+let unsubTyping: (() => void) | null = null;
+let cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
 const TYPING_CLEANUP_INTERVAL_MS = 1_000;
-const cleanupInterval = setInterval(() => {
-  const now = Date.now();
-  for (const chId of Object.keys(store.typing)) {
-    const users = store.typing[chId];
-    if (users && users.some((t) => t.expiresAt <= now)) {
-      setStore(
-        "typing",
-        chId,
-        produce((arr) => {
-          if (!arr) return;
-          const filtered = arr.filter((t) => t.expiresAt > now);
-          arr.length = 0;
-          arr.push(...filtered);
-        }),
-      );
-    }
+
+function teardown() {
+  unsubCreate?.();
+  unsubUpdate?.();
+  unsubDelete?.();
+  unsubTyping?.();
+  unsubCreate = null;
+  unsubUpdate = null;
+  unsubDelete = null;
+  unsubTyping = null;
+  if (cleanupInterval !== null) {
+    clearInterval(cleanupInterval);
+    cleanupInterval = null;
   }
-}, TYPING_CLEANUP_INTERVAL_MS);
+}
+
+export function setupMessageStore(): void {
+  // Guard against double-init (HMR or reconnect)
+  teardown();
+
+  unsubCreate = onGatewayEvent(Opcode.MESSAGE_CREATE, (data) => {
+    const parsed = messageCreateEventSchema.safeParse(data);
+    if (!parsed.success) {
+      if (import.meta.env.DEV) console.warn("Invalid MESSAGE_CREATE payload:", parsed.error.issues);
+      return;
+    }
+    const d = parsed.data;
+    const msg: Message = {
+      id: messageId(d.id),
+      channelId: channelId(d.channelId),
+      content: d.content,
+      editedAt: d.editedAt,
+      createdAt: d.createdAt,
+      author: {
+        id: userId(d.author.id),
+        username: d.author.username,
+        displayName: d.author.displayName,
+        avatarUrl: d.author.avatarUrl,
+      },
+    };
+    addMessage(msg.channelId, msg);
+  });
+
+  unsubUpdate = onGatewayEvent(Opcode.MESSAGE_UPDATE, (data) => {
+    const parsed = messageUpdateEventSchema.safeParse(data);
+    if (!parsed.success) {
+      if (import.meta.env.DEV) console.warn("Invalid MESSAGE_UPDATE payload:", parsed.error.issues);
+      return;
+    }
+    const d = parsed.data;
+    updateMessage(channelId(d.channelId), messageId(d.id), {
+      content: d.content,
+      editedAt: d.editedAt,
+    });
+  });
+
+  unsubDelete = onGatewayEvent(Opcode.MESSAGE_DELETE, (data) => {
+    const parsed = messageDeleteEventSchema.safeParse(data);
+    if (!parsed.success) {
+      if (import.meta.env.DEV) console.warn("Invalid MESSAGE_DELETE payload:", parsed.error.issues);
+      return;
+    }
+    const d = parsed.data;
+    removeMessage(channelId(d.channelId), messageId(d.id));
+  });
+
+  unsubTyping = onGatewayEvent(Opcode.TYPING_START, (data) => {
+    const parsed = typingStartEventSchema.safeParse(data);
+    if (!parsed.success) {
+      if (import.meta.env.DEV) console.warn("Invalid TYPING_START payload:", parsed.error.issues);
+      return;
+    }
+    const d = parsed.data;
+    addTypingUser(channelId(d.channelId), userId(d.userId), d.username);
+  });
+
+  // Typing cleanup interval
+  cleanupInterval = setInterval(() => {
+    const now = Date.now();
+    for (const chId of Object.keys(store.typing)) {
+      const users = store.typing[chId];
+      if (users && users.some((t) => t.expiresAt <= now)) {
+        const filtered = users.filter((t) => t.expiresAt > now);
+        setStore("typing", chId, filtered);
+      }
+    }
+  }, TYPING_CLEANUP_INTERVAL_MS);
+}
 
 // --- HMR cleanup ---
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
-    clearInterval(cleanupInterval);
-    unsubCreate();
-    unsubUpdate();
-    unsubDelete();
-    unsubTyping();
+    teardown();
   });
 }

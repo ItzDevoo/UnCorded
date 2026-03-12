@@ -10,6 +10,7 @@ const FileDropZone = (props: {
   channelId: AnyChannelId;
   children: JSX.Element;
   onFileSelect: (file: File) => void;
+  class?: string;
 }) => {
   const [dragging, setDragging] = createSignal(false);
   const [errorMessage, setErrorMessage] = createSignal<string | null>(null);
@@ -50,7 +51,7 @@ const FileDropZone = (props: {
   return (
     <div
       data-slot="file-drop-zone"
-      class="relative flex h-full flex-col"
+      class={`relative flex h-full flex-col ${props.class ?? ""}`}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}

@@ -3,49 +3,43 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ── Hoisted mocks (available to vi.mock factories) ─────────────────────────────
 
-const {
-  mockDisconnectUser,
-  mockStripe,
-  selectResults,
-  capturedSets,
-  capturedInserts,
-  mockDb,
-} = vi.hoisted(() => {
-  const mockDisconnectUser = vi.fn();
+const { mockDisconnectUser, mockStripe, selectResults, capturedSets, capturedInserts, mockDb } =
+  vi.hoisted(() => {
+    const mockDisconnectUser = vi.fn();
 
-  const mockStripe = {
-    webhooks: { constructEventAsync: vi.fn() },
-    subscriptions: { retrieve: vi.fn() },
-  };
+    const mockStripe = {
+      webhooks: { constructEventAsync: vi.fn() },
+      subscriptions: { retrieve: vi.fn() },
+    };
 
-  const selectResults: unknown[][] = [];
-  const capturedSets: unknown[] = [];
-  const capturedInserts: unknown[] = [];
+    const selectResults: unknown[][] = [];
+    const capturedSets: unknown[] = [];
+    const capturedInserts: unknown[] = [];
 
-  const mockDb = {
-    select: vi.fn().mockImplementation(() => ({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockImplementation(() => Promise.resolve(selectResults.shift() ?? [])),
+    const mockDb = {
+      select: vi.fn().mockImplementation(() => ({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockImplementation(() => Promise.resolve(selectResults.shift() ?? [])),
+          }),
         }),
-      }),
-    })),
-    update: vi.fn().mockImplementation(() => ({
-      set: vi.fn().mockImplementation((data: unknown) => {
-        capturedSets.push(data);
-        return { where: vi.fn().mockResolvedValue(undefined) };
-      }),
-    })),
-    insert: vi.fn().mockImplementation(() => ({
-      values: vi.fn().mockImplementation((data: unknown) => {
-        capturedInserts.push(data);
-        return Promise.resolve();
-      }),
-    })),
-  };
+      })),
+      update: vi.fn().mockImplementation(() => ({
+        set: vi.fn().mockImplementation((data: unknown) => {
+          capturedSets.push(data);
+          return { where: vi.fn().mockResolvedValue(undefined) };
+        }),
+      })),
+      insert: vi.fn().mockImplementation(() => ({
+        values: vi.fn().mockImplementation((data: unknown) => {
+          capturedInserts.push(data);
+          return Promise.resolve();
+        }),
+      })),
+    };
 
-  return { mockDisconnectUser, mockStripe, selectResults, capturedSets, capturedInserts, mockDb };
-});
+    return { mockDisconnectUser, mockStripe, selectResults, capturedSets, capturedInserts, mockDb };
+  });
 
 // ── Module mocks ───────────────────────────────────────────────────────────────
 

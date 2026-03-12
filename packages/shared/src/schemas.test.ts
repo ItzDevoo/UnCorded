@@ -27,7 +27,10 @@ describe("createServerSchema", () => {
   });
 
   it("accepts optional iconUrl", () => {
-    const result = createServerSchema.safeParse({ name: "Test", iconUrl: "https://example.com/icon.png" });
+    const result = createServerSchema.safeParse({
+      name: "Test",
+      iconUrl: "https://example.com/icon.png",
+    });
     expect(result.success).toBe(true);
   });
 

@@ -31,61 +31,82 @@ import { showToast } from "../components/ui/toast.js";
 const [loadingMoreFriends, setLoadingMoreFriends] = createSignal(false);
 const [loadingMoreDms, setLoadingMoreDms] = createSignal(false);
 
-// ── WS listeners ────────────────────────────────────────────────────────────
+// ── WS listener unsub refs ──────────────────────────────────────────────────
 
-const unsubRequest = onGatewayEvent(Opcode.FRIEND_REQUEST, (data) => {
-  const parsed = friendRequestEventSchema.safeParse(data);
-  if (!parsed.success) return;
-  const d = parsed.data;
-  addFriend({
-    userId: userId(d.userId),
-    username: d.username,
-    displayName: d.displayName,
-    avatarUrl: d.avatarUrl,
-    status: d.status,
-    friendshipStatus: "pending",
-    incoming: true,
+let unsubRequest: (() => void) | null = null;
+let unsubAccept: (() => void) | null = null;
+let unsubRemove: (() => void) | null = null;
+let unsubDmCreate: (() => void) | null = null;
+
+function teardown() {
+  unsubRequest?.();
+  unsubAccept?.();
+  unsubRemove?.();
+  unsubDmCreate?.();
+  unsubRequest = null;
+  unsubAccept = null;
+  unsubRemove = null;
+  unsubDmCreate = null;
+}
+
+export function setupFriendStore(): void {
+  // Guard against double-init (HMR or reconnect)
+  teardown();
+
+  unsubRequest = onGatewayEvent(Opcode.FRIEND_REQUEST, (data) => {
+    const parsed = friendRequestEventSchema.safeParse(data);
+    if (!parsed.success) return;
+    const d = parsed.data;
+    addFriend({
+      userId: userId(d.userId),
+      username: d.username,
+      displayName: d.displayName,
+      avatarUrl: d.avatarUrl,
+      status: d.status,
+      friendshipStatus: "pending",
+      incoming: true,
+    });
   });
-});
 
-const unsubAccept = onGatewayEvent(Opcode.FRIEND_ACCEPT, (data) => {
-  const parsed = friendAcceptEventSchema.safeParse(data);
-  if (!parsed.success) return;
-  const d = parsed.data;
-  // If not in friends list yet (we sent the request), add them
-  addFriend({
-    userId: userId(d.userId),
-    username: d.username,
-    displayName: d.displayName,
-    avatarUrl: d.avatarUrl,
-    status: d.status,
-    friendshipStatus: "accepted",
-    incoming: false,
+  unsubAccept = onGatewayEvent(Opcode.FRIEND_ACCEPT, (data) => {
+    const parsed = friendAcceptEventSchema.safeParse(data);
+    if (!parsed.success) return;
+    const d = parsed.data;
+    // If not in friends list yet (we sent the request), add them
+    addFriend({
+      userId: userId(d.userId),
+      username: d.username,
+      displayName: d.displayName,
+      avatarUrl: d.avatarUrl,
+      status: d.status,
+      friendshipStatus: "accepted",
+      incoming: false,
+    });
+    updateFriendStatus(userId(d.userId), "accepted");
   });
-  updateFriendStatus(userId(d.userId), "accepted");
-});
 
-const unsubRemove = onGatewayEvent(Opcode.FRIEND_REMOVE, (data) => {
-  const parsed = friendRemoveEventSchema.safeParse(data);
-  if (!parsed.success) return;
-  removeFriend(userId(parsed.data.userId));
-});
-
-const unsubDmCreate = onGatewayEvent(Opcode.DM_CHANNEL_CREATE, (data) => {
-  const parsed = dmChannelCreateEventSchema.safeParse(data);
-  if (!parsed.success) return;
-  const d = parsed.data;
-  addDmChannel({
-    id: dmChannelId(d.id),
-    otherUser: {
-      id: userId(d.otherUser.id),
-      username: d.otherUser.username,
-      displayName: d.otherUser.displayName,
-      avatarUrl: d.otherUser.avatarUrl,
-      status: d.otherUser.status,
-    },
+  unsubRemove = onGatewayEvent(Opcode.FRIEND_REMOVE, (data) => {
+    const parsed = friendRemoveEventSchema.safeParse(data);
+    if (!parsed.success) return;
+    removeFriend(userId(parsed.data.userId));
   });
-});
+
+  unsubDmCreate = onGatewayEvent(Opcode.DM_CHANNEL_CREATE, (data) => {
+    const parsed = dmChannelCreateEventSchema.safeParse(data);
+    if (!parsed.success) return;
+    const d = parsed.data;
+    addDmChannel({
+      id: dmChannelId(d.id),
+      otherUser: {
+        id: userId(d.otherUser.id),
+        username: d.otherUser.username,
+        displayName: d.otherUser.displayName,
+        avatarUrl: d.otherUser.avatarUrl,
+        status: d.otherUser.status,
+      },
+    });
+  });
+}
 
 // ── Pagination: fetch more ──────────────────────────────────────────────────
 
@@ -177,9 +198,6 @@ export { loadingMoreFriends, loadingMoreDms };
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
-    unsubRequest();
-    unsubAccept();
-    unsubRemove();
-    unsubDmCreate();
+    teardown();
   });
 }

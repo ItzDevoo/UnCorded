@@ -197,43 +197,57 @@ export function getSeeders(frId: FileReceiptId): string[] {
   return store.seeders[frId as string] ?? [];
 }
 
-// ── WS listeners (run once on import) ───────────────────────────────────────
+// ── WS listener unsub refs ──────────────────────────────────────────────────
 
-const unsubFileShare = onGatewayEvent(Opcode.FILE_SHARE, (data) => {
-  const parsed = fileShareEventSchema.safeParse(data);
-  if (!parsed.success) {
-    if (import.meta.env.DEV) console.warn("Invalid FILE_SHARE payload:", parsed.error.issues);
-    return;
-  }
-  const d = parsed.data;
-  addReceipt({
-    id: fileReceiptId(d.fileReceiptId),
-    channelId: channelId(d.channelId),
-    senderId: userId(d.senderId),
-    fileName: d.fileName,
-    fileSize: d.fileSize,
-    contentType: d.contentType,
-    magnetUri: d.magnetUri,
-    infoHash: d.infoHash,
+let unsubFileShare: (() => void) | null = null;
+let unsubAvailability: (() => void) | null = null;
+
+function teardown() {
+  unsubFileShare?.();
+  unsubAvailability?.();
+  unsubFileShare = null;
+  unsubAvailability = null;
+}
+
+export function setupFileStore(): void {
+  // Guard against double-init (HMR or reconnect)
+  teardown();
+
+  unsubFileShare = onGatewayEvent(Opcode.FILE_SHARE, (data) => {
+    const parsed = fileShareEventSchema.safeParse(data);
+    if (!parsed.success) {
+      if (import.meta.env.DEV) console.warn("Invalid FILE_SHARE payload:", parsed.error.issues);
+      return;
+    }
+    const d = parsed.data;
+    addReceipt({
+      id: fileReceiptId(d.fileReceiptId),
+      channelId: channelId(d.channelId),
+      senderId: userId(d.senderId),
+      fileName: d.fileName,
+      fileSize: d.fileSize,
+      contentType: d.contentType,
+      magnetUri: d.magnetUri,
+      infoHash: d.infoHash,
+    });
   });
-});
 
-const unsubAvailability = onGatewayEvent(Opcode.FILE_AVAILABILITY_UPDATE, (data) => {
-  const parsed = fileAvailabilityEventSchema.safeParse(data);
-  if (!parsed.success) {
-    if (import.meta.env.DEV)
-      console.warn("Invalid FILE_AVAILABILITY_UPDATE payload:", parsed.error.issues);
-    return;
-  }
-  const d = parsed.data;
-  updateSeeders(fileReceiptId(d.fileReceiptId), userId(d.userId), d.available);
-});
+  unsubAvailability = onGatewayEvent(Opcode.FILE_AVAILABILITY_UPDATE, (data) => {
+    const parsed = fileAvailabilityEventSchema.safeParse(data);
+    if (!parsed.success) {
+      if (import.meta.env.DEV)
+        console.warn("Invalid FILE_AVAILABILITY_UPDATE payload:", parsed.error.issues);
+      return;
+    }
+    const d = parsed.data;
+    updateSeeders(fileReceiptId(d.fileReceiptId), userId(d.userId), d.available);
+  });
+}
 
 // ── HMR cleanup ─────────────────────────────────────────────────────────────
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
-    unsubFileShare();
-    unsubAvailability();
+    teardown();
   });
 }

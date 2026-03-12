@@ -14,6 +14,7 @@ import {
   DialogFooter,
 } from "./ui/dialog.js";
 import type { Message } from "../stores/message-store.js";
+import MessageContent from "./MessageContent.js";
 
 const ONE_MINUTE_MS = 60_000;
 const ONE_HOUR_MS = 3_600_000;
@@ -222,7 +223,7 @@ const MessageBubble = (props: MessageBubbleProps) => {
 
   // ── Content (normal vs editing) ──────────────────────────────────────────
 
-  const MessageContent = () => (
+  const MessageBody = () => (
     <Show
       when={!editing()}
       fallback={
@@ -246,12 +247,12 @@ const MessageBubble = (props: MessageBubbleProps) => {
         </div>
       }
     >
-      <p class="break-words text-sm leading-relaxed text-foreground/90">
-        {props.message.content}
+      <div>
+        <MessageContent content={props.message.content} />
         <Show when={props.message.editedAt}>
           <span class="ml-1 text-xs italic text-muted-foreground">(edited)</span>
         </Show>
-      </p>
+      </div>
     </Show>
   );
 
@@ -307,7 +308,7 @@ const MessageBubble = (props: MessageBubbleProps) => {
               <div class="w-9 shrink-0" />
               <div class="flex min-w-0 flex-1 items-start gap-2">
                 <div class="min-w-0 flex-1">
-                  <MessageContent />
+                  <MessageBody />
                 </div>
                 <Toolbar />
               </div>
@@ -328,7 +329,7 @@ const MessageBubble = (props: MessageBubbleProps) => {
                 </span>
                 <Toolbar />
               </div>
-              <MessageContent />
+              <MessageBody />
             </div>
           </div>
         </div>

@@ -7,7 +7,7 @@ import { members, servers, user } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
 import { requireMember, requireOwner } from "../helpers/permissions.js";
 import { removeServerMember } from "../ws/server-members.js";
-import { broadcastToServer, sendToUser } from "../ws/connections.js";
+import { broadcastToServer, sendToUser, clients } from "../ws/connections.js";
 import { paginationQuerySchema } from "../helpers/pagination.js";
 
 export const memberRoutes = new Elysia({ prefix: "/api/servers/:serverId/members" })
@@ -38,7 +38,9 @@ export const memberRoutes = new Elysia({ prefix: "/api/servers/:serverId/members
     const page = hasMore ? memberList.slice(0, limit) : memberList;
 
     return {
-      members: page.map((m) => Object.assign(m, { userId: userId(m.userId) })),
+      members: page.map((m) =>
+        Object.assign(m, { userId: userId(m.userId), online: clients.has(m.userId) }),
+      ),
       hasMore,
     };
   })

@@ -37,6 +37,30 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   return res.json() as Promise<T>;
 }
 
+export async function apiUpload<T>(
+  path: string,
+  formData: FormData,
+  method: "PATCH" | "POST" | "PUT" = "PATCH",
+): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method,
+    credentials: "include",
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const raw: unknown = await res.json().catch(() => null);
+    const body: ApiError =
+      raw !== null && typeof raw === "object" && "code" in raw && "message" in raw
+        ? (raw as ApiError)
+        : { code: "UNKNOWN", message: "Request failed" };
+    throw new ApiRequestError(res.status, body);
+  }
+
+  if (res.status === 204) return undefined as T;
+  return res.json() as Promise<T>;
+}
+
 export async function createCheckout(tier: "supporter" | "server_owner"): Promise<string> {
   const res = await api<{ checkoutUrl: string }>("/api/stripe/checkout", {
     method: "POST",

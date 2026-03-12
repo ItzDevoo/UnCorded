@@ -10,9 +10,7 @@ function renderToken(token: Token): JSX.Element {
   switch (token.type) {
     case "strong":
       return (
-        <strong class="font-semibold">
-          {renderInlineTokens((token as Tokens.Strong).tokens)}
-        </strong>
+        <strong class="font-semibold">{renderInlineTokens((token as Tokens.Strong).tokens)}</strong>
       );
     case "em":
       return <em>{renderInlineTokens((token as Tokens.Em).tokens)}</em>;
@@ -54,9 +52,7 @@ function renderToken(token: Token): JSX.Element {
     case "blockquote":
       return (
         <blockquote class="my-1 border-l-2 border-primary/50 pl-3 text-muted-foreground italic">
-          <For each={(token as Tokens.Blockquote).tokens}>
-            {(t) => renderToken(t)}
-          </For>
+          <For each={(token as Tokens.Blockquote).tokens}>{(t) => renderToken(t)}</For>
         </blockquote>
       );
     case "list": {
@@ -84,11 +80,7 @@ function renderToken(token: Token): JSX.Element {
           : depth <= 4
             ? "my-0.5 font-semibold"
             : "my-0.5 font-medium";
-      return (
-        <p class={cls}>
-          {renderInlineTokens((token as Tokens.Heading).tokens)}
-        </p>
-      );
+      return <p class={cls}>{renderInlineTokens((token as Tokens.Heading).tokens)}</p>;
     }
     case "hr":
       return <hr class="my-2 border-border" />;

@@ -3,6 +3,7 @@ import type { AnyChannelId } from "@uncorded/protocol";
 import { api, ApiRequestError } from "../lib/api.js";
 import { readyData } from "../lib/gateway-store.js";
 import { currentServer } from "../stores/app-store.js";
+import { messageDensity } from "../stores/theme-store.js";
 import { showToast } from "./ui/toast.js";
 import { Button } from "./ui/button.js";
 import {
@@ -302,7 +303,7 @@ const MessageBubble = (props: MessageBubbleProps) => {
         when={props.showHeader}
         fallback={
           <div
-            class={`group px-4 py-0.5 hover:bg-accent/50 ${props.isOwn ? "border-l-2 border-primary/30" : ""}`}
+            class={`group px-4 hover:bg-accent/50 ${messageDensity() === "compact" ? "py-px" : "py-0.5"} ${props.isOwn ? "border-l-2 border-primary/30" : ""}`}
           >
             <div class="flex gap-3">
               <div class="w-9 shrink-0" />
@@ -317,7 +318,7 @@ const MessageBubble = (props: MessageBubbleProps) => {
         }
       >
         <div
-          class={`group px-4 pt-3 py-1 hover:bg-accent/50 ${props.isOwn ? "border-l-2 border-primary/30" : ""}`}
+          class={`group px-4 hover:bg-accent/50 ${messageDensity() === "compact" ? "pt-1.5 pb-0.5" : "pt-3 pb-1"} ${props.isOwn ? "border-l-2 border-primary/30" : ""}`}
         >
           <div class="flex gap-3">
             <Avatar />

@@ -279,7 +279,12 @@ export async function handleIdentify(
     // Fire-and-forget: don't block IDENTIFY response
     broadcastPresence(identifiedUserId, effectiveStatus).catch((err) => {
       if (process.env.NODE_ENV !== "production")
-        console.error("[presence] broadcastPresence failed:", identifiedUserId, effectiveStatus, err);
+        console.error(
+          "[presence] broadcastPresence failed:",
+          identifiedUserId,
+          effectiveStatus,
+          err,
+        );
     });
 
     return {

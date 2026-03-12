@@ -9,6 +9,7 @@ Updated by the coding agent at the end of every session.
 
 Stripe subscriptions working. Deep review complete (all 5 batches). 93 tests passing. All issues migrated to GitHub Issues.
 Quick-wins batch: invite accept race condition fixed (db.transaction), roles/member_roles tables removed, Object.assign consistency applied.
+User settings: profile editing (username/display name/avatar), password change, account deletion, appearance (dark/light theme, message density).
 
 ---
 
@@ -106,6 +107,15 @@ Quick-wins batch: invite accept race condition fixed (db.transaction), roles/mem
 - Friends page (All/Pending/Blocked tabs)
 - Lazy-loaded channels per server (fetched on select)
 - "Load more" pagination for DMs and friends
+
+### User Settings
+
+- Settings page at /home/settings with Profile/Account/Appearance tabs
+- Profile: username + display name editing, avatar upload to Cloudflare R2 (drag-and-drop, click, client-side preview)
+- Account: email display, password change via Better Auth, account deletion with password confirmation + server ownership check
+- Appearance: dark/light theme toggle, cozy/compact message density — both localStorage-persisted
+- R2 infrastructure: lazy S3Client singleton, avatar upload/delete, immutable cache headers
+- Settings gear icon in sidebar footer
 
 ### Domain
 

@@ -37,7 +37,12 @@ const app = new Elysia()
     if (method !== "POST" && method !== "PATCH" && method !== "DELETE" && method !== "PUT") return;
 
     const path = new URL(request.url).pathname;
-    if (path.startsWith("/api/auth/") || path.startsWith("/api/webhooks/")) return;
+    if (
+      path.startsWith("/api/auth/") ||
+      path.startsWith("/api/webhooks/") ||
+      path === "/api/users/@me/avatar"
+    )
+      return;
 
     const contentType = request.headers.get("content-type");
     if (!contentType) return;

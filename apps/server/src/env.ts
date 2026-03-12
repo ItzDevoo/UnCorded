@@ -43,6 +43,13 @@ const envSchema = z.object({
   STRIPE_WEBHOOK_SECRET: optionalString,
   STRIPE_SUPPORTER_PRICE_ID: optionalString,
   STRIPE_SERVER_OWNER_PRICE_ID: optionalString,
+
+  // Cloudflare R2 — optional (avatars disabled without them)
+  R2_ACCOUNT_ID: optionalString,
+  R2_ACCESS_KEY_ID: optionalString,
+  R2_SECRET_ACCESS_KEY: optionalString,
+  R2_BUCKET_NAME: optionalString,
+  R2_PUBLIC_URL: optionalUrl,
 });
 
 const parsed = envSchema.safeParse(process.env);

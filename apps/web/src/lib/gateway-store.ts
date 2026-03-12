@@ -143,6 +143,11 @@ function updateFriendStatus(targetUserId: UserId, friendshipStatus: string) {
   );
 }
 
+function updateCurrentUser(updates: Partial<ReadyUser>) {
+  if (!readyData.data?.user) return;
+  setReadyData("data", "user", (prev) => ({ ...prev, ...updates }));
+}
+
 function setUserStatus(status: string) {
   setReadyData("data", "user", "status", status);
 }
@@ -182,5 +187,6 @@ export {
   removeFriend,
   updateFriendStatus,
   updatePresence,
+  updateCurrentUser,
   setUserStatus,
 };

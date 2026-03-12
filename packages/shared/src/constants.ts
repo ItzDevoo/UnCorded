@@ -32,3 +32,7 @@ export const RATE_LIMIT_PRESENCE_UPDATE = { limit: 5, windowMs: 30_000 };
 
 // ── Presence timing ────────────────────────────────────────────────────────
 export const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+
+// ── Avatar limits ───────────────────────────────────────────────────────────
+export const MAX_AVATAR_SIZE_BYTES = 4 * 1024 * 1024; // 4 MB
+export const ALLOWED_AVATAR_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"] as const;

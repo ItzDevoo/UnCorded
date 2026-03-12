@@ -34,3 +34,16 @@ export const updateUserSchema = z.object({
 });
 
 export type UpdateUser = z.infer<typeof updateUserSchema>;
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(PASSWORD_MIN),
+});
+
+export type ChangePassword = z.infer<typeof changePasswordSchema>;
+
+export const deleteAccountSchema = z.object({
+  password: z.string().min(1),
+});
+
+export type DeleteAccount = z.infer<typeof deleteAccountSchema>;

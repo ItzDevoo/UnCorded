@@ -1,6 +1,12 @@
 import { createSignal, createMemo, createEffect, Show, onCleanup } from "solid-js";
 import type { FileReceipt, TransferProgress } from "../stores/file-store.js";
-import { previewFile, saveFile, getTransferProgress, getSeeders, getPreviews } from "../stores/file-store.js";
+import {
+  previewFile,
+  saveFile,
+  getTransferProgress,
+  getSeeders,
+  getPreviews,
+} from "../stores/file-store.js";
 import { TorrentTimeoutError } from "../lib/torrent-client.js";
 import { readyData } from "../lib/gateway-store.js";
 import { Button } from "./ui/button.js";
@@ -314,10 +320,7 @@ const FileMessage = (props: { receipt: FileReceipt; isOwn: boolean }) => {
 
           {/* Done state: show Save button + badges */}
           <Show when={status() === "done" && !props.isOwn}>
-            <Show
-              when={!saved()}
-              fallback={<Badge variant="success">Saved</Badge>}
-            >
+            <Show when={!saved()} fallback={<Badge variant="success">Saved</Badge>}>
               <Badge variant="outline">Previewed</Badge>
               <Button size="sm" variant="outline" onClick={handleSave}>
                 <svg

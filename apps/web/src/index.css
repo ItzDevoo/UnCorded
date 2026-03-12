@@ -150,6 +150,63 @@
   --z-noise: 9999;
 }
 
+.light {
+  color-scheme: light;
+
+  --background: oklch(0.97 0.008 155);
+  --foreground: oklch(0.18 0.02 155);
+
+  --card: oklch(0.99 0.004 155);
+  --card-foreground: oklch(0.18 0.02 155);
+
+  --popover: oklch(0.99 0.004 155);
+  --popover-foreground: oklch(0.18 0.02 155);
+
+  --primary: oklch(0.52 0.17 155);
+  --primary-foreground: oklch(1 0 0);
+
+  --secondary: oklch(0 0 0 / 4%);
+  --secondary-foreground: oklch(0.25 0.02 155);
+
+  --muted: oklch(0 0 0 / 5%);
+  --muted-foreground: oklch(0.45 0.015 155);
+
+  --accent: oklch(0 0 0 / 4%);
+  --accent-foreground: oklch(0.18 0.02 155);
+
+  --destructive: oklch(0.55 0.2 25);
+  --destructive-foreground: oklch(0.45 0.15 25);
+
+  --border: oklch(0 0 0 / 10%);
+  --input: oklch(0 0 0 / 8%);
+  --ring: oklch(0.52 0.17 155);
+
+  --success: oklch(0.52 0.17 155);
+  --success-foreground: oklch(0.4 0.12 155);
+
+  --warning: oklch(0.65 0.16 75);
+  --warning-foreground: oklch(0.5 0.12 75);
+
+  --info: oklch(0.55 0.16 255);
+  --info-foreground: oklch(0.4 0.12 255);
+
+  --sidebar: oklch(0.95 0.01 155);
+  --sidebar-foreground: oklch(0.18 0.02 155);
+}
+
+.light *,
+.light *::-webkit-scrollbar-thumb {
+  scrollbar-color: oklch(0 0 0 / 15%) transparent;
+}
+
+.light *::-webkit-scrollbar-thumb {
+  background: oklch(0 0 0 / 15%);
+}
+
+.light *::-webkit-scrollbar-thumb:hover {
+  background: oklch(0 0 0 / 25%);
+}
+
 body::after {
   content: "";
   position: fixed;

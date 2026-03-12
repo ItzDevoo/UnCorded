@@ -120,6 +120,15 @@ Cancel anytime. No tricks.
 - Stripe — subscription management, customer portal, webhooks
 - Stripe Tax — global tax compliance
 
+### Avatar Storage
+
+- Cloudflare R2 (S3-compatible, zero egress fees)
+- Already on Cloudflare for uncorded.app domain
+- Cache-Control: immutable + versioned URLs for cache busting
+- Cloudflare CDN caches at edge, browser caches locally
+- Desktop: service worker precaches member avatars on READY
+- Profile pictures are platform UI data — not user-to-user file transfers, no P2P violation
+
 ---
 
 ## V1 Scope (What We Are Building Now)

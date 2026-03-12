@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1008.0",
     "@elysiajs/cors": "^1",
     "@neondatabase/serverless": "^1",
     "@uncorded/protocol": "workspace:*",

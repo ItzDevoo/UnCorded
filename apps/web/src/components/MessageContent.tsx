@@ -1,90 +1,128 @@
-import { SolidMarkdown } from "solid-markdown";
-import type { SolidMarkdownComponents } from "solid-markdown";
+import { Lexer, type Token, type Tokens } from "marked";
+import { For, Show } from "solid-js";
 import type { JSX } from "solid-js";
 
-interface MessageContentProps {
-  content: string;
+function renderInlineTokens(tokens: Token[]): JSX.Element {
+  return <For each={tokens}>{(t) => renderToken(t)}</For>;
 }
 
-const components: Partial<SolidMarkdownComponents> = {
-  // Links: open in new tab
-  a: (props) => (
-    <a
-      {...props}
-      target="_blank"
-      rel="noopener noreferrer"
-      class="text-primary underline underline-offset-2 hover:text-primary/80"
-    >
-      {props.children as unknown as JSX.Element}
-    </a>
-  ),
-  // Code blocks
-  code: (props) => {
-    if (props.inline) {
+function renderToken(token: Token): JSX.Element {
+  switch (token.type) {
+    case "strong":
+      return (
+        <strong class="font-semibold">
+          {renderInlineTokens((token as Tokens.Strong).tokens)}
+        </strong>
+      );
+    case "em":
+      return <em>{renderInlineTokens((token as Tokens.Em).tokens)}</em>;
+    case "del":
+      return (
+        <del class="text-muted-foreground line-through">
+          {renderInlineTokens((token as Tokens.Del).tokens)}
+        </del>
+      );
+    case "codespan":
       return (
         <code class="rounded border border-border bg-secondary px-1.5 py-0.5 font-mono text-[0.85em] text-foreground">
-          {props.children as unknown as JSX.Element}
+          {(token as Tokens.Codespan).text}
         </code>
       );
+    case "link":
+      return (
+        <a
+          href={(token as Tokens.Link).href}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-primary underline underline-offset-2 hover:text-primary/80"
+        >
+          {renderInlineTokens((token as Tokens.Link).tokens)}
+        </a>
+      );
+    case "code":
+      return (
+        <pre class="my-1.5 overflow-x-auto rounded-md bg-secondary p-3 font-mono text-[0.85em] text-foreground">
+          <code>{(token as Tokens.Code).text}</code>
+        </pre>
+      );
+    case "paragraph":
+      return (
+        <p class="my-0.5 break-words leading-relaxed">
+          {renderInlineTokens((token as Tokens.Paragraph).tokens)}
+        </p>
+      );
+    case "blockquote":
+      return (
+        <blockquote class="my-1 border-l-2 border-primary/50 pl-3 text-muted-foreground italic">
+          <For each={(token as Tokens.Blockquote).tokens}>
+            {(t) => renderToken(t)}
+          </For>
+        </blockquote>
+      );
+    case "list": {
+      const listToken = token as Tokens.List;
+      return (
+        <Show
+          when={listToken.ordered}
+          fallback={
+            <ul class="my-1 ml-4 list-disc text-foreground/90">
+              <For each={listToken.items}>{(item) => renderListItem(item)}</For>
+            </ul>
+          }
+        >
+          <ol class="my-1 ml-4 list-decimal text-foreground/90">
+            <For each={listToken.items}>{(item) => renderListItem(item)}</For>
+          </ol>
+        </Show>
+      );
     }
-    return <code class="font-mono text-[0.85em]">{props.children as unknown as JSX.Element}</code>;
-  },
-  pre: (props) => (
-    <pre class="my-1.5 overflow-x-auto rounded-md bg-secondary p-3 font-mono text-[0.85em] text-foreground">
-      {props.children as unknown as JSX.Element}
-    </pre>
-  ),
-  // Block quotes
-  blockquote: (props) => (
-    <blockquote class="my-1 border-l-2 border-primary/50 pl-3 text-muted-foreground italic">
-      {props.children as unknown as JSX.Element}
-    </blockquote>
-  ),
-  // Lists
-  ul: (props) => (
-    <ul class="my-1 ml-4 list-disc text-foreground/90">
-      {props.children as unknown as JSX.Element}
-    </ul>
-  ),
-  ol: (props) => (
-    <ol class="my-1 ml-4 list-decimal text-foreground/90">
-      {props.children as unknown as JSX.Element}
-    </ol>
-  ),
-  li: (props) => <li class="my-0.5">{props.children as unknown as JSX.Element}</li>,
-  // Paragraphs — avoid extra margins in chat context
-  p: (props) => (
-    <p class="my-0.5 break-words leading-relaxed">{props.children as unknown as JSX.Element}</p>
-  ),
-  // Bold/italic/strikethrough use default tags, just add classes if needed
-  strong: (props) => (
-    <strong class="font-semibold">{props.children as unknown as JSX.Element}</strong>
-  ),
-  em: (props) => <em>{props.children as unknown as JSX.Element}</em>,
-  del: (props) => (
-    <del class="text-muted-foreground line-through">{props.children as unknown as JSX.Element}</del>
-  ),
-  // Headings — render as slightly bolder text, not actual headings (chat context)
-  h1: (props) => (
-    <p class="my-0.5 text-base font-bold">{props.children as unknown as JSX.Element}</p>
-  ),
-  h2: (props) => (
-    <p class="my-0.5 text-base font-bold">{props.children as unknown as JSX.Element}</p>
-  ),
-  h3: (props) => <p class="my-0.5 font-semibold">{props.children as unknown as JSX.Element}</p>,
-  h4: (props) => <p class="my-0.5 font-semibold">{props.children as unknown as JSX.Element}</p>,
-  h5: (props) => <p class="my-0.5 font-medium">{props.children as unknown as JSX.Element}</p>,
-  h6: (props) => <p class="my-0.5 font-medium">{props.children as unknown as JSX.Element}</p>,
-  // Horizontal rule
-  hr: () => <hr class="my-2 border-border" />,
-};
+    case "heading": {
+      const depth = (token as Tokens.Heading).depth;
+      const cls =
+        depth <= 2
+          ? "my-0.5 text-base font-bold"
+          : depth <= 4
+            ? "my-0.5 font-semibold"
+            : "my-0.5 font-medium";
+      return (
+        <p class={cls}>
+          {renderInlineTokens((token as Tokens.Heading).tokens)}
+        </p>
+      );
+    }
+    case "hr":
+      return <hr class="my-2 border-border" />;
+    case "br":
+      return <br />;
+    case "escape":
+      return <>{(token as Tokens.Escape).text}</>;
+    case "space":
+      return null;
+    case "text": {
+      const textToken = token as Tokens.Text;
+      if ("tokens" in textToken && textToken.tokens) {
+        return renderInlineTokens(textToken.tokens);
+      }
+      return <>{textToken.text}</>;
+    }
+    default:
+      return <>{(token as Tokens.Generic).raw ?? ""}</>;
+  }
+}
 
-const MessageContentComponent = (props: MessageContentProps) => {
+function renderListItem(item: Tokens.ListItem): JSX.Element {
+  return (
+    <li class="my-0.5">
+      <For each={item.tokens}>{(t) => renderToken(t)}</For>
+    </li>
+  );
+}
+
+export default function MessageContent(props: { content: string }) {
+  const tokens = () => Lexer.lex(props.content);
   return (
     <div class="text-sm text-foreground/90 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-      <SolidMarkdown children={props.content} components={components} />
+      <For each={tokens()}>{(token) => renderToken(token)}</For>
     </div>
   );
-};
-
-export default MessageContentComponent;
+}

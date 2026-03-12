@@ -219,3 +219,16 @@ export const errorEventSchema = z.object({
   code: z.string(),
   message: z.string(),
 });
+
+// ── Presence ──────────────────────────────────────────────────────────────────
+
+/** Client → Server: user sets their own status (no "offline" — server controls that). */
+export const presenceUpdateSchema = z.object({
+  status: z.enum(["online", "idle", "dnd"]),
+});
+
+/** Server → Client: broadcast when any user's presence changes. */
+export const presenceUpdateEventSchema = z.object({
+  userId: z.string(),
+  status: z.enum(["online", "idle", "dnd", "offline"]),
+});

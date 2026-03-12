@@ -53,7 +53,20 @@ Quick-wins batch: invite accept race condition fixed (db.transaction), roles/mem
 - In-memory server membership dual-map (O(1) broadcast + O(1) disconnect cleanup)
 - In-memory channel resolution cache (channel→server + DM membership)
 - Username cached in WsContext on IDENTIFY
-- Events: MESSAGE_CREATE/UPDATE/DELETE, TYPING_START, FILE_SHARE, FILE_AVAILABILITY_UPDATE, WEBRTC_OFFER/ANSWER/ICE_CANDIDATE, SERVER_CREATE/DELETE, MEMBER_ADD/REMOVE, FRIEND_REQUEST/ACCEPT/REMOVE, DM_CHANNEL_CREATE
+- Events: MESSAGE_CREATE/UPDATE/DELETE, TYPING_START, FILE_SHARE, FILE_AVAILABILITY_UPDATE, WEBRTC_OFFER/ANSWER/ICE_CANDIDATE, SERVER_CREATE/DELETE, MEMBER_ADD/REMOVE, FRIEND_REQUEST/ACCEPT/REMOVE, DM_CHANNEL_CREATE, PRESENCE_UPDATE
+
+### Presence System
+
+- In-memory presence manager with per-user idle timers (5min timeout)
+- Status states: online, idle, dnd, offline
+- DND persists across reconnects (stored in DB, restored on IDENTIFY)
+- Idle detection: server-side timer resets on real activity (messages, typing, file share)
+- Client-side activity tracking (mousemove/keydown/click/focus, throttled 60s)
+- Presence broadcast to all server co-members + accepted friends
+- StatusDot component with color-coded indicators (green/amber/red/gray)
+- Status selector dropdown in sidebar footer (Online/Idle/DND)
+- StatusDot integrated: DM list, chat header, member list, friends page
+- Member list groups by online/offline status
 
 ### Stripe Subscriptions
 

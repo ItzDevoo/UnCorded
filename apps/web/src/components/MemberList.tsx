@@ -4,6 +4,7 @@ import type { ServerId, UserId } from "@uncorded/protocol";
 import { getMembers, getMembersLoading, type Member } from "../stores/member-store.js";
 import { ScrollArea } from "./ui/scroll-area.js";
 import { Skeleton } from "./ui/skeleton.js";
+import StatusDot, { type UserStatus } from "./StatusDot.js";
 
 interface MemberListProps {
   serverId: ServerId;
@@ -20,8 +21,8 @@ const MemberList = (props: MemberListProps) => {
   const members = createMemo(() => getMembers(props.serverId));
   const loading = createMemo(() => getMembersLoading(props.serverId));
 
-  const onlineMembers = createMemo(() => members().filter((m) => m.online));
-  const offlineMembers = createMemo(() => members().filter((m) => !m.online));
+  const onlineMembers = createMemo(() => members().filter((m) => m.status !== "offline"));
+  const offlineMembers = createMemo(() => members().filter((m) => m.status === "offline"));
 
   // Sort: owner first within each group, then alphabetical
   const sortedMembers = createMemo(() => {
@@ -119,7 +120,7 @@ const MemberRow = (props: { member: Member; isOwner: boolean }) => {
 
   return (
     <div
-      class={`flex items-center gap-2.5 px-3 py-1.5 ${props.member.online ? "" : "opacity-50"}`}
+      class={`flex items-center gap-2.5 px-3 py-1.5 ${props.member.status !== "offline" ? "" : "opacity-50"}`}
       title={displayName()}
     >
       {/* Avatar with online indicator */}
@@ -136,11 +137,7 @@ const MemberRow = (props: { member: Member; isOwner: boolean }) => {
             <img src={url()} alt={displayName()} class="h-8 w-8 rounded-full object-cover" />
           )}
         </Show>
-        <div
-          role="status"
-          class={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card ${props.member.online ? "bg-success" : "bg-muted-foreground/50"}`}
-          aria-label={props.member.online ? "Online" : "Offline"}
-        />
+        <StatusDot status={props.member.status as UserStatus} />
       </div>
 
       {/* Name */}

@@ -1,7 +1,9 @@
-import { createSignal, For, Show } from "solid-js";
+import { createSignal, For, Show, onCleanup } from "solid-js";
+import { Opcode } from "@uncorded/protocol";
+import { sendFrame } from "../lib/gateway.js";
 import { useNavigate } from "@solidjs/router";
 import { useSession, signOut } from "../lib/auth.js";
-import { readyData, channelCacheLoading } from "../lib/gateway-store.js";
+import { readyData, channelCacheLoading, setUserStatus } from "../lib/gateway-store.js";
 import { createCheckout, createPortalSession } from "../lib/api.js";
 import { showToast } from "./ui/toast.js";
 import {
@@ -30,6 +32,7 @@ import CreateServerModal from "./modals/CreateServerModal.js";
 import CreateChannelModal from "./modals/CreateChannelModal.js";
 import JoinServerModal from "./modals/JoinServerModal.js";
 import InviteModal from "./modals/InviteModal.js";
+import StatusDot, { StatusDotInline, type UserStatus } from "./StatusDot.js";
 
 const iconBtnClass =
   "rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground";
@@ -40,6 +43,7 @@ const AppSidebar = () => {
   const [modal, setModal] = createSignal<"create" | "join" | "invite" | "create-channel" | null>(
     null,
   );
+  const [showStatusMenu, setShowStatusMenu] = createSignal(false);
 
   const isServerOwner = () =>
     currentServer()?.ownerId != null && currentServer()?.ownerId === readyData.data?.user.id;
@@ -186,7 +190,6 @@ const AppSidebar = () => {
                       const displayName = () =>
                         dm.otherUser.displayName ?? dm.otherUser.username ?? "Unknown";
                       const initial = () => displayName().charAt(0).toUpperCase();
-                      const isOnline = () => dm.otherUser.status === "online";
                       const isActive = () => selectedDmChannelId() === dm.id;
 
                       return (
@@ -197,9 +200,11 @@ const AppSidebar = () => {
                           >
                             <div class="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
                               {initial()}
-                              <Show when={isOnline()}>
-                                <div class="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-sidebar bg-success" />
-                              </Show>
+                              <StatusDot
+                                status={dm.otherUser.status as UserStatus}
+                                size="sm"
+                                borderClass="border-sidebar"
+                              />
                             </div>
                             <span class="truncate">{displayName()}</span>
                           </SidebarMenuButton>
@@ -258,19 +263,46 @@ const AppSidebar = () => {
 
       {/* ── Footer: User Panel ───────────────────────────────────────── */}
       <SidebarFooter>
-        <div class="flex min-w-0 flex-1 items-center gap-2">
+        <div class="relative flex min-w-0 flex-1 items-center gap-2">
           <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
             {session()?.data?.user?.name?.charAt(0)?.toUpperCase() ?? "?"}
           </div>
-          <div class="min-w-0 flex-1">
+          <button
+            type="button"
+            class="min-w-0 flex-1 text-left"
+            onClick={() => setShowStatusMenu((v) => !v)}
+            title="Change status"
+            aria-expanded={showStatusMenu()}
+            aria-controls="status-menu"
+          >
             <div class="truncate text-sm font-medium text-foreground">
               {session()?.data?.user?.username ?? session()?.data?.user?.name ?? "User"}
             </div>
             <div class="flex items-center gap-1">
-              <div class="h-2 w-2 rounded-full bg-success" />
-              <span class="text-xs text-muted-foreground">Online</span>
+              <StatusDotInline status={(readyData.data?.user.status ?? "offline") as UserStatus} />
+              <span class="text-xs text-muted-foreground capitalize">
+                {readyData.data?.user.status === "dnd"
+                  ? "Do Not Disturb"
+                  : (readyData.data?.user.status ?? "Offline")}
+              </span>
             </div>
-          </div>
+          </button>
+
+          {/* Status selector dropdown */}
+          <Show when={showStatusMenu()}>
+            <StatusMenu
+              currentStatus={(readyData.data?.user.status ?? "offline") as UserStatus}
+              onSelect={(status) => {
+                setShowStatusMenu(false);
+                setUserStatus(status);
+                sendFrame({
+                  op: Opcode.PRESENCE_UPDATE,
+                  d: { status },
+                });
+              }}
+              onClose={() => setShowStatusMenu(false)}
+            />
+          </Show>
           <Show
             when={isPaidUser()}
             fallback={
@@ -357,6 +389,75 @@ const AppSidebar = () => {
         {(server) => <CreateChannelModal serverId={server().id} onClose={() => setModal(null)} />}
       </Show>
     </Sidebar>
+  );
+};
+
+// ── Status Menu ─────────────────────────────────────────────────────────────
+
+const statusOptions = [
+  { value: "online", label: "Online", color: "bg-success" },
+  { value: "idle", label: "Idle", color: "bg-warning" },
+  { value: "dnd", label: "Do Not Disturb", color: "bg-destructive" },
+] as const;
+
+type SelectableStatus = (typeof statusOptions)[number]["value"];
+
+const StatusMenu = (props: {
+  currentStatus: UserStatus;
+  onSelect: (status: SelectableStatus) => void;
+  onClose: () => void;
+}) => {
+  // oxlint-disable-next-line no-unassigned-vars -- SolidJS ref pattern, assigned via JSX ref={}
+  let menuRef!: HTMLDivElement;
+
+  const handleClickOutside = (e: MouseEvent) => {
+    if (menuRef && !menuRef.contains(e.target as Node)) {
+      props.onClose();
+    }
+  };
+
+  // Defer listener to avoid catching the click that opened the menu
+  let disposed = false;
+  setTimeout(() => {
+    if (!disposed) document.addEventListener("click", handleClickOutside);
+  }, 0);
+  onCleanup(() => {
+    disposed = true;
+    document.removeEventListener("click", handleClickOutside);
+  });
+
+  return (
+    <div
+      id="status-menu"
+      ref={menuRef}
+      class="absolute bottom-full left-0 mb-1 w-48 rounded-md border border-border bg-popover p-1 shadow-md"
+    >
+      <For each={statusOptions}>
+        {(opt) => (
+          <button
+            type="button"
+            class={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent ${props.currentStatus === opt.value ? "text-foreground" : "text-muted-foreground"}`}
+            onClick={() => props.onSelect(opt.value)}
+          >
+            <div class={`h-2.5 w-2.5 rounded-full ${opt.color}`} />
+            <span>{opt.label}</span>
+            <Show when={props.currentStatus === opt.value}>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="ml-auto h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </Show>
+          </button>
+        )}
+      </For>
+    </div>
   );
 };
 

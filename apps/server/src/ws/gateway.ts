@@ -8,6 +8,7 @@ import {
   webRtcSignalRequestSchema,
   fileShareRequestSchema,
   fileAvailabilityRequestSchema,
+  presenceUpdateSchema,
 } from "@uncorded/protocol";
 import {
   createId,
@@ -17,6 +18,7 @@ import {
   RATE_LIMIT_FILE_SHARE,
   RATE_LIMIT_FILE_AVAILABILITY,
   RATE_LIMIT_WEBRTC,
+  RATE_LIMIT_PRESENCE_UPDATE,
 } from "@uncorded/shared";
 import { checkRateLimit } from "./rate-limit.js";
 import { eq, and } from "drizzle-orm";
@@ -26,6 +28,14 @@ import { removeConnection, sendToUser, broadcastToServer, broadcastToDm } from "
 import { handleIdentify } from "./handlers.js";
 import { removeUserFromAllServers } from "./server-members.js";
 import { resolveChannelMembership } from "../helpers/resolve-channel.js";
+import {
+  resetIdleTimer,
+  cleanupPresence,
+  broadcastPresence,
+  setManualDnd,
+  clearManualStatus,
+  isManualDnd,
+} from "./presence.js";
 
 const FREE_TIER = "free" as const;
 
@@ -134,6 +144,8 @@ export const gateway = new Elysia().ws("/gateway", {
             break;
           }
 
+          if (!isManualDnd(ctx.userId)) resetIdleTimer(ctx.userId);
+
           const parsed = typingStartRequestSchema.safeParse(frame.d);
           if (!parsed.success) break;
           const d = parsed.data;
@@ -234,6 +246,8 @@ export const gateway = new Elysia().ws("/gateway", {
             });
             break;
           }
+
+          if (!isManualDnd(ctx.userId)) resetIdleTimer(ctx.userId);
 
           const parsed = fileShareRequestSchema.safeParse(frame.d);
           if (!parsed.success) break;
@@ -340,6 +354,46 @@ export const gateway = new Elysia().ws("/gateway", {
           break;
         }
 
+        case Opcode.PRESENCE_UPDATE: {
+          if (!ctx.userId) {
+            ws.close(CloseCode.NOT_IDENTIFIED, "Not identified");
+            return;
+          }
+
+          if (
+            !(await checkRateLimit(
+              ctx.userId,
+              frame.op,
+              RATE_LIMIT_PRESENCE_UPDATE.limit,
+              RATE_LIMIT_PRESENCE_UPDATE.windowMs,
+            ))
+          ) {
+            sendToUser(ctx.userId, {
+              op: Opcode.ERROR,
+              d: { code: "RATE_LIMITED", message: "Too many presence updates" },
+            });
+            break;
+          }
+
+          const parsed = presenceUpdateSchema.safeParse(frame.d);
+          if (!parsed.success) break;
+          const d = parsed.data;
+
+          if (d.status === "dnd") {
+            setManualDnd(ctx.userId);
+          } else if (d.status === "online") {
+            clearManualStatus(ctx.userId);
+            resetIdleTimer(ctx.userId);
+          } else {
+            // "idle" hint from client — reset timer but server is source of truth
+            resetIdleTimer(ctx.userId);
+          }
+
+          await db.update(user).set({ status: d.status }).where(eq(user.id, ctx.userId));
+          await broadcastPresence(ctx.userId, d.status);
+          break;
+        }
+
         default:
           break;
       }
@@ -366,8 +420,10 @@ export const gateway = new Elysia().ws("/gateway", {
       const wasLast = removeConnection(ctx.userId, ws.raw);
 
       if (wasLast) {
-        removeUserFromAllServers(ctx.userId);
+        cleanupPresence(ctx.userId);
         await db.update(user).set({ status: "offline" }).where(eq(user.id, ctx.userId));
+        await broadcastPresence(ctx.userId, "offline");
+        removeUserFromAllServers(ctx.userId);
       }
     }
 

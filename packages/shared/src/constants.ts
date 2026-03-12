@@ -28,3 +28,7 @@ export const RATE_LIMIT_TYPING_START = { limit: 5, windowMs: 10_000 };
 export const RATE_LIMIT_FILE_SHARE = { limit: 10, windowMs: 60_000 };
 export const RATE_LIMIT_FILE_AVAILABILITY = { limit: 20, windowMs: 60_000 };
 export const RATE_LIMIT_WEBRTC = { limit: 30, windowMs: 60_000 };
+export const RATE_LIMIT_PRESENCE_UPDATE = { limit: 5, windowMs: 30_000 };
+
+// ── Presence timing ────────────────────────────────────────────────────────
+export const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes

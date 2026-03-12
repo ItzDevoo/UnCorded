@@ -12,6 +12,7 @@ import { Button } from "../components/ui/button.js";
 import { Badge } from "../components/ui/badge.js";
 import { Input } from "../components/ui/input.js";
 import { Empty } from "../components/ui/empty.js";
+import StatusDot, { type UserStatus } from "../components/StatusDot.js";
 
 type Tab = "all" | "pending" | "blocked";
 
@@ -127,9 +128,7 @@ const Friends = () => {
               <div class="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-accent">
                 <div class="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
                   {displayName(friend).charAt(0).toUpperCase()}
-                  <Show when={friend.status === "online"}>
-                    <div class="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card bg-success" />
-                  </Show>
+                  <StatusDot status={friend.status as UserStatus} />
                 </div>
                 <div class="min-w-0 flex-1">
                   <p class="truncate text-sm font-medium text-foreground">{displayName(friend)}</p>

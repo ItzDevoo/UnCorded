@@ -109,3 +109,8 @@ export function removeServer(serverId: string): void {
 export function getServerMembers(serverId: string): ReadonlySet<string> | undefined {
   return serverMembers.get(serverId);
 }
+
+/** Get the set of server IDs a user belongs to (for presence broadcast). */
+export function getUserServerIds(userId: string): ReadonlySet<string> | undefined {
+  return userServers.get(userId);
+}

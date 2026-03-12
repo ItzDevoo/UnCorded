@@ -17,6 +17,7 @@ import VirtualMessageList from "./VirtualMessageList.js";
 import MessageInput from "./MessageInput.js";
 import FileDropZone from "./FileDropZone.js";
 import MemberList from "./MemberList.js";
+import { StatusDotInline, type UserStatus } from "./StatusDot.js";
 
 const UsersIcon = () => (
   <svg
@@ -140,10 +141,7 @@ const ChatArea = () => {
                         )}
                       </Show>
                       <span class="font-semibold text-foreground">{channelName()}</span>
-                      <div
-                        class={`h-2 w-2 rounded-full ${dm().otherUser.status === "online" ? "bg-success" : "bg-muted-foreground/50"}`}
-                        title={dm().otherUser.status}
-                      />
+                      <StatusDotInline status={dm().otherUser.status as UserStatus} />
                     </>
                   )}
                 </Show>

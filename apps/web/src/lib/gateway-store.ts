@@ -143,6 +143,23 @@ function updateFriendStatus(targetUserId: UserId, friendshipStatus: string) {
   );
 }
 
+function setUserStatus(status: string) {
+  setReadyData("data", "user", "status", status);
+}
+
+function updatePresence(targetUserId: UserId, status: string) {
+  // Update friends list
+  setReadyData("data", "friends", (prev) =>
+    prev.map((f) => (f.userId === targetUserId ? { ...f, status } : f)),
+  );
+  // Update DM channels
+  setReadyData("data", "dmChannels", (prev) =>
+    prev.map((d) =>
+      d.otherUser.id === targetUserId ? { ...d, otherUser: { ...d.otherUser, status } } : d,
+    ),
+  );
+}
+
 export {
   gatewayStatus,
   readyData,
@@ -164,4 +181,6 @@ export {
   setHasMoreFriends,
   removeFriend,
   updateFriendStatus,
+  updatePresence,
+  setUserStatus,
 };

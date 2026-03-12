@@ -15,6 +15,7 @@ import { addConnection, type AnyServerWebSocket } from "./connections.js";
 import { registerUserServers } from "./server-members.js";
 import { seedChannelCache } from "./channel-cache.js";
 import { consumeTicket } from "../routes/gateway.js";
+import { resetIdleTimer, setManualDnd, broadcastPresence } from "./presence.js";
 
 type IdentifyResult =
   | { success: true; userId: string; username: string | null; subscriptionTier: string }
@@ -50,10 +51,7 @@ export async function handleIdentify(
     // Register connection
     addConnection(identifiedUserId, ws);
 
-    // Set user online
-    await db.update(user).set({ status: "online" }).where(eq(user.id, identifiedUserId));
-
-    // Load user record
+    // Load user record + check current status in a single query
     const [dbUserRow] = await db
       .select({
         id: user.id,
@@ -75,6 +73,18 @@ export async function handleIdentify(
       };
     }
 
+    // Preserve DND across reconnects — conditional update avoids TOCTOU race
+    if (dbUserRow.status === "dnd") {
+      setManualDnd(identifiedUserId);
+    } else {
+      // Only set online if status hasn't been changed to DND between SELECT and UPDATE
+      await db
+        .update(user)
+        .set({ status: "online" })
+        .where(and(eq(user.id, identifiedUserId), ne(user.status, "dnd")));
+    }
+
+    const effectiveStatus = dbUserRow.status === "dnd" ? "dnd" : "online";
     const dbUser = { ...dbUserRow, id: userId(dbUserRow.id) };
 
     // Load user's servers
@@ -263,6 +273,14 @@ export async function handleIdentify(
     );
 
     registerUserServers(identifiedUserId, serverIds);
+
+    // Start idle timer (skipped if DND) and broadcast presence to friends/server members
+    resetIdleTimer(identifiedUserId);
+    // Fire-and-forget: don't block IDENTIFY response
+    broadcastPresence(identifiedUserId, effectiveStatus).catch((err) => {
+      if (process.env.NODE_ENV !== "production")
+        console.error("[presence] broadcastPresence failed:", identifiedUserId, effectiveStatus, err);
+    });
 
     return {
       success: true,

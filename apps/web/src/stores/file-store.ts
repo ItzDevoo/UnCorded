@@ -45,6 +45,8 @@ interface FileStoreState {
   transfers: Record<string, TransferProgress>;
   /** fileReceiptId -> userId[] (active seeders) */
   seeders: Record<string, string[]>;
+  /** infoHash -> cached File[] from preview/seed */
+  previews: Record<string, File[]>;
 }
 
 // ── Store ───────────────────────────────────────────────────────────────────
@@ -53,6 +55,7 @@ const [store, setStore] = createStore<FileStoreState>({
   receipts: {},
   transfers: {},
   seeders: {},
+  previews: {},
 });
 
 // ── Internal helpers ────────────────────────────────────────────────────────
@@ -98,6 +101,13 @@ function updateSeeders(frId: FileReceiptId, uId: UserId, available: boolean): vo
   );
 }
 
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+function extractInfoHash(magnetUri: string): string {
+  const hashMatch = magnetUri.match(/xt=urn:btih:([A-Fa-f0-9]{40}|[A-Za-z2-7]{32})/);
+  return hashMatch?.[1] ?? magnetUri;
+}
+
 // ── Public API ──────────────────────────────────────────────────────────────
 
 export async function shareFile(chId: AnyChannelId, file: File): Promise<SeedResult> {
@@ -118,6 +128,9 @@ export async function shareFile(chId: AnyChannelId, file: File): Promise<SeedRes
     status: "seeding",
   });
 
+  // Cache original file for instant sender preview
+  setStore("previews", result.infoHash, [file]);
+
   // Send FILE_SHARE frame to server
   sendFrame({
     op: Opcode.FILE_SHARE,
@@ -134,50 +147,85 @@ export async function shareFile(chId: AnyChannelId, file: File): Promise<SeedRes
   return result;
 }
 
-export async function downloadFile(magnetUri: string, fileName: string): Promise<File[]> {
-  // Extract infoHash from magnet URI for tracking
-  const hashMatch = magnetUri.match(/xt=urn:btih:([a-fA-F0-9]+)/);
-  const infoHash = hashMatch?.[1] ?? magnetUri;
+const inFlightPreviews = new Map<string, Promise<File[]>>();
 
-  setStore("transfers", infoHash, {
-    infoHash,
-    fileName,
-    progress: 0,
-    downloadSpeed: 0,
-    status: "downloading",
-  });
+/** Fetch file via WebTorrent into memory (no browser save). */
+export async function previewFile(magnetUri: string, fileName: string): Promise<File[]> {
+  const infoHash = extractInfoHash(magnetUri);
 
-  try {
-    const files = await downloadFromMagnet(magnetUri, (progress, downloadSpeed) => {
-      setStore("transfers", infoHash, {
-        infoHash,
-        fileName,
-        progress,
-        downloadSpeed,
-        status: "downloading",
-      });
+  // Return cached files if already previewed
+  const cached = store.previews[infoHash];
+  if (cached) return cached;
+
+  // Dedupe concurrent requests for the same infoHash
+  const inFlight = inFlightPreviews.get(infoHash);
+  if (inFlight) return inFlight;
+
+  const promise = (async () => {
+    setStore("transfers", infoHash, {
+      infoHash,
+      fileName,
+      progress: 0,
+      downloadSpeed: 0,
+      status: "downloading",
     });
 
-    setStore("transfers", infoHash, "status", "done");
-    setStore("transfers", infoHash, "progress", 1);
+    try {
+      const files = await downloadFromMagnet(magnetUri, (progress, downloadSpeed) => {
+        setStore("transfers", infoHash, {
+          infoHash,
+          fileName,
+          progress,
+          downloadSpeed,
+          status: "downloading",
+        });
+      });
 
-    // Trigger browser download for each file
-    for (const file of files) {
-      const url = URL.createObjectURL(file);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = file.name;
-      a.click();
-      URL.revokeObjectURL(url);
+      setStore("transfers", infoHash, "status", "done");
+      setStore("transfers", infoHash, "progress", 1);
+      setStore("previews", infoHash, files);
+
+      return files;
+    } catch (err) {
+      setStore("transfers", infoHash, "status", "error");
+      setStore("transfers", infoHash, "error", String(err));
+      if (import.meta.env.DEV) console.error("[file-store] Preview failed:", err);
+      throw err;
     }
+  })();
 
-    return files;
-  } catch (err) {
-    setStore("transfers", infoHash, "status", "error");
-    setStore("transfers", infoHash, "error", String(err));
-    if (import.meta.env.DEV) console.error("[file-store] Download failed:", err);
-    throw err;
+  inFlightPreviews.set(infoHash, promise);
+  try {
+    return await promise;
+  } finally {
+    inFlightPreviews.delete(infoHash);
   }
+}
+
+/** Trigger browser save from cached preview. */
+export function saveFile(infoHash: string): void {
+  const files = store.previews[infoHash];
+  if (!files) {
+    if (import.meta.env.DEV) console.warn("[file-store] No cached files for", infoHash);
+    return;
+  }
+
+  for (const file of files) {
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = file.name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+}
+
+/** Convenience: preview + save in one call. */
+export async function downloadFile(magnetUri: string, fileName: string): Promise<File[]> {
+  const files = await previewFile(magnetUri, fileName);
+  const infoHash = extractInfoHash(magnetUri);
+  saveFile(infoHash);
+  return files;
 }
 
 export function cancelTransfer(infoHash: string): void {
@@ -191,6 +239,10 @@ export function getReceipts(chId: AnyChannelId): FileReceipt[] {
 
 export function getTransferProgress(infoHash: string): TransferProgress | undefined {
   return store.transfers[infoHash];
+}
+
+export function getPreviews(infoHash: string): File[] | undefined {
+  return store.previews[infoHash];
 }
 
 export function getSeeders(frId: FileReceiptId): string[] {

@@ -7,6 +7,15 @@ import { rtcConfig } from "./rtc-config.js";
 // so trackers are the sole discovery mechanism.
 const TRACKER_URLS = ["wss://tracker.openwebtorrent.com", "wss://tracker.webtorrent.dev"];
 
+// ── Errors ──────────────────────────────────────────────────────────────────
+
+export class TorrentTimeoutError extends Error {
+  constructor(timeoutMs: number) {
+    super(`Download timed out after ${timeoutMs / 60_000} minutes`);
+    this.name = "TorrentTimeoutError";
+  }
+}
+
 // ── Types ───────────────────────────────────────────────────────────────────
 
 export interface SeedResult {
@@ -99,7 +108,7 @@ export function downloadFromMagnet(
 
     const timeout = setTimeout(() => {
       torrent.destroy();
-      reject(new Error(`Download timed out after ${DOWNLOAD_TIMEOUT_MS / 60_000} minutes`));
+      reject(new TorrentTimeoutError(DOWNLOAD_TIMEOUT_MS));
     }, DOWNLOAD_TIMEOUT_MS);
 
     torrent.on("error", (err) => {

@@ -22,13 +22,13 @@ function ensureSweep() {
   sweepTimer.unref();
 }
 
-function checkInMemory(ip: string, limit: number, windowMs: number): boolean {
+function checkInMemory(key: string, limit: number, windowMs: number): boolean {
   ensureSweep();
   const now = Date.now();
-  const entry = buckets.get(ip);
+  const entry = buckets.get(key);
 
   if (!entry || now >= entry.resetAt) {
-    buckets.set(ip, { count: 1, resetAt: now + windowMs });
+    buckets.set(key, { count: 1, resetAt: now + windowMs });
     return true;
   }
 
@@ -38,8 +38,8 @@ function checkInMemory(ip: string, limit: number, windowMs: number): boolean {
 
 // ── Redis implementation ────────────────────────────────────────────────────
 
-async function checkViaRedis(ip: string, limit: number, windowMs: number): Promise<boolean> {
-  const redisKey = `rl:ip:${ip}`;
+async function checkViaRedis(key: string, limit: number, windowMs: number): Promise<boolean> {
+  const redisKey = `rl:${key}`;
   const ttlSeconds = Math.ceil(windowMs / 1000);
 
   try {
@@ -49,7 +49,7 @@ async function checkViaRedis(ip: string, limit: number, windowMs: number): Promi
     }
     return count <= limit;
   } catch {
-    return checkInMemory(ip, limit, windowMs);
+    return checkInMemory(key, limit, windowMs);
   }
 }
 
@@ -63,10 +63,13 @@ export async function checkIpRateLimit(
   ip: string,
   limit: number,
   windowMs: number,
+  prefix?: string,
 ): Promise<boolean> {
+  const key = prefix ? `${prefix}:${ip}` : `ip:${ip}`;
+
   if (redis) {
-    return checkViaRedis(ip, limit, windowMs);
+    return checkViaRedis(key, limit, windowMs);
   }
 
-  return checkInMemory(ip, limit, windowMs);
+  return checkInMemory(key, limit, windowMs);
 }

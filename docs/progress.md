@@ -10,6 +10,7 @@ Updated by the coding agent at the end of every session.
 Stripe subscriptions working. Deep review complete (all 5 batches). 93 tests passing. All issues migrated to GitHub Issues.
 Quick-wins batch: invite accept race condition fixed (db.transaction), roles/member_roles tables removed, Object.assign consistency applied.
 User settings: profile editing (username/display name/avatar), password change, account deletion, appearance (dark/light theme, message density).
+Server settings (PR #50): overview, channel management, member management + kick, invite management, ownership transfer. Plus rate limits on sensitive endpoints, HTML sanitization on messages, MemberList reactivity fix.
 
 ---
 

@@ -20,6 +20,11 @@ import { broadcastToServer, broadcastToDm, sendToUser } from "../ws/connections.
 
 const DEFAULT_LIMIT = MESSAGE_PAGE_LIMIT;
 
+/** Escape HTML entities in message content (defense-in-depth, sanitize on write). */
+function sanitizeContent(text: string): string {
+  return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+
 const listQuerySchema = z.object({
   before: z.string().min(1).optional(),
   after: z.string().min(1).optional(),
@@ -87,12 +92,14 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
       throw new ValidationError("Message content is required");
     }
 
+    const content = sanitizeContent(parsed.data.content);
+
     const [inserted] = await db
       .insert(messages)
       .values({
         channelId: params.channelId,
         authorId: sessionUser.id,
-        content: parsed.data.content,
+        content,
       })
       .returning();
 
@@ -216,10 +223,11 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
       throw new ForbiddenError("Only the author can edit this message");
     }
 
+    const sanitizedContent = sanitizeContent(parsed.data.content);
     const editedAt = new Date();
     await db
       .update(messages)
-      .set({ content: parsed.data.content, editedAt })
+      .set({ content: sanitizedContent, editedAt })
       .where(eq(messages.id, params.messageId));
 
     const updated = await fetchMessageWithAuthor(params.messageId);
@@ -229,7 +237,7 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
       d: {
         id: messageId(params.messageId),
         channelId: channelId(params.channelId),
-        content: parsed.data.content,
+        content: sanitizedContent,
         editedAt,
       },
     } as const;

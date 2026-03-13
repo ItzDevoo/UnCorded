@@ -13,3 +13,9 @@ export const updateServerSchema = z.object({
 });
 
 export type UpdateServer = z.infer<typeof updateServerSchema>;
+
+export const transferOwnershipSchema = z.object({
+  newOwnerId: z.string().min(1),
+});
+
+export type TransferOwnership = z.infer<typeof transferOwnershipSchema>;

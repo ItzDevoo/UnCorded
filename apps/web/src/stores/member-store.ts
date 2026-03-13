@@ -40,7 +40,7 @@ export async function fetchMembers(sId: ServerId): Promise<void> {
   setStore("loading", key, true);
   try {
     const res = await api<{ members: Member[]; hasMore: boolean }>(
-      `/api/servers/${sId}/members?limit=200`,
+      `/api/servers/${sId}/members?limit=100`,
     );
     setStore("members", key, res.members);
   } catch (err) {

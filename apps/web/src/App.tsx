@@ -9,6 +9,7 @@ const Register = lazy(() => import("./pages/Register.js"));
 const Home = lazy(() => import("./pages/Home.js"));
 const Friends = lazy(() => import("./pages/Friends.js"));
 const Settings = lazy(() => import("./pages/Settings.js"));
+const ServerSettings = lazy(() => import("./pages/ServerSettings.js"));
 
 const App = () => {
   return (
@@ -20,6 +21,7 @@ const App = () => {
         <Route path="/" component={Home} />
         <Route path="/friends" component={Friends} />
         <Route path="/settings" component={Settings} />
+        <Route path="/server-settings" component={ServerSettings} />
       </Route>
     </Router>
   );

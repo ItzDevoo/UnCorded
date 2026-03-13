@@ -3,6 +3,7 @@ import { eq, sql, and } from "drizzle-orm";
 import {
   createServerSchema,
   updateServerSchema,
+  transferOwnershipSchema,
   ValidationError,
   NotFoundError,
   InternalError,
@@ -139,9 +140,45 @@ export const serverRoutes = new Elysia({ prefix: "/api/servers" })
       .where(eq(servers.id, params.serverId))
       .returning();
 
+    if (updated) {
+      broadcastToServer(params.serverId, {
+        op: Opcode.SERVER_UPDATE,
+        d: { id: serverId(updated.id), name: updated.name, iconUrl: updated.iconUrl },
+      });
+    }
+
     return updated
       ? { ...updated, id: serverId(updated.id), ownerId: userId(updated.ownerId) }
       : updated;
+  })
+  .patch("/:serverId/owner", async ({ user: sessionUser, params, body }) => {
+    await requireOwner(sessionUser.id, params.serverId);
+
+    const parsed = transferOwnershipSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
+    }
+
+    if (parsed.data.newOwnerId === sessionUser.id) {
+      throw new ValidationError("Cannot transfer ownership to yourself");
+    }
+
+    await requireMember(parsed.data.newOwnerId, params.serverId);
+
+    const [updated] = await db
+      .update(servers)
+      .set({ ownerId: parsed.data.newOwnerId })
+      .where(eq(servers.id, params.serverId))
+      .returning();
+
+    if (!updated) throw new NotFoundError("Server");
+
+    broadcastToServer(params.serverId, {
+      op: Opcode.SERVER_UPDATE,
+      d: { id: serverId(params.serverId), ownerId: userId(updated.ownerId) },
+    });
+
+    return { ...updated, id: serverId(updated.id), ownerId: userId(updated.ownerId) };
   })
   .delete("/:serverId", async ({ user: sessionUser, params, set }) => {
     await requireOwner(sessionUser.id, params.serverId);

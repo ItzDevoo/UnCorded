@@ -8,6 +8,7 @@ import {
   ValidationError,
   ConflictError,
   UnauthorizedError,
+  RateLimitError,
   MAX_AVATAR_SIZE_BYTES,
   ALLOWED_AVATAR_TYPES,
 } from "@uncorded/shared";
@@ -18,6 +19,15 @@ import { authResolve } from "../middleware/auth.js";
 import { auth } from "../auth/index.js";
 import { isR2Configured, uploadAvatar, deleteAvatar } from "../lib/r2.js";
 import { AppError } from "@uncorded/shared";
+import { checkIpRateLimit } from "../middleware/ip-rate-limit.js";
+
+function getClientIp(request: Request): string {
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    request.headers.get("x-real-ip") ??
+    "unknown"
+  );
+}
 
 function serializeUser(dbUser: typeof user.$inferSelect) {
   return {
@@ -92,6 +102,11 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
     return serializeUser(updated);
   })
   .patch("/@me/avatar", async ({ user: sessionUser, request }) => {
+    const ip = getClientIp(request);
+    if (!(await checkIpRateLimit(ip, 10, 300_000, "avatar-up"))) {
+      throw new RateLimitError("Too many requests, try again later");
+    }
+
     if (!isR2Configured()) {
       throw new AppError(
         "AvatarUploadDisabled",
@@ -145,7 +160,12 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
 
     return serializeUser(updated);
   })
-  .delete("/@me/avatar", async ({ user: sessionUser }) => {
+  .delete("/@me/avatar", async ({ user: sessionUser, request }) => {
+    const ip = getClientIp(request);
+    if (!(await checkIpRateLimit(ip, 10, 300_000, "avatar-del"))) {
+      throw new RateLimitError("Too many requests, try again later");
+    }
+
     const [current] = await db
       .select({ avatarUrl: user.avatarUrl })
       .from(user)
@@ -173,6 +193,11 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
     return serializeUser(updated);
   })
   .post("/@me/password", async ({ body, request }) => {
+    const ip = getClientIp(request);
+    if (!(await checkIpRateLimit(ip, 5, 900_000, "pwd"))) {
+      throw new RateLimitError("Too many requests, try again later");
+    }
+
     const parsed = changePasswordSchema.safeParse(body);
     if (!parsed.success) {
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
@@ -203,6 +228,11 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
     return { success: true };
   })
   .delete("/@me", async ({ user: sessionUser, body, request }) => {
+    const ip = getClientIp(request);
+    if (!(await checkIpRateLimit(ip, 3, 900_000, "acct-del"))) {
+      throw new RateLimitError("Too many requests, try again later");
+    }
+
     const parsed = deleteAccountSchema.safeParse(body);
     if (!parsed.success) {
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");

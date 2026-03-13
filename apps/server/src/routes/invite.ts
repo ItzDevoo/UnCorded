@@ -13,7 +13,7 @@ import { db } from "../db/index.js";
 import { invites, servers, members, channels, user } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
 import { checkIpRateLimit } from "../middleware/ip-rate-limit.js";
-import { requireMember } from "../helpers/permissions.js";
+import { requireMember, requireOwner } from "../helpers/permissions.js";
 import { addServerMember } from "../ws/server-members.js";
 import { sendToUser, broadcastToServer } from "../ws/connections.js";
 
@@ -46,6 +46,40 @@ export const serverInviteRoutes = new Elysia({ prefix: "/api/servers/:serverId/i
           creatorId: invite.creatorId ? userId(invite.creatorId) : null,
         }
       : invite;
+  })
+  .get("/", async ({ user: sessionUser, params }) => {
+    await requireOwner(sessionUser.id, params.serverId);
+
+    const activeInvites = await db
+      .select()
+      .from(invites)
+      .where(
+        and(
+          eq(invites.serverId, params.serverId),
+          or(isNull(invites.expiresAt), gt(invites.expiresAt, new Date())),
+          or(isNull(invites.maxUses), gt(invites.maxUses, invites.uses)),
+        ),
+      );
+
+    return activeInvites.map((inv) =>
+      Object.assign(inv, {
+        code: inviteCode(inv.code),
+        serverId: serverId(inv.serverId),
+        creatorId: inv.creatorId ? userId(inv.creatorId) : null,
+      }),
+    );
+  })
+  .delete("/:code", async ({ user: sessionUser, params, set }) => {
+    await requireOwner(sessionUser.id, params.serverId);
+
+    const [deleted] = await db
+      .delete(invites)
+      .where(and(eq(invites.code, params.code), eq(invites.serverId, params.serverId)))
+      .returning();
+
+    if (!deleted) throw new NotFoundError("Invite");
+
+    set.status = 204;
   });
 
 export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })

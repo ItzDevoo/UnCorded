@@ -49,6 +49,8 @@ export enum Opcode {
   SERVER_CREATE = 60,
   /** Server -> Client: server deleted */
   SERVER_DELETE = 61,
+  /** Server -> Client: server updated (name, icon, owner) */
+  SERVER_UPDATE = 62,
 
   /** Server -> Client: friend request received */
   FRIEND_REQUEST = 70,

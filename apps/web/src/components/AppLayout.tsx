@@ -1,5 +1,6 @@
 import { onCleanup, createEffect, Show, type ParentComponent } from "solid-js";
 import { useSession } from "../lib/auth.js";
+import { useLocation } from "@solidjs/router";
 import { connectGateway, disconnectGateway } from "../lib/gateway.js";
 import { gatewayStatus } from "../lib/gateway-store.js";
 import { selectedServerId, selectedDmChannelId } from "../stores/app-store.js";
@@ -11,8 +12,12 @@ import ChatArea from "./ChatArea.js";
 import { ToastContainer } from "./ui/toast.js";
 import { Empty } from "./ui/empty.js";
 
+const SETTINGS_PATHS = ["/home/server-settings", "/home/settings"];
+
 const AppLayout: ParentComponent = (props) => {
   const session = useSession();
+  const location = useLocation();
+  const isSettingsPage = () => SETTINGS_PATHS.some((p) => location.pathname.startsWith(p));
 
   createEffect(() => {
     const s = session();
@@ -65,7 +70,10 @@ const AppLayout: ParentComponent = (props) => {
               </div>
             }
           >
-            <Show when={selectedServerId() || selectedDmChannelId()} fallback={props.children}>
+            <Show
+              when={!isSettingsPage() && (selectedServerId() || selectedDmChannelId())}
+              fallback={props.children}
+            >
               <ChatArea />
             </Show>
           </Show>

@@ -128,6 +128,12 @@ function setHasMoreFriends(value: boolean) {
   setReadyData("data", "hasMoreFriends", value);
 }
 
+function updateServer(targetServerId: ServerId, updates: Partial<ReadyServer>) {
+  setReadyData("data", "servers", (prev) =>
+    prev.map((s) => (s.id === targetServerId ? { ...s, ...updates } : s)),
+  );
+}
+
 function removeServer(targetServerId: ServerId) {
   setReadyData("data", "servers", (prev) => prev.filter((s) => s.id !== targetServerId));
   setChannelCache(targetServerId, undefined!);
@@ -175,6 +181,7 @@ export {
   setReadyPayload,
   clearReadyPayload,
   addServer,
+  updateServer,
   removeServer,
   setChannelsForServer,
   addChannel,

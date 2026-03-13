@@ -78,30 +78,33 @@ const MemberList = (props: MemberListProps) => {
           >
             <For each={virtualizer.getVirtualItems()}>
               {(virtualRow) => {
-                const member = sortedMembers()[virtualRow.index];
-                if (!member) return null;
-                const isOfflineDivider =
+                const member = () => sortedMembers()[virtualRow.index];
+                const isOfflineDivider = () =>
                   virtualRow.index === offlineStartIndex() && offlineStartIndex() > 0;
 
                 return (
-                  <div
-                    data-index={virtualRow.index}
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      width: "100%",
-                      height: `${virtualRow.size}px`,
-                      transform: `translateY(${virtualRow.start}px)`,
-                    }}
-                  >
-                    <Show when={isOfflineDivider}>
-                      <div class="px-3 pt-1">
-                        <div class="mb-1 h-px bg-border" />
+                  <Show when={member()}>
+                    {(m) => (
+                      <div
+                        data-index={virtualRow.index}
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: `${virtualRow.size}px`,
+                          transform: `translateY(${virtualRow.start}px)`,
+                        }}
+                      >
+                        <Show when={isOfflineDivider()}>
+                          <div class="px-3 pt-1">
+                            <div class="mb-1 h-px bg-border" />
+                          </div>
+                        </Show>
+                        <MemberRow member={m()} isOwner={m().userId === props.ownerId} />
                       </div>
-                    </Show>
-                    <MemberRow member={member} isOwner={member.userId === props.ownerId} />
-                  </div>
+                    )}
+                  </Show>
                 );
               }}
             </For>

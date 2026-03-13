@@ -5,21 +5,31 @@ import {
   channelId,
   serverCreateEventSchema,
   serverDeleteEventSchema,
+  serverUpdateEventSchema,
 } from "@uncorded/protocol";
 import { onGatewayEvent } from "../lib/gateway.js";
-import { readyData, addServer, removeServer, setChannelsForServer } from "../lib/gateway-store.js";
+import {
+  readyData,
+  addServer,
+  updateServer,
+  removeServer,
+  setChannelsForServer,
+} from "../lib/gateway-store.js";
 import { selectedServerId, selectHome } from "./app-store.js";
 
 // ── WS listener unsub refs ──────────────────────────────────────────────────
 
 let unsubServerCreate: (() => void) | null = null;
 let unsubServerDelete: (() => void) | null = null;
+let unsubServerUpdate: (() => void) | null = null;
 
 function teardown() {
   unsubServerCreate?.();
   unsubServerDelete?.();
+  unsubServerUpdate?.();
   unsubServerCreate = null;
   unsubServerDelete = null;
+  unsubServerUpdate = null;
 }
 
 export function setupServerStore(): void {
@@ -60,6 +70,18 @@ export function setupServerStore(): void {
     if (selectedServerId() === deletedId) {
       selectHome();
     }
+  });
+
+  unsubServerUpdate = onGatewayEvent(Opcode.SERVER_UPDATE, (data) => {
+    const parsed = serverUpdateEventSchema.safeParse(data);
+    if (!parsed.success) return;
+
+    const updates: Record<string, unknown> = {};
+    if (parsed.data.name !== undefined) updates.name = parsed.data.name;
+    if (parsed.data.iconUrl !== undefined) updates.iconUrl = parsed.data.iconUrl;
+    if (parsed.data.ownerId !== undefined) updates.ownerId = userId(parsed.data.ownerId);
+
+    updateServer(serverId(parsed.data.id), updates);
   });
 }
 

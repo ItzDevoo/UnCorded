@@ -156,6 +156,13 @@ export const serverDeleteEventSchema = z.object({
   id: z.string(),
 });
 
+export const serverUpdateEventSchema = z.object({
+  id: z.string(),
+  name: z.string().optional(),
+  iconUrl: z.string().nullable().optional(),
+  ownerId: z.string().optional(),
+});
+
 export const memberAddEventSchema = z.object({
   serverId: z.string(),
   user: authorSchema,

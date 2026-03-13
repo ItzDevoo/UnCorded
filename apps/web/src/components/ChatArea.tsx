@@ -49,6 +49,9 @@ const ChatArea = () => {
   const isDm = createMemo(() => !!selectedDmChannelId() && !selectedChannelId());
   const isServerChannel = createMemo(() => !!selectedChannelId() && !!selectedServerId());
 
+  const isFreeUser = createMemo(() => readyData.data?.user.subscriptionTier === "free");
+  const isFileSharingBlocked = createMemo(() => isFreeUser() && isServerChannel());
+
   const dmChannel = createMemo(() => {
     if (!isDm()) return null;
     const dmId = selectedDmChannelId();
@@ -90,7 +93,7 @@ const ChatArea = () => {
 
   function handleFileSelect(file: File) {
     const id = channelId();
-    if (!id) return;
+    if (!id || isFileSharingBlocked()) return;
     shareFile(id, file).catch((err) => {
       showToast(err instanceof Error ? err.message : "Failed to share file", "error");
     });
@@ -168,9 +171,15 @@ const ChatArea = () => {
                 channelId={id()}
                 onFileSelect={handleFileSelect}
                 class="flex min-w-0 flex-1 flex-col"
+                disabled={isFileSharingBlocked()}
+                disabledMessage="Upgrade to Supporter to share files in servers"
               >
                 <VirtualMessageList channelId={id()} />
-                <MessageInput channelId={id()} onFileSelect={handleFileSelect} />
+                <MessageInput
+                  channelId={id()}
+                  onFileSelect={handleFileSelect}
+                  fileDisabled={isFileSharingBlocked()}
+                />
               </FileDropZone>
 
               <Show when={isServerChannel() && showMembers() && currentServer()}>

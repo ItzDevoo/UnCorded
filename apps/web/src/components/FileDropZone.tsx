@@ -11,6 +11,8 @@ const FileDropZone = (props: {
   children: JSX.Element;
   onFileSelect: (file: File) => void;
   class?: string;
+  disabled?: boolean;
+  disabledMessage?: string;
 }) => {
   const [dragging, setDragging] = createSignal(false);
   const [errorMessage, setErrorMessage] = createSignal<string | null>(null);
@@ -32,6 +34,12 @@ const FileDropZone = (props: {
     e.preventDefault();
     dragCounter = 0;
     setDragging(false);
+
+    if (props.disabled) {
+      setErrorMessage(props.disabledMessage ?? "File sharing is not available");
+      setTimeout(() => setErrorMessage(null), 5000);
+      return;
+    }
 
     const file = e.dataTransfer?.files[0];
     if (!file) return;
@@ -59,8 +67,20 @@ const FileDropZone = (props: {
     >
       {props.children}
       {dragging() && (
-        <div class="absolute inset-0 z-10 flex items-center justify-center rounded-lg border-2 border-dashed border-primary bg-primary/10">
-          <p class="text-lg font-semibold text-primary">Drop file to share</p>
+        <div
+          class={`absolute inset-0 z-10 flex items-center justify-center rounded-lg border-2 border-dashed ${
+            props.disabled
+              ? "border-destructive bg-destructive/10"
+              : "border-primary bg-primary/10"
+          }`}
+        >
+          <p
+            class={`text-lg font-semibold ${props.disabled ? "text-destructive" : "text-primary"}`}
+          >
+            {props.disabled
+              ? (props.disabledMessage ?? "File sharing is not available")
+              : "Drop file to share"}
+          </p>
         </div>
       )}
       <Show when={errorMessage()}>

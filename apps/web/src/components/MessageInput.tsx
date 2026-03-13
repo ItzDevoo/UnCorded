@@ -9,7 +9,11 @@ const TEXTAREA_MAX_HEIGHT = 200;
 /** Keyed by ChannelId (branded string) — TS index signatures can't use branded types */
 const lastTypingSent: Record<string, number> = {};
 
-const MessageInput = (props: { channelId: AnyChannelId; onFileSelect?: (file: File) => void }) => {
+const MessageInput = (props: {
+  channelId: AnyChannelId;
+  onFileSelect?: (file: File) => void;
+  fileDisabled?: boolean;
+}) => {
   // oxlint-disable-next-line no-unassigned-vars -- SolidJS ref pattern, assigned via JSX ref={}
   let textareaRef!: HTMLTextAreaElement;
   const [content, setContent] = createSignal("");
@@ -68,7 +72,7 @@ const MessageInput = (props: { channelId: AnyChannelId; onFileSelect?: (file: Fi
     if (!items) return;
 
     for (const item of items) {
-      if (item.kind === "file") {
+      if (item.kind === "file" && !props.fileDisabled) {
         const file = item.getAsFile();
         if (file) {
           e.preventDefault();

@@ -29,7 +29,7 @@ Reference: C:\Nexis (monorepo patterns, auth, WS gateway), C:\t3Code (tooling, U
 - [ ] Server file sharing gate + TURN relay (#19)
 - [x] Presence system (#20)
 - [x] User settings (#21)
-- [x] Server settings (#22) — in PR #50
+- [x] Server settings (#22) — merged PR #50
 - [ ] Report button (#23)
 - [ ] Mobile responsive polish (#30)
 - [ ] Keyboard shortcuts (#24)

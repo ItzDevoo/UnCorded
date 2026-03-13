@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { rateLimit } from "elysia-rate-limit";
+import { ZodError } from "zod";
 import { AppError } from "@uncorded/shared";
 import { env } from "./env.js";
 import { betterAuthPlugin } from "./middleware/auth.js";
@@ -14,6 +15,7 @@ import { friendRoutes } from "./routes/friend.js";
 import { dmRoutes } from "./routes/dm.js";
 import { webhookRoutes } from "./routes/webhook.js";
 import { stripeRoutes } from "./routes/stripe.js";
+import { turnRoutes } from "./routes/turn.js";
 import { gatewayTicketRoutes } from "./routes/gateway.js";
 import { gateway } from "./ws/gateway.js";
 
@@ -53,6 +55,7 @@ const app = new Elysia()
     }
   })
   .use(stripeRoutes)
+  .use(turnRoutes)
   .use(userRoutes)
   .use(serverRoutes)
   .use(channelRoutes)
@@ -78,6 +81,11 @@ const app = new Elysia()
     if (code === "VALIDATION") {
       set.status = 400;
       return { code: "VALIDATION_ERROR", message: error.message };
+    }
+
+    if (error instanceof ZodError) {
+      set.status = 400;
+      return { code: "VALIDATION_ERROR", message: error.issues[0]?.message ?? "Invalid input" };
     }
 
     console.error("Unhandled error:", error);

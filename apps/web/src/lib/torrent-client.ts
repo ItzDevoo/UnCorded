@@ -1,6 +1,6 @@
 import WebTorrent from "webtorrent";
 import type { Instance as WebTorrentInstance, Torrent } from "webtorrent";
-import { rtcConfig } from "./rtc-config.js";
+import { rtcConfig, getIceServers } from "./rtc-config.js";
 
 // Known-good WebSocket trackers for browser peer discovery.
 // DHT/LSD are disabled (require UDP dgram, impossible in browsers),
@@ -39,41 +39,67 @@ export type ProgressCallback = (progress: number, downloadSpeed: number) => void
 // ── Singleton ───────────────────────────────────────────────────────────────
 
 let client: WebTorrentInstance | null = null;
+let initPromise: Promise<WebTorrentInstance> | null = null;
 
-export function initTorrentClient(): WebTorrentInstance {
-  if (client) return client;
-
-  // Configure simple-peer's default RTC config (STUN servers) before creating client.
-  // WebTorrent uses @thaunknown/simple-peer internally for all WebRTC connections.
+function setPeerConfig(config: RTCConfiguration) {
   try {
-    // WebTorrent internal API — no public types available
     const Peer = (WebTorrent as unknown as { Peer?: { config?: RTCConfiguration } }).Peer;
     if (Peer) {
-      Peer.config = rtcConfig;
+      Peer.config = config;
     }
   } catch (err) {
     if (import.meta.env.DEV) console.warn("[torrent] Failed to configure simple-peer:", err);
   }
+}
 
-  client = new WebTorrent({ dht: false, lsd: false });
+export async function initTorrentClient(): Promise<WebTorrentInstance> {
+  if (client) {
+    // Refresh is cheap — getIceServers() returns cached until TTL expires
+    try {
+      setPeerConfig({ iceServers: await getIceServers() });
+    } catch {
+      setPeerConfig(rtcConfig);
+    }
+    return client;
+  }
+  if (initPromise) return initPromise;
 
-  client.on("error", (err) => {
-    if (import.meta.env.DEV) console.error("[torrent-client] Error:", err);
-  });
+  initPromise = (async () => {
+    try {
+      const iceServers = await getIceServers();
+      setPeerConfig({ iceServers });
+    } catch {
+      setPeerConfig(rtcConfig);
+    }
 
-  return client;
+    client = new WebTorrent({ dht: false, lsd: false });
+
+    client.on("error", (err) => {
+      if (import.meta.env.DEV) console.error("[torrent-client] Error:", err);
+    });
+
+    return client;
+  })();
+
+  try {
+    return await initPromise;
+  } catch (err) {
+    initPromise = null;
+    throw err;
+  }
 }
 
 export function destroyTorrentClient(): void {
   if (!client) return;
   client.destroy();
   client = null;
+  initPromise = null;
 }
 
 // ── Seeding ─────────────────────────────────────────────────────────────────
 
-export function seedFile(file: File): Promise<SeedResult> {
-  const c = initTorrentClient();
+export async function seedFile(file: File): Promise<SeedResult> {
+  const c = await initTorrentClient();
 
   return new Promise((resolve, reject) => {
     const onError = (err: Error | string) => reject(typeof err === "string" ? new Error(err) : err);
@@ -97,11 +123,11 @@ export function seedFile(file: File): Promise<SeedResult> {
 
 const DOWNLOAD_TIMEOUT_MS = 5 * 60 * 1000;
 
-export function downloadFromMagnet(
+export async function downloadFromMagnet(
   magnetUri: string,
   onProgress?: ProgressCallback,
 ): Promise<File[]> {
-  const c = initTorrentClient();
+  const c = await initTorrentClient();
 
   return new Promise((resolve, reject) => {
     const torrent = c.add(magnetUri, { announce: TRACKER_URLS });

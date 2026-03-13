@@ -44,6 +44,10 @@ const envSchema = z.object({
   STRIPE_SUPPORTER_PRICE_ID: optionalString,
   STRIPE_SERVER_OWNER_PRICE_ID: optionalString,
 
+  // TURN relay — optional (paid users get relay credentials)
+  TURN_SERVER_URL: optionalString,
+  TURN_SHARED_SECRET: optionalString,
+
   // Cloudflare R2 — optional (avatars disabled without them)
   R2_ACCOUNT_ID: optionalString,
   R2_ACCESS_KEY_ID: optionalString,

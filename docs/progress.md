@@ -94,10 +94,12 @@ Server settings (merged PR #50): overview, channel management, member management
 - WebTorrent in browser (seed + download via WebRTC DataChannels)
 - WebRTC signaling through WS gateway
 - STUN configuration (Google public servers)
+- TURN relay via Cloudflare Calls API (paid users only, 24h credential TTL, client-side caching with 1h refresh margin)
 - File receipts stored in DB (magnet URI as message)
 - Drag-and-drop + clipboard paste file selection
 - Download progress bar, seeder count, rich image previews
 - Free users: DM file sharing only (P2P, both online)
+- Server file sharing gated to Supporter+ (UI disabled + gateway TIER_RESTRICTED error)
 - Error messaging when P2P fails (NAT blocked, no TURN for free users)
 
 ### Frontend

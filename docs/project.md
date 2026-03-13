@@ -60,7 +60,7 @@ UnCorded is a real-time chat app built on radical transparency. Files transfer d
 ### NAT Traversal
 
 - STUN (free, public servers like Google's) — helps users discover their public IP for direct connections
-- TURN (self-hosted relay) — fallback when direct P2P fails (~15-20% of connections, higher on mobile)
+- TURN (Cloudflare Calls relay) — fallback when direct P2P fails (~15-20% of connections, higher on mobile). 1TB/mo free tier, then $0.05/GB.
 - TURN access is restricted to paid users (Supporter+). Free users get P2P-only — if NAT blocks them, they see a clear message explaining why and how to upgrade
 
 ### CSAM Compliance
@@ -174,7 +174,7 @@ Cancel anytime. No tricks.
 2. **Stripe for subscriptions** — tier-based billing. Stripe Tax handles global compliance.
 3. **DMs always P2P** — no server storage, no server involvement beyond signaling. Privacy is non-negotiable.
 4. **Show margins at checkout** — this is the differentiator. Do not hide it to look more professional.
-5. **TURN only for paid users** — free users get P2P-only. This is honest monetization tied to real infrastructure cost, not artificial limits.
+5. **TURN only for paid users** — free users get P2P-only. This is honest monetization tied to real infrastructure cost (Cloudflare Calls relay, 1TB/mo free), not artificial limits.
 6. **Desktop app via Electron** — enables persistent seeding, background operation, and client-side CSAM scanning. Follows t3Code's proven patterns. Future mobile via Capacitor.
 7. **Web app first** — ship the web chat + DM file sharing before building the desktop app. Get users, validate the model, then expand.
 8. **Traffic-based server owner pricing** — server owners pay proportional to the infrastructure load their free users generate. Exact formula TBD after collecting real cost data.

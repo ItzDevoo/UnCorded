@@ -1,13 +1,13 @@
 import { z } from "zod";
 
 const optionalUrl = z
-  .string()
-  .transform((s) => (s === "" ? undefined : s))
+  .union([z.string(), z.undefined()])
+  .transform((s) => (s === undefined || s === "" ? undefined : s))
   .pipe(z.string().url().optional());
 
 const optionalString = z
-  .string()
-  .transform((s) => (s === "" ? undefined : s))
+  .union([z.string(), z.undefined()])
+  .transform((s) => (s === undefined || s === "" ? undefined : s))
   .pipe(z.string().optional());
 
 const envSchema = z.object({
@@ -44,9 +44,9 @@ const envSchema = z.object({
   STRIPE_SUPPORTER_PRICE_ID: optionalString,
   STRIPE_SERVER_OWNER_PRICE_ID: optionalString,
 
-  // TURN relay — optional (paid users get relay credentials)
-  TURN_SERVER_URL: optionalString,
-  TURN_SHARED_SECRET: optionalString,
+  // TURN relay — optional (Cloudflare Calls API)
+  TURN_KEY_ID: optionalString,
+  TURN_KEY_API_TOKEN: optionalString,
 
   // Cloudflare R2 — optional (avatars disabled without them)
   R2_ACCOUNT_ID: optionalString,

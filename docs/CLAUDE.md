@@ -38,7 +38,7 @@ Universal source of truth for all agents. Always read these before starting work
 - Auth: Better Auth (email/password + Discord OAuth + Google OAuth)
 - Payments: Stripe + Stripe Tax (subscription tiers, transparency receipts)
 - Real-time: Bun native WebSockets + MessagePack
-- NAT Traversal: Public STUN servers + self-hosted TURN (paid users only)
+- NAT Traversal: Public STUN servers + Cloudflare TURN (paid users only, 1TB/mo free tier)
 
 ## Non-Negotiable Rules
 

@@ -1,4 +1,4 @@
-import { api } from "./api.js";
+import { api, ApiRequestError } from "./api.js";
 
 const DEFAULT_STUN_SERVERS: string[] = [
   "stun:stun.l.google.com:19302",
@@ -31,42 +31,47 @@ export const rtcConfig: RTCConfiguration = {
 
 // ── TURN credential cache ────────────────────────────────────────────────────
 
-interface TurnCredentials {
-  urls: string[];
-  username: string;
-  credential: string;
-  ttl: number;
+interface CloudflareTurnResponse {
+  iceServers: {
+    urls: string | string[];
+    username?: string;
+    credential?: string;
+  }[];
 }
 
-let cachedTurn: TurnCredentials | null = null;
+let cachedTurn: CloudflareTurnResponse["iceServers"] | null = null;
 let cachedExpiry = 0;
 
-const REFRESH_MARGIN = 5 * 60; // refresh 5 minutes before TTL expires
+const TURN_TTL = 86_400; // Cloudflare credentials last 24 hours
+const REFRESH_MARGIN = 60 * 60; // refresh 1 hour before expiry
 
 export async function getIceServers(): Promise<RTCIceServer[]> {
   const now = Math.floor(Date.now() / 1000);
 
   if (cachedTurn && now < cachedExpiry - REFRESH_MARGIN) {
-    return [
-      ...stunServers,
-      { urls: cachedTurn.urls, username: cachedTurn.username, credential: cachedTurn.credential },
-    ];
+    return cachedTurn;
   }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 3000);
   try {
-    const turn = await api<TurnCredentials>("/api/turn/credentials", {
+    const data = await api<CloudflareTurnResponse>("/api/turn/credentials", {
       signal: controller.signal,
     });
-    cachedTurn = turn;
-    cachedExpiry = now + turn.ttl;
-    return [
-      ...stunServers,
-      { urls: turn.urls, username: turn.username, credential: turn.credential },
-    ];
-  } catch {
-    // 403 (free user), 503 (no TURN configured), timeout, or network error — fall back to STUN only
+    cachedTurn = data.iceServers;
+    cachedExpiry = now + TURN_TTL;
+    return cachedTurn;
+  } catch (err) {
+    // Auth/entitlement denial — respect it, clear stale cache
+    if (err instanceof ApiRequestError && (err.status === 401 || err.status === 403)) {
+      cachedTurn = null;
+      cachedExpiry = 0;
+      return stunServers;
+    }
+    // Transient error — use cached credentials if still valid
+    if (cachedTurn && now < cachedExpiry) {
+      return cachedTurn;
+    }
     return stunServers;
   } finally {
     clearTimeout(timeout);

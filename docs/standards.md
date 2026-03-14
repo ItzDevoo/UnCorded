@@ -8,7 +8,7 @@ Reference: C:\t3Code for proven patterns. Adapt to our stack (SolidJS, Electron,
 ## Monorepo Structure
 
 ```
-C:\UnCorded\Project\
+C:\Projects\UnCorded\Project\
 ├── apps/
 │   ├── web/              # SolidJS + Vite frontend (web-only features)
 │   ├── server/           # ElysiaJS backend (WS gateway, REST API)

@@ -4,11 +4,6 @@ Real-time chat app built on radical transparency. Files transfer directly betwee
 
 **Tagline:** "You know exactly where your files go."
 
-## Agent Roles
-
-- **Chat Bot Agent** (root: C:\UnCorded) — diagnostic, guidance, code review, and ALL git operations. No code changes. Instructions: `C:\UnCorded\CLAUDE.md`, memory: `C:\UnCorded\memory.md`.
-- **Coding Agent** (root: C:\UnCorded\Project) — all code lives here. Instructions: `CLAUDE.md` (project root), memory: `memory.md` (project root). NEVER runs git commands — that's the Chat Bot Agent's job.
-
 ## Docs Folder (docs/)
 
 Universal source of truth for all agents. Always read these before starting work.
@@ -56,7 +51,7 @@ Universal source of truth for all agents. Always read these before starting work
 
 ## Git Workflow
 
-All git operations go through the Chat Bot Agent via `/git`. The coding agent never touches version control.
+All git operations go through the ChatBot Agent via `/git`. The coding agent never touches version control.
 
 - `/review` — run at session start, audits recent changes, checks rule violations, reports health score
 - `/git` — commit, push, branch, revert. Runs typecheck + lint before every commit. Updates progress.md automatically.

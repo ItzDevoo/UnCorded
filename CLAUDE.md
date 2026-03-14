@@ -1,25 +1,8 @@
 # UnCorded — Coding Agent
 
+**IMPORTANT:** I am the Coding Agent. I write all code for UnCorded. I NEVER run git commands — the ChatBot Agent at `C:\Projects\UnCorded` handles all version control. Ignore the parent directory's CLAUDE.md — it defines the ChatBot role, not mine.
+
 Read docs/CLAUDE.md first. This file adds coding-specific context.
-
-## Memory
-
-Read `memory.md` at session start — it has current state, technical lessons, and patterns that persist between conversations. Update it when you learn something new.
-
-## Docs Location
-
-All reference docs are in docs/ (repo root)
-
-- docs/CLAUDE.md — project identity, stack, rules
-- docs/project.md — full vision, product decisions, pricing
-- docs/schema.md — database schema
-- docs/standards.md — monorepo structure, tooling, quality gates
-- docs/ui-standards.md — design tokens, component patterns, accessibility
-- docs/auto-update.md — Electron auto-update architecture
-- docs/websocket-protocol.md — WS opcodes and lifecycle
-- docs/todo.md — active tasks
-- docs/lessons.md — past mistakes and decisions
-- docs/progress.md — what actually works
 
 ## Monorepo Layout
 
@@ -73,4 +56,3 @@ At the end of every session:
 1. Update docs/todo.md — check off completed items
 2. Update docs/lessons.md — log mistakes and decisions
 3. Update docs/progress.md — update what actually works
-4. Update memory.md — save anything learned for next session

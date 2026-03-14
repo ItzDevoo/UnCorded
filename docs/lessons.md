@@ -220,6 +220,30 @@ This applies to any module that registers global listeners or timers at the top 
 
 ---
 
+**[W4 D4]** — Heartbeat watchdog must capture socket ref at assignment time to prevent stale timeouts from closing new connections after reconnect.
+
+**[W4 D4]** — Drizzle 0.45+ supports `.for("update")` for row-level locking in transactions. Use this for any read-then-write pattern that needs atomicity.
+
+**[W4 D4]** — Upstash Redis supports `getdel` (Redis 6.2+) — use for atomic consume-and-delete patterns instead of separate get+del calls.
+
+**[W4 D4]** — NotFoundError class auto-appends " not found" to the resource name — don't pass full messages like "User not found", just pass "User".
+
+**[W4 D4]** — solid-markdown is CJS-broken in Vite. Use `marked` with manual Lexer→SolidJS token rendering. Never use innerHTML for rendered markdown.
+
+**[W4 D4]** — env.ts `optionalString` requires the key to exist in .env (even if empty) — Zod `.string()` rejects `undefined`. Use `.optional()` or transform pattern.
+
+**[W4 D4]** — Any CodeRabbit finding we skip in PR review MUST be filed as a GitHub Issue for future tracking.
+
+**[W4 D4]** — WebTorrent tracker warnings (wss://tracker.webtorrent.dev/) and "net" module externalization are benign browser warnings — not bugs. Don't chase them.
+
+**[W4 D1]** — App-store auto-select effects (e.g., selecting first server on load) can fight user intent. Use flags to gate first-time-only selection so user-initiated selections aren't overridden.
+
+**[W4 D1]** — Message toolbar must render inside message bounds (not above) to avoid scroll container clipping issues with overflow-auto parents.
+
+**[W4 D3]** — FK onDelete policies should be explicit even when PostgreSQL defaults match intent. Makes schema self-documenting and prevents surprises during migrations.
+
+---
+
 ## Known Issues
 
 All known issues are now tracked on GitHub Issues: https://github.com/ItzDevoo/UnCorded/issues
@@ -232,7 +256,9 @@ Previously resolved issues from this section (deep review batches):
 - ~~Missing invoice.payment_failed~~ → handler added (deep review tier 1)
 - ~~resolveChannelMembership hot path~~ → in-memory channel cache (deep review tier 1)
 - ~~innerJoin drops deleted authors~~ → leftJoin (deep review tier 2)
-- ~~or() chain → inArray()~~ → fixed (deep review tier 2)
+- ~~or() chain → inArray()~~ → partially fixed (deep review tier 2) — still present in friend.ts GET /friends and GET /friends/pending
 - ~~WS rate limiting~~ → per-user per-opcode token bucket (deep review tier 1)
 - ~~Multi-insert transactions~~ → wrapped (deep review tier 1)
 - ~~Cache user profile in WsContext~~ → username cached (deep review tier 1)
+
+**[Deep Review 2 — 2026-03-14]** — Second full architectural review. Key new findings: (1) MessagePack decode has no size limits — OOM DoS vector, (2) REST API has no per-user rate limits on message creation or friend requests, (3) password schema fields have no max length — hash DoS, (4) frontend ignores CHANNEL_CREATE/UPDATE/DELETE WS events, (5) download torrents never destroyed — memory leak. Full findings in docs/deep-review.md.

@@ -36,14 +36,14 @@ export const updateUserSchema = z.object({
 export type UpdateUser = z.infer<typeof updateUserSchema>;
 
 export const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1),
-  newPassword: z.string().min(PASSWORD_MIN),
+  currentPassword: z.string().min(1).max(128),
+  newPassword: z.string().min(PASSWORD_MIN).max(128),
 });
 
 export type ChangePassword = z.infer<typeof changePasswordSchema>;
 
 export const deleteAccountSchema = z.object({
-  password: z.string().min(1),
+  password: z.string().min(1).max(128),
 });
 
 export type DeleteAccount = z.infer<typeof deleteAccountSchema>;

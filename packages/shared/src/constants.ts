@@ -30,6 +30,10 @@ export const RATE_LIMIT_FILE_AVAILABILITY = { limit: 20, windowMs: 60_000 };
 export const RATE_LIMIT_WEBRTC = { limit: 30, windowMs: 60_000 };
 export const RATE_LIMIT_PRESENCE_UPDATE = { limit: 5, windowMs: 30_000 };
 
+// ── HTTP rate limits ──────────────────────────────────────────────────────
+export const RATE_LIMIT_MESSAGE_CREATE = { limit: 5, windowMs: 5_000 };
+export const RATE_LIMIT_FRIEND_REQUEST = { limit: 10, windowMs: 60_000 };
+
 // ── Presence timing ────────────────────────────────────────────────────────
 export const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 

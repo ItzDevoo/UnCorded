@@ -6,6 +6,7 @@ import {
   updateMessageSchema,
   MESSAGE_PAGE_LIMIT,
   MESSAGE_FETCH_MAX_LIMIT,
+  RATE_LIMIT_MESSAGE_CREATE,
   ValidationError,
   NotFoundError,
   ForbiddenError,
@@ -17,6 +18,7 @@ import { messages, servers, user } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
 import { resolveChannelMembership } from "../helpers/resolve-channel.js";
 import { broadcastToServer, broadcastToDm, sendToUser } from "../ws/connections.js";
+import { checkUserRateLimit } from "../helpers/rate-limit.js";
 
 const DEFAULT_LIMIT = MESSAGE_PAGE_LIMIT;
 
@@ -81,6 +83,13 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
 
   // POST / — Create message
   .post("/", async ({ user: sessionUser, params, body, set }) => {
+    await checkUserRateLimit(
+      sessionUser.id,
+      "messages:create",
+      RATE_LIMIT_MESSAGE_CREATE.limit,
+      RATE_LIMIT_MESSAGE_CREATE.windowMs,
+    );
+
     const resolution = await resolveChannel(params.channelId, sessionUser.id);
 
     const parsed = createMessageSchema.safeParse(body);
@@ -88,7 +97,7 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
     }
 
-    if (!parsed.data.content || parsed.data.content.trim().length === 0) {
+    if (!parsed.data.content) {
       throw new ValidationError("Message content is required");
     }
 

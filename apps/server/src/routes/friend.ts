@@ -3,6 +3,7 @@ import { eq, and, or } from "drizzle-orm";
 import { z } from "zod";
 import {
   friendRequestSchema,
+  RATE_LIMIT_FRIEND_REQUEST,
   ValidationError,
   NotFoundError,
   ForbiddenError,
@@ -19,6 +20,7 @@ import { db } from "../db/index.js";
 import { friendships, user, dmChannels, dmMembers } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
 import { sendToUser } from "../ws/connections.js";
+import { checkUserRateLimit } from "../helpers/rate-limit.js";
 import { addDmChannelToCache } from "../ws/channel-cache.js";
 
 /**
@@ -105,6 +107,13 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
 
   // POST /request — Send friend request
   .post("/request", async ({ user: sessionUser, body, set }) => {
+    await checkUserRateLimit(
+      sessionUser.id,
+      "friends:request",
+      RATE_LIMIT_FRIEND_REQUEST.limit,
+      RATE_LIMIT_FRIEND_REQUEST.windowMs,
+    );
+
     const parsed = friendRequestSchema.safeParse(body);
     if (!parsed.success) {
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");

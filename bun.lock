@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "uncorded",
@@ -66,6 +67,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@msgpack/msgpack": "^3",
+        "@uncorded/shared": "*",
         "zod": "^3",
       },
       "devDependencies": {

@@ -16,7 +16,7 @@ const { mockDisconnectUser, mockStripe, selectResults, capturedSets, capturedIns
     const capturedSets: unknown[] = [];
     const capturedInserts: unknown[] = [];
 
-    const mockDb = {
+    const dbMethods = () => ({
       select: vi.fn().mockImplementation(() => ({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
@@ -36,6 +36,13 @@ const { mockDisconnectUser, mockStripe, selectResults, capturedSets, capturedIns
           return Promise.resolve();
         }),
       })),
+    });
+
+    const mockDb = {
+      ...dbMethods(),
+      transaction: vi.fn().mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
+        return fn(dbMethods());
+      }),
     };
 
     return { mockDisconnectUser, mockStripe, selectResults, capturedSets, capturedInserts, mockDb };

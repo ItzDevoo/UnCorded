@@ -181,17 +181,23 @@ export const serverRoutes = new Elysia({ prefix: "/api/servers" })
     return { ...updated, id: serverId(updated.id), ownerId: userId(updated.ownerId) };
   })
   .delete("/:serverId", async ({ user: sessionUser, params, set }) => {
-    await requireOwner(sessionUser.id, params.serverId);
+    // Atomic ownership check + delete in one query to prevent TOCTOU race
+    const deleted = await db
+      .delete(servers)
+      .where(and(eq(servers.id, params.serverId), eq(servers.ownerId, sessionUser.id)))
+      .returning({ id: servers.id });
 
-    // Broadcast before registry cleanup (broadcastToServer reads the member set)
+    if (deleted.length === 0) {
+      await requireOwner(sessionUser.id, params.serverId); // throws ForbiddenError or NotFoundError
+      return; // unreachable, but satisfies TypeScript
+    }
+
+    // Only broadcast + clean up in-memory state after successful DB delete
     broadcastToServer(params.serverId, {
       op: Opcode.SERVER_DELETE,
       d: { id: serverId(params.serverId) },
     });
-
-    // Remove from registry to prevent new joins, then commit DB delete
     removeServer(params.serverId);
-    await db.delete(servers).where(eq(servers.id, params.serverId));
 
     set.status = 204;
   });

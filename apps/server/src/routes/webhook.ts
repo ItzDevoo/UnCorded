@@ -122,37 +122,40 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const periodEnd = sub.items.data[0]?.current_period_end;
   const currentPeriodEnd = periodEnd ? new Date(periodEnd * 1000) : null;
 
-  // Upsert subscription record
-  const [existing] = await db
-    .select({ id: subscriptions.id })
-    .from(subscriptions)
-    .where(eq(subscriptions.userId, userId))
-    .limit(1);
+  // Atomic upsert: subscription record + user tier in one transaction
+  await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select({ id: subscriptions.id })
+      .from(subscriptions)
+      .where(eq(subscriptions.userId, userId))
+      .limit(1);
 
-  if (existing) {
-    await db
-      .update(subscriptions)
-      .set({
+    if (existing) {
+      await tx
+        .update(subscriptions)
+        .set({
+          tier,
+          stripeSubscriptionId,
+          stripeCustomerId,
+          status: "active",
+          currentPeriodEnd,
+        })
+        .where(eq(subscriptions.id, existing.id));
+    } else {
+      await tx.insert(subscriptions).values({
+        userId,
         tier,
         stripeSubscriptionId,
         stripeCustomerId,
         status: "active",
         currentPeriodEnd,
-      })
-      .where(eq(subscriptions.id, existing.id));
-  } else {
-    await db.insert(subscriptions).values({
-      userId,
-      tier,
-      stripeSubscriptionId,
-      stripeCustomerId,
-      status: "active",
-      currentPeriodEnd,
-    });
-  }
+      });
+    }
 
-  // Update user tier and force WS reconnect so cached context refreshes
-  await db.update(user).set({ subscriptionTier: tier }).where(eq(user.id, userId));
+    await tx.update(user).set({ subscriptionTier: tier }).where(eq(user.id, userId));
+  });
+
+  // Force WS reconnect so cached context refreshes
   disconnectUser(userId);
 }
 
@@ -182,11 +185,13 @@ async function handleSubscriptionUpdated(sub: Stripe.Subscription) {
     updateData.tier = tier;
   }
 
-  await db.update(subscriptions).set(updateData).where(eq(subscriptions.id, existing.id));
-
-  // Update user tier — active stays on current tier, cancelled/past_due reverts to free
   const userTier = status === "active" && tier ? tier : "free";
-  await db.update(user).set({ subscriptionTier: userTier }).where(eq(user.id, existing.userId));
+
+  await db.transaction(async (tx) => {
+    await tx.update(subscriptions).set(updateData).where(eq(subscriptions.id, existing.id));
+    await tx.update(user).set({ subscriptionTier: userTier }).where(eq(user.id, existing.userId));
+  });
+
   disconnectUser(existing.userId);
 }
 
@@ -202,12 +207,14 @@ async function handleSubscriptionDeleted(sub: Stripe.Subscription) {
     return;
   }
 
-  await db
-    .update(subscriptions)
-    .set({ status: "cancelled" })
-    .where(eq(subscriptions.id, existing.id));
+  await db.transaction(async (tx) => {
+    await tx
+      .update(subscriptions)
+      .set({ status: "cancelled" })
+      .where(eq(subscriptions.id, existing.id));
+    await tx.update(user).set({ subscriptionTier: "free" }).where(eq(user.id, existing.userId));
+  });
 
-  await db.update(user).set({ subscriptionTier: "free" }).where(eq(user.id, existing.userId));
   disconnectUser(existing.userId);
 }
 
@@ -235,11 +242,13 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
     return;
   }
 
-  await db
-    .update(subscriptions)
-    .set({ status: "past_due" })
-    .where(eq(subscriptions.id, existing.id));
+  await db.transaction(async (tx) => {
+    await tx
+      .update(subscriptions)
+      .set({ status: "past_due" })
+      .where(eq(subscriptions.id, existing.id));
+    await tx.update(user).set({ subscriptionTier: "free" }).where(eq(user.id, existing.userId));
+  });
 
-  await db.update(user).set({ subscriptionTier: "free" }).where(eq(user.id, existing.userId));
   disconnectUser(existing.userId);
 }

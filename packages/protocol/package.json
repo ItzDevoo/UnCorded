@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@msgpack/msgpack": "^3",
+    "@uncorded/shared": "*",
     "zod": "^3"
   },
   "devDependencies": {

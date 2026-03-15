@@ -30,21 +30,52 @@ export function registerUserServers(userId: string, serverIds: string[]): void {
   }
 }
 
-/** Add a single member (join/create). */
-export function addServerMember(serverId: string, userId: string): void {
-  let members = serverMembers.get(serverId);
+// ── Internal mutations (no publish — used by subscriber to avoid loops) ──────
+
+function _addMember(srvId: string, uid: string): void {
+  let members = serverMembers.get(srvId);
   if (!members) {
     members = new Set();
-    serverMembers.set(serverId, members);
+    serverMembers.set(srvId, members);
   }
-  members.add(userId);
+  members.add(uid);
 
-  let servers = userServers.get(userId);
+  let servers = userServers.get(uid);
   if (!servers) {
     servers = new Set();
-    userServers.set(userId, servers);
+    userServers.set(uid, servers);
   }
-  servers.add(serverId);
+  servers.add(srvId);
+}
+
+function _removeMember(srvId: string, uid: string): void {
+  const members = serverMembers.get(srvId);
+  if (members) {
+    members.delete(uid);
+    if (members.size === 0) serverMembers.delete(srvId);
+  }
+
+  const servers = userServers.get(uid);
+  if (servers) {
+    servers.delete(srvId);
+    if (servers.size === 0) userServers.delete(uid);
+  }
+}
+
+/** Apply a cache event from the subscriber (no re-publish). */
+export function applyServerMemberEvent(
+  action: unknown,
+  srvId: unknown,
+  uid: unknown,
+): void {
+  if (typeof action !== "string" || typeof srvId !== "string" || typeof uid !== "string") return;
+  if (action === "add") _addMember(srvId, uid);
+  else if (action === "remove") _removeMember(srvId, uid);
+}
+
+/** Add a single member (join/create). */
+export function addServerMember(serverId: string, userId: string): void {
+  _addMember(serverId, userId);
 
   publishCacheInvalidation(PubSubChannel.SERVER_MEMBERS, {
     action: "add",
@@ -55,17 +86,7 @@ export function addServerMember(serverId: string, userId: string): void {
 
 /** Remove a single member (leave/kick). */
 export function removeServerMember(serverId: string, userId: string): void {
-  const members = serverMembers.get(serverId);
-  if (members) {
-    members.delete(userId);
-    if (members.size === 0) serverMembers.delete(serverId);
-  }
-
-  const servers = userServers.get(userId);
-  if (servers) {
-    servers.delete(serverId);
-    if (servers.size === 0) userServers.delete(userId);
-  }
+  _removeMember(serverId, userId);
 
   publishCacheInvalidation(PubSubChannel.SERVER_MEMBERS, {
     action: "remove",

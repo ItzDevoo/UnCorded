@@ -70,7 +70,8 @@ export const serverInviteRoutes = new Elysia({ prefix: "/api/servers/:serverId/i
           or(isNull(invites.expiresAt), gt(invites.expiresAt, new Date())),
           or(isNull(invites.maxUses), gt(invites.maxUses, invites.uses)),
         ),
-      );
+      )
+      .limit(100);
 
     return activeInvites.map((inv) =>
       Object.assign(inv, {

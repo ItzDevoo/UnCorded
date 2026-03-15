@@ -31,9 +31,57 @@ export function seedChannelCache(
   }
 }
 
+// ── Internal mutations (no publish — used by subscriber to avoid loops) ──────
+
+function _addChannel(chId: string, srvId: string): void {
+  serverChannelMap.set(chId, srvId);
+}
+
+function _removeChannel(chId: string): void {
+  serverChannelMap.delete(chId);
+}
+
+function _addDmChannel(dmChId: string, memberIds: string[]): void {
+  let members = dmChannelMap.get(dmChId);
+  if (!members) {
+    members = new Set();
+    dmChannelMap.set(dmChId, members);
+  }
+  for (const uid of memberIds) {
+    members.add(uid);
+  }
+}
+
+/** Apply a channel cache event from the subscriber (no re-publish). */
+export function applyChannelEvent(payload: Record<string, unknown>): void {
+  const action = payload.action;
+  if (typeof action !== "string") return;
+
+  if (action === "add") {
+    const chId = payload.channelId;
+    const srvId = payload.serverId;
+    if (typeof chId !== "string" || typeof srvId !== "string") return;
+    _addChannel(chId, srvId);
+  } else if (action === "remove") {
+    const chId = payload.channelId;
+    if (typeof chId !== "string") return;
+    _removeChannel(chId);
+  }
+}
+
+/** Apply a DM member cache event from the subscriber (no re-publish). */
+export function applyDmMemberEvent(payload: Record<string, unknown>): void {
+  if (payload.action !== "add") return;
+  const dmChId = payload.dmChannelId;
+  const memberIds = payload.memberIds;
+  if (typeof dmChId !== "string" || !Array.isArray(memberIds) || memberIds.length === 0) return;
+  if (!memberIds.every((id): id is string => typeof id === "string")) return;
+  _addDmChannel(dmChId, memberIds);
+}
+
 /** Add a server channel (on channel creation). */
 export function addChannelToCache(channelId: string, serverId: string): void {
-  serverChannelMap.set(channelId, serverId);
+  _addChannel(channelId, serverId);
   publishCacheInvalidation(PubSubChannel.CHANNELS, {
     action: "add",
     channelId,
@@ -44,7 +92,7 @@ export function addChannelToCache(channelId: string, serverId: string): void {
 /** Remove a server channel (on channel deletion). */
 export function removeChannelFromCache(channelId: string): void {
   const serverId = serverChannelMap.get(channelId);
-  serverChannelMap.delete(channelId);
+  _removeChannel(channelId);
   publishCacheInvalidation(PubSubChannel.CHANNELS, {
     action: "remove",
     channelId,
@@ -54,14 +102,7 @@ export function removeChannelFromCache(channelId: string): void {
 
 /** Add a DM channel (on DM creation). */
 export function addDmChannelToCache(dmChannelId: string, memberIds: string[]): void {
-  let members = dmChannelMap.get(dmChannelId);
-  if (!members) {
-    members = new Set();
-    dmChannelMap.set(dmChannelId, members);
-  }
-  for (const uid of memberIds) {
-    members.add(uid);
-  }
+  _addDmChannel(dmChannelId, memberIds);
   publishCacheInvalidation(PubSubChannel.DM_MEMBERS, {
     action: "add",
     dmChannelId,

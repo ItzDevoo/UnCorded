@@ -16,6 +16,8 @@ import {
   type SeedResult,
 } from "../lib/torrent-client.js";
 
+const MAX_PREVIEW_CACHE = 50;
+
 // ── Types ───────────────────────────────────────────────────────────────────
 
 export interface FileReceipt {
@@ -47,6 +49,8 @@ interface FileStoreState {
   seeders: Record<string, string[]>;
   /** infoHash -> cached File[] from preview/seed */
   previews: Record<string, File[]>;
+  /** LRU order for preview cache (oldest first) */
+  previewOrder: string[];
 }
 
 // ── Store ───────────────────────────────────────────────────────────────────
@@ -56,6 +60,7 @@ const [store, setStore] = createStore<FileStoreState>({
   transfers: {},
   seeders: {},
   previews: {},
+  previewOrder: [],
 });
 
 // ── Internal helpers ────────────────────────────────────────────────────────
@@ -101,6 +106,21 @@ function updateSeeders(frId: FileReceiptId, uId: UserId, available: boolean): vo
   );
 }
 
+function touchPreviewLru(infoHash: string): void {
+  setStore(
+    "previewOrder",
+    produce((order) => {
+      const idx = order.indexOf(infoHash);
+      if (idx !== -1) order.splice(idx, 1);
+      order.push(infoHash);
+      while (order.length > MAX_PREVIEW_CACHE) {
+        const evicted = order.shift()!;
+        setStore("previews", evicted, undefined!);
+      }
+    }),
+  );
+}
+
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function extractInfoHash(magnetUri: string): string {
@@ -130,6 +150,7 @@ export async function shareFile(chId: AnyChannelId, file: File): Promise<SeedRes
 
   // Cache original file for instant sender preview
   setStore("previews", result.infoHash, [file]);
+  touchPreviewLru(result.infoHash);
 
   // Send FILE_SHARE frame to server
   sendFrame({
@@ -155,7 +176,10 @@ export async function previewFile(magnetUri: string, fileName: string): Promise<
 
   // Return cached files if already previewed
   const cached = store.previews[infoHash];
-  if (cached) return cached;
+  if (cached) {
+    touchPreviewLru(infoHash);
+    return cached;
+  }
 
   // Dedupe concurrent requests for the same infoHash
   const inFlight = inFlightPreviews.get(infoHash);
@@ -184,6 +208,7 @@ export async function previewFile(magnetUri: string, fileName: string): Promise<
       setStore("transfers", infoHash, "status", "done");
       setStore("transfers", infoHash, "progress", 1);
       setStore("previews", infoHash, files);
+      touchPreviewLru(infoHash);
 
       return files;
     } catch (err) {

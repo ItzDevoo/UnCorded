@@ -18,6 +18,9 @@ import { stripeRoutes } from "./routes/stripe.js";
 import { turnRoutes } from "./routes/turn.js";
 import { gatewayTicketRoutes } from "./routes/gateway.js";
 import { gateway } from "./ws/gateway.js";
+import { subscribeCacheInvalidation, PubSubChannel } from "./lib/redis-pubsub.js";
+import { applyServerMemberEvent } from "./ws/server-members.js";
+import { applyChannelEvent, applyDmMemberEvent } from "./ws/channel-cache.js";
 
 const app = new Elysia()
   .use(
@@ -93,6 +96,20 @@ const app = new Elysia()
     return { code: "INTERNAL_ERROR", message: "Internal server error" };
   })
   .listen(env.PORT);
+
+// ── Redis cache invalidation subscribers ─────────────────────────────────────
+
+subscribeCacheInvalidation(PubSubChannel.SERVER_MEMBERS, (payload) => {
+  applyServerMemberEvent(payload.action, payload.serverId, payload.userId);
+});
+
+subscribeCacheInvalidation(PubSubChannel.CHANNELS, (payload) => {
+  applyChannelEvent(payload);
+});
+
+subscribeCacheInvalidation(PubSubChannel.DM_MEMBERS, (payload) => {
+  applyDmMemberEvent(payload);
+});
 
 if (import.meta.env.DEV) {
   console.log(`UnCorded server running on ${env.APP_URL} (port ${app.server?.port})`);

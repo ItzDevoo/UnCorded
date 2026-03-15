@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { eq, sql, and } from "drizzle-orm";
+import { eq, sql, and, count } from "drizzle-orm";
 import {
   createServerSchema,
   updateServerSchema,
@@ -8,6 +8,7 @@ import {
   NotFoundError,
   InternalError,
   createId,
+  MAX_SERVERS_PER_USER,
 } from "@uncorded/shared";
 import { serverId, userId, channelId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
@@ -30,6 +31,14 @@ export const serverRoutes = new Elysia({ prefix: "/api/servers" })
     const newChannelId = createId();
 
     const { server, channel } = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .select({ value: count() })
+        .from(servers)
+        .where(eq(servers.ownerId, sessionUser.id));
+      if ((row?.value ?? 0) >= MAX_SERVERS_PER_USER) {
+        throw new ValidationError(`Maximum of ${MAX_SERVERS_PER_USER} servers reached`);
+      }
+
       const [srv] = await tx
         .insert(servers)
         .values({

@@ -139,6 +139,7 @@ export async function downloadFromMagnet(
 
     torrent.on("error", (err) => {
       clearTimeout(timeout);
+      torrent.destroy();
       reject(typeof err === "string" ? new Error(err) : err);
     });
 
@@ -158,7 +159,9 @@ export async function downloadFromMagnet(
           }),
         );
         resolve(files);
+        torrent.destroy();
       } catch (err) {
+        torrent.destroy();
         reject(err instanceof Error ? err : new Error(String(err)));
       }
     });

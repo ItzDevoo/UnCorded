@@ -1,18 +1,20 @@
 import { Elysia } from "elysia";
-import { eq, max } from "drizzle-orm";
+import { eq, max, count } from "drizzle-orm";
 import {
   createChannelSchema,
   updateChannelSchema,
   ValidationError,
   NotFoundError,
   InternalError,
+  MAX_CHANNELS_PER_SERVER,
 } from "@uncorded/shared";
-import { channelId, serverId } from "@uncorded/protocol";
+import { Opcode, channelId, serverId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { channels } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
 import { requireMember, requireOwner } from "../helpers/permissions.js";
 import { addChannelToCache, removeChannelFromCache } from "../ws/channel-cache.js";
+import { broadcastToServer } from "../ws/connections.js";
 
 const serverChannelRoutes = new Elysia({ prefix: "/api/servers/:serverId/channels" })
   .resolve(authResolve())
@@ -24,31 +26,46 @@ const serverChannelRoutes = new Elysia({ prefix: "/api/servers/:serverId/channel
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
     }
 
-    const [maxPos] = await db
-      .select({ maxPosition: max(channels.position) })
-      .from(channels)
-      .where(eq(channels.serverId, params.serverId));
+    const channel = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .select({ value: count() })
+        .from(channels)
+        .where(eq(channels.serverId, params.serverId));
+      if ((row?.value ?? 0) >= MAX_CHANNELS_PER_SERVER) {
+        throw new ValidationError(`Maximum of ${MAX_CHANNELS_PER_SERVER} channels reached`);
+      }
 
-    const nextPosition = (maxPos?.maxPosition ?? -1) + 1;
+      const [maxPos] = await tx
+        .select({ maxPosition: max(channels.position) })
+        .from(channels)
+        .where(eq(channels.serverId, params.serverId));
 
-    const [channel] = await db
-      .insert(channels)
-      .values({
-        serverId: params.serverId,
-        name: parsed.data.name,
-        type: parsed.data.type ?? "text",
-        fileSharingEnabled: parsed.data.fileSharingEnabled ?? true,
-        topic: parsed.data.topic ?? null,
-        position: nextPosition,
-      })
-      .returning();
+      const nextPosition = (maxPos?.maxPosition ?? -1) + 1;
 
-    if (!channel) throw new InternalError("Failed to create channel");
+      const [ch] = await tx
+        .insert(channels)
+        .values({
+          serverId: params.serverId,
+          name: parsed.data.name,
+          type: parsed.data.type ?? "text",
+          fileSharingEnabled: parsed.data.fileSharingEnabled ?? true,
+          topic: parsed.data.topic ?? null,
+          position: nextPosition,
+        })
+        .returning();
+
+      if (!ch) throw new InternalError("Failed to create channel");
+      return ch;
+    });
 
     addChannelToCache(channel.id, channel.serverId);
 
+    const branded = { ...channel, id: channelId(channel.id), serverId: serverId(channel.serverId) };
+
+    broadcastToServer(params.serverId, { op: Opcode.CHANNEL_CREATE, d: branded });
+
     set.status = 201;
-    return { ...channel, id: channelId(channel.id), serverId: serverId(channel.serverId) };
+    return branded;
   })
   .get("/", async ({ user: sessionUser, params }) => {
     await requireMember(sessionUser.id, params.serverId);
@@ -104,7 +121,11 @@ const channelIdRoutes = new Elysia({ prefix: "/api/channels/:channelId" })
 
     if (!updated) throw new InternalError("Failed to update channel");
 
-    return { ...updated, id: channelId(updated.id), serverId: serverId(updated.serverId) };
+    const branded = { ...updated, id: channelId(updated.id), serverId: serverId(updated.serverId) };
+
+    broadcastToServer(channel.serverId, { op: Opcode.CHANNEL_UPDATE, d: branded });
+
+    return branded;
   })
   .delete("/", async ({ user: sessionUser, params, set }) => {
     const [channel] = await db
@@ -122,6 +143,11 @@ const channelIdRoutes = new Elysia({ prefix: "/api/channels/:channelId" })
     await db.delete(channels).where(eq(channels.id, params.channelId));
 
     removeChannelFromCache(params.channelId);
+
+    broadcastToServer(channel.serverId, {
+      op: Opcode.CHANNEL_DELETE,
+      d: { id: channelId(params.channelId), serverId: serverId(channel.serverId) },
+    });
 
     set.status = 204;
   });

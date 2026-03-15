@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { eq, and, or } from "drizzle-orm";
+import { eq, and, or, inArray } from "drizzle-orm";
 import { z } from "zod";
 import {
   friendRequestSchema,
@@ -367,6 +367,11 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
 
     const targetId = params.userId;
 
+    if (targetId === sessionUser.id) throw new ValidationError("Cannot block yourself");
+
+    const [target] = await db.select({ id: user.id }).from(user).where(eq(user.id, targetId)).limit(1);
+    if (!target) throw new NotFoundError("User");
+
     // Delete any existing friendship in either direction
     await db
       .delete(friendships)
@@ -398,6 +403,8 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
     if (!parsedParams.success) throw new ValidationError("Invalid user ID");
 
     const targetId = params.userId;
+
+    if (targetId === sessionUser.id) throw new ValidationError("Cannot remove yourself");
 
     const result = await db
       .delete(friendships)
@@ -465,7 +472,7 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
         status: user.status,
       })
       .from(user)
-      .where(or(...peerIds.map((id) => eq(user.id, id))));
+      .where(inArray(user.id, peerIds));
 
     return {
       friends: users.map((u) => ({
@@ -497,6 +504,8 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
 
     if (page.length === 0) return { pending: [], hasMore: false };
 
+    const requesterIds = page.map((r) => r.requesterId);
+
     const users = await db
       .select({
         id: user.id,
@@ -506,7 +515,7 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
         status: user.status,
       })
       .from(user)
-      .where(or(...page.map((r) => eq(user.id, r.requesterId))));
+      .where(inArray(user.id, requesterIds));
 
     return {
       pending: users.map((u) => ({

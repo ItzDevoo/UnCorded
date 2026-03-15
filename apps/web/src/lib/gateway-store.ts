@@ -88,6 +88,16 @@ function addChannel(sId: ServerId, channel: ReadyChannel) {
   setChannelCache(sId, (prev) => (prev ? [...prev, channel] : [channel]));
 }
 
+function removeChannel(sId: ServerId, chId: ChannelId) {
+  setChannelCache(sId, (prev) => (prev ? prev.filter((c) => c.id !== chId) : []));
+}
+
+function updateChannel(sId: ServerId, chId: ChannelId, updates: Record<string, unknown>) {
+  setChannelCache(sId, (prev) =>
+    prev ? prev.map((c) => (c.id === chId ? { ...c, ...updates } : c)) : [],
+  );
+}
+
 function addDmChannel(dm: ReadyDmChannel) {
   // Dedup by channel ID
   setReadyData("data", "dmChannels", (prev) => {
@@ -185,6 +195,8 @@ export {
   removeServer,
   setChannelsForServer,
   addChannel,
+  removeChannel,
+  updateChannel,
   addDmChannel,
   appendDmChannels,
   setHasMoreDmChannels,

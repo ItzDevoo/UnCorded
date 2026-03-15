@@ -32,9 +32,9 @@ const userProfileSchema = z.object({
 export const channelSchema = z.object({
   id: z.string(),
   serverId: z.string(),
-  name: z.string(),
+  name: z.string().trim().min(1).max(100),
   type: z.string(),
-  position: z.number(),
+  position: z.number().int().nonnegative(),
   topic: z.string().nullable(),
   fileSharingEnabled: z.boolean(),
 });
@@ -161,6 +161,22 @@ export const serverUpdateEventSchema = z.object({
   name: z.string().optional(),
   iconUrl: z.string().nullable().optional(),
   ownerId: z.string().optional(),
+});
+
+export const channelCreateEventSchema = channelSchema;
+
+export const channelUpdateEventSchema = z.object({
+  id: z.string(),
+  serverId: z.string(),
+  name: z.string().trim().min(1).max(100).optional(),
+  topic: z.string().nullable().optional(),
+  position: z.number().int().nonnegative().optional(),
+  fileSharingEnabled: z.boolean().optional(),
+});
+
+export const channelDeleteEventSchema = z.object({
+  id: z.string(),
+  serverId: z.string(),
 });
 
 export const memberAddEventSchema = z.object({

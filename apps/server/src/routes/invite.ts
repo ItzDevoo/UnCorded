@@ -6,6 +6,7 @@ import {
   NotFoundError,
   ConflictError,
   RateLimitError,
+  MAX_INVITES_PER_SERVER,
 } from "@uncorded/shared";
 import { Opcode, inviteCode, serverId, userId, channelId } from "@uncorded/protocol";
 import { NeonDbError } from "@neondatabase/serverless";
@@ -27,15 +28,25 @@ export const serverInviteRoutes = new Elysia({ prefix: "/api/servers/:serverId/i
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
     }
 
-    const [invite] = await db
-      .insert(invites)
-      .values({
-        serverId: params.serverId,
-        creatorId: sessionUser.id,
-        maxUses: parsed.data.maxUses ?? null,
-        expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null,
-      })
-      .returning();
+    const [invite] = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .select({ value: count() })
+        .from(invites)
+        .where(eq(invites.serverId, params.serverId));
+      if ((row?.value ?? 0) >= MAX_INVITES_PER_SERVER) {
+        throw new ValidationError(`Maximum of ${MAX_INVITES_PER_SERVER} invites reached`);
+      }
+
+      return tx
+        .insert(invites)
+        .values({
+          serverId: params.serverId,
+          creatorId: sessionUser.id,
+          maxUses: parsed.data.maxUses ?? null,
+          expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null,
+        })
+        .returning();
+    });
 
     set.status = 201;
     return invite

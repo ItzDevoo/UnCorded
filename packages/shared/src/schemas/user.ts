@@ -10,8 +10,8 @@ export type UserStatus = z.infer<typeof userStatusSchema>;
 
 export const userSchema = z.object({
   id: z.string(),
-  username: z.string().min(USERNAME_MIN).max(USERNAME_MAX),
-  displayName: z.string().max(64).nullable(),
+  username: z.string().trim().min(USERNAME_MIN).max(USERNAME_MAX),
+  displayName: z.string().trim().min(1).max(64).nullable(),
   email: z.string().email(),
   avatarUrl: z.string().url().nullable(),
   status: userStatusSchema,
@@ -25,11 +25,12 @@ export type User = z.infer<typeof userSchema>;
 export const updateUserSchema = z.object({
   username: z
     .string()
+    .trim()
     .min(USERNAME_MIN)
     .max(USERNAME_MAX)
     .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores")
     .optional(),
-  displayName: z.string().max(64).nullable().optional(),
+  displayName: z.string().trim().min(1).max(64).nullable().optional(),
   status: userStatusSchema.optional(),
 });
 

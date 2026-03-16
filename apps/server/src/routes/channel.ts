@@ -113,13 +113,15 @@ const channelIdRoutes = new Elysia({ prefix: "/api/channels/:channelId" })
       throw new ValidationError("No fields to update");
     }
 
-    const [updated] = await db
-      .update(channels)
-      .set(updates)
-      .where(eq(channels.id, params.channelId))
-      .returning();
-
-    if (!updated) throw new InternalError("Failed to update channel");
+    const updated = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .update(channels)
+        .set(updates)
+        .where(eq(channels.id, params.channelId))
+        .returning();
+      if (!row) throw new NotFoundError("Channel");
+      return row;
+    });
 
     const branded = { ...updated, id: channelId(updated.id), serverId: serverId(updated.serverId) };
 

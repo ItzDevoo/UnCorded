@@ -3,13 +3,13 @@ export type AnyServerWebSocket = {
   send(data: string | Buffer): number;
   close(code?: number, reason?: string): void;
 };
-import { eq, and, ne } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { encode, CloseCode } from "@uncorded/protocol";
 import type { GatewayFrame } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { dmMembers } from "../db/schema.js";
 import { getServerMembers } from "./server-members.js";
-import { lookupDmChannel } from "./channel-cache.js";
+import { lookupDmChannel, addDmChannelToCache } from "./channel-cache.js";
 
 /** userId → set of active WebSocket connections (supports multiple tabs) */
 export const clients = new Map<string, Set<AnyServerWebSocket>>();
@@ -118,18 +118,21 @@ export async function broadcastToDm(
     return;
   }
 
-  // DB fallback on cache miss
-  const dmRows = await db
+  // DB fallback on cache miss — query ALL members for caching
+  const allDmRows = await db
     .select({ userId: dmMembers.userId })
     .from(dmMembers)
-    .where(
-      excludeUserId
-        ? and(eq(dmMembers.channelId, channelId), ne(dmMembers.userId, excludeUserId))
-        : eq(dmMembers.channelId, channelId),
-    );
+    .where(eq(dmMembers.channelId, channelId));
+
+  // Backfill cache with full member set
+  const allMemberIds = allDmRows.map((r) => r.userId);
+  if (allMemberIds.length > 0) {
+    addDmChannelToCache(channelId, allMemberIds);
+  }
 
   const buf = Buffer.from(encode(frame));
-  for (const row of dmRows) {
+  for (const row of allDmRows) {
+    if (row.userId === excludeUserId) continue;
     const set = clients.get(row.userId);
     if (!set) continue;
     for (const ws of set) {

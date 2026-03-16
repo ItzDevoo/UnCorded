@@ -12,6 +12,8 @@ Fresh-eyes audit complete (docs/fresh-audit.md). Quick fixes applied: .env.examp
 Quick-wins batch: invite accept race condition fixed (db.transaction), roles/member_roles tables removed, Object.assign consistency applied.
 User settings: profile editing (username/display name/avatar), password change, account deletion, appearance (dark/light theme, message density).
 Server settings (merged PR #50): overview, channel management, member management + kick, invite management, ownership transfer. Plus rate limits on sensitive endpoints, HTML sanitization on messages, MemberList reactivity fix. CodeRabbit review fixes: serverId reactivity tracking, async race guards, clipboard error handling, whitespace name validation, serverIconUrl prop.
+Review debt fixes: channel PATCH wrapped in db.transaction (SEC-11), DM cache backfill on miss (LB-1), PRESENCE_UPDATE synced to member-store (LB-2).
+Report system (#23): POST /api/reports with rate limiting + entity verification, ReportDialog component with category dropdown + details textarea, report button in message hover toolbar for non-own messages.
 
 ### Server Settings
 
@@ -112,8 +114,9 @@ Server settings (merged PR #50): overview, channel management, member management
 - Channels + DMs unified in sidebar with collapsible sections
 - Mobile: sidebar as sheet/drawer
 - Virtual scrolling message list (@tanstack/solid-virtual)
-- Message hover toolbar (edit, delete, copy)
+- Message hover toolbar (edit, delete, copy, report)
 - Inline message editing + delete with confirmation
+- Report dialog (category dropdown, optional details, POST /api/reports)
 - Typing indicators with animation
 - Skeleton loading states + empty states
 - Focus trap in dialogs (WCAG 2.1)

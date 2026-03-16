@@ -7,6 +7,7 @@ export * from "./schemas/invite.js";
 export * from "./schemas/friend.js";
 export * from "./schemas/dm.js";
 export * from "./schemas/subscription.js";
+export * from "./schemas/report.js";
 export * from "./types/index.js";
 export * from "./errors/index.js";
 export * from "./constants.js";

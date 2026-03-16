@@ -16,6 +16,7 @@ import {
 } from "./ui/dialog.js";
 import type { Message } from "../stores/message-store.js";
 import MessageContent from "./MessageContent.js";
+import ReportDialog from "./ReportDialog.js";
 
 const ONE_MINUTE_MS = 60_000;
 const ONE_HOUR_MS = 3_600_000;
@@ -97,6 +98,23 @@ const TrashIcon = () => (
   </svg>
 );
 
+const FlagIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+    <line x1="4" x2="4" y1="22" y2="15" />
+  </svg>
+);
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 interface MessageBubbleProps {
@@ -113,6 +131,7 @@ const MessageBubble = (props: MessageBubbleProps) => {
   const [saving, setSaving] = createSignal(false);
   const [showDeleteDialog, setShowDeleteDialog] = createSignal(false);
   const [deleting, setDeleting] = createSignal(false);
+  const [showReportDialog, setShowReportDialog] = createSignal(false);
 
   const displayName = () =>
     props.message.author.displayName || props.message.author.username || "Unknown";
@@ -201,16 +220,28 @@ const MessageBubble = (props: MessageBubbleProps) => {
 
   const Toolbar = () => (
     <div class="ml-auto flex shrink-0 items-center gap-0.5 rounded-lg border border-border bg-card px-0.5 shadow-sm opacity-0 transition-opacity group-hover:opacity-100">
-      <button class={toolbarBtnClass} title="Copy" aria-label="Copy" onClick={handleCopy}>
+      <button type="button" class={toolbarBtnClass} title="Copy" aria-label="Copy" onClick={handleCopy}>
         <CopyIcon />
       </button>
+      <Show when={!props.isOwn}>
+        <button
+          type="button"
+          class={toolbarBtnClass}
+          title="Report"
+          aria-label="Report"
+          onClick={() => setShowReportDialog(true)}
+        >
+          <FlagIcon />
+        </button>
+      </Show>
       <Show when={props.isOwn}>
-        <button class={toolbarBtnClass} title="Edit" aria-label="Edit" onClick={startEdit}>
+        <button type="button" class={toolbarBtnClass} title="Edit" aria-label="Edit" onClick={startEdit}>
           <PencilIcon />
         </button>
       </Show>
       <Show when={canDelete()}>
         <button
+          type="button"
           class={toolbarBtnClass}
           title="Delete"
           aria-label="Delete"
@@ -336,6 +367,11 @@ const MessageBubble = (props: MessageBubbleProps) => {
         </div>
       </Show>
       <DeleteDialog />
+      <ReportDialog
+        open={showReportDialog()}
+        onClose={() => setShowReportDialog(false)}
+        messageId={props.message.id as string}
+      />
     </>
   );
 };

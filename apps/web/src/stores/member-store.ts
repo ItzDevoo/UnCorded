@@ -1,5 +1,11 @@
 import { createStore, produce } from "solid-js/store";
-import { Opcode, userId, memberAddEventSchema, memberRemoveEventSchema } from "@uncorded/protocol";
+import {
+  Opcode,
+  userId,
+  memberAddEventSchema,
+  memberRemoveEventSchema,
+  presenceUpdateEventSchema,
+} from "@uncorded/protocol";
 import type { ServerId, UserId } from "@uncorded/protocol";
 import { onGatewayEvent } from "../lib/gateway.js";
 import { api } from "../lib/api.js";
@@ -62,12 +68,15 @@ export function getMembersLoading(sId: ServerId): boolean {
 
 let unsubAdd: (() => void) | null = null;
 let unsubRemove: (() => void) | null = null;
+let unsubPresence: (() => void) | null = null;
 
 function teardown() {
   unsubAdd?.();
   unsubRemove?.();
+  unsubPresence?.();
   unsubAdd = null;
   unsubRemove = null;
+  unsubPresence = null;
 }
 
 export function setupMemberStore(): void {
@@ -117,6 +126,31 @@ export function setupMemberStore(): void {
         if (idx !== -1) arr.splice(idx, 1);
       }),
     );
+  });
+
+  unsubPresence = onGatewayEvent(Opcode.PRESENCE_UPDATE, (data) => {
+    const parsed = presenceUpdateEventSchema.safeParse(data);
+    if (!parsed.success) return;
+    const d = parsed.data;
+    const uid = userId(d.userId);
+
+    for (const sId of Object.keys(store.members)) {
+      const members = store.members[sId];
+      if (!members) continue;
+      const idx = members.findIndex((m) => m.userId === uid);
+      if (idx === -1) continue;
+
+      setStore(
+        "members",
+        sId,
+        produce((arr) => {
+          const member = arr[idx];
+          if (!member) return;
+          member.status = d.status;
+          member.online = d.status !== "offline";
+        }),
+      );
+    }
   });
 }
 

@@ -242,6 +242,12 @@ This applies to any module that registers global listeners or timers at the top 
 
 **[W4 D3]** — FK onDelete policies should be explicit even when PostgreSQL defaults match intent. Makes schema self-documenting and prevents surprises during migrations.
 
+**[W4 D5]** — DM cache backfill: when restructuring a DB fallback to also populate the cache, query ALL members (no exclude filter) and apply exclusion at send time. The cache must store the full member set, not a filtered view — otherwise the next caller with a different excludeUserId gets a stale/incomplete set.
+
+**[W4 D5]** — `showToast()` only accepts `"info"` and `"error"` variants, not `"success"`. Use `"info"` for positive feedback.
+
+**[W4 D5]** — Zod `.refine()` on an object schema validates cross-field constraints (e.g., "exactly one of A or B"). The arithmetic trick `(a ? 1 : 0) + (b ? 1 : 0) === 1` is cleaner than nested ternaries for "exactly one" checks.
+
 ---
 
 ## Known Issues

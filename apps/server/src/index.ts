@@ -13,6 +13,7 @@ import { inviteRoutes } from "./routes/invite.js";
 import { messageRoutes } from "./routes/message.js";
 import { friendRoutes } from "./routes/friend.js";
 import { dmRoutes } from "./routes/dm.js";
+import { reportRoutes } from "./routes/report.js";
 import { webhookRoutes } from "./routes/webhook.js";
 import { stripeRoutes } from "./routes/stripe.js";
 import { turnRoutes } from "./routes/turn.js";
@@ -67,6 +68,7 @@ const app = new Elysia()
   .use(messageRoutes)
   .use(friendRoutes)
   .use(dmRoutes)
+  .use(reportRoutes)
   .use(gatewayTicketRoutes)
   .use(gateway)
   .get("/health", () => ({ status: "ok" }))

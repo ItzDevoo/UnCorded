@@ -220,7 +220,13 @@ const MessageBubble = (props: MessageBubbleProps) => {
 
   const Toolbar = () => (
     <div class="ml-auto flex shrink-0 items-center gap-0.5 rounded-lg border border-border bg-card px-0.5 shadow-sm opacity-0 transition-opacity group-hover:opacity-100">
-      <button type="button" class={toolbarBtnClass} title="Copy" aria-label="Copy" onClick={handleCopy}>
+      <button
+        type="button"
+        class={toolbarBtnClass}
+        title="Copy"
+        aria-label="Copy"
+        onClick={handleCopy}
+      >
         <CopyIcon />
       </button>
       <Show when={!props.isOwn}>
@@ -235,7 +241,13 @@ const MessageBubble = (props: MessageBubbleProps) => {
         </button>
       </Show>
       <Show when={props.isOwn}>
-        <button type="button" class={toolbarBtnClass} title="Edit" aria-label="Edit" onClick={startEdit}>
+        <button
+          type="button"
+          class={toolbarBtnClass}
+          title="Edit"
+          aria-label="Edit"
+          onClick={startEdit}
+        >
           <PencilIcon />
         </button>
       </Show>

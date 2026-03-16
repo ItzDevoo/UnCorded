@@ -63,11 +63,7 @@ function _removeMember(srvId: string, uid: string): void {
 }
 
 /** Apply a cache event from the subscriber (no re-publish). */
-export function applyServerMemberEvent(
-  action: unknown,
-  srvId: unknown,
-  uid: unknown,
-): void {
+export function applyServerMemberEvent(action: unknown, srvId: unknown, uid: unknown): void {
   if (typeof action !== "string" || typeof srvId !== "string" || typeof uid !== "string") return;
   if (action === "add") _addMember(srvId, uid);
   else if (action === "remove") _removeMember(srvId, uid);

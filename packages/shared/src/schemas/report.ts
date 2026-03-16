@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const reportCategorySchema = z.enum([
   "csam",
+  "intimate_image",
   "harassment",
   "spam",
   "copyright",

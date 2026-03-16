@@ -1,4 +1,11 @@
-import { onCleanup, onMount, createEffect, createSignal, Show, type ParentComponent } from "solid-js";
+import {
+  onCleanup,
+  onMount,
+  createEffect,
+  createSignal,
+  Show,
+  type ParentComponent,
+} from "solid-js";
 import { useSession } from "../lib/auth.js";
 import { useLocation } from "@solidjs/router";
 import { connectGateway, disconnectGateway } from "../lib/gateway.js";
@@ -14,6 +21,8 @@ import ShortcutsDialog from "./ShortcutsDialog.js";
 import { ToastContainer } from "./ui/toast.js";
 import { Empty } from "./ui/empty.js";
 import { Sheet, SheetContent } from "./ui/sheet.js";
+import P2PNoticeDialog from "./P2PNoticeDialog.js";
+import { getP2pDialogOpen, confirmP2pDialog, cancelP2pDialog } from "../stores/file-store.js";
 
 const SETTINGS_PATHS = ["/home/server-settings", "/home/settings"];
 
@@ -40,6 +49,11 @@ const AppLayout: ParentComponent = (props) => {
     <AuthGuard>
       <ToastContainer />
       <ShortcutsDialog />
+      <P2PNoticeDialog
+        open={getP2pDialogOpen()}
+        onConfirm={confirmP2pDialog}
+        onCancel={cancelP2pDialog}
+      />
       <div class="flex h-screen overflow-hidden">
         {/* Desktop sidebar */}
         <div class="hidden sm:block">

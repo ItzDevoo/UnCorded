@@ -13,6 +13,7 @@ import {
 
 const CATEGORIES = [
   { value: "csam", label: "Child Safety (CSAM)" },
+  { value: "intimate_image", label: "Non-Consensual Intimate Image" },
   { value: "harassment", label: "Harassment" },
   { value: "spam", label: "Spam" },
   { value: "copyright", label: "Copyright Violation" },
@@ -56,8 +57,7 @@ const ReportDialog = (props: ReportDialogProps) => {
       showToast("Report submitted", "info");
       handleClose();
     } catch (err) {
-      const message =
-        err instanceof ApiRequestError ? err.body.message : "Failed to submit report";
+      const message = err instanceof ApiRequestError ? err.body.message : "Failed to submit report";
       showToast(message, "error");
     } finally {
       setSubmitting(false);
@@ -65,7 +65,12 @@ const ReportDialog = (props: ReportDialogProps) => {
   }
 
   return (
-    <Dialog open={props.open} onOpenChange={(open) => { if (!open) handleClose(); }}>
+    <Dialog
+      open={props.open}
+      onOpenChange={(open) => {
+        if (!open) handleClose();
+      }}
+    >
       <DialogContent onClose={handleClose}>
         <DialogHeader>
           <DialogTitle>Report Message</DialogTitle>
@@ -78,9 +83,7 @@ const ReportDialog = (props: ReportDialogProps) => {
             onChange={(e) => setCategory(e.currentTarget.value)}
             class="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground"
           >
-            <For each={CATEGORIES}>
-              {(cat) => <option value={cat.value}>{cat.label}</option>}
-            </For>
+            <For each={CATEGORIES}>{(cat) => <option value={cat.value}>{cat.label}</option>}</For>
           </select>
 
           <textarea

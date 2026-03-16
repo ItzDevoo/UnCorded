@@ -6,6 +6,8 @@ import "./stores/theme-store.js"; // Initialize theme on app load
 const Landing = lazy(() => import("./pages/Landing.js"));
 const Login = lazy(() => import("./pages/Login.js"));
 const Register = lazy(() => import("./pages/Register.js"));
+const Privacy = lazy(() => import("./pages/Privacy.js"));
+const Terms = lazy(() => import("./pages/Terms.js"));
 const Home = lazy(() => import("./pages/Home.js"));
 const Friends = lazy(() => import("./pages/Friends.js"));
 const Settings = lazy(() => import("./pages/Settings.js"));
@@ -17,6 +19,8 @@ const App = () => {
       <Route path="/" component={Landing} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/privacy" component={Privacy} />
+      <Route path="/terms" component={Terms} />
       <Route path="/home" component={AppLayout}>
         <Route path="/" component={Home} />
         <Route path="/friends" component={Friends} />

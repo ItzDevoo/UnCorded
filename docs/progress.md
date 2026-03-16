@@ -14,6 +14,10 @@ User settings: profile editing (username/display name/avatar), password change, 
 Server settings (merged PR #50): overview, channel management, member management + kick, invite management, ownership transfer. Plus rate limits on sensitive endpoints, HTML sanitization on messages, MemberList reactivity fix. CodeRabbit review fixes: serverId reactivity tracking, async race guards, clipboard error handling, whitespace name validation, serverIconUrl prop.
 Review debt fixes: channel PATCH wrapped in db.transaction (SEC-11), DM cache backfill on miss (LB-1), PRESENCE_UPDATE synced to member-store (LB-2).
 Report system (#23): POST /api/reports with rate limiting + entity verification, ReportDialog component with category dropdown + details textarea, report button in message hover toolbar for non-own messages.
+Legal pages (#26): Privacy Policy + Terms of Service pages with full content, lazy-loaded routes (/privacy, /terms), footer links on landing page, registration ToS checkbox + age gate (DOB field, client-side 13+ validation).
+CSAM hashing (#25): client-side PDQ perceptual hash scaffold (pdq-hash.ts), POST /api/safety/check-hash endpoint (scaffold for Thorn API integration), hash check integrated into shareFile() before seeding.
+Report system extended: "intimate_image" category added (TAKE IT DOWN Act compliance), migration 0008.
+P2P IP disclosure: first-file-share dialog warns users about IP visibility, localStorage acknowledgment flag.
 
 ### Server Settings
 
@@ -32,7 +36,7 @@ Report system (#23): POST /api/reports with rate limiting + entity verification,
 ### Infrastructure
 
 - Bun monorepo with Turborepo (apps/web, apps/server, packages/shared, packages/protocol)
-- PostgreSQL (Neon) + Drizzle ORM — 17+ tables, 6 migrations applied
+- PostgreSQL (Neon) + Drizzle ORM — 17+ tables, 9 migrations applied
 - Redis (Upstash) — rate limiting with in-memory fallback, pub/sub foundation (subscriber stubbed)
 - TypeScript strict mode, branded ID types, typed error hierarchy
 - Oxlint + Oxfmt (zero warnings/errors)

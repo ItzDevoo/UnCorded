@@ -195,9 +195,15 @@ const Landing = () => {
 
       {/* ── Footer ───────────────────────────────────────────────────────── */}
       <footer class="border-t border-border px-4 py-6">
-        <p class="text-center text-xs text-muted-foreground">
-          &copy; {new Date().getFullYear()} UnCorded. You know exactly where your files go.
-        </p>
+        <div class="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+          <span>&copy; {new Date().getFullYear()} UnCorded</span>
+          <A href="/privacy" class="hover:text-primary hover:underline">
+            Privacy Policy
+          </A>
+          <A href="/terms" class="hover:text-primary hover:underline">
+            Terms of Service
+          </A>
+        </div>
       </footer>
     </div>
   );

@@ -90,7 +90,11 @@ const ServerSettings = () => {
         <div class="flex-1 overflow-y-auto p-6">
           <div class="mx-auto max-w-2xl">
             <Show when={activeTab() === "overview"}>
-              <OverviewTab serverId={serverId()!} serverName={server()!.name} serverIconUrl={server()!.iconUrl} />
+              <OverviewTab
+                serverId={serverId()!}
+                serverName={server()!.name}
+                serverIconUrl={server()!.iconUrl}
+              />
             </Show>
             <Show when={activeTab() === "channels"}>
               <ChannelsTab serverId={serverId()!} />

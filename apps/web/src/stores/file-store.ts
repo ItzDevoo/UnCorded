@@ -1,3 +1,4 @@
+import { createSignal } from "solid-js";
 import { createStore, produce } from "solid-js/store";
 import { Opcode } from "@uncorded/protocol";
 import type { AnyChannelId, FileReceiptId, UserId } from "@uncorded/protocol";
@@ -15,8 +16,47 @@ import {
   stopSeeding,
   type SeedResult,
 } from "../lib/torrent-client.js";
+import { computePdqHash } from "../lib/pdq-hash.js";
+import { api, ApiRequestError } from "../lib/api.js";
+import { showToast } from "../components/ui/toast.js";
 
 const MAX_PREVIEW_CACHE = 50;
+const P2P_ACK_KEY = "uncorded:p2p-ip-acknowledged";
+
+// ── P2P IP disclosure dialog state ──────────────────────────────────────────
+
+const [p2pDialogOpen, setP2pDialogOpen] = createSignal(false);
+let p2pResolve: (() => void) | null = null;
+let p2pReject: (() => void) | null = null;
+
+export function getP2pDialogOpen(): boolean {
+  return p2pDialogOpen();
+}
+
+export function confirmP2pDialog(): void {
+  localStorage.setItem(P2P_ACK_KEY, "true");
+  setP2pDialogOpen(false);
+  p2pResolve?.();
+  p2pResolve = null;
+  p2pReject = null;
+}
+
+export function cancelP2pDialog(): void {
+  setP2pDialogOpen(false);
+  p2pReject?.();
+  p2pResolve = null;
+  p2pReject = null;
+}
+
+async function ensureP2pAcknowledged(): Promise<void> {
+  if (localStorage.getItem(P2P_ACK_KEY) === "true") return;
+
+  return new Promise<void>((resolve, reject) => {
+    p2pResolve = resolve;
+    p2pReject = reject;
+    setP2pDialogOpen(true);
+  });
+}
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -131,6 +171,35 @@ function extractInfoHash(magnetUri: string): string {
 // ── Public API ──────────────────────────────────────────────────────────────
 
 export async function shareFile(chId: AnyChannelId, file: File): Promise<SeedResult> {
+  // P2P IP disclosure check (first share in session)
+  await ensureP2pAcknowledged();
+
+  // CSAM hash check for images
+  const hash = await computePdqHash(file);
+  if (hash !== null) {
+    try {
+      const res = await api<{ blocked: boolean }>("/api/safety/check-hash", {
+        method: "POST",
+        body: JSON.stringify({ hash }),
+      });
+      if (res.blocked) {
+        showToast("This file cannot be shared", "error");
+        throw new Error("File blocked by safety check");
+      }
+    } catch (err) {
+      if (err instanceof ApiRequestError) {
+        showToast("Safety check failed", "error");
+        throw err;
+      }
+      // Re-throw "blocked" errors
+      if (err instanceof Error && err.message === "File blocked by safety check") {
+        throw err;
+      }
+      // Non-blocking: if safety service is down, allow file share to proceed
+      if (import.meta.env.DEV) console.warn("[file-store] Safety check error:", err);
+    }
+  }
+
   let result: SeedResult;
   try {
     result = await seedFile(file);

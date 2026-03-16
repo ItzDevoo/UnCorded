@@ -248,6 +248,14 @@ This applies to any module that registers global listeners or timers at the top 
 
 **[W4 D5]** — Zod `.refine()` on an object schema validates cross-field constraints (e.g., "exactly one of A or B"). The arithmetic trick `(a ? 1 : 0) + (b ? 1 : 0) === 1` is cleaner than nested ternaries for "exactly one" checks.
 
+**[W4 D6]** — `drizzle-kit generate` is interactive (prompts for enum create/rename choices) and cannot run headlessly in CLI. For simple enum additions like `ALTER TYPE ... ADD VALUE`, write the migration SQL manually and update `_journal.json`.
+
+**[W4 D6]** — Age gate DOB field: FTC's Feb 2026 policy statement allows client-side-only DOB checks — don't send DOB to the server. Calculate age in the browser, gate registration, discard the value.
+
+**[W4 D6]** — P2P IP disclosure dialog uses a Promise-based pattern: `shareFile()` creates a promise, the dialog resolves/rejects it. Module-level `let resolve/reject` refs avoid coupling the store to the component.
+
+**[W4 D6]** — CSAM hash safety check in `shareFile()`: if the safety service is unreachable, allow the share to proceed (non-blocking). Only block if the API explicitly returns `blocked: true`. This prevents a broken safety endpoint from disabling all file sharing.
+
 ---
 
 ## Known Issues

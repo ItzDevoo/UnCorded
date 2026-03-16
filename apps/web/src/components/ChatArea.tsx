@@ -207,11 +207,7 @@ const ChatArea = () => {
             {/* Mobile member list sheet */}
             <Show when={isMobile() && isServerChannel() && currentServer()}>
               {(server) => (
-                <Sheet
-                  open={showMembers()}
-                  onOpenChange={setShowMembers}
-                  side="right"
-                >
+                <Sheet open={showMembers()} onOpenChange={setShowMembers} side="right">
                   <SheetContent side="right" onClose={() => setShowMembers(false)}>
                     <MemberList serverId={server().id} ownerId={server().ownerId} />
                   </SheetContent>

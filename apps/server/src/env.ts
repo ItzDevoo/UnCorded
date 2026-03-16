@@ -44,6 +44,9 @@ const envSchema = z.object({
   STRIPE_SUPPORTER_PRICE_ID: optionalString,
   STRIPE_SERVER_OWNER_PRICE_ID: optionalString,
 
+  // Safety / CSAM scanning — optional (Thorn Safer API)
+  THORN_API_KEY: optionalString,
+
   // TURN relay — optional (Cloudflare Calls API)
   TURN_KEY_ID: optionalString,
   TURN_KEY_API_TOKEN: optionalString,

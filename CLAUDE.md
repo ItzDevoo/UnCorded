@@ -41,6 +41,7 @@ CORS_ORIGIN
 APP_URL
 PORT
 NODE_ENV
+THORN_API_KEY (optional — CSAM hash checking via Thorn Safer API)
 
 ## Reference Projects
 

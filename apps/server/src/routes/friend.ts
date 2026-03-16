@@ -369,7 +369,11 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
 
     if (targetId === sessionUser.id) throw new ValidationError("Cannot block yourself");
 
-    const [target] = await db.select({ id: user.id }).from(user).where(eq(user.id, targetId)).limit(1);
+    const [target] = await db
+      .select({ id: user.id })
+      .from(user)
+      .where(eq(user.id, targetId))
+      .limit(1);
     if (!target) throw new NotFoundError("User");
 
     // Delete any existing friendship in either direction

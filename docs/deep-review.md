@@ -298,6 +298,7 @@ The most critical frontend module has no `import.meta.hot.dispose()` handler. Du
 Currently: global `elysia-rate-limit` with generic per-IP limits, plus ad-hoc per-endpoint IP rate limits on a few sensitive routes.
 
 What I'd do: Three-tier rate limiting:
+
 - **Global per-IP** (existing): 100 req/min, catches automated abuse
 - **Per-user per-endpoint**: Redis-backed, configurable per route (5 msg/5s, 10 friend-req/min, etc.)
 - **WS per-opcode** (existing, well-implemented): keep as-is
@@ -368,18 +369,18 @@ OKLCH color system with semantic tokens, compound Dialog with focus trap, Portal
 
 Top 10 issues ranked by production risk x effort to fix:
 
-| Rank | Severity | Issue | Effort | Why This Rank |
-|------|----------|-------|--------|---------------|
-| 1 | CRITICAL | **SEC-1: MessagePack OOM DoS** — unbounded decode allows server crash | 30 min | Single malicious frame crashes the server. One line fix. |
-| 2 | CRITICAL | **SEC-2: No message rate limiting** — message spam floods channels | 2 hrs | #1 abuse vector in any chat app. Per-user per-endpoint middleware. |
-| 3 | HIGH | **SEC-4: Password hash DoS** — unbounded password length | 15 min | CPU exhaustion with a few requests. Add `.max(128)` to 2 schemas. |
-| 4 | HIGH | **SEC-5: Empty messages accepted** — blank messages created | 15 min | Violates data integrity. Add `.min(1)` or explicit null handling. |
-| 5 | HIGH | **AC-2: Channel CRUD not handled on frontend** — stale channels | 4 hrs | Visible production bug. Users see wrong channels. Need WS handlers. |
-| 6 | HIGH | **SEC-3: No friend request rate limiting** — harassment vector | 1 hr | Enables spam harassment. Add per-user rate limit. |
-| 7 | MEDIUM | **LB-3: Torrent connection leak** — memory/connection exhaustion | 2 hrs | Grows linearly with downloads. Destroy torrents after save. |
-| 8 | MEDIUM | **AC-5: Webhook handlers not transactional** — split-brain tier state | 1 hr | Stripe events fail silently on partial commit. Wrap in transactions. |
-| 9 | MEDIUM | **SEC-10: No resource creation limits** — DB exhaustion | 2 hrs | Single user can create unlimited servers/channels. Add cap checks. |
-| 10 | MEDIUM | **AC-4: Server delete order reversed** — ghost servers | 30 min | Broadcast before delete means UI desyncs on DB failure. Swap order. |
+| Rank | Severity | Issue                                                                 | Effort | Why This Rank                                                        |
+| ---- | -------- | --------------------------------------------------------------------- | ------ | -------------------------------------------------------------------- |
+| 1    | CRITICAL | **SEC-1: MessagePack OOM DoS** — unbounded decode allows server crash | 30 min | Single malicious frame crashes the server. One line fix.             |
+| 2    | CRITICAL | **SEC-2: No message rate limiting** — message spam floods channels    | 2 hrs  | #1 abuse vector in any chat app. Per-user per-endpoint middleware.   |
+| 3    | HIGH     | **SEC-4: Password hash DoS** — unbounded password length              | 15 min | CPU exhaustion with a few requests. Add `.max(128)` to 2 schemas.    |
+| 4    | HIGH     | **SEC-5: Empty messages accepted** — blank messages created           | 15 min | Violates data integrity. Add `.min(1)` or explicit null handling.    |
+| 5    | HIGH     | **AC-2: Channel CRUD not handled on frontend** — stale channels       | 4 hrs  | Visible production bug. Users see wrong channels. Need WS handlers.  |
+| 6    | HIGH     | **SEC-3: No friend request rate limiting** — harassment vector        | 1 hr   | Enables spam harassment. Add per-user rate limit.                    |
+| 7    | MEDIUM   | **LB-3: Torrent connection leak** — memory/connection exhaustion      | 2 hrs  | Grows linearly with downloads. Destroy torrents after save.          |
+| 8    | MEDIUM   | **AC-5: Webhook handlers not transactional** — split-brain tier state | 1 hr   | Stripe events fail silently on partial commit. Wrap in transactions. |
+| 9    | MEDIUM   | **SEC-10: No resource creation limits** — DB exhaustion               | 2 hrs  | Single user can create unlimited servers/channels. Add cap checks.   |
+| 10   | MEDIUM   | **AC-4: Server delete order reversed** — ghost servers                | 30 min | Broadcast before delete means UI desyncs on DB failure. Swap order.  |
 
 ---
 

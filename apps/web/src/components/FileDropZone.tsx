@@ -69,9 +69,7 @@ const FileDropZone = (props: {
       {dragging() && (
         <div
           class={`absolute inset-0 z-10 flex items-center justify-center rounded-lg border-2 border-dashed ${
-            props.disabled
-              ? "border-destructive bg-destructive/10"
-              : "border-primary bg-primary/10"
+            props.disabled ? "border-destructive bg-destructive/10" : "border-primary bg-primary/10"
           }`}
         >
           <p

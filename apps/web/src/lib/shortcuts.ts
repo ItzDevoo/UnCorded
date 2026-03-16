@@ -38,7 +38,11 @@ function handleKeyDown(e: KeyboardEvent) {
     // match on e.key directly and skip the strict shiftKey check —
     // shift is implied by the character itself. Only applies to symbols, not letters/digits.
     const isSymbolChar =
-      shortcut.key.length === 1 && !wantShift && !wantCtrl && !wantAlt && !/[A-Za-z0-9]/.test(shortcut.key);
+      shortcut.key.length === 1 &&
+      !wantShift &&
+      !wantCtrl &&
+      !wantAlt &&
+      !/[A-Za-z0-9]/.test(shortcut.key);
     const shiftOk = isSymbolChar ? true : e.shiftKey === wantShift;
 
     if (

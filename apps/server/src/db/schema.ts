@@ -49,6 +49,7 @@ export const subscriptionStatusEnum = pgEnum("subscription_status", [
 
 export const reportCategoryEnum = pgEnum("report_category", [
   "csam",
+  "intimate_image",
   "harassment",
   "spam",
   "copyright",

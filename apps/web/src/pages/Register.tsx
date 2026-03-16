@@ -6,17 +6,51 @@ import AuthLayout from "../components/AuthLayout.js";
 import { Input } from "../components/ui/input.js";
 import { Button } from "../components/ui/button.js";
 
+function calculateAge(dob: string): number {
+  // Parse as local date to avoid UTC timezone shift (e.g., "2013-03-16" in UTC-5 becoming Mar 15)
+  const [y, m, d] = dob.split("-").map(Number) as [number, number, number];
+  const birth = new Date(y, m - 1, d);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
+}
+
 const Register = () => {
   const navigate = useNavigate();
   const [email, setEmail] = createSignal("");
   const [username, setUsername] = createSignal("");
+  const [dob, setDob] = createSignal("");
   const [password, setPassword] = createSignal("");
+  const [tosAgreed, setTosAgreed] = createSignal(false);
   const [error, setError] = createSignal("");
   const [loading, setLoading] = createSignal(false);
+
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
   const handleSubmit = async (e: SubmitEvent) => {
     e.preventDefault();
     setError("");
+
+    if (!tosAgreed()) {
+      setError("You must agree to the Terms of Service");
+      return;
+    }
+
+    if (!dob()) {
+      setError("Date of birth is required");
+      return;
+    }
+
+    if (calculateAge(dob()) < 13) {
+      setError("You must be at least 13 years old to use UnCorded");
+      return;
+    }
+
     setLoading(true);
     try {
       const result = await signUp.email({
@@ -84,6 +118,19 @@ const Register = () => {
           />
         </div>
         <div>
+          <label for="register-dob" class="mb-1 block text-sm font-medium text-muted-foreground">
+            Date of Birth
+          </label>
+          <Input
+            id="register-dob"
+            type="date"
+            required
+            max={todayStr}
+            value={dob()}
+            onInput={(e) => setDob(e.currentTarget.value)}
+          />
+        </div>
+        <div>
           <label
             for="register-password"
             class="mb-1 block text-sm font-medium text-muted-foreground"
@@ -99,7 +146,35 @@ const Register = () => {
             onInput={(e) => setPassword(e.currentTarget.value)}
           />
         </div>
-        <Button type="submit" disabled={loading()} size="lg" class="w-full">
+        <label class="flex items-start gap-2 text-sm text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={tosAgreed()}
+            onChange={(e) => setTosAgreed(e.currentTarget.checked)}
+            class="mt-0.5 rounded border-border"
+          />
+          <span>
+            I agree to the{" "}
+            <a
+              href="/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-primary hover:underline"
+            >
+              Terms of Service
+            </a>{" "}
+            and{" "}
+            <a
+              href="/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-primary hover:underline"
+            >
+              Privacy Policy
+            </a>
+          </span>
+        </label>
+        <Button type="submit" disabled={loading() || !tosAgreed()} size="lg" class="w-full">
           {loading() ? "Creating account..." : "Register"}
         </Button>
       </form>

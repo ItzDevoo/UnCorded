@@ -3,7 +3,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog.js
 import { shortcutsDialogOpen, setShortcutsDialogOpen } from "../stores/shortcut-store.js";
 import { getShortcuts } from "../lib/shortcuts.js";
 
-function formatKey(shortcut: { key: string; ctrl?: boolean; shift?: boolean; alt?: boolean }): string[] {
+function formatKey(shortcut: {
+  key: string;
+  ctrl?: boolean;
+  shift?: boolean;
+  alt?: boolean;
+}): string[] {
   const parts: string[] = [];
   if (shortcut.ctrl) parts.push("Ctrl");
   if (shortcut.shift) parts.push("Shift");

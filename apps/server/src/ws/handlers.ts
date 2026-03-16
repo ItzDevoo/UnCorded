@@ -123,9 +123,7 @@ export async function handleIdentify(
 
     const serverIds = userServers.map((s) => s.id);
     const dmChannelIds = myDmMemberships.map((m) => m.channelId);
-    const peerIds = friendshipRows.map((r) =>
-      r.usrId === identifiedUserId ? r.frdId : r.usrId,
-    );
+    const peerIds = friendshipRows.map((r) => (r.usrId === identifiedUserId ? r.frdId : r.usrId));
 
     // Batch 2: three dependent queries in parallel (guarded by empty-array checks)
     const [userChannels, otherDmMembers, peerUsers] = await Promise.all([

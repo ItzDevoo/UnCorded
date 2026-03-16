@@ -59,8 +59,8 @@ Reference: C:\Nexis (monorepo patterns, auth, WS gateway), C:\t3Code (tooling, U
 - [x] Mobile responsive polish (#30) — Sheet component, hamburger menu, responsive sidebar + member list
 - [x] Keyboard shortcuts (#24) — shortcut registry, core bindings, help dialog
 - [ ] Stripe Tax + transparency receipt UI (#18)
-- [ ] CSAM hashing (#25) — client-side PhotoDNA/PDQ before file share
-- [ ] Legal pages (#26) — Terms of Service, Privacy Policy
+- [x] CSAM hashing (#25) — client-side PDQ hash scaffold + safety check endpoint + file-store integration
+- [x] Legal pages (#26) — Privacy Policy, Terms of Service, routes, footer links, age gate, ToS checkbox, report category extension, P2P IP disclosure dialog
 
 ## Next: Week 5 — Desktop App + Deployment
 

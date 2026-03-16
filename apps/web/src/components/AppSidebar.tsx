@@ -190,7 +190,12 @@ const AppSidebar = (props: AppSidebarProps) => {
             <>
               <SidebarMenu class="pt-1">
                 <SidebarMenuItem>
-                  <SidebarMenuButton onClick={() => { navigate("/home/friends"); props.onNavigate?.(); }}>
+                  <SidebarMenuButton
+                    onClick={() => {
+                      navigate("/home/friends");
+                      props.onNavigate?.();
+                    }}
+                  >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       class="h-4 w-4"
@@ -230,7 +235,10 @@ const AppSidebar = (props: AppSidebarProps) => {
                         <SidebarMenuItem>
                           <SidebarMenuButton
                             active={isActive()}
-                            onClick={() => { selectDmChannel(dm.id); props.onNavigate?.(); }}
+                            onClick={() => {
+                              selectDmChannel(dm.id);
+                              props.onNavigate?.();
+                            }}
                           >
                             <div class="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
                               {initial()}
@@ -274,7 +282,10 @@ const AppSidebar = (props: AppSidebarProps) => {
                       <SidebarMenuItem>
                         <SidebarMenuButton
                           active={isActive()}
-                          onClick={() => { setSelectedChannelId(channel.id); props.onNavigate?.(); }}
+                          onClick={() => {
+                            setSelectedChannelId(channel.id);
+                            props.onNavigate?.();
+                          }}
                         >
                           <span class="text-muted-foreground">#</span>
                           <span class="truncate">{channel.name}</span>

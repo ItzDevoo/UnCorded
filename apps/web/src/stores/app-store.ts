@@ -55,7 +55,7 @@ const dispose = createRoot((d) => {
         setChannelsForServer(id, channels);
       })
       .catch((err) => {
-        console.error("[app-store] Failed to fetch channels:", err);
+        if (import.meta.env.DEV) console.error("[app-store] Failed to fetch channels:", err);
       })
       .finally(() => {
         setChannelCacheLoading((prev) => (prev === id ? null : prev));

@@ -8,6 +8,7 @@ Updated by the coding agent at the end of every session.
 ## Current Status: Week 4 In Progress
 
 Stripe subscriptions working. Deep review complete (all 5 batches). 93 tests passing. All issues migrated to GitHub Issues.
+Fresh-eyes audit complete (docs/fresh-audit.md). Quick fixes applied: .env.example updated with 4 missing vars, 2 ungated console.error calls dev-gated, dead clearTurnCredentialsCache export removed.
 Quick-wins batch: invite accept race condition fixed (db.transaction), roles/member_roles tables removed, Object.assign consistency applied.
 User settings: profile editing (username/display name/avatar), password change, account deletion, appearance (dark/light theme, message density).
 Server settings (merged PR #50): overview, channel management, member management + kick, invite management, ownership transfer. Plus rate limits on sensitive endpoints, HTML sanitization on messages, MemberList reactivity fix. CodeRabbit review fixes: serverId reactivity tracking, async race guards, clipboard error handling, whitespace name validation, serverIconUrl prop.

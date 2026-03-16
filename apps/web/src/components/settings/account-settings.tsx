@@ -28,7 +28,7 @@ const AccountSettings = () => {
       const me = await api<{ email: string }>("/api/users/@me");
       setEmail(me.email);
     } catch (err) {
-      console.error("[settings] Failed to fetch user email:", err);
+      if (import.meta.env.DEV) console.error("[settings] Failed to fetch user email:", err);
     } finally {
       setEmailLoading(false);
     }

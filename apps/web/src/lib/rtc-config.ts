@@ -77,8 +77,3 @@ export async function getIceServers(): Promise<RTCIceServer[]> {
     clearTimeout(timeout);
   }
 }
-
-export function clearTurnCredentialsCache(): void {
-  cachedTurn = null;
-  cachedExpiry = 0;
-}

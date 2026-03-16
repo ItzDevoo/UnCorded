@@ -56,8 +56,8 @@ Reference: C:\Nexis (monorepo patterns, auth, WS gateway), C:\t3Code (tooling, U
 ### Remaining Features
 
 - [x] Report system (#23) — POST /api/reports + ReportDialog in message toolbar
-- [ ] Mobile responsive polish (#30) — sidebar needs Sheet component, responsive breakpoints
-- [ ] Keyboard shortcuts (#24) — no system exists yet
+- [x] Mobile responsive polish (#30) — Sheet component, hamburger menu, responsive sidebar + member list
+- [x] Keyboard shortcuts (#24) — shortcut registry, core bindings, help dialog
 - [ ] Stripe Tax + transparency receipt UI (#18)
 - [ ] CSAM hashing (#25) — client-side PhotoDNA/PDQ before file share
 - [ ] Legal pages (#26) — Terms of Service, Privacy Policy

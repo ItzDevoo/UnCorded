@@ -37,7 +37,11 @@ import StatusDot, { StatusDotInline, type UserStatus } from "./StatusDot.js";
 const iconBtnClass =
   "rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground";
 
-const AppSidebar = () => {
+interface AppSidebarProps {
+  onNavigate?: () => void;
+}
+
+const AppSidebar = (props: AppSidebarProps) => {
   const session = useSession();
   const navigate = useNavigate();
   const [modal, setModal] = createSignal<"create" | "join" | "invite" | "create-channel" | null>(
@@ -159,6 +163,7 @@ const AppSidebar = () => {
           onClick={() => {
             selectHome();
             navigate("/home/friends");
+            props.onNavigate?.();
           }}
           class="flex w-full items-center gap-1.5 rounded-lg px-1 py-1 transition-colors hover:bg-accent"
         >
@@ -185,7 +190,7 @@ const AppSidebar = () => {
             <>
               <SidebarMenu class="pt-1">
                 <SidebarMenuItem>
-                  <SidebarMenuButton onClick={() => navigate("/home/friends")}>
+                  <SidebarMenuButton onClick={() => { navigate("/home/friends"); props.onNavigate?.(); }}>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       class="h-4 w-4"
@@ -225,7 +230,7 @@ const AppSidebar = () => {
                         <SidebarMenuItem>
                           <SidebarMenuButton
                             active={isActive()}
-                            onClick={() => selectDmChannel(dm.id)}
+                            onClick={() => { selectDmChannel(dm.id); props.onNavigate?.(); }}
                           >
                             <div class="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
                               {initial()}
@@ -269,7 +274,7 @@ const AppSidebar = () => {
                       <SidebarMenuItem>
                         <SidebarMenuButton
                           active={isActive()}
-                          onClick={() => setSelectedChannelId(channel.id)}
+                          onClick={() => { setSelectedChannelId(channel.id); props.onNavigate?.(); }}
                         >
                           <span class="text-muted-foreground">#</span>
                           <span class="truncate">{channel.name}</span>

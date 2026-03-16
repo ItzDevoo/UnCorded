@@ -52,7 +52,25 @@
   --animate-scale-in: scale-in 200ms ease-out;
   --animate-slide-in: slide-in 300ms ease-out;
   --animate-fade-in: fade-in 200ms ease-out;
+  --animate-slide-in-left: slide-in-left 200ms ease-out;
+  --animate-slide-in-right: slide-in-right 200ms ease-out;
 
+  @keyframes slide-in-left {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+  @keyframes slide-in-right {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
   @keyframes skeleton {
     to {
       background-position: -200% 0;

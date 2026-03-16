@@ -1,4 +1,4 @@
-import { createMemo, createEffect, createSignal, Show, on } from "solid-js";
+import { createMemo, createEffect, createSignal, onMount, onCleanup, Show, on } from "solid-js";
 import type { AnyChannelId } from "@uncorded/protocol";
 import {
   selectedChannelId,
@@ -6,6 +6,8 @@ import {
   selectedServerId,
   currentChannels,
   currentServer,
+  showMembers,
+  setShowMembers,
 } from "../stores/app-store.js";
 import { readyData } from "../lib/gateway-store.js";
 import { fetchMessages, getMessages } from "../stores/message-store.js";
@@ -18,6 +20,7 @@ import MessageInput from "./MessageInput.js";
 import FileDropZone from "./FileDropZone.js";
 import MemberList from "./MemberList.js";
 import { StatusDotInline, type UserStatus } from "./StatusDot.js";
+import { Sheet, SheetContent } from "./ui/sheet.js";
 
 const UsersIcon = () => (
   <svg
@@ -40,7 +43,16 @@ const UsersIcon = () => (
 );
 
 const ChatArea = () => {
-  const [showMembers, setShowMembers] = createSignal(false);
+  // Mobile detection for Sheet vs inline member list (deferred to onMount for SSR safety)
+  const [isMobile, setIsMobile] = createSignal(false);
+  let mql: MediaQueryList | null = null;
+  const handleResize = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+  onMount(() => {
+    mql = window.matchMedia("(max-width: 639px)");
+    setIsMobile(mql.matches);
+    mql.addEventListener("change", handleResize);
+  });
+  onCleanup(() => mql?.removeEventListener("change", handleResize));
 
   const channelId = createMemo(
     () => selectedChannelId() ?? (selectedDmChannelId() as AnyChannelId | null),
@@ -104,7 +116,7 @@ const ChatArea = () => {
       <Show when={channelId()}>
         {(id) => (
           <>
-            <div class="flex shrink-0 items-center gap-3 border-b border-border px-4 py-3">
+            <div class="flex min-w-0 shrink-0 items-center gap-3 border-b border-border px-4 py-3">
               <Show
                 when={isDm()}
                 fallback={
@@ -182,10 +194,30 @@ const ChatArea = () => {
                 />
               </FileDropZone>
 
+              {/* Desktop member list */}
               <Show when={isServerChannel() && showMembers() && currentServer()}>
-                {(server) => <MemberList serverId={server().id} ownerId={server().ownerId} />}
+                {(server) => (
+                  <div class="hidden sm:block">
+                    <MemberList serverId={server().id} ownerId={server().ownerId} />
+                  </div>
+                )}
               </Show>
             </div>
+
+            {/* Mobile member list sheet */}
+            <Show when={isMobile() && isServerChannel() && currentServer()}>
+              {(server) => (
+                <Sheet
+                  open={showMembers()}
+                  onOpenChange={setShowMembers}
+                  side="right"
+                >
+                  <SheetContent side="right" onClose={() => setShowMembers(false)}>
+                    <MemberList serverId={server().id} ownerId={server().ownerId} />
+                  </SheetContent>
+                </Sheet>
+              )}
+            </Show>
           </>
         )}
       </Show>

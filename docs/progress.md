@@ -109,10 +109,11 @@ Report system (#23): POST /api/reports with rate limiting + entity verification,
 
 - SolidJS + Vite + Tailwind v4
 - Green-tinted OKLCH design system with DM Sans font
-- UI primitives: Button, Input, Badge, Card, Dialog, Tooltip, ScrollArea, Skeleton, Empty
+- UI primitives: Button, Input, Badge, Card, Dialog, Tooltip, ScrollArea, Skeleton, Empty, Sheet
 - Collapsible sidebar with server switcher dropdown
 - Channels + DMs unified in sidebar with collapsible sections
-- Mobile: sidebar as sheet/drawer
+- Mobile responsive: sidebar as Sheet (hamburger toggle), member list as right-side Sheet, hidden on mobile by default
+- Keyboard shortcuts: global registry, ? / Ctrl+/ (help dialog), Ctrl+Shift+M (toggle members), Alt+Up/Down (channel nav), Escape (close)
 - Virtual scrolling message list (@tanstack/solid-virtual)
 - Message hover toolbar (edit, delete, copy, report)
 - Inline message editing + delete with confirmation

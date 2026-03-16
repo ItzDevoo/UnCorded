@@ -13,6 +13,7 @@ import { api } from "../lib/api.js";
 const [selectedServerId, setSelectedServerId] = createSignal<ServerId | null>(null);
 const [selectedChannelId, setSelectedChannelId] = createSignal<ChannelId | null>(null);
 const [selectedDmChannelId, setSelectedDmChannelId] = createSignal<DmChannelId | null>(null);
+const [showMembers, setShowMembers] = createSignal(false);
 
 function selectDmChannel(id: DmChannelId) {
   setSelectedServerId(null);
@@ -89,4 +90,6 @@ export {
   selectHome,
   currentServer,
   currentChannels,
+  showMembers,
+  setShowMembers,
 };

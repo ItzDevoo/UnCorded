@@ -16,7 +16,7 @@
     "@neondatabase/serverless": "^1",
     "@uncorded/protocol": "workspace:*",
     "@uncorded/shared": "workspace:*",
-    "@upstash/redis": "^1.36.4",
+    "ioredis": "^5.6.1",
     "better-auth": "^1",
     "drizzle-orm": "^0.45",
     "elysia": "^1",

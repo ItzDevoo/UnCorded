@@ -47,8 +47,9 @@ async function checkViaRedis(key: string, limit: number, windowMs: number): Prom
     // Atomic INCR + conditional EXPIRE via Lua to prevent TTL-less keys
     const count = (await redis!.eval(
       "local c = redis.call('INCR', KEYS[1]); if c == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end; return c",
-      [redisKey],
-      [ttlSeconds],
+      1,
+      redisKey,
+      ttlSeconds,
     )) as number;
     return count <= limit;
   } catch (err) {

@@ -1,0 +1,11 @@
+node_modules/
+.turbo/
+dist/
+.git/
+.env
+.claude/
+*.md
+apps/web/src/
+apps/web/dist/
+apps/web/public/
+apps/desktop/

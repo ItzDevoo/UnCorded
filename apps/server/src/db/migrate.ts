@@ -1,6 +1,6 @@
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
-import { migrate } from "drizzle-orm/neon-http/migrator";
+import { Pool } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-serverless";
+import { migrate } from "drizzle-orm/neon-serverless/migrator";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) {
@@ -8,9 +8,13 @@ if (!DATABASE_URL) {
   process.exit(1);
 }
 
-const sql = neon(DATABASE_URL);
-const db = drizzle({ client: sql });
+const pool = new Pool({ connectionString: DATABASE_URL });
+const db = drizzle({ client: pool });
 
 console.log("Running migrations...");
-await migrate(db, { migrationsFolder: "./drizzle" });
-console.log("Migrations complete.");
+try {
+  await migrate(db, { migrationsFolder: "./drizzle" });
+  console.log("Migrations complete.");
+} finally {
+  await pool.end();
+}

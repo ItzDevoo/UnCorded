@@ -4,7 +4,7 @@ import { sendFrame } from "../lib/gateway.js";
 import { useNavigate } from "@solidjs/router";
 import { useSession, signOut } from "../lib/auth.js";
 import { readyData, channelCacheLoading, setUserStatus } from "../lib/gateway-store.js";
-import { createCheckout, createPortalSession } from "../lib/api.js";
+import { createPortalSession } from "../lib/api.js";
 import { showToast } from "./ui/toast.js";
 import {
   selectedServerId,
@@ -33,6 +33,7 @@ import CreateServerModal from "./modals/CreateServerModal.js";
 import CreateChannelModal from "./modals/CreateChannelModal.js";
 import JoinServerModal from "./modals/JoinServerModal.js";
 import InviteModal from "./modals/InviteModal.js";
+import CheckoutModal from "./modals/CheckoutModal.js";
 import StatusDot, { StatusDotInline, type UserStatus } from "./StatusDot.js";
 
 const iconBtnClass =
@@ -49,6 +50,7 @@ const AppSidebar = (props: AppSidebarProps) => {
     null,
   );
   const [showStatusMenu, setShowStatusMenu] = createSignal(false);
+  const [checkoutTier, setCheckoutTier] = createSignal<"supporter" | "server_owner" | null>(null);
 
   const isServerOwner = () =>
     currentServer()?.ownerId != null && currentServer()?.ownerId === readyData.data?.user.id;
@@ -56,15 +58,6 @@ const AppSidebar = (props: AppSidebarProps) => {
   const isPaidUser = () =>
     readyData.data?.user.subscriptionTier !== undefined &&
     readyData.data?.user.subscriptionTier !== "free";
-
-  const handleUpgrade = async () => {
-    try {
-      const url = await createCheckout("supporter");
-      window.location.href = url;
-    } catch {
-      showToast("Failed to start checkout", "error");
-    }
-  };
 
   const handleManageSubscription = async () => {
     try {
@@ -367,7 +360,7 @@ const AppSidebar = (props: AppSidebarProps) => {
             when={isPaidUser()}
             fallback={
               <button
-                onClick={handleUpgrade}
+                onClick={() => setCheckoutTier("supporter")}
                 class="rounded p-1.5 text-primary transition-colors hover:bg-accent hover:text-primary"
                 title="Upgrade to Supporter"
                 aria-label="Upgrade to Supporter"
@@ -478,6 +471,9 @@ const AppSidebar = (props: AppSidebarProps) => {
       </Show>
       <Show when={modal() === "create-channel" && currentServer()}>
         {(server) => <CreateChannelModal serverId={server().id} onClose={() => setModal(null)} />}
+      </Show>
+      <Show when={checkoutTier()}>
+        {(tier) => <CheckoutModal tier={tier()} onClose={() => setCheckoutTier(null)} />}
       </Show>
     </Sidebar>
   );

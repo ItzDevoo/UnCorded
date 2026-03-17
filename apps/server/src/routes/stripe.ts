@@ -57,17 +57,17 @@ export const stripeRoutes = new Elysia({ prefix: "/api/stripe" })
 
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: "subscription",
+      ui_mode: "embedded",
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${env.CORS_ORIGIN ?? env.APP_URL}/home?checkout=success`,
-      cancel_url: `${env.CORS_ORIGIN ?? env.APP_URL}/home?checkout=cancelled`,
+      return_url: `${env.CORS_ORIGIN ?? env.APP_URL}/home?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       subscription_data: {
         metadata: { userId: sessionUser.id, tier: parsed.data.tier },
       },
       allow_promotion_codes: true,
     });
 
-    return { checkoutUrl: checkoutSession.url };
+    return { clientSecret: checkoutSession.client_secret };
   })
 
   // ── POST /api/stripe/customer-portal ─────────────────────────────────

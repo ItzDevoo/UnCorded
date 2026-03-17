@@ -62,11 +62,11 @@ export async function apiUpload<T>(
 }
 
 export async function createCheckout(tier: "supporter" | "server_owner"): Promise<string> {
-  const res = await api<{ checkoutUrl: string }>("/api/stripe/checkout", {
+  const res = await api<{ clientSecret: string }>("/api/stripe/checkout", {
     method: "POST",
     body: JSON.stringify({ tier }),
   });
-  return res.checkoutUrl;
+  return res.clientSecret;
 }
 
 export async function createPortalSession(): Promise<string> {

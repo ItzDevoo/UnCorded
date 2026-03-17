@@ -24,5 +24,8 @@
     "turbo": "^2",
     "typescript": "^5.7"
   },
-  "packageManager": "bun@1.2.20"
+  "packageManager": "bun@1.2.20",
+  "dependencies": {
+    "@stripe/stripe-js": "^8.10.0"
+  }
 }

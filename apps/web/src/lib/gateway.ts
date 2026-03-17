@@ -9,7 +9,9 @@ import {
 } from "./gateway-store.js";
 import { setupStores } from "../stores/index.js";
 
-const WS_URL = API_BASE.replace(/^http/, "ws") + "/gateway";
+const WS_URL = API_BASE
+  ? API_BASE.replace(/^http/, "ws") + "/gateway"
+  : `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/gateway`;
 
 const MAX_RECONNECT_DELAY = 30_000;
 const BASE_RECONNECT_DELAY = 1_000;

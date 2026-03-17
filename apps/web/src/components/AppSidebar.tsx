@@ -17,6 +17,7 @@ import {
   currentChannels,
 } from "../stores/app-store.js";
 import { fetchMoreDms, loadingMoreDms } from "../stores/friend-store.js";
+import { getUnreadCount } from "../stores/notification-store.js";
 import {
   Sidebar,
   SidebarHeader,
@@ -249,6 +250,11 @@ const AppSidebar = (props: AppSidebarProps) => {
                               />
                             </div>
                             <span class="truncate">{displayName()}</span>
+                            <Show when={!isActive() && getUnreadCount(dm.id) > 0}>
+                              <span class="ml-auto flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
+                                {getUnreadCount(dm.id)}
+                              </span>
+                            </Show>
                           </SidebarMenuButton>
                         </SidebarMenuItem>
                       );
@@ -289,11 +295,20 @@ const AppSidebar = (props: AppSidebarProps) => {
                         >
                           <span class="text-muted-foreground">#</span>
                           <span class="truncate">{channel.name}</span>
-                          <Show when={channel.fileSharingEnabled}>
-                            <span
-                              class="ml-auto h-2 w-2 shrink-0 rounded-full bg-success"
-                              title="File sharing enabled"
-                            />
+                          <Show when={(!isActive() && getUnreadCount(channel.id) > 0) || channel.fileSharingEnabled}>
+                            <span class="ml-auto flex shrink-0 items-center gap-1.5">
+                              <Show when={!isActive() && getUnreadCount(channel.id) > 0}>
+                                <span class="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
+                                  {getUnreadCount(channel.id)}
+                                </span>
+                              </Show>
+                              <Show when={channel.fileSharingEnabled}>
+                                <span
+                                  class="h-2 w-2 shrink-0 rounded-full bg-success"
+                                  title="File sharing enabled"
+                                />
+                              </Show>
+                            </span>
                           </Show>
                         </SidebarMenuButton>
                       </SidebarMenuItem>

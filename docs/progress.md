@@ -109,6 +109,16 @@ P2P IP disclosure: first-file-share dialog warns users about IP visibility, loca
 - Server file sharing gated to Supporter+ (UI disabled + gateway TIER_RESTRICTED error)
 - Error messaging when P2P fails (NAT blocked, no TURN for free users)
 
+### Notifications & PWA
+
+- Notification store: unread count tracking per channel, reactive mark-as-read on channel switch
+- Document title badge: shows (N) UnCorded when unread messages exist
+- In-app toast notifications for messages and file shares in non-active channels (suppressed during DND)
+- Sidebar unread badges: blue pill counters on DM entries and server channel entries, coexists with file-sharing dot
+- Browser Notification API: lazy permission request, skips when tab focused, tag deduplication, click-to-focus
+- PWA manifest + minimal service worker (install/activate lifecycle, notificationclick handler)
+- Apple mobile web app meta tags for iOS standalone mode
+
 ### Frontend
 
 - SolidJS + Vite + Tailwind v4

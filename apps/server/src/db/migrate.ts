@@ -12,7 +12,9 @@ const pool = new Pool({ connectionString: DATABASE_URL });
 const db = drizzle({ client: pool });
 
 console.log("Running migrations...");
-await migrate(db, { migrationsFolder: "./drizzle" });
-console.log("Migrations complete.");
-
-await pool.end();
+try {
+  await migrate(db, { migrationsFolder: "./drizzle" });
+  console.log("Migrations complete.");
+} finally {
+  await pool.end();
+}

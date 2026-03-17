@@ -25,7 +25,7 @@ export async function consumeTicket(ticket: string): Promise<string | null> {
 
   if (redis) {
     try {
-      const uid = await redis.getdel<string>(redisKey);
+      const uid = await redis.getdel(redisKey);
       if (!uid) return null;
       return uid;
     } catch {
@@ -49,7 +49,7 @@ export const gatewayTicketRoutes = new Elysia({ prefix: "/api/gateway" })
 
     if (redis) {
       try {
-        await redis.set(redisKey, sessionUser.id, { ex: TICKET_TTL_SECONDS });
+        await redis.set(redisKey, sessionUser.id, "EX", TICKET_TTL_SECONDS);
       } catch {
         if (!storeTicketInMemory(ticket, sessionUser.id, TICKET_TTL_SECONDS * 1000)) {
           throw new AppError(

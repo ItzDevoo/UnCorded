@@ -34,9 +34,8 @@ const envSchema = z.object({
   GOOGLE_CLIENT_ID: optionalString,
   GOOGLE_CLIENT_SECRET: optionalString,
 
-  // Redis — optional for now (needed later for presence/pubsub)
-  UPSTASH_REDIS_URL: optionalString,
-  UPSTASH_REDIS_TOKEN: optionalString,
+  // Redis — optional (TCP connection via ioredis)
+  REDIS_URL: optionalString,
 
   // Stripe — optional until billing is implemented
   STRIPE_SECRET_KEY: optionalString,

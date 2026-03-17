@@ -27,8 +27,7 @@ Read docs/CLAUDE.md first. This file adds coding-specific context.
 ## Environment Variables
 
 DATABASE_URL
-UPSTASH_REDIS_URL
-UPSTASH_REDIS_TOKEN
+REDIS_URL
 BETTER_AUTH_SECRET
 BETTER_AUTH_URL
 DISCORD_CLIENT_ID

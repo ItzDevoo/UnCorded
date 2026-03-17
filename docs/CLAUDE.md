@@ -25,7 +25,7 @@ Universal source of truth for all agents. Always read these before starting work
 - Frontend: SolidJS + Tailwind CSS v4
 - Backend: ElysiaJS
 - DB: PostgreSQL via Neon + Drizzle ORM
-- Cache/Presence/PubSub: Redis via Upstash
+- Cache/Presence/PubSub: Redis via ioredis (TCP)
 - File Transfer: WebTorrent (BitTorrent over WebRTC DataChannels)
 - Desktop App: Electron (planned — enables persistent seeding, future mobile via Capacitor)
 - Linter: Oxlint (not ESLint)

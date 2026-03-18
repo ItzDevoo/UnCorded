@@ -1,4 +1,4 @@
-import { For, splitProps } from "solid-js";
+import { For, Show, splitProps } from "solid-js";
 import { createStore, produce } from "solid-js/store";
 import { Portal } from "solid-js/web";
 import { cva } from "class-variance-authority";
@@ -11,7 +11,9 @@ type ToastVariant = "info" | "error";
 interface Toast {
   id: string;
   message: string;
+  subtitle?: string | undefined;
   variant: ToastVariant;
+  onClick?: (() => void) | undefined;
 }
 
 // ── Store ───────────────────────────────────────────────────────────────────
@@ -21,10 +23,32 @@ const [toasts, setToasts] = createStore<Toast[]>([]);
 const TOAST_AUTO_DISMISS_MS = 5_000;
 let nextId = 0;
 
-export function showToast(message: string, variant: ToastVariant = "info"): void {
-  const id = String(++nextId);
-  setToasts(produce((arr) => arr.push({ id, message, variant })));
-  setTimeout(() => dismissToast(id), TOAST_AUTO_DISMISS_MS);
+export function showToast(
+  message: string,
+  variant: ToastVariant = "info",
+  options?: {
+    id?: string | undefined;
+    subtitle?: string | undefined;
+    onClick?: (() => void) | undefined;
+    durationMs?: number | undefined;
+  },
+): string {
+  const id = options?.id ?? String(++nextId);
+  // If a toast with this ID already exists, skip
+  if (toasts.some((t) => t.id === id)) return id;
+  setToasts(
+    produce((arr) =>
+      arr.push({
+        id,
+        message,
+        subtitle: options?.subtitle,
+        variant,
+        onClick: options?.onClick,
+      }),
+    ),
+  );
+  setTimeout(() => dismissToast(id), options?.durationMs ?? TOAST_AUTO_DISMISS_MS);
+  return id;
 }
 
 export function dismissToast(id: string): void {
@@ -53,16 +77,22 @@ export const toastVariants = cva(
 type ToastItemProps = Toast & { class?: string };
 
 const ToastItem = (props: ToastItemProps) => {
-  const [local, rest] = splitProps(props, ["class", "id", "message", "variant"]);
+  const [local, rest] = splitProps(props, ["class", "id", "message", "subtitle", "variant", "onClick"]);
   return (
     <div
       data-slot="toast"
       role="alert"
       class={cn(toastVariants({ variant: local.variant }), local.class)}
-      onClick={() => dismissToast(local.id)}
+      onClick={() => {
+        local.onClick?.();
+        dismissToast(local.id);
+      }}
       {...rest}
     >
-      {local.message}
+      <p>{local.message}</p>
+      <Show when={local.subtitle}>
+        <p class="mt-0.5 text-xs text-muted-foreground">{local.subtitle}</p>
+      </Show>
     </div>
   );
 };

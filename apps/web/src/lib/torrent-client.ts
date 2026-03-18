@@ -192,6 +192,12 @@ export function getActiveTorrents(): TorrentInfo[] {
   }));
 }
 
+/** Returns info hashes of all torrents currently being seeded (progress === 1). */
+export function getSeedingInfoHashes(): string[] {
+  if (!client) return [];
+  return client.torrents.filter((t) => t.progress === 1).map((t) => t.infoHash);
+}
+
 // ── HMR cleanup ─────────────────────────────────────────────────────────────
 
 if (import.meta.hot) {

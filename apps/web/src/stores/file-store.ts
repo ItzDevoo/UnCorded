@@ -14,13 +14,14 @@ import {
   seedFile,
   downloadFromMagnet,
   stopSeeding,
+  getSeedingInfoHashes,
   type SeedResult,
 } from "../lib/torrent-client.js";
 import { computePdqHash } from "../lib/pdq-hash.js";
 import { api, ApiRequestError } from "../lib/api.js";
 import { showToast } from "../components/ui/toast.js";
 
-const MAX_PREVIEW_CACHE = 50;
+const MAX_PREVIEW_CACHE = 10;
 const P2P_ACK_KEY = "uncorded:p2p-ip-acknowledged";
 
 // ── P2P IP disclosure dialog state ──────────────────────────────────────────
@@ -168,6 +169,46 @@ function extractInfoHash(magnetUri: string): string {
   return hashMatch?.[1] ?? magnetUri;
 }
 
+/** Find all receipts matching an infoHash (across all channels). */
+function findReceiptsByInfoHash(infoHash: string): FileReceipt[] {
+  const results: FileReceipt[] = [];
+  for (const key of Object.keys(store.receipts)) {
+    for (const r of store.receipts[key] ?? []) {
+      if (r.infoHash === infoHash) results.push(r);
+    }
+  }
+  return results;
+}
+
+/** Broadcast availability=false for all files we're currently seeding. */
+function broadcastSeedingOffline(): void {
+  const seedingHashes = getSeedingInfoHashes();
+  for (const infoHash of seedingHashes) {
+    for (const receipt of findReceiptsByInfoHash(infoHash)) {
+      sendFrame({
+        op: Opcode.FILE_AVAILABILITY_UPDATE,
+        d: {
+          fileReceiptId: receipt.id as string,
+          channelId: receipt.channelId as string,
+          available: false,
+        },
+      });
+    }
+  }
+}
+
+/** Broadcast availability=true for a file we just downloaded (receiver becomes seeder). */
+function broadcastReceiverHasFile(receipt: FileReceipt): void {
+  sendFrame({
+    op: Opcode.FILE_AVAILABILITY_UPDATE,
+    d: {
+      fileReceiptId: receipt.id as string,
+      channelId: receipt.channelId as string,
+      available: true,
+    },
+  });
+}
+
 // ── Public API ──────────────────────────────────────────────────────────────
 
 export async function shareFile(chId: AnyChannelId, file: File): Promise<SeedResult> {
@@ -239,8 +280,13 @@ export async function shareFile(chId: AnyChannelId, file: File): Promise<SeedRes
 
 const inFlightPreviews = new Map<string, Promise<File[]>>();
 
-/** Fetch file via WebTorrent into memory (no browser save). */
-export async function previewFile(magnetUri: string, fileName: string): Promise<File[]> {
+/** Fetch file via WebTorrent into memory (no browser save).
+ *  If `receipt` is provided, broadcasts availability=true on success (receiver has the file). */
+export async function previewFile(
+  magnetUri: string,
+  fileName: string,
+  receipt?: FileReceipt,
+): Promise<File[]> {
   const infoHash = extractInfoHash(magnetUri);
 
   // Return cached files if already previewed
@@ -279,6 +325,11 @@ export async function previewFile(magnetUri: string, fileName: string): Promise<
       setStore("previews", infoHash, files);
       touchPreviewLru(infoHash);
 
+      // Receiver successfully downloaded — broadcast that we have the file
+      if (receipt) {
+        broadcastReceiverHasFile(receipt);
+      }
+
       return files;
     } catch (err) {
       setStore("transfers", infoHash, "status", "error");
@@ -315,8 +366,12 @@ export function saveFile(infoHash: string): void {
 }
 
 /** Convenience: preview + save in one call. */
-export async function downloadFile(magnetUri: string, fileName: string): Promise<File[]> {
-  const files = await previewFile(magnetUri, fileName);
+export async function downloadFile(
+  magnetUri: string,
+  fileName: string,
+  receipt?: FileReceipt,
+): Promise<File[]> {
+  const files = await previewFile(magnetUri, fileName, receipt);
   const infoHash = extractInfoHash(magnetUri);
   saveFile(infoHash);
   return files;
@@ -348,16 +403,24 @@ export function getSeeders(frId: FileReceiptId): string[] {
 let unsubFileShare: (() => void) | null = null;
 let unsubAvailability: (() => void) | null = null;
 
+function handleBeforeUnload(): void {
+  broadcastSeedingOffline();
+}
+
 function teardown() {
   unsubFileShare?.();
   unsubAvailability?.();
   unsubFileShare = null;
   unsubAvailability = null;
+  window.removeEventListener("beforeunload", handleBeforeUnload);
 }
 
 export function setupFileStore(): void {
   // Guard against double-init (HMR or reconnect)
   teardown();
+
+  // Broadcast offline for all seeding files when the user closes the tab
+  window.addEventListener("beforeunload", handleBeforeUnload);
 
   unsubFileShare = onGatewayEvent(Opcode.FILE_SHARE, (data) => {
     const parsed = fileShareEventSchema.safeParse(data);

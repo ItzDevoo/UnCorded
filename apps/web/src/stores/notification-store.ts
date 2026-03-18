@@ -1,12 +1,17 @@
 import { createStore } from "solid-js/store";
 import { createEffect, createMemo, createRoot } from "solid-js";
 import { Opcode } from "@uncorded/protocol";
-import type { AnyChannelId } from "@uncorded/protocol";
-import { channelId, messageCreateEventSchema, fileShareEventSchema } from "@uncorded/protocol";
+import type { AnyChannelId, DmChannelId } from "@uncorded/protocol";
+import {
+  channelId,
+  messageCreateEventSchema,
+  fileShareEventSchema,
+  fileAvailabilityEventSchema,
+} from "@uncorded/protocol";
 import { onGatewayEvent } from "../lib/gateway.js";
 import { readyData } from "../lib/gateway-store.js";
-import { selectedDmChannelId, selectedChannelId } from "./app-store.js";
-import { showToast } from "../components/ui/toast.js";
+import { selectedDmChannelId, selectedChannelId, selectDmChannel } from "./app-store.js";
+import { showToast, dismissToast } from "../components/ui/toast.js";
 import {
   initBrowserNotifications,
   requestPermission,
@@ -61,6 +66,17 @@ function resolveSenderName(senderId: string): string {
   return "Someone";
 }
 
+function getFileExtension(fileName: string): string {
+  const dot = fileName.lastIndexOf(".");
+  if (dot === -1) return "file";
+  return fileName.slice(dot).toLowerCase();
+}
+
+function findDmChannelBySender(senderId: string): string | null {
+  const dm = readyData.data?.dmChannels.find((d) => d.otherUser.id === senderId);
+  return dm?.id ?? null;
+}
+
 let permissionRequested = false;
 
 function notifyBrowser(title: string, body: string): void {
@@ -80,15 +96,18 @@ function notifyBrowser(title: string, body: string): void {
 
 let unsubMessage: (() => void) | null = null;
 let unsubFile: (() => void) | null = null;
+let unsubFileAvailability: (() => void) | null = null;
 let disposeEffects: (() => void) | null = null;
 const DEFAULT_TITLE = "UnCorded";
 
 function teardown(): void {
   unsubMessage?.();
   unsubFile?.();
+  unsubFileAvailability?.();
   disposeEffects?.();
   unsubMessage = null;
   unsubFile = null;
+  unsubFileAvailability = null;
   disposeEffects = null;
   document.title = DEFAULT_TITLE;
 }
@@ -114,7 +133,7 @@ export function setupNotificationStore(): void {
     if (!isSuppressed()) {
       showToast(`New message from ${name}`, "info");
     }
-    notifyBrowser(`UnCorded — ${name}`, d.content);
+    notifyBrowser(`UnCorded — ${name}`, d.content ?? "Shared a file");
   });
 
   unsubFile = onGatewayEvent(Opcode.FILE_SHARE, (data) => {
@@ -131,10 +150,31 @@ export function setupNotificationStore(): void {
     incrementUnread(chId);
 
     const name = resolveSenderName(d.senderId);
+    const ext = getFileExtension(d.fileName);
     if (!isSuppressed()) {
-      showToast(`${name} shared a file: ${d.fileName}`, "info");
+      const dmChId = findDmChannelBySender(d.senderId);
+      showToast(`${name} is sending a ${ext}`, "info", {
+        id: `file-${d.fileReceiptId}`,
+        subtitle: "Click to view file",
+        durationMs: 60_000,
+        onClick: dmChId
+          ? () => selectDmChannel(dmChId as DmChannelId)
+          : undefined,
+      });
     }
-    notifyBrowser(`UnCorded — ${name}`, `Shared a file: ${d.fileName}`);
+    notifyBrowser(`UnCorded — ${name}`, `Sending a ${ext} file`);
+  });
+
+  // Dismiss file share toast when sender goes offline
+  unsubFileAvailability = onGatewayEvent(Opcode.FILE_AVAILABILITY_UPDATE, (data) => {
+    const parsed = fileAvailabilityEventSchema.safeParse(data);
+    if (!parsed.success) return;
+    const d = parsed.data;
+
+    // When a seeder goes offline, dismiss the file share toast
+    if (!d.available) {
+      dismissToast(`file-${d.fileReceiptId}`);
+    }
   });
 
   // Reactive mark-as-read + document title

@@ -153,7 +153,7 @@ const FileMessage = (props: { receipt: FileReceipt; isOwn: boolean }) => {
 
   function handlePreview(): void {
     setDownloadError(null);
-    previewFile(props.receipt.magnetUri, props.receipt.fileName)
+    previewFile(props.receipt.magnetUri, props.receipt.fileName, props.receipt)
       .then((files) => {
         const file = files[0];
         if (file) {
@@ -288,8 +288,8 @@ const FileMessage = (props: { receipt: FileReceipt; isOwn: boolean }) => {
 
         {/* Status actions */}
         <div class="flex shrink-0 items-center gap-2">
-          {/* Preview button for non-owners in idle state */}
-          <Show when={status() === "idle" && !props.isOwn}>
+          {/* Preview button for non-owners in idle state — only when seeders are online */}
+          <Show when={status() === "idle" && !props.isOwn && seederCount() > 0}>
             <Button size="sm" variant="outline" onClick={handlePreview}>
               <svg
                 class="mr-1 h-4 w-4"
@@ -314,7 +314,24 @@ const FileMessage = (props: { receipt: FileReceipt; isOwn: boolean }) => {
             </Button>
           </Show>
 
-          <Show when={status() === "seeding"}>
+          {/* File unavailable — no seeders online (receiver, idle, no seeders) */}
+          <Show when={status() === "idle" && !props.isOwn && seederCount() === 0}>
+            <Badge variant="outline" class="text-muted-foreground">
+              File unavailable — no seeders online
+            </Badge>
+          </Show>
+
+          {/* Sender status: seeding vs received */}
+          <Show when={status() === "seeding" && props.isOwn}>
+            <Show
+              when={seederCount() > 1}
+              fallback={<Badge variant="outline">Seeding — waiting for download</Badge>}
+            >
+              <Badge variant="success">Received</Badge>
+            </Show>
+          </Show>
+
+          <Show when={status() === "seeding" && !props.isOwn}>
             <Badge variant="success">Seeding</Badge>
           </Show>
 
@@ -349,15 +366,10 @@ const FileMessage = (props: { receipt: FileReceipt; isOwn: boolean }) => {
             </Button>
           </Show>
 
-          {/* Seeder count badge */}
-          <Show when={seederCount() > 0}>
+          {/* Seeder count badge (not shown for own files in seeding state — handled above) */}
+          <Show when={seederCount() > 0 && !(props.isOwn && status() === "seeding")}>
             <Badge variant="outline">
               {seederCount()} {seederCount() === 1 ? "seeder" : "seeders"}
-            </Badge>
-          </Show>
-          <Show when={seederCount() === 0 && !props.isOwn && status() === "idle"}>
-            <Badge variant="outline" class="text-muted-foreground">
-              No seeders online
             </Badge>
           </Show>
         </div>

@@ -145,7 +145,11 @@ export async function downloadFromMagnet(
 
     if (onProgress) {
       torrent.on("download", () => {
-        onProgress(torrent.progress, torrent.downloadSpeed);
+        // Use byte-based progress for smooth updates instead of piece-based
+        // torrent.progress (which jumps in large increments for big files)
+        const progress =
+          torrent.length > 0 ? torrent.downloaded / torrent.length : torrent.progress;
+        onProgress(Math.min(progress, 0.99), torrent.downloadSpeed);
       });
     }
 

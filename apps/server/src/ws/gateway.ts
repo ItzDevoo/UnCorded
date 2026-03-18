@@ -23,7 +23,7 @@ import {
 import { checkRateLimit } from "./rate-limit.js";
 import { eq, and } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { user, fileReceipts, dmMembers } from "../db/schema.js";
+import { user, messages, fileReceipts, dmMembers } from "../db/schema.js";
 import { removeConnection, sendToUser, broadcastToServer, broadcastToDm } from "./connections.js";
 import { handleIdentify } from "./handlers.js";
 import { removeUserFromAllServers } from "./server-members.js";
@@ -273,7 +273,19 @@ export const gateway = new Elysia().ws("/gateway", {
             }
           }
 
-          // Insert file receipt
+          // Create a message for the file share so it appears in chat history
+          const msgId = createId();
+          const [insertedMsg] = await db
+            .insert(messages)
+            .values({
+              id: msgId,
+              channelId: d.channelId,
+              authorId: ctx.userId,
+              content: null,
+            })
+            .returning();
+
+          // Insert file receipt linked to the message
           const receiptId = createId();
           await db.insert(fileReceipts).values({
             id: receiptId,
@@ -284,8 +296,45 @@ export const gateway = new Elysia().ws("/gateway", {
             contentType: d.contentType,
             magnetUri: d.magnetUri,
             infoHash: d.infoHash,
+            messageId: msgId,
           });
 
+          // Fetch author info for the message broadcast
+          const [author] = await db
+            .select({
+              id: user.id,
+              username: user.username,
+              displayName: user.displayName,
+              avatarUrl: user.avatarUrl,
+            })
+            .from(user)
+            .where(eq(user.id, ctx.userId))
+            .limit(1);
+
+          // Broadcast message with file receipt attached
+          const messageFrame = {
+            op: Opcode.MESSAGE_CREATE,
+            d: {
+              id: msgId,
+              channelId: d.channelId,
+              content: null,
+              editedAt: null,
+              createdAt: insertedMsg!.createdAt.toISOString(),
+              author: author
+                ? { id: author.id, username: author.username, displayName: author.displayName, avatarUrl: author.avatarUrl }
+                : { id: ctx.userId, username: null, displayName: null, avatarUrl: null },
+              fileReceipt: {
+                id: receiptId,
+                fileName: d.fileName,
+                fileSize: d.fileSize,
+                contentType: d.contentType,
+                magnetUri: d.magnetUri,
+                infoHash: d.infoHash,
+              },
+            },
+          } as const;
+
+          // Also send FILE_SHARE for the file store (seeder tracking etc.)
           const shareFrame = {
             op: Opcode.FILE_SHARE,
             d: {
@@ -301,9 +350,15 @@ export const gateway = new Elysia().ws("/gateway", {
           } as const;
 
           if (resolution.type === "server") {
+            broadcastToServer(resolution.serverId, messageFrame);
             broadcastToServer(resolution.serverId, shareFrame);
           } else {
+            // Exclude sender from MESSAGE_CREATE (same as regular messages)
+            // then send to self so all tabs get it
+            await broadcastToDm(d.channelId, messageFrame, ctx.userId);
+            sendToUser(ctx.userId, messageFrame);
             await broadcastToDm(d.channelId, shareFrame, ctx.userId);
+            sendToUser(ctx.userId, shareFrame);
           }
           break;
         }

@@ -10,6 +10,7 @@ import {
   fileAvailabilityEventSchema,
 } from "@uncorded/protocol";
 import { onGatewayEvent, sendFrame } from "../lib/gateway.js";
+import { readyData } from "../lib/gateway-store.js";
 import {
   seedFile,
   downloadFromMagnet,
@@ -439,6 +440,23 @@ export function setupFileStore(): void {
       magnetUri: d.magnetUri,
       infoHash: d.infoHash,
     });
+
+    // If we're the sender and currently seeding this file, announce availability
+    // so the receiver sees seederCount > 0 and can preview/download
+    const currentUserId = readyData.data?.user.id;
+    if (currentUserId && d.senderId === currentUserId) {
+      const seedingHashes = getSeedingInfoHashes();
+      if (seedingHashes.includes(d.infoHash)) {
+        sendFrame({
+          op: Opcode.FILE_AVAILABILITY_UPDATE,
+          d: {
+            fileReceiptId: d.fileReceiptId,
+            channelId: d.channelId,
+            available: true,
+          },
+        });
+      }
+    }
   });
 
   unsubAvailability = onGatewayEvent(Opcode.FILE_AVAILABILITY_UPDATE, (data) => {

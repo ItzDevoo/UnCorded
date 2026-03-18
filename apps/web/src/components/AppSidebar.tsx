@@ -4,8 +4,6 @@ import { sendFrame } from "../lib/gateway.js";
 import { useNavigate } from "@solidjs/router";
 import { useSession, signOut } from "../lib/auth.js";
 import { readyData, channelCacheLoading, setUserStatus } from "../lib/gateway-store.js";
-import { createPortalSession } from "../lib/api.js";
-import { showToast } from "./ui/toast.js";
 import {
   selectedServerId,
   selectedChannelId,
@@ -34,6 +32,7 @@ import CreateChannelModal from "./modals/CreateChannelModal.js";
 import JoinServerModal from "./modals/JoinServerModal.js";
 import InviteModal from "./modals/InviteModal.js";
 import CheckoutModal from "./modals/CheckoutModal.js";
+import SubscriptionModal from "./modals/SubscriptionModal.js";
 import StatusDot, { StatusDotInline, type UserStatus } from "./StatusDot.js";
 
 const iconBtnClass =
@@ -51,6 +50,7 @@ const AppSidebar = (props: AppSidebarProps) => {
   );
   const [showStatusMenu, setShowStatusMenu] = createSignal(false);
   const [checkoutTier, setCheckoutTier] = createSignal<"supporter" | "server_owner" | null>(null);
+  const [showSubscriptionModal, setShowSubscriptionModal] = createSignal(false);
 
   const isServerOwner = () =>
     currentServer()?.ownerId != null && currentServer()?.ownerId === readyData.data?.user.id;
@@ -58,15 +58,6 @@ const AppSidebar = (props: AppSidebarProps) => {
   const isPaidUser = () =>
     readyData.data?.user.subscriptionTier !== undefined &&
     readyData.data?.user.subscriptionTier !== "free";
-
-  const handleManageSubscription = async () => {
-    try {
-      const portalUrl = await createPortalSession();
-      window.location.href = portalUrl;
-    } catch {
-      showToast("Failed to open subscription portal", "error");
-    }
-  };
 
   const handleLogout = async () => {
     await signOut();
@@ -383,7 +374,7 @@ const AppSidebar = (props: AppSidebarProps) => {
             }
           >
             <button
-              onClick={handleManageSubscription}
+              onClick={() => setShowSubscriptionModal(true)}
               class="rounded p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               title="Manage Subscription"
               aria-label="Manage Subscription"
@@ -474,6 +465,9 @@ const AppSidebar = (props: AppSidebarProps) => {
       </Show>
       <Show when={checkoutTier()}>
         {(tier) => <CheckoutModal tier={tier()} onClose={() => setCheckoutTier(null)} />}
+      </Show>
+      <Show when={showSubscriptionModal()}>
+        <SubscriptionModal onClose={() => setShowSubscriptionModal(false)} />
       </Show>
     </Sidebar>
   );

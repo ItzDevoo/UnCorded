@@ -75,3 +75,48 @@ export async function createPortalSession(): Promise<string> {
   });
   return res.portalUrl;
 }
+
+// ── Subscription management ──────────────────────────────────────────────
+
+export interface SubscriptionDetails {
+  tier: "supporter" | "server_owner";
+  status: "active" | "cancelled" | "past_due";
+  cancelAtPeriodEnd: boolean;
+  currentPeriodEnd: string | null;
+  createdAt: string;
+  paymentMethod: { brand: string; last4: string } | null;
+}
+
+export async function getSubscription(): Promise<SubscriptionDetails | null> {
+  const res = await api<{ subscription: SubscriptionDetails | null }>("/api/stripe/subscription");
+  return res.subscription;
+}
+
+export async function cancelSubscription(): Promise<{ cancelAtPeriodEnd: boolean; currentPeriodEnd: string }> {
+  return api("/api/stripe/subscription/cancel", { method: "POST" });
+}
+
+export async function resumeSubscription(): Promise<{ cancelAtPeriodEnd: boolean }> {
+  return api("/api/stripe/subscription/resume", { method: "POST" });
+}
+
+export async function changePlan(tier: "supporter" | "server_owner"): Promise<{ tier: string }> {
+  return api("/api/stripe/subscription/change-plan", {
+    method: "POST",
+    body: JSON.stringify({ tier }),
+  });
+}
+
+export async function createSetupIntent(): Promise<string> {
+  const res = await api<{ clientSecret: string }>("/api/stripe/subscription/setup-intent", {
+    method: "POST",
+  });
+  return res.clientSecret;
+}
+
+export async function updatePaymentMethod(paymentMethodId: string): Promise<void> {
+  await api("/api/stripe/subscription/update-payment-method", {
+    method: "POST",
+    body: JSON.stringify({ paymentMethodId }),
+  });
+}

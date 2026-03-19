@@ -51,6 +51,7 @@ const AppSidebar = (props: AppSidebarProps) => {
     null,
   );
   const [showStatusMenu, setShowStatusMenu] = createSignal(false);
+  const [copiedUsername, setCopiedUsername] = createSignal(false);
   const [checkoutTier, setCheckoutTier] = createSignal<"supporter" | "server_owner" | null>(null);
   const [showPricingModal, setShowPricingModal] = createSignal(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = createSignal(false);
@@ -343,9 +344,53 @@ const AppSidebar = (props: AppSidebarProps) => {
             aria-expanded={showStatusMenu()}
             aria-controls="status-menu"
           >
-            <div class="truncate text-sm font-medium text-foreground">
-              {session()?.data?.user?.username ?? session()?.data?.user?.name ?? "User"}
-            </div>
+            <Show
+              when={readyData.data?.user.displayName}
+              fallback={
+                <span
+                  class="block truncate text-sm font-medium text-foreground"
+                  role="button"
+                  title="Copy username"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const username = readyData.data?.user.username ?? session()?.data?.user?.name ?? "User";
+                    try {
+                      await navigator.clipboard.writeText(username);
+                      setCopiedUsername(true);
+                      setTimeout(() => setCopiedUsername(false), 1500);
+                    } catch { /* clipboard unavailable */ }
+                  }}
+                >
+                  {copiedUsername()
+                    ? "Copied!"
+                    : (readyData.data?.user.username ?? session()?.data?.user?.name ?? "User")}
+                </span>
+              }
+            >
+              {(dn) => (
+                <>
+                  <div class="truncate text-sm font-medium text-foreground">{dn()}</div>
+                  <span
+                    class="block truncate text-xs text-muted-foreground"
+                    role="button"
+                    title="Copy username"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      const username = readyData.data?.user.username ?? session()?.data?.user?.name ?? "User";
+                      try {
+                        await navigator.clipboard.writeText(username);
+                        setCopiedUsername(true);
+                        setTimeout(() => setCopiedUsername(false), 1500);
+                      } catch { /* clipboard unavailable */ }
+                    }}
+                  >
+                    {copiedUsername()
+                      ? "Copied!"
+                      : (readyData.data?.user.username ?? session()?.data?.user?.name ?? "User")}
+                  </span>
+                </>
+              )}
+            </Show>
             <div class="flex items-center gap-1">
               <StatusDotInline status={(readyData.data?.user.status ?? "offline") as UserStatus} />
               <span class="text-xs text-muted-foreground capitalize">

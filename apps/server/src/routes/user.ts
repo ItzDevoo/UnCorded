@@ -43,65 +43,16 @@ function serializeUser(dbUser: typeof user.$inferSelect) {
   };
 }
 
-export const userRoutes = new Elysia({ prefix: "/api/users" })
+// Avatar routes in a separate group to avoid Elysia's body parsing
+// from the PATCH /@me route consuming the multipart form data
+const avatarRoutes = new Elysia({ prefix: "/api/users" })
   .resolve(authResolve())
-  .get("/@me", async ({ user: sessionUser }) => {
-    const [dbUser] = await db.select().from(user).where(eq(user.id, sessionUser.id)).limit(1);
-
-    if (!dbUser) {
-      throw new NotFoundError("User");
+  .onParse({ as: "local" }, async ({ request, contentType }) => {
+    if (contentType?.startsWith("multipart/form-data")) {
+      return await request.formData();
     }
-
-    return serializeUser(dbUser);
   })
-  .patch("/@me", async ({ user: sessionUser, body }) => {
-    const parsed = updateUserSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
-    }
-
-    const updates: Partial<typeof user.$inferInsert> = {};
-
-    if (parsed.data.username !== undefined) {
-      const [existing] = await db
-        .select({ id: user.id })
-        .from(user)
-        .where(eq(user.username, parsed.data.username))
-        .limit(1);
-
-      if (existing && existing.id !== sessionUser.id) {
-        throw new ConflictError("USERNAME_TAKEN", "Username is already taken");
-      }
-
-      updates.username = parsed.data.username;
-      updates.displayUsername = parsed.data.username;
-    }
-
-    if (parsed.data.displayName !== undefined) {
-      updates.displayName = parsed.data.displayName;
-    }
-
-    if (parsed.data.status !== undefined) {
-      updates.status = parsed.data.status;
-    }
-
-    if (Object.keys(updates).length === 0) {
-      throw new ValidationError("No fields to update");
-    }
-
-    const [updated] = await db
-      .update(user)
-      .set(updates)
-      .where(eq(user.id, sessionUser.id))
-      .returning();
-
-    if (!updated) {
-      throw new NotFoundError("User");
-    }
-
-    return serializeUser(updated);
-  })
-  .patch("/@me/avatar", async ({ user: sessionUser, request }) => {
+  .patch("/@me/avatar", async ({ user: sessionUser, body: rawBody, request }) => {
     const ip = getClientIp(request);
     if (!(await checkIpRateLimit(ip, 10, 300_000, "avatar-up"))) {
       throw new RateLimitError("Too many requests, try again later");
@@ -116,7 +67,7 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
       );
     }
 
-    const formData = await request.formData();
+    const formData = rawBody as FormData;
     const file = formData.get("avatar");
 
     if (!file || !(file instanceof File)) {
@@ -188,6 +139,67 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
       deleteAvatar(current.avatarUrl).catch((err) =>
         console.error("[r2] avatar cleanup failed:", err),
       );
+    }
+
+    return serializeUser(updated);
+  });
+
+export const userRoutes = new Elysia()
+  .use(avatarRoutes)
+  .group("/api/users", (app) => app
+  .resolve(authResolve())
+  .get("/@me", async ({ user: sessionUser }) => {
+    const [dbUser] = await db.select().from(user).where(eq(user.id, sessionUser.id)).limit(1);
+
+    if (!dbUser) {
+      throw new NotFoundError("User");
+    }
+
+    return serializeUser(dbUser);
+  })
+  .patch("/@me", async ({ user: sessionUser, body }) => {
+    const parsed = updateUserSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
+    }
+
+    const updates: Partial<typeof user.$inferInsert> = {};
+
+    if (parsed.data.username !== undefined) {
+      const [existing] = await db
+        .select({ id: user.id })
+        .from(user)
+        .where(eq(user.username, parsed.data.username))
+        .limit(1);
+
+      if (existing && existing.id !== sessionUser.id) {
+        throw new ConflictError("USERNAME_TAKEN", "Username is already taken");
+      }
+
+      updates.username = parsed.data.username;
+      updates.displayUsername = parsed.data.username;
+    }
+
+    if (parsed.data.displayName !== undefined) {
+      updates.displayName = parsed.data.displayName;
+    }
+
+    if (parsed.data.status !== undefined) {
+      updates.status = parsed.data.status;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      throw new ValidationError("No fields to update");
+    }
+
+    const [updated] = await db
+      .update(user)
+      .set(updates)
+      .where(eq(user.id, sessionUser.id))
+      .returning();
+
+    if (!updated) {
+      throw new NotFoundError("User");
     }
 
     return serializeUser(updated);
@@ -296,4 +308,4 @@ export const userRoutes = new Elysia({ prefix: "/api/users" })
     }
 
     return { success: true };
-  });
+  }));

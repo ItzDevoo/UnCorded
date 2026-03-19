@@ -8,7 +8,7 @@ import {
   friendRemoveEventSchema,
   dmChannelCreateEventSchema,
 } from "@uncorded/protocol";
-import { LIST_PAGE_LIMIT } from "@uncorded/shared";
+import { LIST_PAGE_LIMIT, friendRequestResponseSchema } from "@uncorded/shared";
 import { onGatewayEvent } from "../lib/gateway.js";
 import {
   readyData,
@@ -146,10 +146,36 @@ export async function fetchMoreDms(): Promise<void> {
 
 export async function sendFriendRequest(username: string): Promise<void> {
   try {
-    await api("/api/friends/request", {
+    const raw = await api<unknown>("/api/friends/request", {
       method: "POST",
       body: JSON.stringify({ username }),
     });
+
+    const parsed = friendRequestResponseSchema.safeParse(raw);
+    if (!parsed.success) {
+      if (import.meta.env.DEV) console.warn("[friend-store] Invalid response:", parsed.error.issues);
+      showToast("Friend request sent", "info");
+      return;
+    }
+    const res = parsed.data;
+
+    // Add to local store so sender sees it in pending
+    if (res.status === "pending") {
+      if (res.user) {
+        addFriend({
+          userId: userId(res.user.userId),
+          username: res.user.username,
+          displayName: res.user.displayName,
+          avatarUrl: res.user.avatarUrl,
+          status: res.user.status,
+          friendshipStatus: "pending",
+          incoming: false,
+        });
+      }
+      showToast("Friend request sent", "info");
+    } else if (res.status === "accepted") {
+      showToast("Friend request accepted!", "info");
+    }
   } catch (err) {
     showToast(err instanceof Error ? err.message : "Something went wrong", "error");
     throw err;

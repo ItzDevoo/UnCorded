@@ -33,7 +33,9 @@ import JoinServerModal from "./modals/JoinServerModal.js";
 import InviteModal from "./modals/InviteModal.js";
 import CheckoutModal from "./modals/CheckoutModal.js";
 import SubscriptionModal from "./modals/SubscriptionModal.js";
+import PricingModal from "./modals/PricingModal.js";
 import StatusDot, { StatusDotInline, type UserStatus } from "./StatusDot.js";
+
 
 const iconBtnClass =
   "rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground";
@@ -50,6 +52,7 @@ const AppSidebar = (props: AppSidebarProps) => {
   );
   const [showStatusMenu, setShowStatusMenu] = createSignal(false);
   const [checkoutTier, setCheckoutTier] = createSignal<"supporter" | "server_owner" | null>(null);
+  const [showPricingModal, setShowPricingModal] = createSignal(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = createSignal(false);
 
   const isServerOwner = () =>
@@ -307,6 +310,7 @@ const AppSidebar = (props: AppSidebarProps) => {
 
       {/* ── Footer: User Panel ───────────────────────────────────────── */}
       <SidebarFooter>
+        {/* PWA install button added in feat/pwa-admin-infra PR */}
         <div class="relative flex min-w-0 flex-1 items-center gap-2">
           <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
             {session()?.data?.user?.name?.charAt(0)?.toUpperCase() ?? "?"}
@@ -351,10 +355,10 @@ const AppSidebar = (props: AppSidebarProps) => {
             when={isPaidUser()}
             fallback={
               <button
-                onClick={() => setCheckoutTier("supporter")}
+                onClick={() => setShowPricingModal(true)}
                 class="rounded p-1.5 text-primary transition-colors hover:bg-accent hover:text-primary"
-                title="Upgrade to Supporter"
-                aria-label="Upgrade to Supporter"
+                title="Upgrade"
+                aria-label="Upgrade"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -467,7 +471,22 @@ const AppSidebar = (props: AppSidebarProps) => {
         {(tier) => <CheckoutModal tier={tier()} onClose={() => setCheckoutTier(null)} />}
       </Show>
       <Show when={showSubscriptionModal()}>
-        <SubscriptionModal onClose={() => setShowSubscriptionModal(false)} />
+        <SubscriptionModal
+          onClose={() => setShowSubscriptionModal(false)}
+          onCheckout={(tier) => {
+            setShowSubscriptionModal(false);
+            setCheckoutTier(tier);
+          }}
+        />
+      </Show>
+      <Show when={showPricingModal()}>
+        <PricingModal
+          onClose={() => setShowPricingModal(false)}
+          onSelect={(tier) => {
+            setShowPricingModal(false);
+            setCheckoutTier(tier);
+          }}
+        />
       </Show>
     </Sidebar>
   );

@@ -119,9 +119,15 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
     }
 
-    // Look up target user by username
+    // Look up target user by username (include profile fields for response)
     const [target] = await db
-      .select({ id: user.id })
+      .select({
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+        status: user.status,
+      })
       .from(user)
       .where(eq(user.username, parsed.data.username))
       .limit(1);
@@ -252,8 +258,18 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
       },
     });
 
+    // Return target user info so sender can update their local store
     set.status = 201;
-    return { status: "pending" };
+    return {
+      status: "pending",
+      user: {
+        userId: brandUserId(targetId),
+        username: target.username ?? null,
+        displayName: target.displayName ?? null,
+        avatarUrl: target.avatarUrl ?? null,
+        status: target.status ?? "offline",
+      },
+    };
   })
 
   // POST /:userId/accept — Accept friend request

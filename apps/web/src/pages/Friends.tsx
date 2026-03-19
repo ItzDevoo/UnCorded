@@ -31,8 +31,12 @@ const Friends = () => {
 
   const allFriends = createMemo(() => friends().filter((f) => f.friendshipStatus === "accepted"));
 
-  const pendingFriends = createMemo(() =>
+  const pendingIncoming = createMemo(() =>
     friends().filter((f) => f.friendshipStatus === "pending" && f.incoming),
+  );
+
+  const pendingOutgoing = createMemo(() =>
+    friends().filter((f) => f.friendshipStatus === "pending" && !f.incoming),
   );
 
   const blockedFriends = createMemo(() =>
@@ -72,9 +76,9 @@ const Friends = () => {
             onClick={() => setTab("pending")}
           >
             Pending
-            <Show when={pendingFriends().length > 0}>
+            <Show when={pendingIncoming().length + pendingOutgoing().length > 0}>
               <Badge variant="destructive" class="ml-1">
-                {pendingFriends().length}
+                {pendingIncoming().length + pendingOutgoing().length}
               </Badge>
             </Show>
           </Button>
@@ -170,61 +174,83 @@ const Friends = () => {
 
         {/* Pending */}
         <Show when={tab() === "pending"}>
-          <h3 class="mb-2 text-sm font-semibold uppercase text-muted-foreground">
-            Incoming Requests — {pendingFriends().length}
-          </h3>
-          <Show when={pendingFriends().length === 0}>
+          <Show when={pendingIncoming().length === 0 && pendingOutgoing().length === 0}>
             <Empty
               title="No pending requests"
-              description="Friend requests you receive will appear here."
+              description="Friend requests you send or receive will appear here."
             />
           </Show>
-          <For each={pendingFriends()}>
-            {(friend) => (
-              <div class="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-accent">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
-                  {displayName(friend).charAt(0).toUpperCase()}
+
+          <Show when={pendingIncoming().length > 0}>
+            <h3 class="mb-2 text-sm font-semibold uppercase text-muted-foreground">
+              Incoming — {pendingIncoming().length}
+            </h3>
+            <For each={pendingIncoming()}>
+              {(friend) => (
+                <div class="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-accent">
+                  <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
+                    {displayName(friend).charAt(0).toUpperCase()}
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate text-sm font-medium text-foreground">{displayName(friend)}</p>
+                  </div>
+                  <div class="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={async () => {
+                        try {
+                          setActionError(null);
+                          await acceptFriendRequest(friend.userId);
+                        } catch (err) {
+                          setActionError(
+                            err instanceof Error ? err.message : "Failed to accept request",
+                          );
+                        }
+                      }}
+                    >
+                      Accept
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={async () => {
+                        try {
+                          setActionError(null);
+                          await declineFriendRequest(friend.userId);
+                        } catch (err) {
+                          setActionError(
+                            err instanceof Error ? err.message : "Failed to decline request",
+                          );
+                        }
+                      }}
+                    >
+                      Decline
+                    </Button>
+                  </div>
                 </div>
-                <div class="min-w-0 flex-1">
-                  <p class="truncate text-sm font-medium text-foreground">{displayName(friend)}</p>
+              )}
+            </For>
+          </Show>
+
+          <Show when={pendingOutgoing().length > 0}>
+            <h3 class="mb-2 mt-4 text-sm font-semibold uppercase text-muted-foreground">
+              Outgoing — {pendingOutgoing().length}
+            </h3>
+            <For each={pendingOutgoing()}>
+              {(friend) => (
+                <div class="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-accent">
+                  <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-bold text-muted-foreground">
+                    {displayName(friend).charAt(0).toUpperCase()}
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate text-sm font-medium text-foreground">{displayName(friend)}</p>
+                    <p class="text-xs text-muted-foreground">Request sent</p>
+                  </div>
                 </div>
-                <div class="flex gap-1">
-                  <Button
-                    size="sm"
-                    variant="default"
-                    onClick={async () => {
-                      try {
-                        setActionError(null);
-                        await acceptFriendRequest(friend.userId);
-                      } catch (err) {
-                        setActionError(
-                          err instanceof Error ? err.message : "Failed to accept request",
-                        );
-                      }
-                    }}
-                  >
-                    Accept
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={async () => {
-                      try {
-                        setActionError(null);
-                        await declineFriendRequest(friend.userId);
-                      } catch (err) {
-                        setActionError(
-                          err instanceof Error ? err.message : "Failed to decline request",
-                        );
-                      }
-                    }}
-                  >
-                    Decline
-                  </Button>
-                </div>
-              </div>
-            )}
-          </For>
+              )}
+            </For>
+          </Show>
         </Show>
 
         {/* Blocked */}

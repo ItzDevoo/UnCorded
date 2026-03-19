@@ -22,6 +22,7 @@ import { ToastContainer } from "./ui/toast.js";
 import { Empty } from "./ui/empty.js";
 import { Sheet, SheetContent } from "./ui/sheet.js";
 import P2PNoticeDialog from "./P2PNoticeDialog.js";
+import GiftNotification from "./modals/GiftNotification.js";
 import { getP2pDialogOpen, confirmP2pDialog, cancelP2pDialog } from "../stores/file-store.js";
 
 const SETTINGS_PATHS = ["/home/server-settings", "/home/settings"];
@@ -49,6 +50,7 @@ const AppLayout: ParentComponent = (props) => {
     <AuthGuard>
       <ToastContainer />
       <ShortcutsDialog />
+      <GiftNotification />
       <P2PNoticeDialog
         open={getP2pDialogOpen()}
         onConfirm={confirmP2pDialog}

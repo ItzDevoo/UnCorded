@@ -1,4 +1,4 @@
-import { createSignal, For, Show, onCleanup } from "solid-js";
+import { createSignal, For, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
 import { useSession, signOut } from "../lib/auth.js";
 import { readyData, channelCacheLoading } from "../lib/gateway-store.js";
@@ -52,20 +52,6 @@ const AppSidebar = (props: AppSidebarProps) => {
   const [checkoutTier, setCheckoutTier] = createSignal<"supporter" | "server_owner" | null>(null);
   const [showPricingModal, setShowPricingModal] = createSignal(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = createSignal(false);
-
-  let copiedUsernameTimer: ReturnType<typeof setTimeout> | undefined;
-  onCleanup(() => clearTimeout(copiedUsernameTimer));
-
-  const copyUsername = async () => {
-    const u = readyData.data?.user;
-    const username = u?.username ?? session()?.data?.user?.name ?? "User";
-    try {
-      await navigator.clipboard.writeText(username);
-      setCopiedUsername(true);
-      clearTimeout(copiedUsernameTimer);
-      copiedUsernameTimer = setTimeout(() => setCopiedUsername(false), 1500);
-    } catch { /* clipboard unavailable */ }
-  };
 
   const isServerOwner = () =>
     currentServer()?.ownerId != null && currentServer()?.ownerId === readyData.data?.user.id;
@@ -339,43 +325,57 @@ const AppSidebar = (props: AppSidebarProps) => {
             when={readyData.data?.user.avatarUrl}
             fallback={
               <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
-                {(readyData.data?.user.displayName ?? readyData.data?.user.username ?? session()?.data?.user?.name ?? "?").charAt(0).toUpperCase()}
+                {session()?.data?.user?.name?.charAt(0)?.toUpperCase() ?? "?"}
               </div>
             }
           >
             {(url) => (
-              <img src={url()} alt={readyData.data?.user.displayName ?? readyData.data?.user.username ?? "User"} class="h-8 w-8 shrink-0 rounded-full object-cover" />
+              <img src={url()} alt={session()?.data?.user?.name ?? "User"} class="h-8 w-8 shrink-0 rounded-full object-cover" />
             )}
           </Show>
           <div class="min-w-0 flex-1">
             <Show
               when={readyData.data?.user.displayName}
               fallback={
-                <button
-                  type="button"
+                <span
                   class="block truncate text-sm font-medium text-foreground cursor-pointer"
+                  role="button"
                   title="Copy username"
-                  onClick={() => copyUsername()}
+                  onClick={async () => {
+                    const username = readyData.data?.user.username ?? session()?.data?.user?.name ?? "User";
+                    try {
+                      await navigator.clipboard.writeText(username);
+                      setCopiedUsername(true);
+                      setTimeout(() => setCopiedUsername(false), 1500);
+                    } catch { /* clipboard unavailable */ }
+                  }}
                 >
                   {copiedUsername()
                     ? "Copied!"
                     : (readyData.data?.user.username ?? session()?.data?.user?.name ?? "User")}
-                </button>
+                </span>
               }
             >
               {(dn) => (
                 <>
                   <div class="truncate text-sm font-medium text-foreground">{dn()}</div>
-                  <button
-                    type="button"
+                  <span
                     class="block truncate text-xs text-muted-foreground cursor-pointer"
+                    role="button"
                     title="Copy username"
-                    onClick={() => copyUsername()}
+                    onClick={async () => {
+                      const username = readyData.data?.user.username ?? session()?.data?.user?.name ?? "User";
+                      try {
+                        await navigator.clipboard.writeText(username);
+                        setCopiedUsername(true);
+                        setTimeout(() => setCopiedUsername(false), 1500);
+                      } catch { /* clipboard unavailable */ }
+                    }}
                   >
                     {copiedUsername()
                       ? "Copied!"
                       : (readyData.data?.user.username ?? session()?.data?.user?.name ?? "User")}
-                  </button>
+                  </span>
                 </>
               )}
             </Show>

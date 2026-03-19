@@ -1,4 +1,4 @@
-import { createSignal, createMemo, createEffect, Show, onCleanup } from "solid-js";
+import { createSignal, createMemo, createEffect, Show, onCleanup, untrack } from "solid-js";
 import type { FileReceipt, TransferProgress } from "../stores/file-store.js";
 import {
   previewFile,
@@ -78,7 +78,7 @@ const FileMessage = (props: { receipt: FileReceipt; isOwn: boolean }) => {
     if (!files || !props.isOwn) return;
     const file = files[0];
     if (!file) return;
-    renderPreview(file);
+    untrack(() => renderPreview(file));
   });
 
   function renderPreview(file: File): void {

@@ -53,11 +53,26 @@ export const auth = betterAuth({
         required: false,
         defaultValue: "free",
       },
+      banned: {
+        type: "boolean",
+        input: false,
+        required: false,
+        defaultValue: false,
+      },
     },
   },
   advanced: {
     database: {
       generateId: () => createId(),
     },
+    cookiePrefix: "uncorded",
+    ...(env.AUTH_COOKIE_DOMAIN
+      ? {
+          crossSubDomainCookies: {
+            enabled: true,
+            domain: env.AUTH_COOKIE_DOMAIN,
+          },
+        }
+      : {}),
   },
 });

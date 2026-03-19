@@ -8,6 +8,7 @@ COPY package.json bun.lock turbo.json ./
 COPY packages/ packages/
 COPY apps/server/ apps/server/
 COPY apps/web/package.json apps/web/package.json
+COPY apps/admin/package.json apps/admin/package.json
 
 # Install dependencies
 RUN bun install --frozen-lockfile

@@ -64,6 +64,20 @@
       "when": 1742083200000,
       "tag": "0008_add_intimate_image_category",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1742169600000,
+      "tag": "0009_admin_feedback",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1742256000000,
+      "tag": "0010_gifted_subscriptions",
+      "breakpoints": true
     }
   ]
 }

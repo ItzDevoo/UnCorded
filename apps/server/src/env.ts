@@ -50,6 +50,9 @@ const envSchema = z.object({
   TURN_KEY_ID: optionalString,
   TURN_KEY_API_TOKEN: optionalString,
 
+  // Auth cookies — optional (cross-subdomain for admin panel)
+  AUTH_COOKIE_DOMAIN: optionalString,
+
   // Cloudflare R2 — optional (avatars disabled without them)
   R2_ACCOUNT_ID: optionalString,
   R2_ACCESS_KEY_ID: optionalString,

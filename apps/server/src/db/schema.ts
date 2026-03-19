@@ -58,6 +58,17 @@ export const reportCategoryEnum = pgEnum("report_category", [
   "other",
 ]);
 
+export const adminLevelEnum = pgEnum("admin_level", ["admin", "owner"]);
+
+export const feedbackTypeEnum = pgEnum("feedback_type", ["feature", "bug"]);
+
+export const feedbackStatusEnum = pgEnum("feedback_status", [
+  "open",
+  "in_progress",
+  "completed",
+  "rejected",
+]);
+
 // ─── Better Auth Core Tables ─────────────────────────────
 // Better Auth manages session, account, verification tables automatically.
 // We define the user table with our custom fields so Drizzle knows the schema.
@@ -80,6 +91,7 @@ export const user = pgTable("user", {
   avatarUrl: text("avatar_url"),
   status: userStatusEnum("status").default("offline").notNull(),
   subscriptionTier: subscriptionTierEnum("subscription_tier").default("free").notNull(),
+  banned: boolean("banned").default(false).notNull(),
 });
 
 export const session = pgTable(
@@ -296,3 +308,73 @@ export const reports = pgTable("reports", {
   resolved: boolean("resolved").default(false).notNull(),
   createdAt: createdAt(),
 });
+
+// ─── Admin Tables ───────────────────────────────────────────
+
+export const admins = pgTable("admins", {
+  id: id(),
+  userId: text("user_id")
+    .notNull()
+    .unique()
+    .references(() => user.id, { onDelete: "cascade" }),
+  level: adminLevelEnum("level").notNull(),
+  addedBy: text("added_by").references(() => user.id, { onDelete: "set null" }),
+  addedAt: timestamp("added_at", { mode: "date" }).defaultNow().notNull(),
+});
+
+export const feedback = pgTable("feedback", {
+  id: id(),
+  authorId: text("author_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  type: feedbackTypeEnum("type").notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  status: feedbackStatusEnum("status").default("open").notNull(),
+  voteCount: integer("vote_count").default(0).notNull(),
+  adminNote: text("admin_note"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+export const feedbackVotes = pgTable(
+  "feedback_votes",
+  {
+    id: id(),
+    feedbackId: text("feedback_id")
+      .notNull()
+      .references(() => feedback.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [unique("feedback_vote_unique").on(t.feedbackId, t.userId)],
+);
+
+export const giftedSubscriptions = pgTable("gifted_subscriptions", {
+  id: id(),
+  userId: text("user_id")
+    .notNull()
+    .unique()
+    .references(() => user.id, { onDelete: "cascade" }),
+  tier: subscriptionTierEnum("tier").notNull(),
+  giftedBy: text("gifted_by").references(() => user.id, { onDelete: "set null" }),
+  reason: text("reason"),
+  expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
+  createdAt: createdAt(),
+});
+
+export const adminAuditLog = pgTable(
+  "admin_audit_log",
+  {
+    id: id(),
+    adminId: text("admin_id").references(() => user.id, { onDelete: "set null" }),
+    action: text("action").notNull(),
+    targetType: text("target_type").notNull(),
+    targetId: text("target_id").notNull(),
+    details: text("details"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("admin_audit_log_created_idx").on(t.createdAt.desc())],
+);

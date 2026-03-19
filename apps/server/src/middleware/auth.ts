@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { UnauthorizedError } from "@uncorded/shared";
+import { UnauthorizedError, ForbiddenError } from "@uncorded/shared";
 import { auth } from "../auth/index.js";
 
 export const betterAuthPlugin = new Elysia({ name: "better-auth" }).mount(auth.handler);
@@ -15,6 +15,12 @@ export function authResolve() {
     if (!session) {
       throw new UnauthorizedError();
     }
+
+    // Block banned users from all authenticated endpoints
+    if ((session.user as Record<string, unknown>).banned === true) {
+      throw new ForbiddenError("Account banned");
+    }
+
     return {
       user: session.user,
       session: session.session,

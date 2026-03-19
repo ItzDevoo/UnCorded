@@ -141,14 +141,14 @@ export const gateway = new Elysia().ws("/gateway", {
             break;
           }
 
-          resetIdleTimer(ctx.userId);
-
           const parsed = typingStartRequestSchema.safeParse(frame.d);
           if (!parsed.success) break;
           const d = parsed.data;
 
           const resolution = await resolveChannelMembership(ctx.userId, d.channelId);
           if (!resolution) break;
+
+          resetIdleTimer(ctx.userId);
 
           const typingFrame = {
             op: Opcode.TYPING_START,
@@ -244,8 +244,6 @@ export const gateway = new Elysia().ws("/gateway", {
             break;
           }
 
-          resetIdleTimer(ctx.userId);
-
           const parsed = fileShareRequestSchema.safeParse(frame.d);
           if (!parsed.success) break;
           const d = parsed.data;
@@ -269,6 +267,8 @@ export const gateway = new Elysia().ws("/gateway", {
               break;
             }
           }
+
+          resetIdleTimer(ctx.userId);
 
           // Create a message for the file share so it appears in chat history
           const msgId = createId();

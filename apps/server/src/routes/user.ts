@@ -192,12 +192,14 @@ export const userRoutes = new Elysia()
       .limit(3);
 
     return {
-      users: results.map((u) => ({
-        id: userId(u.id),
-        username: u.username,
-        displayName: u.displayName,
-        avatarUrl: u.avatarUrl,
-      })),
+      users: results
+        .filter((u) => u.username !== null)
+        .map((u) => ({
+          id: userId(u.id),
+          username: u.username!,
+          displayName: u.displayName,
+          avatarUrl: u.avatarUrl,
+        })),
     };
   })
   .patch("/@me", async ({ user: sessionUser, body }) => {

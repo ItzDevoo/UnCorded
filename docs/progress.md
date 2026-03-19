@@ -137,6 +137,7 @@ P2P IP disclosure: first-file-share dialog warns users about IP visibility, loca
 - Focus trap in dialogs (WCAG 2.1)
 - Landing page (hero, features, pricing, CTA)
 - Friends page (All/Pending/Blocked tabs)
+- Avatar images displayed everywhere: sidebar DM list, sidebar footer, friends page (all/incoming/outgoing/blocked), member list, message authors — with initials fallback
 - Lazy-loaded channels per server (fetched on select)
 - "Load more" pagination for DMs and friends
 

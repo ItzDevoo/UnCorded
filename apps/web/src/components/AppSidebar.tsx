@@ -228,8 +228,19 @@ const AppSidebar = (props: AppSidebarProps) => {
                               props.onNavigate?.();
                             }}
                           >
-                            <div class="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
-                              {initial()}
+                            <div class="relative shrink-0">
+                              <Show
+                                when={dm.otherUser.avatarUrl}
+                                fallback={
+                                  <div class="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
+                                    {initial()}
+                                  </div>
+                                }
+                              >
+                                {(url) => (
+                                  <img src={url()} alt={displayName()} class="h-6 w-6 rounded-full object-cover" />
+                                )}
+                              </Show>
                               <StatusDot
                                 status={dm.otherUser.status as UserStatus}
                                 size="sm"
@@ -312,9 +323,18 @@ const AppSidebar = (props: AppSidebarProps) => {
       <SidebarFooter>
         {/* PWA install button added in feat/pwa-admin-infra PR */}
         <div class="relative flex min-w-0 flex-1 items-center gap-2">
-          <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
-            {session()?.data?.user?.name?.charAt(0)?.toUpperCase() ?? "?"}
-          </div>
+          <Show
+            when={readyData.data?.user.avatarUrl}
+            fallback={
+              <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
+                {session()?.data?.user?.name?.charAt(0)?.toUpperCase() ?? "?"}
+              </div>
+            }
+          >
+            {(url) => (
+              <img src={url()} alt={session()?.data?.user?.name ?? "User"} class="h-8 w-8 shrink-0 rounded-full object-cover" />
+            )}
+          </Show>
           <button
             type="button"
             class="min-w-0 flex-1 text-left"

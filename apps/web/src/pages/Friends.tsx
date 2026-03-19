@@ -130,8 +130,19 @@ const Friends = () => {
           <For each={allFriends()}>
             {(friend) => (
               <div class="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-accent">
-                <div class="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
-                  {displayName(friend).charAt(0).toUpperCase()}
+                <div class="relative shrink-0">
+                  <Show
+                    when={friend.avatarUrl}
+                    fallback={
+                      <div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
+                        {displayName(friend).charAt(0).toUpperCase()}
+                      </div>
+                    }
+                  >
+                    {(url) => (
+                      <img src={url()} alt={displayName(friend)} class="h-10 w-10 rounded-full object-cover" />
+                    )}
+                  </Show>
                   <StatusDot status={friend.status as UserStatus} />
                 </div>
                 <div class="min-w-0 flex-1">
@@ -188,9 +199,18 @@ const Friends = () => {
             <For each={pendingIncoming()}>
               {(friend) => (
                 <div class="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-accent">
-                  <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
-                    {displayName(friend).charAt(0).toUpperCase()}
-                  </div>
+                  <Show
+                    when={friend.avatarUrl}
+                    fallback={
+                      <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
+                        {displayName(friend).charAt(0).toUpperCase()}
+                      </div>
+                    }
+                  >
+                    {(url) => (
+                      <img src={url()} alt={displayName(friend)} class="h-10 w-10 shrink-0 rounded-full object-cover" />
+                    )}
+                  </Show>
                   <div class="min-w-0 flex-1">
                     <p class="truncate text-sm font-medium text-foreground">{displayName(friend)}</p>
                   </div>
@@ -240,9 +260,18 @@ const Friends = () => {
             <For each={pendingOutgoing()}>
               {(friend) => (
                 <div class="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-accent">
-                  <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-bold text-muted-foreground">
-                    {displayName(friend).charAt(0).toUpperCase()}
-                  </div>
+                  <Show
+                    when={friend.avatarUrl}
+                    fallback={
+                      <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-bold text-muted-foreground">
+                        {displayName(friend).charAt(0).toUpperCase()}
+                      </div>
+                    }
+                  >
+                    {(url) => (
+                      <img src={url()} alt={displayName(friend)} class="h-10 w-10 shrink-0 rounded-full object-cover" />
+                    )}
+                  </Show>
                   <div class="min-w-0 flex-1">
                     <p class="truncate text-sm font-medium text-foreground">{displayName(friend)}</p>
                     <p class="text-xs text-muted-foreground">Request sent</p>
@@ -264,9 +293,18 @@ const Friends = () => {
           <For each={blockedFriends()}>
             {(friend) => (
               <div class="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-accent">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-bold text-secondary-foreground">
-                  {displayName(friend).charAt(0).toUpperCase()}
-                </div>
+                <Show
+                  when={friend.avatarUrl}
+                  fallback={
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-bold text-secondary-foreground">
+                      {displayName(friend).charAt(0).toUpperCase()}
+                    </div>
+                  }
+                >
+                  {(url) => (
+                    <img src={url()} alt={displayName(friend)} class="h-10 w-10 shrink-0 rounded-full object-cover" />
+                  )}
+                </Show>
                 <div class="min-w-0 flex-1">
                   <p class="truncate text-sm font-medium text-foreground">{displayName(friend)}</p>
                 </div>

@@ -26,6 +26,7 @@ const Friends = () => {
   const [error, setError] = createSignal<string | null>(null);
   const [actionError, setActionError] = createSignal<string | null>(null);
   const [sending, setSending] = createSignal(false);
+  const [searchQuery, setSearchQuery] = createSignal("");
 
   const friends = () => readyData.data?.friends ?? [];
 
@@ -42,6 +43,29 @@ const Friends = () => {
   const blockedFriends = createMemo(() =>
     friends().filter((f) => f.friendshipStatus === "blocked"),
   );
+
+  const filteredFriends = createMemo(() => {
+    const query = searchQuery().trim().toLowerCase();
+    if (!query) return allFriends();
+    const matches = allFriends().filter((f) => {
+      const name = (f.displayName ?? "").toLowerCase();
+      const uname = (f.username ?? "").toLowerCase();
+      return name.includes(query) || uname.includes(query);
+    });
+    return matches
+      .toSorted((a, b) => {
+        const aName = (a.displayName ?? "").toLowerCase();
+        const aUser = (a.username ?? "").toLowerCase();
+        const bName = (b.displayName ?? "").toLowerCase();
+        const bUser = (b.username ?? "").toLowerCase();
+        const aStarts = aName.startsWith(query) || aUser.startsWith(query);
+        const bStarts = bName.startsWith(query) || bUser.startsWith(query);
+        if (aStarts && !bStarts) return -1;
+        if (!aStarts && bStarts) return 1;
+        return 0;
+      })
+      .slice(0, 5);
+  });
 
   async function handleAddFriend() {
     const name = addUsername().trim();
@@ -66,14 +90,14 @@ const Friends = () => {
           <Button
             size="sm"
             variant={tab() === "all" ? "default" : "ghost"}
-            onClick={() => setTab("all")}
+            onClick={() => { setTab("all"); setSearchQuery(""); }}
           >
             All
           </Button>
           <Button
             size="sm"
             variant={tab() === "pending" ? "default" : "ghost"}
-            onClick={() => setTab("pending")}
+            onClick={() => { setTab("pending"); setSearchQuery(""); }}
           >
             Pending
             <Show when={pendingIncoming().length + pendingOutgoing().length > 0}>
@@ -85,7 +109,7 @@ const Friends = () => {
           <Button
             size="sm"
             variant={tab() === "blocked" ? "default" : "ghost"}
-            onClick={() => setTab("blocked")}
+            onClick={() => { setTab("blocked"); setSearchQuery(""); }}
           >
             Blocked
           </Button>
@@ -122,12 +146,27 @@ const Friends = () => {
         {/* All Friends */}
         <Show when={tab() === "all"}>
           <h3 class="mb-2 text-sm font-semibold uppercase text-muted-foreground">
-            All Friends — {allFriends().length}
+            All Friends —{" "}
+            <Show when={searchQuery().trim()} fallback={allFriends().length}>
+              {filteredFriends().length} of {allFriends().length}
+            </Show>
           </h3>
-          <Show when={allFriends().length === 0}>
-            <Empty title="No friends yet" description="Send a friend request to get started!" />
+          <Input
+            type="text"
+            placeholder="Search friends..."
+            value={searchQuery()}
+            onInput={(e) => setSearchQuery(e.currentTarget.value)}
+            class="mb-3"
+          />
+          <Show when={filteredFriends().length === 0}>
+            <Show
+              when={searchQuery().trim()}
+              fallback={<Empty title="No friends yet" description="Send a friend request to get started!" />}
+            >
+              <Empty title="No matches" description="No friends match your search." />
+            </Show>
           </Show>
-          <For each={allFriends()}>
+          <For each={filteredFriends()}>
             {(friend) => (
               <div class="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-accent">
                 <div class="relative shrink-0">

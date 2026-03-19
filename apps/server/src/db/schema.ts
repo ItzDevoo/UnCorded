@@ -352,18 +352,22 @@ export const feedbackVotes = pgTable(
   (t) => [unique("feedback_vote_unique").on(t.feedbackId, t.userId)],
 );
 
-export const giftedSubscriptions = pgTable("gifted_subscriptions", {
-  id: id(),
-  userId: text("user_id")
-    .notNull()
-    .unique()
-    .references(() => user.id, { onDelete: "cascade" }),
-  tier: subscriptionTierEnum("tier").notNull(),
-  giftedBy: text("gifted_by").references(() => user.id, { onDelete: "set null" }),
-  reason: text("reason"),
-  expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
-  createdAt: createdAt(),
-});
+export const giftedSubscriptions = pgTable(
+  "gifted_subscriptions",
+  {
+    id: id(),
+    userId: text("user_id")
+      .notNull()
+      .unique()
+      .references(() => user.id, { onDelete: "cascade" }),
+    tier: subscriptionTierEnum("tier").notNull(),
+    giftedBy: text("gifted_by").references(() => user.id, { onDelete: "set null" }),
+    reason: text("reason"),
+    expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("idx_gifted_subscriptions_expires_at").on(t.expiresAt)],
+);
 
 export const adminAuditLog = pgTable(
   "admin_audit_log",

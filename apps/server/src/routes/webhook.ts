@@ -5,6 +5,7 @@ import { subscriptions, user } from "../db/schema.js";
 import { getStripe } from "../lib/stripe.js";
 import { env } from "../env.js";
 import { disconnectUser } from "../ws/connections.js";
+import { computeEffectiveTier } from "../helpers/resolve-tier.js";
 import type Stripe from "stripe";
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -185,12 +186,13 @@ async function handleSubscriptionUpdated(sub: Stripe.Subscription) {
     updateData.tier = tier;
   }
 
-  const userTier = status === "active" && tier ? tier : "free";
-
   await db.transaction(async (tx) => {
     await tx.update(subscriptions).set(updateData).where(eq(subscriptions.id, existing.id));
-    await tx.update(user).set({ subscriptionTier: userTier }).where(eq(user.id, existing.userId));
   });
+
+  // Compute effective tier considering gifted subscriptions
+  const userTier = status === "active" && tier ? tier : await computeEffectiveTier(existing.userId);
+  await db.update(user).set({ subscriptionTier: userTier }).where(eq(user.id, existing.userId));
 
   disconnectUser(existing.userId);
 }
@@ -207,13 +209,14 @@ async function handleSubscriptionDeleted(sub: Stripe.Subscription) {
     return;
   }
 
-  await db.transaction(async (tx) => {
-    await tx
-      .update(subscriptions)
-      .set({ status: "cancelled" })
-      .where(eq(subscriptions.id, existing.id));
-    await tx.update(user).set({ subscriptionTier: "free" }).where(eq(user.id, existing.userId));
-  });
+  await db
+    .update(subscriptions)
+    .set({ status: "cancelled" })
+    .where(eq(subscriptions.id, existing.id));
+
+  // Fall back to gifted tier if one exists, otherwise free
+  const effectiveTier = await computeEffectiveTier(existing.userId);
+  await db.update(user).set({ subscriptionTier: effectiveTier }).where(eq(user.id, existing.userId));
 
   disconnectUser(existing.userId);
 }
@@ -242,13 +245,14 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
     return;
   }
 
-  await db.transaction(async (tx) => {
-    await tx
-      .update(subscriptions)
-      .set({ status: "past_due" })
-      .where(eq(subscriptions.id, existing.id));
-    await tx.update(user).set({ subscriptionTier: "free" }).where(eq(user.id, existing.userId));
-  });
+  await db
+    .update(subscriptions)
+    .set({ status: "past_due" })
+    .where(eq(subscriptions.id, existing.id));
+
+  // Fall back to gifted tier if one exists, otherwise free
+  const effectiveTier = await computeEffectiveTier(existing.userId);
+  await db.update(user).set({ subscriptionTier: effectiveTier }).where(eq(user.id, existing.userId));
 
   disconnectUser(existing.userId);
 }

@@ -17,6 +17,7 @@ import {
   createSetupIntent,
   updatePaymentMethod,
   type SubscriptionDetails,
+  type GiftDetails,
 } from "../../lib/api.js";
 import { showToast } from "../ui/toast.js";
 
@@ -42,11 +43,13 @@ function formatDate(iso: string): string {
 
 interface SubscriptionModalProps {
   onClose: () => void;
+  onCheckout?: (tier: "supporter" | "server_owner") => void;
 }
 
 const SubscriptionModal = (props: SubscriptionModalProps) => {
   const [view, setView] = createSignal<View>("overview");
   const [sub, setSub] = createSignal<SubscriptionDetails | null>(null);
+  const [gift, setGift] = createSignal<GiftDetails | null>(null);
   const [loading, setLoading] = createSignal(true);
   const [error, setError] = createSignal<string | null>(null);
   const [actionLoading, setActionLoading] = createSignal(false);
@@ -56,7 +59,8 @@ const SubscriptionModal = (props: SubscriptionModalProps) => {
     setError(null);
     try {
       const data = await getSubscription();
-      setSub(data);
+      setSub(data.subscription);
+      setGift(data.gift);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load subscription");
     } finally {
@@ -82,106 +86,179 @@ const SubscriptionModal = (props: SubscriptionModalProps) => {
           <p class="text-sm text-destructive">{error()}</p>
         </Show>
 
-        <Show when={!loading() && !error() && !sub()}>
-          <DialogHeader>
-            <DialogTitle>Subscription</DialogTitle>
-          </DialogHeader>
-          <p class="text-sm text-muted-foreground">No active subscription found.</p>
-        </Show>
+        <Show when={!loading() && !error()}>
+          <Switch>
+            {/* Gift-only view (no Stripe subscription) */}
+            <Match when={!sub() && gift()}>
+              <GiftOnlyView
+                gift={gift()!}
+                onClose={props.onClose}
+                onSubscribe={props.onCheckout ? () => {
+                  props.onClose();
+                  props.onCheckout!(gift()!.tier);
+                } : undefined}
+              />
+            </Match>
 
-        <Show when={!loading() && !error() && sub()}>
-          {(subData) => (
-            <Switch>
-              <Match when={view() === "overview"}>
-                <OverviewView
-                  sub={subData()}
-                  actionLoading={actionLoading()}
-                  onCancel={() => setView("cancel")}
-                  onPayment={() => setView("payment")}
-                  onChangePlan={() => setView("change-plan")}
-                  onResume={async () => {
-                    setActionLoading(true);
-                    try {
-                      await resumeSubscription();
-                      setSub({ ...subData(), cancelAtPeriodEnd: false });
-                      showToast("Subscription resumed", "info");
-                    } catch {
-                      showToast("Failed to resume subscription", "error");
-                    } finally {
-                      setActionLoading(false);
-                    }
-                  }}
-                />
-              </Match>
+            {/* No subscription and no gift */}
+            <Match when={!sub() && !gift()}>
+              <DialogHeader>
+                <DialogTitle>Subscription</DialogTitle>
+              </DialogHeader>
+              <p class="text-sm text-muted-foreground">No active subscription found.</p>
+            </Match>
 
-              <Match when={view() === "cancel"}>
-                <CancelView
-                  sub={subData()}
-                  actionLoading={actionLoading()}
-                  onBack={() => setView("overview")}
-                  onConfirm={async () => {
-                    setActionLoading(true);
-                    try {
-                      const result = await cancelSubscription();
-                      setSub({
-                        ...subData(),
-                        cancelAtPeriodEnd: result.cancelAtPeriodEnd,
-                        currentPeriodEnd: result.currentPeriodEnd,
-                      });
-                      showToast("Subscription will cancel at period end", "info");
-                      setView("overview");
-                    } catch {
-                      showToast("Failed to cancel subscription", "error");
-                    } finally {
-                      setActionLoading(false);
-                    }
-                  }}
-                />
-              </Match>
+            {/* Has Stripe subscription */}
+            <Match when={sub()}>
+              {(subData) => (
+                <Switch>
+                  <Match when={view() === "overview"}>
+                    <OverviewView
+                      sub={subData()}
+                      gift={gift()}
+                      actionLoading={actionLoading()}
+                      onCancel={() => setView("cancel")}
+                      onPayment={() => setView("payment")}
+                      onChangePlan={() => setView("change-plan")}
+                      onResume={async () => {
+                        setActionLoading(true);
+                        try {
+                          await resumeSubscription();
+                          setSub({ ...subData(), cancelAtPeriodEnd: false });
+                          showToast("Subscription resumed", "info");
+                        } catch {
+                          showToast("Failed to resume subscription", "error");
+                        } finally {
+                          setActionLoading(false);
+                        }
+                      }}
+                    />
+                  </Match>
 
-              <Match when={view() === "payment"}>
-                <PaymentView
-                  onBack={() => setView("overview")}
-                  onSuccess={() => {
-                    showToast("Payment method updated", "info");
-                    load();
-                    setView("overview");
-                  }}
-                />
-              </Match>
+                  <Match when={view() === "cancel"}>
+                    <CancelView
+                      sub={subData()}
+                      actionLoading={actionLoading()}
+                      onBack={() => setView("overview")}
+                      onConfirm={async () => {
+                        setActionLoading(true);
+                        try {
+                          const result = await cancelSubscription();
+                          setSub({
+                            ...subData(),
+                            cancelAtPeriodEnd: result.cancelAtPeriodEnd,
+                            currentPeriodEnd: result.currentPeriodEnd,
+                          });
+                          showToast("Subscription will cancel at period end", "info");
+                          setView("overview");
+                        } catch {
+                          showToast("Failed to cancel subscription", "error");
+                        } finally {
+                          setActionLoading(false);
+                        }
+                      }}
+                    />
+                  </Match>
 
-              <Match when={view() === "change-plan"}>
-                <ChangePlanView
-                  currentTier={subData().tier}
-                  actionLoading={actionLoading()}
-                  onBack={() => setView("overview")}
-                  onConfirm={async (newTier) => {
-                    setActionLoading(true);
-                    try {
-                      await changePlan(newTier);
-                      showToast(`Switched to ${TIER_LABELS[newTier] ?? newTier}`, "info");
-                      load();
-                      setView("overview");
-                    } catch {
-                      showToast("Failed to change plan", "error");
-                    } finally {
-                      setActionLoading(false);
-                    }
-                  }}
-                />
-              </Match>
-            </Switch>
-          )}
+                  <Match when={view() === "payment"}>
+                    <PaymentView
+                      onBack={() => setView("overview")}
+                      onSuccess={() => {
+                        showToast("Payment method updated", "info");
+                        load();
+                        setView("overview");
+                      }}
+                    />
+                  </Match>
+
+                  <Match when={view() === "change-plan"}>
+                    <ChangePlanView
+                      currentTier={subData().tier}
+                      actionLoading={actionLoading()}
+                      onBack={() => setView("overview")}
+                      onConfirm={async (newTier) => {
+                        setActionLoading(true);
+                        try {
+                          await changePlan(newTier);
+                          showToast(`Switched to ${TIER_LABELS[newTier] ?? newTier}`, "info");
+                          load();
+                          setView("overview");
+                        } catch {
+                          showToast("Failed to change plan", "error");
+                        } finally {
+                          setActionLoading(false);
+                        }
+                      }}
+                    />
+                  </Match>
+                </Switch>
+              )}
+            </Match>
+          </Switch>
         </Show>
       </DialogContent>
     </Dialog>
   );
 };
 
+// ── Gift-Only View ──────────────────────────────────────────────────────
+
+const GiftOnlyView = (props: { gift: GiftDetails; onClose: () => void; onSubscribe?: (() => void) | undefined }) => (
+  <>
+    <DialogHeader>
+      <DialogTitle>Your Subscription</DialogTitle>
+      <DialogDescription>You have a gifted subscription.</DialogDescription>
+    </DialogHeader>
+
+    <div class="rounded-lg border border-primary/20 bg-primary/5 p-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <span class="text-sm font-medium text-foreground">
+            {TIER_LABELS[props.gift.tier] ?? props.gift.tier}
+          </span>
+          <span class="ml-2 rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">
+            Gifted
+          </span>
+        </div>
+      </div>
+      <div class="mt-3 text-xs text-muted-foreground">
+        <p>
+          Access until{" "}
+          <span class="text-foreground font-medium">{formatDate(props.gift.expiresAt)}</span>
+        </p>
+      </div>
+    </div>
+
+    <p class="mt-3 text-xs text-muted-foreground">
+      This subscription was gifted to you. You can also purchase your own subscription to ensure access after the gift expires. Billing starts immediately and runs alongside your gift.{" "}
+      <Show when={props.onSubscribe}>
+        <button
+          type="button"
+          class="text-primary hover:underline"
+          onClick={props.onSubscribe}
+        >
+          Subscribe now
+        </button>
+      </Show>
+    </p>
+
+    <DialogFooter class="mt-4">
+      <button
+        type="button"
+        class="rounded-lg border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-accent"
+        onClick={props.onClose}
+      >
+        Close
+      </button>
+    </DialogFooter>
+  </>
+);
+
 // ── Overview View ─────────────────────────────────────────────────────────
 
 const OverviewView = (props: {
   sub: SubscriptionDetails;
+  gift: GiftDetails | null;
   actionLoading: boolean;
   onCancel: () => void;
   onPayment: () => void;
@@ -231,6 +308,25 @@ const OverviewView = (props: {
           </Show>
         </div>
       </div>
+
+      {/* Gift info */}
+      <Show when={props.gift}>
+        {(g) => (
+          <div class="rounded-lg border border-primary/20 bg-primary/5 p-3">
+            <div class="flex items-center gap-2">
+              <span class="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">
+                Gifted
+              </span>
+              <span class="text-xs text-muted-foreground">
+                {TIER_LABELS[g().tier] ?? g().tier} until {formatDate(g().expiresAt)}
+              </span>
+            </div>
+            <p class="mt-1.5 text-xs text-muted-foreground">
+              You also have a gifted tier. Your highest tier determines access.
+            </p>
+          </div>
+        )}
+      </Show>
 
       {/* Payment method */}
       <div class="flex items-center justify-between rounded-lg border border-border p-3">

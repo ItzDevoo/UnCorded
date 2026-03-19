@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { checkoutRequestSchema, ValidationError, NotFoundError } from "@uncorded/shared";
 import { db } from "../db/index.js";
-import { subscriptions } from "../db/schema.js";
+import { subscriptions, giftedSubscriptions } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
 import { getStripe } from "../lib/stripe.js";
 import { env } from "../env.js";
@@ -95,6 +95,21 @@ export const stripeRoutes = new Elysia({ prefix: "/api/stripe" })
 
   // ── GET /api/stripe/subscription ─────────────────────────────────────
   .get("/subscription", async ({ user: sessionUser }) => {
+    // Check for gifted subscription
+    const [gift] = await db
+      .select({
+        tier: giftedSubscriptions.tier,
+        expiresAt: giftedSubscriptions.expiresAt,
+      })
+      .from(giftedSubscriptions)
+      .where(eq(giftedSubscriptions.userId, sessionUser.id))
+      .limit(1);
+
+    const activeGift =
+      gift && gift.expiresAt > new Date()
+        ? { tier: gift.tier, expiresAt: gift.expiresAt.toISOString() }
+        : null;
+
     const [sub] = await db
       .select()
       .from(subscriptions)
@@ -102,7 +117,7 @@ export const stripeRoutes = new Elysia({ prefix: "/api/stripe" })
       .limit(1);
 
     if (!sub || !sub.stripeSubscriptionId) {
-      return { subscription: null };
+      return { subscription: null, gift: activeGift };
     }
 
     const stripe = getStripe();
@@ -125,6 +140,7 @@ export const stripeRoutes = new Elysia({ prefix: "/api/stripe" })
         createdAt: sub.createdAt.toISOString(),
         paymentMethod,
       },
+      gift: activeGift,
     };
   })
 

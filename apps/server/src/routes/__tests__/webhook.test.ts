@@ -69,6 +69,9 @@ vi.mock("../../db/schema.js", () => ({
   user: { id: "user.id" },
 }));
 vi.mock("../../db/index.js", () => ({ db: mockDb }));
+vi.mock("../../helpers/resolve-tier.js", () => ({
+  computeEffectiveTier: vi.fn().mockResolvedValue("free"),
+}));
 
 // ── Import the Elysia instance (after mocks) ──────────────────────────────────
 

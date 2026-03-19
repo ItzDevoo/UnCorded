@@ -87,9 +87,18 @@ export interface SubscriptionDetails {
   paymentMethod: { brand: string; last4: string } | null;
 }
 
-export async function getSubscription(): Promise<SubscriptionDetails | null> {
-  const res = await api<{ subscription: SubscriptionDetails | null }>("/api/stripe/subscription");
-  return res.subscription;
+export interface GiftDetails {
+  tier: "supporter" | "server_owner";
+  expiresAt: string;
+}
+
+export interface SubscriptionResponse {
+  subscription: SubscriptionDetails | null;
+  gift: GiftDetails | null;
+}
+
+export async function getSubscription(): Promise<SubscriptionResponse> {
+  return api<SubscriptionResponse>("/api/stripe/subscription");
 }
 
 export async function cancelSubscription(): Promise<{ cancelAtPeriodEnd: boolean; currentPeriodEnd: string }> {

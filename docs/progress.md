@@ -78,13 +78,11 @@ P2P IP disclosure: first-file-share dialog warns users about IP visibility, loca
 ### Presence System
 
 - In-memory presence manager with per-user idle timers (5min timeout)
-- Status states: online, idle, dnd, offline
-- DND persists across reconnects (stored in DB, restored on IDENTIFY)
+- Status states: online, idle, offline
 - Idle detection: server-side timer resets on real activity (messages, typing, file share)
 - Client-side activity tracking (mousemove/keydown/click/focus, throttled 60s)
 - Presence broadcast to all server co-members + accepted friends
 - StatusDot component with color-coded indicators (green/amber/red/gray)
-- Status selector dropdown in sidebar footer (Online/Idle/DND)
 - StatusDot integrated: DM list, chat header, member list, friends page
 - Member list groups by online/offline status
 
@@ -114,8 +112,7 @@ P2P IP disclosure: first-file-share dialog warns users about IP visibility, loca
 
 - Notification store: unread count tracking per channel, reactive mark-as-read on channel switch
 - Document title badge: shows (N) UnCorded when unread messages exist
-- In-app toast notifications for messages and file shares in non-active channels (suppressed during DND)
-- Sidebar unread badges: blue pill counters on DM entries and server channel entries, coexists with file-sharing dot
+- In-app toast notifications for messages and file shares in non-active channels - Sidebar unread badges: blue pill counters on DM entries and server channel entries, coexists with file-sharing dot
 - Browser Notification API: lazy permission request, skips when tab focused, tag deduplication, click-to-focus
 - PWA manifest + minimal service worker (install/activate lifecycle, notificationclick handler)
 - Apple mobile web app meta tags for iOS standalone mode

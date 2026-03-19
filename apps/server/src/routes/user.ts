@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { eq, ilike, ne, and } from "drizzle-orm";
+import { eq, ilike, ne, and, or } from "drizzle-orm";
 import { z } from "zod";
 import {
   updateUserSchema,
@@ -185,7 +185,10 @@ export const userRoutes = new Elysia()
         avatarUrl: user.avatarUrl,
       })
       .from(user)
-      .where(and(ilike(user.username, `%${escaped}%`), ne(user.id, sessionUser.id)))
+      .where(and(
+        or(ilike(user.username, `%${escaped}%`), ilike(user.displayName, `%${escaped}%`)),
+        ne(user.id, sessionUser.id),
+      ))
       .limit(3);
 
     return {

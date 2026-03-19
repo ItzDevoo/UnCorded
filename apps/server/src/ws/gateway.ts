@@ -431,12 +431,7 @@ export const gateway = new Elysia().ws("/gateway", {
           if (!parsed.success) break;
           const d = parsed.data;
 
-          if (d.status === "online") {
-            resetIdleTimer(ctx.userId);
-          } else {
-            // "idle" hint from client — reset timer but server is source of truth
-            resetIdleTimer(ctx.userId);
-          }
+          resetIdleTimer(ctx.userId);
 
           await db.update(user).set({ status: d.status }).where(eq(user.id, ctx.userId));
           await broadcastPresence(ctx.userId, d.status);

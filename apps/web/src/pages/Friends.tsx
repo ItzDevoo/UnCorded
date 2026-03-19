@@ -40,9 +40,15 @@ const Friends = () => {
   // Debounced user search for Add Friend input
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
   let searchAbort: AbortController | undefined;
+  let suppressNextSearch = false;
 
   createEffect(() => {
     const q = addUsername().trim();
+
+    if (suppressNextSearch) {
+      suppressNextSearch = false;
+      return;
+    }
 
     // Clear immediately if empty
     if (q.length < 1) {
@@ -199,6 +205,7 @@ const Friends = () => {
                     type="button"
                     class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left hover:bg-accent"
                     onClick={() => {
+                      suppressNextSearch = true;
                       setAddUsername(suggestion.username ?? "");
                       setSearchSuggestions([]);
                     }}

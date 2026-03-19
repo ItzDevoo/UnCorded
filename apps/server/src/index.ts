@@ -15,7 +15,7 @@ import { friendRoutes } from "./routes/friend.js";
 import { dmRoutes } from "./routes/dm.js";
 import { reportRoutes } from "./routes/report.js";
 import { adminRoutes } from "./routes/admin.js";
-// feedbackRoutes imported when feat/feedback-system is merged
+import { feedbackRoutes } from "./routes/feedback.js";
 import { safetyRoutes } from "./routes/safety.js";
 import { webhookRoutes } from "./routes/webhook.js";
 import { stripeRoutes } from "./routes/stripe.js";
@@ -73,6 +73,7 @@ const app = new Elysia()
   .use(dmRoutes)
   .use(reportRoutes)
   .use(adminRoutes)
+  .use(feedbackRoutes)
   .use(safetyRoutes)
   .use(gatewayTicketRoutes)
   .use(gateway)

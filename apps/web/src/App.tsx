@@ -12,6 +12,7 @@ const Home = lazy(() => import("./pages/Home.js"));
 const Friends = lazy(() => import("./pages/Friends.js"));
 const Settings = lazy(() => import("./pages/Settings.js"));
 const ServerSettings = lazy(() => import("./pages/ServerSettings.js"));
+const Feedback = lazy(() => import("./pages/Feedback.js"));
 
 const App = () => {
   return (
@@ -26,6 +27,7 @@ const App = () => {
         <Route path="/friends" component={Friends} />
         <Route path="/settings" component={Settings} />
         <Route path="/server-settings" component={ServerSettings} />
+        <Route path="/feedback" component={Feedback} />
       </Route>
     </Router>
   );

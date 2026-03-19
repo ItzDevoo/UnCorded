@@ -72,10 +72,10 @@ const FileMessage = (props: { receipt: FileReceipt; isOwn: boolean }) => {
 
   const previews = createMemo(() => getPreviews(props.receipt.infoHash));
 
-  // Sender instant preview: when previews become available and this is own message
+  // Auto-render preview when cached files are available (sender or receiver)
   createEffect(() => {
     const files = previews();
-    if (!files || !props.isOwn) return;
+    if (!files) return;
     const file = files[0];
     if (!file) return;
     untrack(() => renderPreview(file));

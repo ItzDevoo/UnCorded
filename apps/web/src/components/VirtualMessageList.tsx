@@ -1,4 +1,4 @@
-import { createMemo, createEffect, on, Show } from "solid-js";
+import { createMemo, createEffect, on, Show, onCleanup } from "solid-js";
 import { createVirtualizer } from "@tanstack/solid-virtual";
 import type { AnyChannelId } from "@uncorded/protocol";
 import { readyData } from "../lib/gateway-store.js";
@@ -151,7 +151,24 @@ const VirtualMessageList = (props: { channelId: AnyChannelId }) => {
             return (
               <div
                 data-index={virtualRow.index}
-                ref={(el) => queueMicrotask(() => virtualizer.measureElement(el))}
+                ref={(el) => {
+                  queueMicrotask(() => virtualizer.measureElement(el));
+                  const observer = new ResizeObserver(() => {
+                    virtualizer.measureElement(el);
+                    if (scrollRef) {
+                      const isNearBottom =
+                        scrollRef.scrollTop + scrollRef.clientHeight >=
+                        scrollRef.scrollHeight - SCROLL_BOTTOM_THRESHOLD;
+                      if (isNearBottom) {
+                        queueMicrotask(() => {
+                          virtualizer.scrollToIndex(messages().length - 1, { align: "end" });
+                        });
+                      }
+                    }
+                  });
+                  observer.observe(el);
+                  onCleanup(() => observer.disconnect());
+                }}
                 style={{
                   position: "absolute",
                   top: 0,

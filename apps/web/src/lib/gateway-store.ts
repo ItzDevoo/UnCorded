@@ -164,10 +164,6 @@ function updateCurrentUser(updates: Partial<ReadyUser>) {
   setReadyData("data", "user", (prev) => ({ ...prev, ...updates }));
 }
 
-function setUserStatus(status: string) {
-  setReadyData("data", "user", "status", status);
-}
-
 function updatePresence(targetUserId: UserId, status: string) {
   // Update friends list
   setReadyData("data", "friends", (prev) =>
@@ -207,5 +203,4 @@ export {
   updateFriendStatus,
   updatePresence,
   updateCurrentUser,
-  setUserStatus,
 };

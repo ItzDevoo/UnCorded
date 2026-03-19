@@ -32,9 +32,6 @@ import {
   resetIdleTimer,
   cleanupPresence,
   broadcastPresence,
-  setManualDnd,
-  clearManualStatus,
-  isManualDnd,
 } from "./presence.js";
 
 const FREE_TIER = "free" as const;
@@ -144,7 +141,7 @@ export const gateway = new Elysia().ws("/gateway", {
             break;
           }
 
-          if (!isManualDnd(ctx.userId)) resetIdleTimer(ctx.userId);
+          resetIdleTimer(ctx.userId);
 
           const parsed = typingStartRequestSchema.safeParse(frame.d);
           if (!parsed.success) break;
@@ -247,7 +244,7 @@ export const gateway = new Elysia().ws("/gateway", {
             break;
           }
 
-          if (!isManualDnd(ctx.userId)) resetIdleTimer(ctx.userId);
+          resetIdleTimer(ctx.userId);
 
           const parsed = fileShareRequestSchema.safeParse(frame.d);
           if (!parsed.success) break;
@@ -434,10 +431,7 @@ export const gateway = new Elysia().ws("/gateway", {
           if (!parsed.success) break;
           const d = parsed.data;
 
-          if (d.status === "dnd") {
-            setManualDnd(ctx.userId);
-          } else if (d.status === "online") {
-            clearManualStatus(ctx.userId);
+          if (d.status === "online") {
             resetIdleTimer(ctx.userId);
           } else {
             // "idle" hint from client — reset timer but server is source of truth

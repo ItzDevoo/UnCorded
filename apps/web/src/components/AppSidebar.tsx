@@ -1,9 +1,7 @@
-import { createSignal, For, Show, onCleanup } from "solid-js";
-import { Opcode } from "@uncorded/protocol";
-import { sendFrame } from "../lib/gateway.js";
+import { createSignal, For, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
 import { useSession, signOut } from "../lib/auth.js";
-import { readyData, channelCacheLoading, setUserStatus } from "../lib/gateway-store.js";
+import { readyData, channelCacheLoading } from "../lib/gateway-store.js";
 import {
   selectedServerId,
   selectedChannelId,
@@ -34,7 +32,7 @@ import InviteModal from "./modals/InviteModal.js";
 import CheckoutModal from "./modals/CheckoutModal.js";
 import SubscriptionModal from "./modals/SubscriptionModal.js";
 import PricingModal from "./modals/PricingModal.js";
-import StatusDot, { StatusDotInline, type UserStatus } from "./StatusDot.js";
+import StatusDot, { type UserStatus } from "./StatusDot.js";
 
 
 const iconBtnClass =
@@ -50,7 +48,6 @@ const AppSidebar = (props: AppSidebarProps) => {
   const [modal, setModal] = createSignal<"create" | "join" | "invite" | "create-channel" | null>(
     null,
   );
-  const [showStatusMenu, setShowStatusMenu] = createSignal(false);
   const [copiedUsername, setCopiedUsername] = createSignal(false);
   const [checkoutTier, setCheckoutTier] = createSignal<"supporter" | "server_owner" | null>(null);
   const [showPricingModal, setShowPricingModal] = createSignal(false);
@@ -336,23 +333,15 @@ const AppSidebar = (props: AppSidebarProps) => {
               <img src={url()} alt={session()?.data?.user?.name ?? "User"} class="h-8 w-8 shrink-0 rounded-full object-cover" />
             )}
           </Show>
-          <button
-            type="button"
-            class="min-w-0 flex-1 text-left"
-            onClick={() => setShowStatusMenu((v) => !v)}
-            title="Change status"
-            aria-expanded={showStatusMenu()}
-            aria-controls="status-menu"
-          >
+          <div class="min-w-0 flex-1">
             <Show
               when={readyData.data?.user.displayName}
               fallback={
                 <span
-                  class="block truncate text-sm font-medium text-foreground"
+                  class="block truncate text-sm font-medium text-foreground cursor-pointer"
                   role="button"
                   title="Copy username"
-                  onClick={async (e) => {
-                    e.stopPropagation();
+                  onClick={async () => {
                     const username = readyData.data?.user.username ?? session()?.data?.user?.name ?? "User";
                     try {
                       await navigator.clipboard.writeText(username);
@@ -371,11 +360,10 @@ const AppSidebar = (props: AppSidebarProps) => {
                 <>
                   <div class="truncate text-sm font-medium text-foreground">{dn()}</div>
                   <span
-                    class="block truncate text-xs text-muted-foreground"
+                    class="block truncate text-xs text-muted-foreground cursor-pointer"
                     role="button"
                     title="Copy username"
-                    onClick={async (e) => {
-                      e.stopPropagation();
+                    onClick={async () => {
                       const username = readyData.data?.user.username ?? session()?.data?.user?.name ?? "User";
                       try {
                         await navigator.clipboard.writeText(username);
@@ -391,31 +379,7 @@ const AppSidebar = (props: AppSidebarProps) => {
                 </>
               )}
             </Show>
-            <div class="flex items-center gap-1">
-              <StatusDotInline status={(readyData.data?.user.status ?? "offline") as UserStatus} />
-              <span class="text-xs text-muted-foreground capitalize">
-                {readyData.data?.user.status === "dnd"
-                  ? "Do Not Disturb"
-                  : (readyData.data?.user.status ?? "Offline")}
-              </span>
-            </div>
-          </button>
-
-          {/* Status selector dropdown */}
-          <Show when={showStatusMenu()}>
-            <StatusMenu
-              currentStatus={(readyData.data?.user.status ?? "offline") as UserStatus}
-              onSelect={(status) => {
-                setShowStatusMenu(false);
-                setUserStatus(status);
-                sendFrame({
-                  op: Opcode.PRESENCE_UPDATE,
-                  d: { status },
-                });
-              }}
-              onClose={() => setShowStatusMenu(false)}
-            />
-          </Show>
+          </div>
           <Show
             when={isPaidUser()}
             fallback={
@@ -554,75 +518,6 @@ const AppSidebar = (props: AppSidebarProps) => {
         />
       </Show>
     </Sidebar>
-  );
-};
-
-// ── Status Menu ─────────────────────────────────────────────────────────────
-
-const statusOptions = [
-  { value: "online", label: "Online", color: "bg-success" },
-  { value: "idle", label: "Idle", color: "bg-warning" },
-  { value: "dnd", label: "Do Not Disturb", color: "bg-destructive" },
-] as const;
-
-type SelectableStatus = (typeof statusOptions)[number]["value"];
-
-const StatusMenu = (props: {
-  currentStatus: UserStatus;
-  onSelect: (status: SelectableStatus) => void;
-  onClose: () => void;
-}) => {
-  // oxlint-disable-next-line no-unassigned-vars -- SolidJS ref pattern, assigned via JSX ref={}
-  let menuRef!: HTMLDivElement;
-
-  const handleClickOutside = (e: MouseEvent) => {
-    if (menuRef && !menuRef.contains(e.target as Node)) {
-      props.onClose();
-    }
-  };
-
-  // Defer listener to avoid catching the click that opened the menu
-  let disposed = false;
-  setTimeout(() => {
-    if (!disposed) document.addEventListener("click", handleClickOutside);
-  }, 0);
-  onCleanup(() => {
-    disposed = true;
-    document.removeEventListener("click", handleClickOutside);
-  });
-
-  return (
-    <div
-      id="status-menu"
-      ref={menuRef}
-      class="absolute bottom-full left-0 mb-1 w-48 rounded-md border border-border bg-popover p-1 shadow-md"
-    >
-      <For each={statusOptions}>
-        {(opt) => (
-          <button
-            type="button"
-            class={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent ${props.currentStatus === opt.value ? "text-foreground" : "text-muted-foreground"}`}
-            onClick={() => props.onSelect(opt.value)}
-          >
-            <div class={`h-2.5 w-2.5 rounded-full ${opt.color}`} />
-            <span>{opt.label}</span>
-            <Show when={props.currentStatus === opt.value}>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="ml-auto h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
-                aria-hidden="true"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            </Show>
-          </button>
-        )}
-      </For>
-    </div>
   );
 };
 

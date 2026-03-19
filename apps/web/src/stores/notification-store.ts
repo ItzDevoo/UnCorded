@@ -52,10 +52,6 @@ function isActiveChannel(chId: string): boolean {
   return chId === (selectedDmChannelId() as string) || chId === (selectedChannelId() as string);
 }
 
-function isSuppressed(): boolean {
-  return readyData.data?.user.status === "dnd";
-}
-
 function resolveSenderName(senderId: string): string {
   const dm = readyData.data?.dmChannels.find((d) => d.otherUser.id === senderId);
   if (dm) return dm.otherUser.displayName ?? dm.otherUser.username ?? "Someone";
@@ -80,8 +76,6 @@ function findDmChannelBySender(senderId: string): string | null {
 let permissionRequested = false;
 
 function notifyBrowser(title: string, body: string): void {
-  if (isSuppressed()) return;
-
   if (!permissionRequested) {
     permissionRequested = true;
     requestPermission().then((granted) => {
@@ -130,9 +124,7 @@ export function setupNotificationStore(): void {
     incrementUnread(chId);
 
     const name = d.author.displayName ?? d.author.username ?? "Someone";
-    if (!isSuppressed()) {
-      showToast(`New message from ${name}`, "info");
-    }
+    showToast(`New message from ${name}`, "info");
     notifyBrowser(`UnCorded — ${name}`, d.content ?? "Shared a file");
   });
 
@@ -151,17 +143,15 @@ export function setupNotificationStore(): void {
 
     const name = resolveSenderName(d.senderId);
     const ext = getFileExtension(d.fileName);
-    if (!isSuppressed()) {
-      const dmChId = findDmChannelBySender(d.senderId);
-      showToast(`${name} is sending a ${ext}`, "info", {
-        id: `file-${d.fileReceiptId}`,
-        subtitle: "Click to view file",
-        durationMs: 60_000,
-        onClick: dmChId
-          ? () => selectDmChannel(dmChId as DmChannelId)
-          : undefined,
-      });
-    }
+    const dmChId = findDmChannelBySender(d.senderId);
+    showToast(`${name} is sending a ${ext}`, "info", {
+      id: `file-${d.fileReceiptId}`,
+      subtitle: "Click to view file",
+      durationMs: 60_000,
+      onClick: dmChId
+        ? () => selectDmChannel(dmChId as DmChannelId)
+        : undefined,
+    });
     notifyBrowser(`UnCorded — ${name}`, `Sending a ${ext} file`);
   });
 

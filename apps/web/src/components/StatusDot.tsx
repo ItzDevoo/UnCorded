@@ -1,4 +1,4 @@
-export type UserStatus = "online" | "idle" | "dnd" | "offline";
+export type UserStatus = "online" | "idle" | "offline";
 
 interface StatusDotProps {
   status: UserStatus;
@@ -17,8 +17,6 @@ function statusColor(status: UserStatus): string {
       return "bg-success";
     case "idle":
       return "bg-warning";
-    case "dnd":
-      return "bg-destructive";
     default:
       return "bg-muted-foreground/50";
   }
@@ -30,8 +28,6 @@ function statusLabel(status: UserStatus): string {
       return "Online";
     case "idle":
       return "Idle";
-    case "dnd":
-      return "Do Not Disturb";
     default:
       return "Offline";
   }

@@ -1,6 +1,6 @@
-// In-memory presence manager — idle timers, manual DND tracking, and presence broadcasting.
+// In-memory presence manager — idle timers and presence broadcasting.
 
-import { eq, and, or, ne } from "drizzle-orm";
+import { eq, and, or } from "drizzle-orm";
 import { Opcode } from "@uncorded/protocol";
 import { IDLE_TIMEOUT_MS } from "@uncorded/shared";
 import { db } from "../db/index.js";
@@ -11,27 +11,18 @@ import { getUserServerIds, getServerMembers } from "./server-members.js";
 /** Per-user idle timer — fires after IDLE_TIMEOUT_MS of inactivity. */
 const idleTimers = new Map<string, Timer>();
 
-/** Users who manually set DND — prevents idle timer from overriding. */
-const manualStatus = new Map<string, "dnd">();
-
 // ── Idle Timer ──────────────────────────────────────────────────────────────
 
 export function resetIdleTimer(userId: string): void {
-  // DND users don't get idle timers
-  if (manualStatus.has(userId)) return;
-
   clearIdleTimer(userId);
 
   const timer = setTimeout(async () => {
     idleTimers.delete(userId);
-    // Don't override DND (race guard)
-    if (manualStatus.has(userId)) return;
     try {
-      // Conditional update — only transition to idle if not DND (TOCTOU guard)
       const result = await db
         .update(user)
         .set({ status: "idle" })
-        .where(and(eq(user.id, userId), ne(user.status, "dnd")));
+        .where(eq(user.id, userId));
       // Only broadcast if a row was actually updated
       if (result.rowCount && result.rowCount > 0) {
         await broadcastPresence(userId, "idle");
@@ -56,21 +47,6 @@ export function clearIdleTimer(userId: string): void {
   }
 }
 
-// ── Manual Status (DND) ─────────────────────────────────────────────────────
-
-export function setManualDnd(userId: string): void {
-  manualStatus.set(userId, "dnd");
-  clearIdleTimer(userId);
-}
-
-export function clearManualStatus(userId: string): void {
-  manualStatus.delete(userId);
-}
-
-export function isManualDnd(userId: string): boolean {
-  return manualStatus.has(userId);
-}
-
 // ── Presence Broadcasting ───────────────────────────────────────────────────
 
 /**
@@ -81,7 +57,7 @@ export function isManualDnd(userId: string): boolean {
  */
 export async function broadcastPresence(
   userId: string,
-  status: "online" | "idle" | "dnd" | "offline",
+  status: "online" | "idle" | "offline",
 ): Promise<void> {
   const recipients = new Set<string>();
 
@@ -130,5 +106,4 @@ export async function broadcastPresence(
 /** Full cleanup on disconnect (when last connection closes). */
 export function cleanupPresence(userId: string): void {
   clearIdleTimer(userId);
-  clearManualStatus(userId);
 }

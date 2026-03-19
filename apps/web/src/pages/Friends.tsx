@@ -1,4 +1,4 @@
-import { createSignal, createMemo, For, Show } from "solid-js";
+import { createSignal, createMemo, createEffect, onCleanup, For, Show } from "solid-js";
 import { readyData } from "../lib/gateway-store.js";
 import {
   sendFriendRequest,
@@ -8,11 +8,19 @@ import {
   fetchMoreFriends,
   loadingMoreFriends,
 } from "../stores/friend-store.js";
+import { api } from "../lib/api.js";
 import { Button } from "../components/ui/button.js";
 import { Badge } from "../components/ui/badge.js";
 import { Input } from "../components/ui/input.js";
 import { Empty } from "../components/ui/empty.js";
 import StatusDot, { type UserStatus } from "../components/StatusDot.js";
+
+interface SearchUser {
+  id: string;
+  username: string | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+}
 
 type Tab = "all" | "pending" | "blocked";
 
@@ -27,6 +35,51 @@ const Friends = () => {
   const [actionError, setActionError] = createSignal<string | null>(null);
   const [sending, setSending] = createSignal(false);
   const [searchQuery, setSearchQuery] = createSignal("");
+  const [searchSuggestions, setSearchSuggestions] = createSignal<SearchUser[]>([]);
+
+  // Debounced user search for Add Friend input
+  let searchTimer: ReturnType<typeof setTimeout> | undefined;
+  let searchAbort: AbortController | undefined;
+
+  createEffect(() => {
+    const q = addUsername().trim();
+
+    // Clear immediately if empty
+    if (q.length < 1) {
+      clearTimeout(searchTimer);
+      if (searchAbort) searchAbort.abort();
+      setSearchSuggestions([]);
+      return;
+    }
+
+    // Cancel previous request
+    if (searchAbort) searchAbort.abort();
+    clearTimeout(searchTimer);
+
+    searchTimer = setTimeout(() => {
+      const controller = new AbortController();
+      searchAbort = controller;
+
+      api<{ users: SearchUser[] }>(
+        `/api/users/search?q=${encodeURIComponent(q)}`,
+        { signal: controller.signal },
+      )
+        .then((res) => {
+          if (!controller.signal.aborted) {
+            setSearchSuggestions(res.users);
+          }
+        })
+        .catch((err) => {
+          if (err instanceof DOMException && err.name === "AbortError") return;
+          if (!controller.signal.aborted) setSearchSuggestions([]);
+        });
+    }, 300);
+  });
+
+  onCleanup(() => {
+    clearTimeout(searchTimer);
+    if (searchAbort) searchAbort.abort();
+  });
 
   const friends = () => readyData.data?.friends ?? [];
 
@@ -138,6 +191,49 @@ const Friends = () => {
               Send Request
             </Button>
           </div>
+          <Show when={searchSuggestions().length > 0}>
+            <div class="mt-1 rounded-md border border-border bg-popover shadow-md">
+              <For each={searchSuggestions()}>
+                {(suggestion) => (
+                  <button
+                    type="button"
+                    class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left hover:bg-accent"
+                    onClick={() => {
+                      setAddUsername(suggestion.username ?? "");
+                      setSearchSuggestions([]);
+                    }}
+                  >
+                    <Show
+                      when={suggestion.avatarUrl}
+                      fallback={
+                        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
+                          {(suggestion.displayName ?? suggestion.username ?? "?").charAt(0).toUpperCase()}
+                        </div>
+                      }
+                    >
+                      {(url) => (
+                        <img
+                          src={url()}
+                          alt={suggestion.displayName ?? suggestion.username ?? "User"}
+                          class="h-8 w-8 shrink-0 rounded-full object-cover"
+                        />
+                      )}
+                    </Show>
+                    <div class="min-w-0 flex-1">
+                      <p class="truncate text-sm font-medium text-foreground">
+                        {suggestion.displayName ?? suggestion.username ?? "Unknown"}
+                      </p>
+                      <Show when={suggestion.username}>
+                        {(uname) => (
+                          <p class="truncate text-xs text-muted-foreground">{uname()}</p>
+                        )}
+                      </Show>
+                    </div>
+                  </button>
+                )}
+              </For>
+            </div>
+          </Show>
           <Show when={error()}>
             <p class="mt-1 text-xs text-destructive">{error()}</p>
           </Show>

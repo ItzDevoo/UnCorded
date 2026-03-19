@@ -1,5 +1,6 @@
 import { Elysia } from "elysia";
-import { eq } from "drizzle-orm";
+import { eq, ilike, ne, and } from "drizzle-orm";
+import { z } from "zod";
 import {
   updateUserSchema,
   changePasswordSchema,
@@ -11,6 +12,7 @@ import {
   RateLimitError,
   MAX_AVATAR_SIZE_BYTES,
   ALLOWED_AVATAR_TYPES,
+  RATE_LIMIT_USER_SEARCH,
 } from "@uncorded/shared";
 import { userId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
@@ -20,6 +22,7 @@ import { auth } from "../auth/index.js";
 import { isR2Configured, uploadAvatar, deleteAvatar } from "../lib/r2.js";
 import { AppError } from "@uncorded/shared";
 import { checkIpRateLimit } from "../middleware/ip-rate-limit.js";
+import { checkUserRateLimit } from "../helpers/rate-limit.js";
 
 function getClientIp(request: Request): string {
   return (
@@ -156,6 +159,43 @@ export const userRoutes = new Elysia()
     }
 
     return serializeUser(dbUser);
+  })
+  .get("/search", async ({ user: sessionUser, query }) => {
+    const searchSchema = z.object({ q: z.string().min(1).max(32) });
+    const parsed = searchSchema.safeParse(query);
+    if (!parsed.success) {
+      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid search query");
+    }
+
+    await checkUserRateLimit(
+      sessionUser.id,
+      "users:search",
+      RATE_LIMIT_USER_SEARCH.limit,
+      RATE_LIMIT_USER_SEARCH.windowMs,
+    );
+
+    // Escape LIKE wildcards in user input
+    const escaped = parsed.data.q.replace(/[%_\\]/g, (ch: string) => `\\${ch}`);
+
+    const results = await db
+      .select({
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+      })
+      .from(user)
+      .where(and(ilike(user.username, `%${escaped}%`), ne(user.id, sessionUser.id)))
+      .limit(3);
+
+    return {
+      users: results.map((u) => ({
+        id: userId(u.id),
+        username: u.username,
+        displayName: u.displayName,
+        avatarUrl: u.avatarUrl,
+      })),
+    };
   })
   .patch("/@me", async ({ user: sessionUser, body }) => {
     const parsed = updateUserSchema.safeParse(body);

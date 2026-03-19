@@ -5,9 +5,10 @@ Updated by the coding agent at the end of every session.
 
 ---
 
-## Current Status: Week 4 In Progress
+## Current Status: Week 5 In Progress
 
 Stripe subscriptions working. Deep review complete (all 5 batches). 93 tests passing. All issues migrated to GitHub Issues.
+Avatar images displayed everywhere (sidebar, footer, friends page). Sidebar footer shows display name + click-to-copy username. Manual status selection removed (status is fully automatic). Friend search filter + user search API for Add Friend. File sharing stack overflow fixed (untrack in preview effect). Receiver preview persistence fixed (survives virtual list remount).
 Fresh-eyes audit complete (docs/fresh-audit.md). Quick fixes applied: .env.example updated with 4 missing vars, 2 ungated console.error calls dev-gated, dead clearTurnCredentialsCache export removed.
 Quick-wins batch: invite accept race condition fixed (db.transaction), roles/member_roles tables removed, Object.assign consistency applied.
 User settings: profile editing (username/display name/avatar), password change, account deletion, appearance (dark/light theme, message density).

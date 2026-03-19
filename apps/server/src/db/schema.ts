@@ -8,6 +8,7 @@ import {
   bigint,
   index,
   primaryKey,
+  unique,
 } from "drizzle-orm/pg-core";
 
 import { nanoid } from "nanoid";
@@ -189,7 +190,10 @@ export const fileReceipts = pgTable(
     messageId: text("message_id").references(() => messages.id, { onDelete: "cascade" }),
     createdAt: createdAt(),
   },
-  (t) => [index("idx_file_receipts_channel_id").on(t.channelId)],
+  (t) => [
+    index("idx_file_receipts_channel_id").on(t.channelId),
+    unique("uq_file_receipts_message_id").on(t.messageId),
+  ],
 );
 
 export const members = pgTable(

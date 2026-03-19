@@ -16,6 +16,7 @@ import {
 } from "./ui/dialog.js";
 import type { Message } from "../stores/message-store.js";
 import MessageContent from "./MessageContent.js";
+import FileMessage from "./FileMessage.js";
 import ReportDialog from "./ReportDialog.js";
 
 const ONE_MINUTE_MS = 60_000;
@@ -127,7 +128,7 @@ interface MessageBubbleProps {
 const MessageBubble = (props: MessageBubbleProps) => {
   const [editing, setEditing] = createSignal(false);
   // Initial value doesn't matter — startEdit() refreshes from props before use
-  const [editContent, setEditContent] = createSignal(props.message.content);
+  const [editContent, setEditContent] = createSignal(props.message.content ?? "");
   const [saving, setSaving] = createSignal(false);
   const [showDeleteDialog, setShowDeleteDialog] = createSignal(false);
   const [deleting, setDeleting] = createSignal(false);
@@ -147,14 +148,14 @@ const MessageBubble = (props: MessageBubbleProps) => {
 
   async function handleCopy() {
     try {
-      await navigator.clipboard.writeText(props.message.content);
+      await navigator.clipboard.writeText(props.message.content ?? "");
     } catch {
       showToast("Failed to copy", "error");
     }
   }
 
   function startEdit() {
-    setEditContent(props.message.content);
+    setEditContent(props.message.content ?? "");
     setEditing(true);
   }
 
@@ -183,7 +184,7 @@ const MessageBubble = (props: MessageBubbleProps) => {
 
   function cancelEdit() {
     setEditing(false);
-    setEditContent(props.message.content);
+    setEditContent(props.message.content ?? "");
   }
 
   function handleEditKeyDown(e: KeyboardEvent) {
@@ -292,9 +293,28 @@ const MessageBubble = (props: MessageBubbleProps) => {
       }
     >
       <div>
-        <MessageContent content={props.message.content} />
-        <Show when={props.message.editedAt}>
-          <span class="ml-1 text-xs italic text-muted-foreground">(edited)</span>
+        <Show when={props.message.content}>
+          <MessageContent content={props.message.content!} />
+          <Show when={props.message.editedAt}>
+            <span class="ml-1 text-xs italic text-muted-foreground">(edited)</span>
+          </Show>
+        </Show>
+        <Show when={props.message.fileReceipt}>
+          {(receipt) => (
+            <FileMessage
+              receipt={{
+                id: receipt().id as import("@uncorded/protocol").FileReceiptId,
+                channelId: props.channelId,
+                senderId: props.message.author.id as import("@uncorded/protocol").UserId,
+                fileName: receipt().fileName,
+                fileSize: receipt().fileSize,
+                contentType: receipt().contentType,
+                magnetUri: receipt().magnetUri,
+                infoHash: receipt().infoHash,
+              }}
+              isOwn={props.isOwn}
+            />
+          )}
         </Show>
       </div>
     </Show>

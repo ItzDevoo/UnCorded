@@ -1,4 +1,6 @@
-export const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB
+// Note: downloads are assembled in-memory via blob() with no resume/retry.
+// Large files may OOM on constrained clients. Consider chunked streaming for Phase 2.
+export const MAX_FILE_SIZE_BYTES = 1024 * 1024 * 1024; // 1 GB
 export const MESSAGE_PAGE_LIMIT = 50;
 export const MESSAGE_FETCH_MAX_LIMIT = 100;
 export const LIST_PAGE_LIMIT = 50;
@@ -34,6 +36,8 @@ export const RATE_LIMIT_PRESENCE_UPDATE = { limit: 5, windowMs: 30_000 };
 export const RATE_LIMIT_MESSAGE_CREATE = { limit: 5, windowMs: 5_000 };
 export const RATE_LIMIT_FRIEND_REQUEST = { limit: 10, windowMs: 60_000 };
 export const RATE_LIMIT_REPORT_CREATE = { limit: 5, windowMs: 600_000 };
+export const RATE_LIMIT_FEEDBACK_CREATE = { limit: 3, windowMs: 600_000 };
+export const RATE_LIMIT_FEEDBACK_VOTE = { limit: 20, windowMs: 60_000 };
 
 // ── Resource creation limits ─────────────────────────────────────────────────
 export const MAX_SERVERS_PER_USER = 100;

@@ -118,10 +118,20 @@ export const readyEventSchema = z.object({
 export const messageCreateEventSchema = z.object({
   id: z.string(),
   channelId: z.string(),
-  content: z.string(),
+  content: z.string().nullable(),
   editedAt: coerceDateNullable,
   createdAt: coerceDate,
   author: authorSchema,
+  fileReceipt: z
+    .object({
+      id: z.string(),
+      fileName: z.string(),
+      fileSize: z.number(),
+      contentType: z.string(),
+      magnetUri: z.string(),
+      infoHash: z.string(),
+    })
+    .optional(),
 });
 
 export const messageUpdateEventSchema = z.object({

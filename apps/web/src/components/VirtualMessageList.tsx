@@ -1,13 +1,11 @@
-import { createMemo, createEffect, on, Show, For } from "solid-js";
+import { createMemo, createEffect, on, Show } from "solid-js";
 import { createVirtualizer } from "@tanstack/solid-virtual";
 import type { AnyChannelId } from "@uncorded/protocol";
 import { readyData } from "../lib/gateway-store.js";
 import { fetchMessages, getMessages } from "../stores/message-store.js";
-import { getReceipts } from "../stores/file-store.js";
 import { Skeleton } from "./ui/skeleton.js";
 import { Empty } from "./ui/empty.js";
 import MessageBubble from "./MessageBubble.js";
-import FileMessage from "./FileMessage.js";
 
 const MessageSkeleton = (props: { showHeader?: boolean }) => (
   <div class="px-4 py-1">
@@ -39,7 +37,6 @@ const VirtualMessageList = (props: { channelId: AnyChannelId }) => {
   const loading = createMemo(() => channelData()?.loading ?? false);
   const hasMore = createMemo(() => channelData()?.hasMore ?? false);
   const currentUserId = createMemo(() => readyData.data?.user.id);
-  const fileReceipts = createMemo(() => getReceipts(props.channelId));
 
   function shouldShowHeader(index: number): boolean {
     if (index === 0) return true;
@@ -62,6 +59,20 @@ const VirtualMessageList = (props: { channelId: AnyChannelId }) => {
     overscan: OVERSCAN,
     measureElement: (el) => el.getBoundingClientRect().height,
   });
+
+  // Scroll to bottom when channel changes
+  createEffect(
+    on(
+      () => props.channelId,
+      () => {
+        const len = messages().length;
+        if (!scrollRef || len === 0) return;
+        queueMicrotask(() => {
+          virtualizer.scrollToIndex(len - 1, { align: "end" });
+        });
+      },
+    ),
+  );
 
   // Auto-scroll to bottom on new messages
   createEffect(
@@ -161,16 +172,6 @@ const VirtualMessageList = (props: { channelId: AnyChannelId }) => {
         </div>
       </Show>
 
-      {/* File receipts for this channel (rendered below messages) */}
-      <Show when={fileReceipts().length > 0}>
-        <div class="px-4 py-2">
-          <For each={fileReceipts()}>
-            {(receipt) => (
-              <FileMessage receipt={receipt} isOwn={receipt.senderId === currentUserId()} />
-            )}
-          </For>
-        </div>
-      </Show>
     </div>
   );
 };

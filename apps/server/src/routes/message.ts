@@ -14,7 +14,7 @@ import {
 } from "@uncorded/shared";
 import { Opcode, messageId, channelId, userId, type UserId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
-import { messages, servers, user } from "../db/schema.js";
+import { messages, fileReceipts, servers, user } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
 import { resolveChannelMembership } from "../helpers/resolve-channel.js";
 import { broadcastToServer, broadcastToDm, sendToUser } from "../ws/connections.js";
@@ -186,9 +186,19 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
           displayName: user.displayName,
           avatarUrl: user.avatarUrl,
         },
+        fileReceipt: {
+          id: fileReceipts.id,
+          senderId: fileReceipts.senderId,
+          fileName: fileReceipts.fileName,
+          fileSize: fileReceipts.fileSize,
+          contentType: fileReceipts.contentType,
+          magnetUri: fileReceipts.magnetUri,
+          infoHash: fileReceipts.infoHash,
+        },
       })
       .from(messages)
       .leftJoin(user, eq(user.id, messages.authorId))
+      .leftJoin(fileReceipts, eq(fileReceipts.messageId, messages.id))
       .where(and(...conditions))
       .orderBy(desc(messages.createdAt), desc(messages.id))
       .limit(limit);
@@ -199,10 +209,22 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
         const author = row.author?.id
           ? Object.assign(row.author, { id: userId(row.author.id) })
           : DELETED_AUTHOR;
+        const receipt = row.fileReceipt?.id
+          ? {
+              id: row.fileReceipt.id,
+              senderId: row.fileReceipt.senderId,
+              fileName: row.fileReceipt.fileName,
+              fileSize: row.fileReceipt.fileSize,
+              contentType: row.fileReceipt.contentType,
+              magnetUri: row.fileReceipt.magnetUri,
+              infoHash: row.fileReceipt.infoHash,
+            }
+          : null;
         return Object.assign(row, {
           id: messageId(row.id),
           channelId: channelId(row.channelId),
           author,
+          fileReceipt: receipt,
         });
       }),
     };

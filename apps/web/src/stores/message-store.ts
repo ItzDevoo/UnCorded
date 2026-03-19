@@ -15,10 +15,19 @@ import { onGatewayEvent } from "../lib/gateway.js";
 import { api } from "../lib/api.js";
 import { readyData } from "../lib/gateway-store.js";
 
+export interface MessageFileReceipt {
+  id: string;
+  fileName: string;
+  fileSize: number;
+  contentType: string;
+  magnetUri: string;
+  infoHash: string;
+}
+
 export interface Message {
   id: MessageId;
   channelId: AnyChannelId;
-  content: string;
+  content: string | null;
   editedAt: string | null;
   createdAt: string;
   author: {
@@ -27,6 +36,7 @@ export interface Message {
     displayName: string | null;
     avatarUrl: string | null;
   };
+  fileReceipt?: MessageFileReceipt | null | undefined;
 }
 
 interface ChannelMessages {
@@ -222,6 +232,7 @@ export function setupMessageStore(): void {
         displayName: d.author.displayName,
         avatarUrl: d.author.avatarUrl,
       },
+      fileReceipt: d.fileReceipt ?? null,
     };
     addMessage(msg.channelId, msg);
   });

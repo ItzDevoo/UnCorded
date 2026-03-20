@@ -42,7 +42,7 @@ async function ensureDmChannel(userIdA: string, userIdB: string): Promise<string
   const [existingDm] = await db
     .select({ channelId: dmMembers.channelId })
     .from(dmMembers)
-    .where(and(eq(dmMembers.userId, userIdB), eq(dmMembers.channelId, myChannels)))
+    .where(and(eq(dmMembers.userId, userIdB), inArray(dmMembers.channelId, myChannels)))
     .limit(1);
 
   if (existingDm) return null; // DM already exists

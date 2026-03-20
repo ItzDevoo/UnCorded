@@ -12,15 +12,35 @@ export const reportCategorySchema = z.enum([
 
 export type ReportCategory = z.infer<typeof reportCategorySchema>;
 
-export const createReportSchema = z
-  .object({
-    messageId: z.string().optional(),
-    fileReceiptId: z.string().optional(),
+export const reportTypeSchema = z.enum(["message", "file", "player", "server"]);
+
+export type ReportType = z.infer<typeof reportTypeSchema>;
+
+export const createReportSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("message"),
+    messageId: z.string().min(1),
     category: reportCategorySchema,
     details: z.string().trim().max(1000).optional(),
-  })
-  .refine((d) => (d.messageId ? 1 : 0) + (d.fileReceiptId ? 1 : 0) === 1, {
-    message: "Provide exactly one of messageId or fileReceiptId",
-  });
+  }),
+  z.object({
+    type: z.literal("file"),
+    fileReceiptId: z.string().min(1),
+    category: reportCategorySchema,
+    details: z.string().trim().max(1000).optional(),
+  }),
+  z.object({
+    type: z.literal("player"),
+    targetUserId: z.string().min(1),
+    category: reportCategorySchema,
+    details: z.string().trim().max(1000).optional(),
+  }),
+  z.object({
+    type: z.literal("server"),
+    serverId: z.string().min(1),
+    category: reportCategorySchema,
+    details: z.string().trim().max(1000).optional(),
+  }),
+]);
 
 export type CreateReport = z.infer<typeof createReportSchema>;

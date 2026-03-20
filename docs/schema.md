@@ -10,7 +10,8 @@ Reference: apps/server/src/db/schema.ts
 - friendship_status: pending | accepted | blocked
 - subscription_tier: free | supporter | server_owner
 - subscription_status: active | cancelled | past_due
-- report_category: csam | harassment | spam | copyright | malware | other
+- report_type: message | file | player | server
+- report_category: csam | intimate_image | harassment | spam | copyright | malware | other
 
 ## Tables
 
@@ -100,8 +101,11 @@ current_period_end (timestamp, nullable), created_at
 ### reports
 
 id, reporter_id -> users (set null, nullable — moderation data survives user deletion),
+type (report_type: message | file | player | server, notNull),
 message_id -> messages (nullable, on delete set null),
 file_receipt_id -> file_receipts (nullable, on delete set null),
+target_user_id -> users (nullable, on delete set null — for player reports),
+server_id -> servers (nullable, on delete set null — for server reports),
 category (report_category),
 details (text, nullable),
 resolved (bool, default false),

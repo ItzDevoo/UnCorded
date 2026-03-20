@@ -1,5 +1,6 @@
 import { Elysia } from "elysia";
-import { eq, like, or, desc, count } from "drizzle-orm";
+import { eq, like, or, and, desc, count } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import {
   ForbiddenError,
@@ -16,6 +17,7 @@ import {
   feedback,
   adminAuditLog,
 } from "../db/schema.js";
+
 import { adminResolve } from "../middleware/admin.js";
 import { disconnectUser } from "../ws/connections.js";
 
@@ -192,35 +194,55 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
   .get("/reports", async ({ query }) => {
     const page = Math.max(1, Number(query.page) || 1);
     const filter = query.filter as string | undefined;
+    const typeFilter = query.type as string | undefined;
     const offset = (page - 1) * PAGE_SIZE;
 
-    const conditions =
+    const targetUser = alias(user, "target_user");
+    const reportServer = alias(servers, "report_server");
+
+    const resolvedCondition =
       filter === "resolved"
         ? eq(reports.resolved, true)
         : filter === "unresolved"
           ? eq(reports.resolved, false)
           : undefined;
+    const allowedTypes = new Set(["message", "file", "player", "server"]);
+    if (typeFilter && typeFilter !== "all" && !allowedTypes.has(typeFilter)) {
+      throw new ValidationError("Invalid report type filter");
+    }
+    const typeCondition =
+      typeFilter && typeFilter !== "all"
+        ? eq(reports.type, typeFilter as "message" | "file" | "player" | "server")
+        : undefined;
+    const whereClause = and(resolvedCondition, typeCondition);
 
     const [rows, [total]] = await Promise.all([
       db
         .select({
           id: reports.id,
           reporterId: reports.reporterId,
+          type: reports.type,
           messageId: reports.messageId,
           fileReceiptId: reports.fileReceiptId,
+          targetUserId: reports.targetUserId,
+          serverId: reports.serverId,
           category: reports.category,
           details: reports.details,
           resolved: reports.resolved,
           createdAt: reports.createdAt,
           reporterUsername: user.username,
+          targetUsername: targetUser.username,
+          serverName: reportServer.name,
         })
         .from(reports)
         .leftJoin(user, eq(reports.reporterId, user.id))
-        .where(conditions)
+        .leftJoin(targetUser, eq(reports.targetUserId, targetUser.id))
+        .leftJoin(reportServer, eq(reports.serverId, reportServer.id))
+        .where(whereClause)
         .orderBy(desc(reports.createdAt))
         .limit(PAGE_SIZE)
         .offset(offset),
-      db.select({ value: count() }).from(reports).where(conditions),
+      db.select({ value: count() }).from(reports).where(whereClause),
     ]);
 
     return { reports: rows, total: total?.value ?? 0, page, pageSize: PAGE_SIZE };

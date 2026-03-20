@@ -58,6 +58,8 @@ export const reportCategoryEnum = pgEnum("report_category", [
   "other",
 ]);
 
+export const reportTypeEnum = pgEnum("report_type", ["message", "file", "player", "server"]);
+
 export const adminLevelEnum = pgEnum("admin_level", ["admin", "owner"]);
 
 export const feedbackTypeEnum = pgEnum("feedback_type", ["feature", "bug"]);
@@ -299,10 +301,13 @@ export const subscriptions = pgTable(
 export const reports = pgTable("reports", {
   id: id(),
   reporterId: text("reporter_id").references(() => user.id, { onDelete: "set null" }),
+  type: reportTypeEnum("type").notNull(),
   messageId: text("message_id").references(() => messages.id, { onDelete: "set null" }),
   fileReceiptId: text("file_receipt_id").references(() => fileReceipts.id, {
     onDelete: "set null",
   }),
+  targetUserId: text("target_user_id").references(() => user.id, { onDelete: "set null" }),
+  serverId: text("server_id").references(() => servers.id, { onDelete: "set null" }),
   category: reportCategoryEnum("category").notNull(),
   details: text("details"),
   resolved: boolean("resolved").default(false).notNull(),

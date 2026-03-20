@@ -49,6 +49,7 @@ const ReportDialog = (props: ReportDialogProps) => {
       await api("/api/reports", {
         method: "POST",
         body: JSON.stringify({
+          type: "message",
           messageId: props.messageId,
           category: category(),
           details: details().trim() || undefined,

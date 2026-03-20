@@ -1,4 +1,4 @@
-import { createSignal, onMount, For } from "solid-js";
+import { createSignal, onMount, For, Show } from "solid-js";
 import type { ReportRow, ReportsResponse } from "@uncorded/shared";
 import { reportsResponseSchema } from "@uncorded/shared";
 import { api, ApiRequestError } from "../lib/api.js";
@@ -15,7 +15,23 @@ import {
 } from "../components/ui/dialog.js";
 import { DataTable, type Column } from "../components/DataTable.js";
 
-const FILTERS = ["unresolved", "resolved", "all"] as const;
+const STATUS_FILTERS = ["unresolved", "resolved", "all"] as const;
+const TYPE_FILTERS = ["all", "message", "file", "player", "server"] as const;
+
+const typeBadgeVariant = (type: string) => {
+  switch (type) {
+    case "player":
+      return "warning" as const;
+    case "server":
+      return "info" as const;
+    case "message":
+      return "outline" as const;
+    case "file":
+      return "outline" as const;
+    default:
+      return "outline" as const;
+  }
+};
 
 const Reports = () => {
   const [data, setData] = createSignal<ReportsResponse>({
@@ -26,19 +42,22 @@ const Reports = () => {
   });
   const [loading, setLoading] = createSignal(true);
   const [filter, setFilter] = createSignal<string>("unresolved");
+  const [typeFilter, setTypeFilter] = createSignal<string>("all");
   const [confirmOpen, setConfirmOpen] = createSignal(false);
   const [confirmTarget, setConfirmTarget] = createSignal<{ id: string; action: "resolve" | "delete" } | null>(null);
   const [submitting, setSubmitting] = createSignal(false);
 
   let fetchCounter = 0;
 
-  async function fetchReports(page: number, f?: string) {
+  async function fetchReports(page: number, f?: string, t?: string) {
     const id = ++fetchCounter;
     setLoading(true);
     try {
       const params = new URLSearchParams({ page: String(page) });
       const filterValue = f ?? filter();
       if (filterValue !== "all") params.set("filter", filterValue);
+      const typeValue = t ?? typeFilter();
+      if (typeValue !== "all") params.set("type", typeValue);
       const res = await api(`/api/admin/reports?${params}`, undefined, reportsResponseSchema);
       if (id !== fetchCounter) return;
       setData(res);
@@ -84,6 +103,14 @@ const Reports = () => {
       header: "Reporter",
       accessor: (row) => (
         <span class="text-sm">{row.reporterUsername ?? "Deleted user"}</span>
+      ),
+    },
+    {
+      header: "Type",
+      accessor: (row) => (
+        <Badge variant={typeBadgeVariant(row.type)}>
+          {row.type}
+        </Badge>
       ),
     },
     {
@@ -142,24 +169,42 @@ const Reports = () => {
         onPageChange={(p) => fetchReports(p)}
         loading={loading()}
         actions={
-          <div class="flex rounded-lg border border-border p-0.5">
-            <For each={FILTERS}>
-              {(f) => (
-                <button
-                  class={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-                    filter() === f
-                      ? "bg-accent text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                  onClick={() => {
-                    setFilter(f);
-                    fetchReports(1, f);
-                  }}
-                >
-                  {f.charAt(0).toUpperCase() + f.slice(1)}
-                </button>
-              )}
-            </For>
+          <div class="flex items-center gap-3">
+            <div class="flex rounded-lg border border-border p-0.5">
+              <For each={STATUS_FILTERS}>
+                {(f) => (
+                  <button
+                    class={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                      filter() === f
+                        ? "bg-accent text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    onClick={() => {
+                      setFilter(f);
+                      fetchReports(1, f);
+                    }}
+                  >
+                    {f.charAt(0).toUpperCase() + f.slice(1)}
+                  </button>
+                )}
+              </For>
+            </div>
+            <select
+              value={typeFilter()}
+              onChange={(e) => {
+                setTypeFilter(e.currentTarget.value);
+                fetchReports(1, undefined, e.currentTarget.value);
+              }}
+              class="rounded-lg border border-border bg-input px-2 py-1 text-xs text-foreground"
+            >
+              <For each={TYPE_FILTERS}>
+                {(t) => (
+                  <option value={t}>
+                    {t === "all" ? "All Types" : t.charAt(0).toUpperCase() + t.slice(1)}
+                  </option>
+                )}
+              </For>
+            </select>
           </div>
         }
         expandRow={(row) => (
@@ -169,13 +214,33 @@ const Reports = () => {
               <p class="font-mono">{row.id}</p>
             </div>
             <div>
-              <p class="text-muted-foreground">Message ID</p>
-              <p class="font-mono">{row.messageId ?? "N/A"}</p>
+              <p class="text-muted-foreground">Type</p>
+              <p>{row.type}</p>
             </div>
-            <div>
-              <p class="text-muted-foreground">File Receipt ID</p>
-              <p class="font-mono">{row.fileReceiptId ?? "N/A"}</p>
-            </div>
+            <Show when={row.type === "message"}>
+              <div>
+                <p class="text-muted-foreground">Message ID</p>
+                <p class="font-mono">{row.messageId ?? "N/A"}</p>
+              </div>
+            </Show>
+            <Show when={row.type === "file"}>
+              <div>
+                <p class="text-muted-foreground">File Receipt ID</p>
+                <p class="font-mono">{row.fileReceiptId ?? "N/A"}</p>
+              </div>
+            </Show>
+            <Show when={row.type === "player"}>
+              <div>
+                <p class="text-muted-foreground">Target User</p>
+                <p>{row.targetUsername ?? row.targetUserId ?? "N/A"}</p>
+              </div>
+            </Show>
+            <Show when={row.type === "server"}>
+              <div>
+                <p class="text-muted-foreground">Server</p>
+                <p>{row.serverName ?? row.serverId ?? "N/A"}</p>
+              </div>
+            </Show>
             <div>
               <p class="text-muted-foreground">Reporter ID</p>
               <p class="font-mono">{row.reporterId ?? "N/A"}</p>

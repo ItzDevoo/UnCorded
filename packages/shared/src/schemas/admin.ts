@@ -41,13 +41,18 @@ export type AuditResponse = z.infer<typeof auditResponseSchema>;
 export const reportRowSchema = z.object({
   id: z.string(),
   reporterId: z.string().nullable(),
+  type: z.string(),
   messageId: z.string().nullable(),
   fileReceiptId: z.string().nullable(),
+  targetUserId: z.string().nullable(),
+  serverId: z.string().nullable(),
   category: z.string(),
   details: z.string().nullable(),
   resolved: z.boolean(),
   createdAt: z.string(),
   reporterUsername: z.string().nullable(),
+  targetUsername: z.string().nullable(),
+  serverName: z.string().nullable(),
 });
 
 export type ReportRow = z.infer<typeof reportRowSchema>;

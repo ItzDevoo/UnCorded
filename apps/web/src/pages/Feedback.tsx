@@ -40,7 +40,6 @@ const statusBadgeVariant = (status: string) => {
 
 const Feedback = () => {
   const [items, setItems] = createSignal<FeedbackItem[]>([]);
-  const [tab, setTab] = createSignal<"feature" | "bug">("feature");
   const [sort, setSort] = createSignal<"votes" | "recent">("votes");
   const [dialogOpen, setDialogOpen] = createSignal(false);
   const [loading, setLoading] = createSignal(true);
@@ -49,13 +48,13 @@ const Feedback = () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
-        type: tab(),
+        type: "feature",
         sort: sort(),
       });
       const res = await api<FeedbackResponse>(`/api/feedback?${params}`);
       setItems(res.feedback);
     } catch {
-      showToast("Failed to load feedback", "error");
+      showToast("Failed to load feature requests", "error");
     } finally {
       setLoading(false);
     }
@@ -85,11 +84,6 @@ const Feedback = () => {
     }
   }
 
-  function switchTab(t: "feature" | "bug") {
-    setTab(t);
-    fetchFeedback();
-  }
-
   function switchSort(s: "votes" | "recent") {
     setSort(s);
     fetchFeedback();
@@ -98,43 +92,27 @@ const Feedback = () => {
   return (
     <div class="mx-auto max-w-3xl p-6">
       <div class="mb-6 flex items-center justify-between">
-        <h1 class="text-2xl font-bold">Feedback</h1>
-        <Button onClick={() => setDialogOpen(true)}>Submit Feedback</Button>
+        <h1 class="text-2xl font-bold">Feature Requests</h1>
+        <Button onClick={() => setDialogOpen(true)}>Submit Feature Request</Button>
       </div>
 
-      <div class="mb-4 flex items-center gap-4">
-        <div class="flex gap-2">
-          <Button
-            variant={tab() === "feature" ? "default" : "outline"}
-            size="sm"
-            onClick={() => switchTab("feature")}
-          >
-            Feature Requests
-          </Button>
-          <Button
-            variant={tab() === "bug" ? "default" : "outline"}
-            size="sm"
-            onClick={() => switchTab("bug")}
-          >
-            Bug Reports
-          </Button>
-        </div>
-        <div class="ml-auto flex gap-2">
-          <Button
-            variant={sort() === "votes" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => switchSort("votes")}
-          >
-            Top Voted
-          </Button>
-          <Button
-            variant={sort() === "recent" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => switchSort("recent")}
-          >
-            Recent
-          </Button>
-        </div>
+      <div class="mb-4 flex items-center justify-end gap-2">
+        <Button
+          variant={sort() === "votes" ? "secondary" : "ghost"}
+          size="sm"
+          aria-pressed={sort() === "votes"}
+          onClick={() => switchSort("votes")}
+        >
+          Top Voted
+        </Button>
+        <Button
+          variant={sort() === "recent" ? "secondary" : "ghost"}
+          size="sm"
+          aria-pressed={sort() === "recent"}
+          onClick={() => switchSort("recent")}
+        >
+          Recent
+        </Button>
       </div>
 
       <Show
@@ -145,7 +123,7 @@ const Feedback = () => {
           when={items().length > 0}
           fallback={
             <p class="py-8 text-center text-muted-foreground">
-              No {tab() === "feature" ? "feature requests" : "bug reports"} yet. Be the first!
+              No feature requests yet. Be the first!
             </p>
           }
         >
@@ -161,6 +139,8 @@ const Feedback = () => {
                             ? "border-primary bg-primary/10 text-primary"
                             : "border-border text-muted-foreground hover:border-primary/50 hover:text-primary"
                         }`}
+                        aria-label={item.voted ? `Remove upvote (${item.voteCount} votes)` : `Upvote (${item.voteCount} votes)`}
+                        aria-pressed={item.voted}
                         onClick={() => toggleVote(item.id)}
                       >
                         <svg

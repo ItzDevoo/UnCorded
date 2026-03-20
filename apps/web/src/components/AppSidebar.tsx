@@ -33,7 +33,7 @@ import CheckoutModal from "./modals/CheckoutModal.js";
 import SubscriptionModal from "./modals/SubscriptionModal.js";
 import PricingModal from "./modals/PricingModal.js";
 import StatusDot, { type UserStatus } from "./StatusDot.js";
-
+import UnifiedReportDialog from "./modals/UnifiedReportDialog.js";
 
 const iconBtnClass =
   "rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground";
@@ -52,6 +52,7 @@ const AppSidebar = (props: AppSidebarProps) => {
   const [checkoutTier, setCheckoutTier] = createSignal<"supporter" | "server_owner" | null>(null);
   const [showPricingModal, setShowPricingModal] = createSignal(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = createSignal(false);
+  const [showReportDialog, setShowReportDialog] = createSignal(false);
 
   let copiedUsernameTimer: ReturnType<typeof setTimeout> | undefined;
   onCleanup(() => clearTimeout(copiedUsernameTimer));
@@ -332,7 +333,56 @@ const AppSidebar = (props: AppSidebarProps) => {
       </SidebarContent>
 
       {/* ── Footer: User Panel ───────────────────────────────────────── */}
-      <SidebarFooter>
+      <SidebarFooter class="flex-col">
+        {/* Report & Feature Requests buttons */}
+        <div class="flex gap-2 px-2 pb-2">
+          <button
+            type="button"
+            class="flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            onClick={() => setShowReportDialog(true)}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"
+              />
+            </svg>
+            Report
+          </button>
+          <button
+            type="button"
+            class="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            onClick={() => {
+              selectHome();
+              navigate("/home/feedback");
+              props.onNavigate?.();
+            }}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+              />
+            </svg>
+            Feature Requests
+          </button>
+        </div>
         {/* PWA install button added in feat/pwa-admin-infra PR */}
         <div class="relative flex min-w-0 flex-1 items-center gap-2">
           <Show
@@ -516,6 +566,9 @@ const AppSidebar = (props: AppSidebarProps) => {
             setCheckoutTier(tier);
           }}
         />
+      </Show>
+      <Show when={showReportDialog()}>
+        <UnifiedReportDialog onClose={() => setShowReportDialog(false)} />
       </Show>
     </Sidebar>
   );

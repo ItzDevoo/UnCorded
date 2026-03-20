@@ -9,6 +9,7 @@ export * from "./schemas/dm.js";
 export * from "./schemas/subscription.js";
 export * from "./schemas/report.js";
 export * from "./schemas/feedback.js";
+export * from "./schemas/poll.js";
 export * from "./schemas/admin.js";
 export * from "./types/index.js";
 export * from "./errors/index.js";

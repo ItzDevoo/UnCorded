@@ -69,6 +69,7 @@ export const feedbackStatusEnum = pgEnum("feedback_status", [
   "in_progress",
   "completed",
   "rejected",
+  "won_poll",
 ]);
 
 // ─── Better Auth Core Tables ─────────────────────────────
@@ -372,6 +373,46 @@ export const giftedSubscriptions = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("idx_gifted_subscriptions_expires_at").on(t.expiresAt)],
+);
+
+// ─── Poll Tables ────────────────────────────────────────────
+
+export const polls = pgTable("polls", {
+  id: id(),
+  createdAt: createdAt(),
+  closedAt: timestamp("closed_at", { mode: "date" }),
+  winnerId: text("winner_id").references(() => feedback.id, { onDelete: "set null" }),
+});
+
+export const pollEntries = pgTable(
+  "poll_entries",
+  {
+    pollId: text("poll_id")
+      .notNull()
+      .references(() => polls.id, { onDelete: "cascade" }),
+    feedbackId: text("feedback_id")
+      .notNull()
+      .references(() => feedback.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.pollId, t.feedbackId] })],
+);
+
+export const pollVotes = pgTable(
+  "poll_votes",
+  {
+    id: id(),
+    pollId: text("poll_id")
+      .notNull()
+      .references(() => polls.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    feedbackId: text("feedback_id")
+      .notNull()
+      .references(() => feedback.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [unique("poll_vote_unique").on(t.pollId, t.userId)],
 );
 
 export const adminAuditLog = pgTable(

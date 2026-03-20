@@ -135,3 +135,34 @@ export const usersResponseSchema = z.object({
 });
 
 export type UsersResponse = z.infer<typeof usersResponseSchema>;
+
+// ── Polls ──────────────────────────────────────────
+
+export const pollEntryRowSchema = z.object({
+  feedbackId: z.string(),
+  title: z.string(),
+  description: z.string(),
+  pollVotes: z.number(),
+});
+
+export type PollEntryRow = z.infer<typeof pollEntryRowSchema>;
+
+export const pollRowSchema = z.object({
+  id: z.string(),
+  createdAt: z.string(),
+  closedAt: z.string().nullable(),
+  winnerId: z.string().nullable(),
+  entries: z.array(pollEntryRowSchema),
+  totalVotes: z.number(),
+});
+
+export type PollRow = z.infer<typeof pollRowSchema>;
+
+export const pollsResponseSchema = z.object({
+  polls: z.array(pollRowSchema),
+  total: z.number(),
+  page: z.number(),
+  pageSize: z.number(),
+});
+
+export type PollsResponse = z.infer<typeof pollsResponseSchema>;

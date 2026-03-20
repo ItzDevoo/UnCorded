@@ -85,6 +85,13 @@
       "when": 1742342400000,
       "tag": "0011_expand_reports",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1742428800000,
+      "tag": "0012_add_polls",
+      "breakpoints": true
     }
   ]
 }

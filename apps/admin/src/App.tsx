@@ -8,6 +8,7 @@ const Dashboard = lazy(() => import("./pages/Dashboard.js"));
 const Users = lazy(() => import("./pages/Users.js"));
 const Reports = lazy(() => import("./pages/Reports.js"));
 const Feedback = lazy(() => import("./pages/Feedback.js"));
+const Polls = lazy(() => import("./pages/Polls.js"));
 const Admins = lazy(() => import("./pages/Admins.js"));
 const AuditLog = lazy(() => import("./pages/AuditLog.js"));
 
@@ -30,6 +31,7 @@ const App = () => {
             <Route path="/users" component={Users} />
             <Route path="/reports" component={Reports} />
             <Route path="/feedback" component={Feedback} />
+            <Route path="/polls" component={Polls} />
             <Route path="/admins" component={Admins} />
             <Route path="/audit-log" component={AuditLog} />
           </Route>

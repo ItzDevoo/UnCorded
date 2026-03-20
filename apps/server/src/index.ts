@@ -16,6 +16,7 @@ import { dmRoutes } from "./routes/dm.js";
 import { reportRoutes } from "./routes/report.js";
 import { adminRoutes } from "./routes/admin.js";
 import { feedbackRoutes } from "./routes/feedback.js";
+import { pollRoutes } from "./routes/poll.js";
 import { safetyRoutes } from "./routes/safety.js";
 import { webhookRoutes } from "./routes/webhook.js";
 import { stripeRoutes } from "./routes/stripe.js";
@@ -29,7 +30,7 @@ import { applyChannelEvent, applyDmMemberEvent } from "./ws/channel-cache.js";
 const app = new Elysia()
   .use(
     cors({
-      origin: env.CORS_ORIGIN ?? env.APP_URL,
+      origin: [env.CORS_ORIGIN ?? env.APP_URL, `https://admin.${new URL(env.APP_URL).host}`].filter(Boolean),
       credentials: true,
     }),
   )
@@ -74,6 +75,7 @@ const app = new Elysia()
   .use(reportRoutes)
   .use(adminRoutes)
   .use(feedbackRoutes)
+  .use(pollRoutes)
   .use(safetyRoutes)
   .use(gatewayTicketRoutes)
   .use(gateway)

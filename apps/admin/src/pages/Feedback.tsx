@@ -15,7 +15,7 @@ import {
 } from "../components/ui/dialog.js";
 import { DataTable, type Column } from "../components/DataTable.js";
 
-const STATUS_OPTIONS = ["open", "in_progress", "completed", "rejected"] as const;
+const STATUS_OPTIONS = ["open", "in_progress", "completed", "rejected", "won_poll"] as const;
 
 const AdminFeedback = () => {
   const [data, setData] = createSignal<FeedbackResponse>({

@@ -1,11 +1,12 @@
 import { Elysia } from "elysia";
-import { eq, like, or, and, desc, count } from "drizzle-orm";
+import { eq, like, or, and, desc, count, isNull, sql, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import {
   ForbiddenError,
   NotFoundError,
   ValidationError,
+  InternalError,
 } from "@uncorded/shared";
 import { db } from "../db/index.js";
 import {
@@ -16,10 +17,16 @@ import {
   reports,
   feedback,
   adminAuditLog,
+  polls,
+  pollEntries,
+  pollVotes,
+  giftedSubscriptions,
 } from "../db/schema.js";
 
 import { adminResolve } from "../middleware/admin.js";
-import { disconnectUser } from "../ws/connections.js";
+import { disconnectUser, sendToUser } from "../ws/connections.js";
+import { Opcode } from "@uncorded/protocol";
+import { computeEffectiveTier } from "../helpers/resolve-tier.js";
 
 const PAGE_SIZE = 50;
 
@@ -82,6 +89,7 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
         )
       : undefined;
 
+    const now = new Date();
     const [rows, [total]] = await Promise.all([
       db
         .select({
@@ -93,8 +101,17 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
           status: user.status,
           banned: user.banned,
           createdAt: user.createdAt,
+          giftedTier: giftedSubscriptions.tier,
+          giftExpiresAt: giftedSubscriptions.expiresAt,
         })
         .from(user)
+        .leftJoin(
+          giftedSubscriptions,
+          and(
+            eq(user.id, giftedSubscriptions.userId),
+            sql`${giftedSubscriptions.expiresAt} > ${now}`,
+          ),
+        )
         .where(conditions)
         .orderBy(desc(user.createdAt))
         .limit(PAGE_SIZE)
@@ -102,7 +119,20 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       db.select({ value: count() }).from(user).where(conditions),
     ]);
 
-    return { users: rows, total: total?.value ?? 0, page, pageSize: PAGE_SIZE };
+    const users = rows.map((r) => ({
+      id: r.id,
+      username: r.username,
+      displayName: r.displayName,
+      email: r.email,
+      subscriptionTier: r.subscriptionTier,
+      status: r.status,
+      banned: r.banned,
+      createdAt: r.createdAt,
+      giftedTier: r.giftedTier ?? null,
+      giftExpiresAt: r.giftExpiresAt?.toISOString() ?? null,
+    }));
+
+    return { users, total: total?.value ?? 0, page, pageSize: PAGE_SIZE };
   })
 
   .post("/users/:id/ban", async ({ params, user: sessionUser, adminLevel }) => {
@@ -158,7 +188,82 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
     return { success: true };
   })
 
-  // Gift-tier and revoke-gift endpoints are added in feat/gifted-subscriptions PR
+  .post("/users/:id/gift-tier", async ({ params, body, user: sessionUser }) => {
+    const giftTierSchema = z.object({
+      tier: z.enum(["supporter", "server_owner"]),
+      days: z.number().int().min(1).max(365),
+      reason: z.string().max(500).optional(),
+    });
+    const parsed = giftTierSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
+    }
+    const { tier, days, reason } = parsed.data;
+
+    const [target] = await db
+      .select({ id: user.id })
+      .from(user)
+      .where(eq(user.id, params.id))
+      .limit(1);
+    if (!target) throw new NotFoundError("User");
+
+    const expiresAt = new Date(Date.now() + days * 86400000);
+
+    await db
+      .insert(giftedSubscriptions)
+      .values({
+        userId: params.id,
+        tier,
+        giftedBy: sessionUser.id,
+        reason: reason ?? null,
+        expiresAt,
+      })
+      .onConflictDoUpdate({
+        target: giftedSubscriptions.userId,
+        set: {
+          tier,
+          giftedBy: sessionUser.id,
+          reason: reason ?? null,
+          expiresAt,
+        },
+      });
+
+    // Recompute effective tier and update user record
+    const effectiveTier = await computeEffectiveTier(params.id);
+    await db.update(user).set({ subscriptionTier: effectiveTier }).where(eq(user.id, params.id));
+
+    sendToUser(params.id, {
+      op: Opcode.SUBSCRIPTION_GIFT,
+      d: { tier, expiresAt: expiresAt.toISOString(), days },
+    });
+
+    await logAudit(sessionUser.id, "gift_tier", "user", params.id, JSON.stringify({ tier, days, reason }));
+
+    return { success: true };
+  })
+
+  .post("/users/:id/revoke-gift", async ({ params, user: sessionUser }) => {
+    const [target] = await db
+      .select({ id: user.id })
+      .from(user)
+      .where(eq(user.id, params.id))
+      .limit(1);
+    if (!target) throw new NotFoundError("User");
+
+    const result = await db
+      .delete(giftedSubscriptions)
+      .where(eq(giftedSubscriptions.userId, params.id))
+      .returning({ id: giftedSubscriptions.id });
+    if (result.length === 0) throw new NotFoundError("Gift");
+
+    // Recompute effective tier and update user record
+    const effectiveTier = await computeEffectiveTier(params.id);
+    await db.update(user).set({ subscriptionTier: effectiveTier }).where(eq(user.id, params.id));
+
+    await logAudit(sessionUser.id, "revoke_gift", "user", params.id);
+
+    return { success: true };
+  })
 
   .delete("/users/:id", async ({ params, user: sessionUser, adminLevel }) => {
     if (adminLevel !== "owner") throw new ForbiddenError("Owner access required");
@@ -426,6 +531,195 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
 
     await db.delete(admins).where(eq(admins.id, params.id));
     await logAudit(sessionUser.id, "remove_admin", "admin", adminRecord.userId);
+
+    return { success: true };
+  })
+
+  // ── Poll Management ──────────────────────────────────────────────────────
+  .get("/polls", async ({ query }) => {
+    const page = Math.max(1, Number(query.page) || 1);
+    const offset = (page - 1) * PAGE_SIZE;
+
+    const [rows, [total]] = await Promise.all([
+      db
+        .select({
+          id: polls.id,
+          createdAt: polls.createdAt,
+          closedAt: polls.closedAt,
+          winnerId: polls.winnerId,
+        })
+        .from(polls)
+        .orderBy(desc(polls.createdAt))
+        .limit(PAGE_SIZE)
+        .offset(offset),
+      db.select({ value: count() }).from(polls),
+    ]);
+
+    // Bulk-fetch entries and votes for all polls to avoid N+1
+    const pollIds = rows.map((r) => r.id);
+
+    const [allEntries, allVoteCounts] = pollIds.length > 0
+      ? await Promise.all([
+          db
+            .select({
+              pollId: pollEntries.pollId,
+              feedbackId: pollEntries.feedbackId,
+              title: feedback.title,
+              description: feedback.description,
+            })
+            .from(pollEntries)
+            .innerJoin(feedback, eq(pollEntries.feedbackId, feedback.id))
+            .where(inArray(pollEntries.pollId, pollIds)),
+          db
+            .select({
+              pollId: pollVotes.pollId,
+              feedbackId: pollVotes.feedbackId,
+              count: sql<number>`count(*)::int`,
+            })
+            .from(pollVotes)
+            .where(inArray(pollVotes.pollId, pollIds))
+            .groupBy(pollVotes.pollId, pollVotes.feedbackId),
+        ])
+      : [[], []];
+
+    // Build lookup maps
+    const entriesByPoll = new Map<string, typeof allEntries>();
+    for (const e of allEntries) {
+      const list = entriesByPoll.get(e.pollId) ?? [];
+      list.push(e);
+      entriesByPoll.set(e.pollId, list);
+    }
+    const votesByPoll = new Map<string, Map<string, number>>();
+    for (const v of allVoteCounts) {
+      const map = votesByPoll.get(v.pollId) ?? new Map();
+      map.set(v.feedbackId, v.count);
+      votesByPoll.set(v.pollId, map);
+    }
+
+    const pollsWithEntries = rows.map((poll) => {
+      const entries = entriesByPoll.get(poll.id) ?? [];
+      const voteMap = votesByPoll.get(poll.id) ?? new Map();
+      const totalVotes = [...voteMap.values()].reduce((sum, c) => sum + c, 0);
+      return {
+        id: poll.id,
+        createdAt: poll.createdAt.toISOString(),
+        closedAt: poll.closedAt?.toISOString() ?? null,
+        winnerId: poll.winnerId,
+        entries: entries.map((e) => ({
+          feedbackId: e.feedbackId,
+          title: e.title,
+          description: e.description,
+          pollVotes: voteMap.get(e.feedbackId) ?? 0,
+        })),
+        totalVotes,
+      };
+    });
+
+    return { polls: pollsWithEntries, total: total?.value ?? 0, page, pageSize: PAGE_SIZE };
+  })
+
+  .post("/polls", async ({ user: sessionUser }) => {
+    // Get top 5 open features by vote count
+    const topFeatures = await db
+      .select({ id: feedback.id })
+      .from(feedback)
+      .where(and(eq(feedback.type, "feature"), eq(feedback.status, "open")))
+      .orderBy(desc(feedback.voteCount))
+      .limit(5);
+
+    if (topFeatures.length < 5) {
+      throw new ValidationError("Need at least 5 open feature requests to create a poll");
+    }
+
+    // Create poll + entries in transaction (active-poll check inside tx to prevent race)
+    let pollId: string;
+    try {
+      pollId = await db.transaction(async (tx) => {
+        const [activePoll] = await tx
+          .select({ id: polls.id })
+          .from(polls)
+          .where(isNull(polls.closedAt))
+          .limit(1);
+        if (activePoll) throw new ValidationError("An active poll already exists");
+
+        const [newPoll] = await tx.insert(polls).values({}).returning({ id: polls.id });
+        if (!newPoll) throw new InternalError("Failed to create poll");
+        const newPollId = newPoll.id;
+
+        await tx.insert(pollEntries).values(
+          topFeatures.map((f) => ({
+            pollId: newPollId,
+            feedbackId: f.id,
+          })),
+        );
+
+        return newPollId;
+      });
+    } catch (err: unknown) {
+      if (err instanceof ValidationError) throw err;
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.includes("unique") || msg.includes("duplicate")) {
+        throw new ValidationError("An active poll already exists");
+      }
+      throw err;
+    }
+
+    await logAudit(sessionUser.id, "create_poll", "poll", pollId);
+
+    return { success: true, pollId };
+  })
+
+  .post("/polls/:id/close", async ({ params, user: sessionUser }) => {
+    await db.transaction(async (tx) => {
+      // Re-read inside transaction to ensure poll is still open
+      const [poll] = await tx
+        .select({ id: polls.id, closedAt: polls.closedAt })
+        .from(polls)
+        .where(eq(polls.id, params.id))
+        .limit(1);
+      if (!poll) throw new NotFoundError("Poll");
+      if (poll.closedAt) throw new ValidationError("Poll is already closed");
+
+      // Count votes per entry + fetch feedback.voteCount in a single join query
+      const entriesWithVotes = await tx
+        .select({
+          feedbackId: pollVotes.feedbackId,
+          pollVoteCount: sql<number>`count(*)::int`,
+          feedbackVoteCount: feedback.voteCount,
+        })
+        .from(pollVotes)
+        .innerJoin(feedback, eq(pollVotes.feedbackId, feedback.id))
+        .where(eq(pollVotes.pollId, params.id))
+        .groupBy(pollVotes.feedbackId, feedback.voteCount);
+
+      const totalVotes = entriesWithVotes.reduce((sum, v) => sum + v.pollVoteCount, 0);
+
+      if (totalVotes === 0) {
+        await tx
+          .update(polls)
+          .set({ closedAt: new Date(), winnerId: null })
+          .where(eq(polls.id, params.id));
+      } else {
+        entriesWithVotes.sort((a, b) => {
+          if (b.pollVoteCount !== a.pollVoteCount) return b.pollVoteCount - a.pollVoteCount;
+          if ((b.feedbackVoteCount ?? 0) !== (a.feedbackVoteCount ?? 0)) return (b.feedbackVoteCount ?? 0) - (a.feedbackVoteCount ?? 0);
+          return a.feedbackId.localeCompare(b.feedbackId);
+        });
+
+        const winnerId = entriesWithVotes[0]!.feedbackId;
+
+        await tx
+          .update(polls)
+          .set({ closedAt: new Date(), winnerId })
+          .where(eq(polls.id, params.id));
+        await tx
+          .update(feedback)
+          .set({ status: "won_poll" })
+          .where(eq(feedback.id, winnerId));
+      }
+    });
+
+    await logAudit(sessionUser.id, "close_poll", "poll", params.id);
 
     return { success: true };
   })

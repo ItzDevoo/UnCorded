@@ -10,7 +10,7 @@ export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
   // APP_URL always has a value (see env.ts default), so this array is never empty
-  trustedOrigins: [env.APP_URL, env.CORS_ORIGIN].filter(Boolean) as string[],
+  trustedOrigins: [env.APP_URL, env.CORS_ORIGIN, `https://admin.${new URL(env.APP_URL).host}`].filter(Boolean) as string[],
   emailAndPassword: { enabled: true },
   plugins: [username()],
   socialProviders: {

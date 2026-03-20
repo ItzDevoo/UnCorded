@@ -39,6 +39,8 @@ export const RATE_LIMIT_REPORT_CREATE = { limit: 5, windowMs: 600_000 };
 export const RATE_LIMIT_FEEDBACK_CREATE = { limit: 3, windowMs: 600_000 };
 export const RATE_LIMIT_FEEDBACK_VOTE = { limit: 20, windowMs: 60_000 };
 export const RATE_LIMIT_USER_SEARCH = { limit: 15, windowMs: 30_000 };
+export const RATE_LIMIT_POLL_VOTE = { limit: 10, windowMs: 60_000 };
+export const RATE_LIMIT_POLL_ACTIVE = { limit: 30, windowMs: 60_000 };
 
 // ── Resource creation limits ─────────────────────────────────────────────────
 export const MAX_SERVERS_PER_USER = 100;

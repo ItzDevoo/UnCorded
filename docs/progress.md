@@ -126,7 +126,7 @@ P2P IP disclosure: first-file-share dialog warns users about IP visibility, loca
 - Channels + DMs unified in sidebar with collapsible sections
 - Mobile responsive: sidebar as Sheet (hamburger toggle), member list as right-side Sheet, hidden on mobile by default
 - Keyboard shortcuts: global registry, ? / Ctrl+/ (help dialog), Ctrl+Shift+M (toggle members), Alt+Up/Down (channel nav), Escape (close)
-- Virtual scrolling message list (@tanstack/solid-virtual)
+- Virtual scrolling message list (@tanstack/solid-virtual) with stable auto-scroll (untrack estimateSize, rAF-based scrolling, nearBottom state tracking)
 - Message hover toolbar (edit, delete, copy, report)
 - Inline message editing + delete with confirmation
 - Report dialog (category dropdown, optional details, POST /api/reports)

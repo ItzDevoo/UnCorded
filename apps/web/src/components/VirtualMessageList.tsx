@@ -1,4 +1,4 @@
-import { createMemo, createEffect, on, Show } from "solid-js";
+import { createMemo, createEffect, createSignal, on, Show, untrack } from "solid-js";
 import { createVirtualizer } from "@tanstack/solid-virtual";
 import type { AnyChannelId } from "@uncorded/protocol";
 import { readyData } from "../lib/gateway-store.js";
@@ -27,6 +27,11 @@ const OVERSCAN = 5;
 const GROUP_GAP_MS = 5 * 60 * 1000;
 const HEADER_MESSAGE_HEIGHT = 52;
 const COMPACT_MESSAGE_HEIGHT = 28;
+const FILE_PREVIEW_HEIGHT = 380; // file card (~80) + thumbnail (~300)
+const FILE_CARD_HEIGHT = 80; // file card without preview
+
+const IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/gif", "image/webp"]);
+const VIDEO_TYPES = new Set(["video/mp4", "video/webm", "video/ogg"]);
 
 const VirtualMessageList = (props: { channelId: AnyChannelId }) => {
   // oxlint-disable-next-line no-unassigned-vars -- SolidJS ref pattern, assigned via JSX ref={}
@@ -37,6 +42,7 @@ const VirtualMessageList = (props: { channelId: AnyChannelId }) => {
   const loading = createMemo(() => channelData()?.loading ?? false);
   const hasMore = createMemo(() => channelData()?.hasMore ?? false);
   const currentUserId = createMemo(() => readyData.data?.user.id);
+  const [nearBottom, setNearBottom] = createSignal(true);
 
   function shouldShowHeader(index: number): boolean {
     if (index === 0) return true;
@@ -50,25 +56,48 @@ const VirtualMessageList = (props: { channelId: AnyChannelId }) => {
     return currTime - prevTime > GROUP_GAP_MS;
   }
 
+  function checkNearBottom(): boolean {
+    if (!scrollRef) return true;
+    return (
+      scrollRef.scrollTop + scrollRef.clientHeight >=
+      scrollRef.scrollHeight - SCROLL_BOTTOM_THRESHOLD
+    );
+  }
+
+  function scrollToBottom(): void {
+    if (!scrollRef) return;
+    requestAnimationFrame(() => {
+      scrollRef.scrollTop = scrollRef.scrollHeight;
+    });
+  }
+
   const virtualizer = createVirtualizer({
     get count() {
       return messages().length;
     },
     getScrollElement: () => scrollRef,
-    estimateSize: (i) => (shouldShowHeader(i) ? HEADER_MESSAGE_HEIGHT : COMPACT_MESSAGE_HEIGHT),
+    estimateSize: (i) =>
+      untrack(() => {
+        const base = shouldShowHeader(i) ? HEADER_MESSAGE_HEIGHT : COMPACT_MESSAGE_HEIGHT;
+        const msg = messages()[i];
+        if (!msg?.fileReceipt) return base;
+        const ct = msg.fileReceipt.contentType;
+        if (IMAGE_TYPES.has(ct) || VIDEO_TYPES.has(ct)) return base + FILE_PREVIEW_HEIGHT;
+        return base + FILE_CARD_HEIGHT;
+      }),
     overscan: OVERSCAN,
-    measureElement: (el) => el.getBoundingClientRect().height,
   });
 
-  // Scroll to bottom when channel changes
+  // Scroll to bottom when channel changes (double-rAF: first frame renders items, second scrolls)
   createEffect(
     on(
       () => props.channelId,
       () => {
-        const len = messages().length;
-        if (!scrollRef || len === 0) return;
-        queueMicrotask(() => {
-          virtualizer.scrollToIndex(len - 1, { align: "end" });
+        setNearBottom(true);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (scrollRef) scrollRef.scrollTop = scrollRef.scrollHeight;
+          });
         });
       },
     ),
@@ -80,24 +109,19 @@ const VirtualMessageList = (props: { channelId: AnyChannelId }) => {
       () => messages().length,
       (len, prevLen) => {
         if (!scrollRef || len === 0) return;
-        const isNearBottom =
-          scrollRef.scrollTop + scrollRef.clientHeight >=
-          scrollRef.scrollHeight - SCROLL_BOTTOM_THRESHOLD;
-
-        if (isNearBottom || (prevLen ?? 0) === 0) {
-          queueMicrotask(() => {
-            virtualizer.scrollToIndex(len - 1, { align: "end" });
-          });
+        if (nearBottom() || (prevLen ?? 0) === 0) {
+          scrollToBottom();
         }
       },
     ),
   );
 
   function handleScroll() {
-    if (!scrollRef || loading()) return;
+    if (!scrollRef) return;
+    setNearBottom(checkNearBottom());
 
     // Load more when scrolled to top
-    if (scrollRef.scrollTop === 0 && hasMore()) {
+    if (!loading() && scrollRef.scrollTop < 1 && hasMore()) {
       fetchMessages(props.channelId);
     }
   }

@@ -101,7 +101,7 @@ const AppLayout: ParentComponent = (props) => {
           >
             <Show
               when={!isSettingsPage() && (selectedServerId() || selectedDmChannelId())}
-              fallback={props.children}
+              fallback={<div class="flex-1 overflow-y-auto">{props.children}</div>}
             >
               <ChatArea />
             </Show>

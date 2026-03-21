@@ -2,8 +2,6 @@
 
 All issues and feature requests tracked on GitHub Issues: https://github.com/ItzDevoo/UnCorded/issues
 
-Reference: C:\Nexis (monorepo patterns, auth, WS gateway), C:\t3Code (tooling, UI, Electron patterns)
-
 ## Completed Milestones
 
 - **Week 1** — Foundation + Auth + App Shell

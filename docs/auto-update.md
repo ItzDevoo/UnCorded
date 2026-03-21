@@ -1,7 +1,6 @@
 # UnCorded — Auto-Update System
 
-Desktop app auto-update architecture. Follows t3Code's proven patterns.
-Reference: C:\t3Code\apps\desktop\src\updateMachine.ts, updateState.ts, main.ts
+Desktop app auto-update architecture.
 
 This must be implemented early in the Electron desktop app phase — not bolted on later.
 

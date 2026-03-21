@@ -51,16 +51,8 @@ Universal source of truth for all agents. Always read these before starting work
 
 ## Git Workflow
 
-All git operations go through the ChatBot Agent via `/git`. The coding agent never touches version control.
+All git operations go through the Orchestrator agent. Coding subagents never touch version control.
 
-- `/review` — run at session start, audits recent changes, checks rule violations, reports health score
-- `/git` — commit, push, branch, revert. Runs typecheck + lint before every commit. Updates progress.md automatically.
 - Commit format: conventional commits (feat/fix/chore/docs/refactor)
 - Never commit: .env, node_modules, .turbo, dist, secrets
-
-## Reference Projects
-
-- C:\Nexis — proven patterns for auth, WebSocket gateway, ElysiaJS structure, and Drizzle setup
-- C:\t3Code — proven patterns for tooling (Oxlint/Oxfmt/Turbo), UI components, Electron desktop app, dev runner TUI, typed error hierarchies, branded types, CI/CD pipeline
-
-Study both for patterns. Do not copy-paste.
+- Typecheck + lint before every commit

@@ -1,16 +1,17 @@
 # UnCorded — Coding Agent
 
-**IMPORTANT:** I am the Coding Agent. I write all code for UnCorded. I NEVER run git commands — the ChatBot Agent at `C:\Projects\UnCorded` handles all version control. Ignore the parent directory's CLAUDE.md — it defines the ChatBot role, not mine.
+**IMPORTANT:** I am a Coding Agent (subagent). I write all code for UnCorded. I NEVER run git commands — the Orchestrator handles all version control.
 
-Read docs/CLAUDE.md first. This file adds coding-specific context.
+Read `docs/CLAUDE.md` first. This file adds coding-specific context.
 
 ## Monorepo Layout
 
-- apps/web — SolidJS frontend
-- apps/server — ElysiaJS backend + WebSocket gateway + WebRTC signaling
-- apps/desktop — Electron desktop app (Phase 2)
-- packages/shared — Zod schemas, shared TypeScript types, typed errors
-- packages/protocol — WebSocket opcodes, MessagePack codec, branded ID types
+- `apps/web/` — SolidJS frontend
+- `apps/server/` — ElysiaJS backend + WebSocket gateway + WebRTC signaling
+- `apps/admin/` — Admin panel (SolidJS)
+- `apps/desktop/` — Electron desktop app (Phase 2)
+- `packages/shared/` — Zod schemas, shared TypeScript types, typed errors, constants
+- `packages/protocol/` — WebSocket opcodes, MessagePack codec, branded ID types
 
 ## Dev Commands
 
@@ -26,33 +27,15 @@ Read docs/CLAUDE.md first. This file adds coding-specific context.
 
 ## Environment Variables
 
-DATABASE_URL
-REDIS_URL
-BETTER_AUTH_SECRET
-BETTER_AUTH_URL
-DISCORD_CLIENT_ID
-DISCORD_CLIENT_SECRET
-GOOGLE_CLIENT_ID
-GOOGLE_CLIENT_SECRET
-STRIPE_SECRET_KEY
-STRIPE_WEBHOOK_SECRET
-CORS_ORIGIN
-APP_URL
-PORT
-NODE_ENV
+DATABASE_URL, REDIS_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL,
+DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
+STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, CORS_ORIGIN, APP_URL, PORT, NODE_ENV,
 THORN_API_KEY (optional — CSAM hash checking via Thorn Safer API)
 
-## Reference Projects
+## Constraints
 
-- C:\Nexis — auth, WebSocket gateway, ElysiaJS structure, Drizzle patterns
-- C:\t3Code — tooling (Oxlint/Oxfmt/Turbo), UI components, Electron, dev runner TUI
-
-Study for patterns, do not copy-paste directly.
-
-## Session Rule
-
-At the end of every session:
-
-1. Update docs/todo.md — check off completed items
-2. Update docs/lessons.md — log mistakes and decisions
-3. Update docs/progress.md — update what actually works
+- Bun only — never node, npm, or yarn
+- No `any` — TypeScript strict mode
+- No git commands — the orchestrator handles version control
+- No modifying CLAUDE.md files or agent docs
+- Simplest solution that works correctly

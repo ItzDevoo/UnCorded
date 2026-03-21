@@ -1,7 +1,7 @@
 # UnCorded — UI Standards
 
 Consistent design language across web and desktop. Professional, clean, dark-first.
-Reference: C:\t3Code\apps\web for proven component patterns and styling approach.
+Professional, clean, dark-first.
 
 ---
 

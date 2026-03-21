@@ -149,7 +149,7 @@ Cancel anytime. No tricks.
 
 ### Phase 2 — Desktop App
 
-- Electron-based desktop application (follows t3Code patterns)
+- Electron-based desktop application
 - Embeds ElysiaJS server as child process
 - Persistent seed folder for file sharing
 - Background seeding (app stays connected when minimized)
@@ -175,6 +175,6 @@ Cancel anytime. No tricks.
 3. **DMs always P2P** — no server storage, no server involvement beyond signaling. Privacy is non-negotiable.
 4. **Show margins at checkout** — this is the differentiator. Do not hide it to look more professional.
 5. **TURN only for paid users** — free users get P2P-only. This is honest monetization tied to real infrastructure cost (Cloudflare Calls relay, 1TB/mo free), not artificial limits.
-6. **Desktop app via Electron** — enables persistent seeding, background operation, and client-side CSAM scanning. Follows t3Code's proven patterns. Future mobile via Capacitor.
+6. **Desktop app via Electron** — enables persistent seeding, background operation, and client-side CSAM scanning. Future mobile via Capacitor.
 7. **Web app first** — ship the web chat + DM file sharing before building the desktop app. Get users, validate the model, then expand.
 8. **Traffic-based server owner pricing** — server owners pay proportional to the infrastructure load their free users generate. Exact formula TBD after collecting real cost data.

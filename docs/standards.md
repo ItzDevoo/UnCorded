@@ -1,7 +1,7 @@
 # UnCorded — Project Standards
 
 Enforced conventions for monorepo structure, tooling, quality gates, and development workflow.
-Reference: C:\t3Code for proven patterns. Adapt to our stack (SolidJS, Electron, ElysiaJS).
+Adapt patterns to our stack (SolidJS, Electron, ElysiaJS).
 
 ---
 
@@ -110,8 +110,6 @@ export function createUserId(id: string): UserId {
 - Raw `string` for IDs is banned in any public interface
 - `createId()` from `@uncorded/shared` returns the appropriate branded type
 - Drizzle schema stays as `text()` — branding happens at the application boundary
-
-Reference: t3Code's `packages/contracts/src/baseSchemas.ts` for pattern.
 
 ---
 
@@ -348,7 +346,7 @@ jobs:
 
 ## Desktop App Standards (Electron — Phase 2)
 
-### Architecture (follows t3Code patterns)
+### Architecture
 
 - Electron embeds the ElysiaJS server as a child process
 - Main process spawns server with `ELECTRON_RUN_AS_NODE=1` on a dynamic loopback port

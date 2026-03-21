@@ -11,6 +11,7 @@ const Feedback = lazy(() => import("./pages/Feedback.js"));
 const Polls = lazy(() => import("./pages/Polls.js"));
 const Admins = lazy(() => import("./pages/Admins.js"));
 const AuditLog = lazy(() => import("./pages/AuditLog.js"));
+const DevEnvironment = lazy(() => import("./pages/DevEnvironment.js"));
 
 const NotFound = () => (
   <div class="flex min-h-screen items-center justify-center">
@@ -34,6 +35,7 @@ const App = () => {
             <Route path="/polls" component={Polls} />
             <Route path="/admins" component={Admins} />
             <Route path="/audit-log" component={AuditLog} />
+            <Route path="/dev" component={DevEnvironment} />
           </Route>
         </Route>
         <Route path="*" component={NotFound} />

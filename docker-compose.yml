@@ -21,6 +21,9 @@ services:
     env_file: .env
     environment:
       - REDIS_URL=redis://redis:6379
+    volumes:
+      - ./worktrees:/app/worktrees:ro
+      - ./docker/dev-state:/app/dev-state
     depends_on:
       redis:
         condition: service_healthy

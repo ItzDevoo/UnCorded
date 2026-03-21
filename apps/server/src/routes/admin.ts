@@ -23,6 +23,7 @@ import {
   giftedSubscriptions,
 } from "../db/schema.js";
 
+import { readdir } from "node:fs/promises";
 import { adminResolve } from "../middleware/admin.js";
 import { disconnectUser, sendToUser } from "../ws/connections.js";
 import { Opcode } from "@uncorded/protocol";
@@ -722,6 +723,75 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
     await logAudit(sessionUser.id, "close_poll", "poll", params.id);
 
     return { success: true };
+  })
+
+  // ── Dev Environment (Branch Switcher) ────────────────────────────────────
+  .get("/branches", async () => {
+    try {
+      const entries = await readdir("/app/worktrees", { withFileTypes: true });
+      const branches = entries.filter((e) => e.isDirectory()).map((e) => e.name).toSorted();
+      return { branches };
+    } catch {
+      return { branches: [] };
+    }
+  })
+
+  .get("/dev-status", async () => {
+    const stateFile = Bun.file("/app/dev-state/branch.json");
+    if (!(await stateFile.exists())) {
+      return { branch: "dev", switchedAt: null, switchedBy: null, status: "active" };
+    }
+    try {
+      const raw: unknown = await stateFile.json();
+      const schema = z.object({
+        branch: z.string(),
+        switchedAt: z.string().nullable(),
+        switchedBy: z.string().nullable(),
+        status: z.enum(["active", "pending"]),
+      });
+      const parsed = schema.safeParse(raw);
+      if (!parsed.success) {
+        return { branch: "dev", switchedAt: null, switchedBy: null, status: "active" };
+      }
+      return parsed.data;
+    } catch {
+      return { branch: "dev", switchedAt: null, switchedBy: null, status: "active" };
+    }
+  })
+
+  .post("/switch-dev", async ({ body, user: sessionUser }) => {
+    const switchSchema = z.object({ branch: z.string().min(1).max(200) });
+    const parsed = switchSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
+    }
+    const { branch } = parsed.data;
+
+    // Validate the branch exists as a worktree directory
+    try {
+      const entries = await readdir("/app/worktrees", { withFileTypes: true });
+      const exists = entries.some((e) => e.isDirectory() && e.name === branch);
+      if (!exists) throw new NotFoundError("Branch");
+    } catch (err) {
+      if (err instanceof NotFoundError) throw err;
+      throw new NotFoundError("Branch");
+    }
+
+    const state = {
+      branch,
+      switchedAt: new Date().toISOString(),
+      switchedBy: sessionUser.email ?? sessionUser.id,
+      status: "pending" as const,
+    };
+
+    await Bun.write("/app/dev-state/branch.json", JSON.stringify(state, null, 2));
+    await logAudit(sessionUser.id, "switch_dev", "dev_environment", branch);
+
+    return {
+      success: true,
+      branch,
+      message: "Branch marked for switch. Tell Git Manager to run the rebuild.",
+    };
   })
 
   // ── Audit Log ─────────────────────────────────────────────────────────────

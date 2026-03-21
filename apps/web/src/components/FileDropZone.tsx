@@ -59,7 +59,7 @@ const FileDropZone = (props: {
   return (
     <div
       data-slot="file-drop-zone"
-      class={`relative flex min-h-0 flex-1 flex-col ${props.class ?? ""}`}
+      class={`relative flex h-full flex-col ${props.class ?? ""}`}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}

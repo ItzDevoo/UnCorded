@@ -54,11 +54,11 @@ const AppLayout: ParentComponent = (props) => {
         onConfirm={confirmP2pDialog}
         onCancel={cancelP2pDialog}
       />
-      <SidebarProvider class="h-dvh !min-h-0">
+      <SidebarProvider class="h-screen !min-h-0">
         <AppSidebar />
         <SidebarInset>
           {/* Mobile header with sidebar trigger */}
-          <div class="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] md:hidden">
+          <div class="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2 md:hidden">
             <SidebarTrigger />
             <span class="text-sm font-semibold text-foreground">UnCorded</span>
           </div>

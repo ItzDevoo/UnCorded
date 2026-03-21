@@ -119,7 +119,7 @@ const MessageInput = (props: {
   }
 
   return (
-    <div class="shrink-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <div class="shrink-0 px-4 pb-4">
       <input
         ref={fileInputRef}
         type="file"

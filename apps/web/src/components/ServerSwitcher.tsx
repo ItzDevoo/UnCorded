@@ -17,8 +17,7 @@ const ServerSwitcher = (props: ServerSwitcherProps) => {
 
   const updatePosition = () => {
     const rect = triggerRef.getBoundingClientRect();
-    const left = Math.min(rect.left, window.innerWidth - 272);
-    setPos({ top: rect.bottom + 4, left: Math.max(8, left) });
+    setPos({ top: rect.bottom + 4, left: rect.left });
   };
 
   const handleOpen = () => {
@@ -63,7 +62,7 @@ const ServerSwitcher = (props: ServerSwitcherProps) => {
         ref={triggerRef}
         onClick={handleOpen}
         aria-label="Switch server"
-        class="flex w-full items-center gap-2 rounded-lg border border-border bg-card px-3 py-2.5 text-sm font-medium touch-manipulation transition-colors hover:bg-accent active:bg-accent"
+        class="flex w-full items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
       >
         {/* Icon */}
         <Show
@@ -123,14 +122,14 @@ const ServerSwitcher = (props: ServerSwitcherProps) => {
           <div class="fixed inset-0 z-[60]" onClick={close} />
           {/* Menu */}
           <div
-            class="fixed z-[60] min-w-[256px] max-w-[calc(100vw-16px)] rounded-xl border border-border bg-popover p-1 shadow-md"
+            class="fixed z-[60] min-w-[256px] rounded-xl border border-border bg-popover p-1 shadow-md"
             style={{ top: `${pos().top}px`, left: `${pos().left}px` }}
           >
             {/* Servers */}
             <For each={readyData.data?.servers}>
               {(server) => (
                 <button
-                  class="flex w-full items-center gap-2 rounded-lg px-2.5 py-2.5 text-sm touch-manipulation transition-colors hover:bg-accent active:bg-accent"
+                  class="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-colors hover:bg-accent"
                   classList={{ "bg-accent font-medium": selectedServerId() === server.id }}
                   aria-label={server.name}
                   onClick={() => {
@@ -163,7 +162,7 @@ const ServerSwitcher = (props: ServerSwitcherProps) => {
 
             {/* Create Server */}
             <button
-              class="flex w-full items-center gap-2 rounded-lg px-2.5 py-2.5 text-sm text-success touch-manipulation transition-colors hover:bg-accent active:bg-accent"
+              class="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-success transition-colors hover:bg-accent"
               aria-label="Create Server"
               onClick={() => {
                 props.onCreateServer();
@@ -185,7 +184,7 @@ const ServerSwitcher = (props: ServerSwitcherProps) => {
 
             {/* Join Server */}
             <button
-              class="flex w-full items-center gap-2 rounded-lg px-2.5 py-2.5 text-sm text-primary touch-manipulation transition-colors hover:bg-accent active:bg-accent"
+              class="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-primary transition-colors hover:bg-accent"
               aria-label="Join Server"
               onClick={() => {
                 props.onJoinServer();

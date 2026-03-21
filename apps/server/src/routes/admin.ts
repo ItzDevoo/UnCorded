@@ -770,7 +770,7 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
   .get("/dev-status", async () => loadDevState())
 
   .post("/switch-dev", async ({ body, user: sessionUser }) => {
-    const switchSchema = z.object({ branch: z.string().min(1).max(200) });
+    const switchSchema = z.object({ branch: z.string().min(1) });
     const parsed = switchSchema.safeParse(body);
     if (!parsed.success) {
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
@@ -795,8 +795,6 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       if (!exists) throw new NotFoundError("Branch");
     } catch (err) {
       if (err instanceof NotFoundError) throw err;
-      const code = (err as NodeJS.ErrnoException).code;
-      if (code === "ENOENT") throw new NotFoundError("Branch");
       throw new InternalError("Failed to read worktrees directory");
     }
 

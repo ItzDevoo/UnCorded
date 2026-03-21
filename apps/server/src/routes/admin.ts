@@ -31,6 +31,36 @@ import { computeEffectiveTier } from "../helpers/resolve-tier.js";
 
 const PAGE_SIZE = 50;
 
+const devStateSchema = z.object({
+  branch: z.string(),
+  switchedAt: z.string().nullable(),
+  switchedBy: z.string().nullable(),
+  status: z.enum(["active", "pending"]),
+});
+
+type DevState = z.infer<typeof devStateSchema>;
+
+const DEV_STATE_DEFAULT: DevState = { branch: "dev", switchedAt: null, switchedBy: null, status: "active" };
+const DEV_STATE_PATH = "/app/dev-state/branch.json";
+
+async function loadDevState(): Promise<DevState> {
+  const stateFile = Bun.file(DEV_STATE_PATH);
+  if (!(await stateFile.exists())) return DEV_STATE_DEFAULT;
+  let raw: unknown;
+  try {
+    raw = await stateFile.json();
+  } catch (err) {
+    console.error("Failed to read dev-state/branch.json:", err);
+    throw new InternalError("Failed to read dev environment state");
+  }
+  const parsed = devStateSchema.safeParse(raw);
+  if (!parsed.success) {
+    console.error("Corrupt dev-state/branch.json:", parsed.error.message);
+    throw new InternalError("Dev environment state file is corrupt");
+  }
+  return parsed.data;
+}
+
 async function logAudit(
   adminId: string,
   action: string,
@@ -737,31 +767,7 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
     }
   })
 
-  .get("/dev-status", async () => {
-    const stateFile = Bun.file("/app/dev-state/branch.json");
-    if (!(await stateFile.exists())) {
-      return { branch: "dev", switchedAt: null, switchedBy: null, status: "active" };
-    }
-    const schema = z.object({
-      branch: z.string(),
-      switchedAt: z.string().nullable(),
-      switchedBy: z.string().nullable(),
-      status: z.enum(["active", "pending"]),
-    });
-    let raw: unknown;
-    try {
-      raw = await stateFile.json();
-    } catch (err) {
-      console.error("Failed to read dev-state/branch.json:", err);
-      throw new InternalError("Failed to read dev environment state");
-    }
-    const parsed = schema.safeParse(raw);
-    if (!parsed.success) {
-      console.error("Corrupt dev-state/branch.json:", parsed.error.message);
-      throw new InternalError("Dev environment state file is corrupt");
-    }
-    return parsed.data;
-  })
+  .get("/dev-status", async () => loadDevState())
 
   .post("/switch-dev", async ({ body, user: sessionUser }) => {
     const switchSchema = z.object({ branch: z.string().min(1).max(200) });
@@ -772,17 +778,9 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
     const { branch } = parsed.data;
 
     // Reject switching to the already-active branch
-    const currentState = Bun.file("/app/dev-state/branch.json");
-    if (await currentState.exists()) {
-      try {
-        const current = (await currentState.json()) as { branch?: string };
-        if (current.branch === branch) {
-          throw new ValidationError(`Dev environment is already set to "${branch}"`);
-        }
-      } catch (err) {
-        if (err instanceof ValidationError) throw err;
-        // State file unreadable — proceed with the switch
-      }
+    const currentState = await loadDevState();
+    if (currentState.branch === branch) {
+      throw new ValidationError(`Dev environment is already set to "${branch}"`);
     }
 
     // Reject path traversal characters before touching the filesystem
@@ -809,7 +807,7 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       status: "pending" as const,
     };
 
-    await Bun.write("/app/dev-state/branch.json", JSON.stringify(state, null, 2));
+    await Bun.write(DEV_STATE_PATH, JSON.stringify(state, null, 2));
     logAudit(sessionUser.id, "switch_dev", "dev_environment", branch).catch((err) =>
       console.error("audit log failed for switch_dev:", err),
     );

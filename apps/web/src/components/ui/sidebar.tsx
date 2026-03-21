@@ -344,7 +344,7 @@ const SidebarFooter = (props: SidebarFooterProps) => {
   return (
     <div
       data-slot="sidebar-footer"
-      class={cn("flex shrink-0 items-center border-t border-border p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]", local.class)}
+      class={cn("flex shrink-0 items-center border-t border-border p-2", local.class)}
       {...rest}
     >
       {local.children}

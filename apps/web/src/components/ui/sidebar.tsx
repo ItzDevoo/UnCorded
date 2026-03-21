@@ -310,7 +310,7 @@ const SidebarHeader = (props: SidebarHeaderProps) => {
   return (
     <div
       data-slot="sidebar-header"
-      class={cn("flex shrink-0 flex-col gap-2 p-3 pl-[max(0.75rem,env(safe-area-inset-left))]", local.class)}
+      class={cn("flex shrink-0 flex-col gap-2 p-3", local.class)}
       {...rest}
     >
       {local.children}

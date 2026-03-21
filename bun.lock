@@ -25,11 +25,11 @@
         "better-auth": "^1",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
+        "solid-js": "^1",
         "tailwind-merge": "^3.5.0",
-        "tailwindcss": "^4",
       },
       "devDependencies": {
-        "solid-js": "^1",
+        "tailwindcss": "^4",
         "vite": "^6",
         "vite-plugin-solid": "^2",
       },

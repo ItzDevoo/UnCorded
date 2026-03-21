@@ -14,8 +14,8 @@ When a Discord message asks for a fix:
 2. `bun run typecheck && bun run lint`
 3. Commit + push to main
 4. `VITE_API_URL="" bun run build --filter=@uncorded/web`
-5. `docker compose build server` (if server code changed)
-6. `docker compose up -d`
+5. `cd .. && docker compose build server` (if server code changed)
+6. `cd .. && docker compose up -d server main admin`
 7. Respond on Discord confirming fix is live
 
 No PRs. No review. Fix → ship → respond.
@@ -25,8 +25,8 @@ When told to merge a PR:
 1. `gh pr merge #X --squash`
 2. `git pull`
 3. `VITE_API_URL="" bun run build --filter=@uncorded/web`
-4. `docker compose build server` (if server code changed)
-5. `docker compose up -d`
+4. `cd .. && docker compose build server` (if server code changed)
+5. `cd .. && docker compose up -d server main admin`
 6. `git worktree remove ../worktrees/{branch}`
 7. Confirm merge + deploy complete
 
@@ -38,10 +38,11 @@ When told to merge a PR:
 
 ## Deploy Rules
 
+- Docker compose runs from `C:\Projects\UnCorded-Dev\` (parent dir), NOT from `main/`
 - `VITE_API_URL=""` on EVERY frontend build — never skip
 - Typecheck + lint before EVERY commit
-- `docker compose up -d` restarts only changed containers
-- If only frontend changed: rebuild web, `docker compose restart web`
+- Only restart prod services: `server main admin` — never touch `server-dev` or `dev`
+- If only frontend changed: `cd .. && docker compose restart main`
 - `client_max_body_size 5m` in nginx for avatar uploads
 
 ## Project Rules (Non-Negotiable)

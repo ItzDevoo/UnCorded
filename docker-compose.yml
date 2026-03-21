@@ -1,3 +1,6 @@
+# DEPRECATED: Use ../docker-compose.yml from the orchestrator root instead.
+# This file is kept for reference only.
+
 services:
   redis:
     image: redis:7-alpine

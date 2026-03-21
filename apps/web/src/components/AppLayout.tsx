@@ -58,7 +58,7 @@ const AppLayout: ParentComponent = (props) => {
         <AppSidebar />
         <SidebarInset>
           {/* Mobile header with sidebar trigger */}
-          <div class="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2 md:hidden">
+          <div class="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] md:hidden">
             <SidebarTrigger />
             <span class="text-sm font-semibold text-foreground">UnCorded</span>
           </div>

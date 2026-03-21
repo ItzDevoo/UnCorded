@@ -239,7 +239,7 @@ const SidebarInset = (props: ParentProps<{ class?: string }>) => {
     <main
       data-slot="sidebar-inset"
       class={cn(
-        "relative flex w-full flex-1 flex-col bg-card overflow-hidden",
+        "relative flex w-full flex-1 flex-col bg-card overflow-hidden pr-[env(safe-area-inset-right)]",
         "md:peer-data-[variant=inset]:m-2",
         "md:peer-data-[variant=inset]:ml-0",
         "md:peer-data-[variant=inset]:rounded-xl",
@@ -310,7 +310,7 @@ const SidebarHeader = (props: SidebarHeaderProps) => {
   return (
     <div
       data-slot="sidebar-header"
-      class={cn("flex shrink-0 flex-col gap-2 p-3", local.class)}
+      class={cn("flex shrink-0 flex-col gap-2 p-3 pl-[max(0.75rem,env(safe-area-inset-left))]", local.class)}
       {...rest}
     >
       {local.children}
@@ -344,7 +344,7 @@ const SidebarFooter = (props: SidebarFooterProps) => {
   return (
     <div
       data-slot="sidebar-footer"
-      class={cn("flex shrink-0 items-center border-t border-border p-2", local.class)}
+      class={cn("flex shrink-0 items-center border-t border-border p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]", local.class)}
       {...rest}
     >
       {local.children}

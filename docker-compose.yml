@@ -1,5 +1,5 @@
-# DEPRECATED: Use ../docker-compose.yml from the orchestrator root instead.
-# This file is kept for reference only.
+# Legacy single-repo compose — the authoritative file is C:\Projects\UnCorded-Dev\docker-compose.yml
+# (orchestrator root). Keep this copy in sync for reference when reviewing PRs.
 
 services:
   redis:

@@ -40,6 +40,9 @@ const DevEnvironment = () => {
       const statusParsed = devStatusSchema.safeParse(statusRes);
       if (statusParsed.success) {
         setStatus(statusParsed.data);
+      } else {
+        console.warn("dev-status parse failed:", statusParsed.error.message);
+        showToast("Dev status response has unexpected shape", "error");
       }
 
       const branchesParsed = branchesSchema.safeParse(branchesRes);
@@ -48,6 +51,9 @@ const DevEnvironment = () => {
         if (!selectedBranch()) {
           setSelectedBranch(branchesParsed.data.branches[0] ?? "");
         }
+      } else {
+        console.warn("branches parse failed:", branchesParsed.error.message);
+        showToast("Branches response has unexpected shape", "error");
       }
     } catch {
       showToast("Failed to load dev environment data", "error");

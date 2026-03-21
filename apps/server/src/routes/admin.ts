@@ -767,6 +767,11 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
     }
     const { branch } = parsed.data;
 
+    // Reject path traversal characters before touching the filesystem
+    if (/[/\\]/.test(branch) || branch === ".." || branch === ".") {
+      throw new ValidationError("Invalid branch name");
+    }
+
     // Validate the branch exists as a worktree directory
     try {
       const entries = await readdir("/app/worktrees", { withFileTypes: true });

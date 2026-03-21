@@ -23,12 +23,43 @@ import {
   giftedSubscriptions,
 } from "../db/schema.js";
 
+import { readdir } from "node:fs/promises";
 import { adminResolve } from "../middleware/admin.js";
 import { disconnectUser, sendToUser } from "../ws/connections.js";
 import { Opcode } from "@uncorded/protocol";
 import { computeEffectiveTier } from "../helpers/resolve-tier.js";
 
 const PAGE_SIZE = 50;
+
+const devStateSchema = z.object({
+  branch: z.string(),
+  switchedAt: z.string().nullable(),
+  switchedBy: z.string().nullable(),
+  status: z.enum(["active", "pending"]),
+});
+
+type DevState = z.infer<typeof devStateSchema>;
+
+const DEV_STATE_DEFAULT: DevState = { branch: "dev", switchedAt: null, switchedBy: null, status: "active" };
+const DEV_STATE_PATH = "/app/dev-state/branch.json";
+
+async function loadDevState(): Promise<DevState> {
+  const stateFile = Bun.file(DEV_STATE_PATH);
+  if (!(await stateFile.exists())) return DEV_STATE_DEFAULT;
+  let raw: unknown;
+  try {
+    raw = await stateFile.json();
+  } catch (err) {
+    console.error("Failed to read dev-state/branch.json:", err);
+    throw new InternalError("Failed to read dev environment state");
+  }
+  const parsed = devStateSchema.safeParse(raw);
+  if (!parsed.success) {
+    console.error("Corrupt dev-state/branch.json:", parsed.error.message);
+    throw new InternalError("Dev environment state file is corrupt");
+  }
+  return parsed.data;
+}
 
 async function logAudit(
   adminId: string,
@@ -722,6 +753,68 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
     await logAudit(sessionUser.id, "close_poll", "poll", params.id);
 
     return { success: true };
+  })
+
+  // ── Dev Environment (Branch Switcher) ────────────────────────────────────
+  .get("/branches", async () => {
+    try {
+      const entries = await readdir("/app/worktrees", { withFileTypes: true });
+      const branches = entries.filter((e) => e.isDirectory()).map((e) => e.name).toSorted();
+      return { branches };
+    } catch (err) {
+      console.error("Failed to read worktrees directory:", err);
+      throw new InternalError("Failed to list branches");
+    }
+  })
+
+  .get("/dev-status", async () => loadDevState())
+
+  .post("/switch-dev", async ({ body, user: sessionUser }) => {
+    const switchSchema = z.object({ branch: z.string().min(1) });
+    const parsed = switchSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
+    }
+    const { branch } = parsed.data;
+
+    // Reject switching to the already-active branch
+    const currentState = await loadDevState();
+    if (currentState.branch === branch) {
+      throw new ValidationError(`Dev environment is already set to "${branch}"`);
+    }
+
+    // Reject path traversal characters before touching the filesystem
+    if (/[/\\]/.test(branch) || branch === ".." || branch === ".") {
+      throw new ValidationError("Invalid branch name");
+    }
+
+    // Validate the branch exists as a worktree directory
+    try {
+      const entries = await readdir("/app/worktrees", { withFileTypes: true });
+      const exists = entries.some((e) => e.isDirectory() && e.name === branch);
+      if (!exists) throw new NotFoundError("Branch");
+    } catch (err) {
+      if (err instanceof NotFoundError) throw err;
+      throw new InternalError("Failed to read worktrees directory");
+    }
+
+    const state = {
+      branch,
+      switchedAt: new Date().toISOString(),
+      switchedBy: sessionUser.email ?? sessionUser.id,
+      status: "pending" as const,
+    };
+
+    await Bun.write(DEV_STATE_PATH, JSON.stringify(state, null, 2));
+    logAudit(sessionUser.id, "switch_dev", "dev_environment", branch).catch((err) =>
+      console.error("audit log failed for switch_dev:", err),
+    );
+
+    return {
+      success: true,
+      branch,
+      message: "Branch marked for switch. Tell Git Manager to run the rebuild.",
+    };
   })
 
   // ── Audit Log ─────────────────────────────────────────────────────────────

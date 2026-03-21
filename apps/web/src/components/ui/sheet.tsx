@@ -85,7 +85,7 @@ const SheetContent = (props: SheetContentProps) => {
           role="dialog"
           aria-modal="true"
           class={cn(
-            "relative h-full w-72 bg-sidebar pt-[env(safe-area-inset-top)]",
+            "relative h-full w-72 bg-sidebar pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
             side() === "left"
               ? "fixed left-0 top-0 animate-slide-in-left pl-[env(safe-area-inset-left)]"
               : "fixed right-0 top-0 animate-slide-in-right pr-[env(safe-area-inset-right)]",

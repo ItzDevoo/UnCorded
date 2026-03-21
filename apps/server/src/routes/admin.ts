@@ -779,7 +779,9 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       if (!exists) throw new NotFoundError("Branch");
     } catch (err) {
       if (err instanceof NotFoundError) throw err;
-      throw new NotFoundError("Branch");
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code === "ENOENT") throw new NotFoundError("Branch");
+      throw new InternalError("Failed to read worktrees directory");
     }
 
     const state = {
@@ -790,7 +792,9 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
     };
 
     await Bun.write("/app/dev-state/branch.json", JSON.stringify(state, null, 2));
-    await logAudit(sessionUser.id, "switch_dev", "dev_environment", branch);
+    logAudit(sessionUser.id, "switch_dev", "dev_environment", branch).catch((err) =>
+      console.error("audit log failed for switch_dev:", err),
+    );
 
     return {
       success: true,

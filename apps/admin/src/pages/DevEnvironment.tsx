@@ -47,9 +47,10 @@ const DevEnvironment = () => {
 
       const branchesParsed = branchesSchema.safeParse(branchesRes);
       if (branchesParsed.success) {
-        setBranches(branchesParsed.data.branches);
-        if (!selectedBranch()) {
-          setSelectedBranch(branchesParsed.data.branches[0] ?? "");
+        const newBranches = branchesParsed.data.branches;
+        setBranches(newBranches);
+        if (!selectedBranch() || !newBranches.includes(selectedBranch())) {
+          setSelectedBranch(newBranches[0] ?? "");
         }
       } else {
         console.warn("branches parse failed:", branchesParsed.error.message);

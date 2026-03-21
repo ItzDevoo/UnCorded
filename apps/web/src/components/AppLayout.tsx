@@ -54,7 +54,7 @@ const AppLayout: ParentComponent = (props) => {
         onConfirm={confirmP2pDialog}
         onCancel={cancelP2pDialog}
       />
-      <SidebarProvider class="h-screen !min-h-0">
+      <SidebarProvider class="h-dvh !min-h-0">
         <AppSidebar />
         <SidebarInset>
           {/* Mobile header with sidebar trigger */}

@@ -154,19 +154,19 @@ const Home = () => {
                           {/* Progress bar background */}
                           <div
                             class={`absolute inset-y-0 left-0 transition-all duration-500 ${
-                              isUserChoice ? "bg-primary/15" : "bg-muted"
+                              isUserChoice ? "bg-primary/8" : "bg-muted"
                             }`}
                             style={{ width: `${pct}%` }}
                           />
                           <div class="relative flex items-center gap-3">
                             <Show when={isUserChoice}>
-                              <span class="flex size-4 shrink-0 items-center justify-center rounded-full bg-primary">
+                              <span class="flex size-4 shrink-0 items-center justify-center rounded-full bg-primary/60">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                                   <polyline points="20 6 9 17 4 12" />
                                 </svg>
                               </span>
                             </Show>
-                            <span class={`flex-1 text-sm font-medium ${isUserChoice ? "text-primary" : ""}`}>
+                            <span class={`flex-1 text-sm font-medium ${isUserChoice ? "text-foreground" : ""}`}>
                               {entry.title}
                             </span>
                             <span class="text-xs font-medium tabular-nums text-muted-foreground">

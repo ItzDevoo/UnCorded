@@ -239,7 +239,7 @@ const SidebarInset = (props: ParentProps<{ class?: string }>) => {
     <main
       data-slot="sidebar-inset"
       class={cn(
-        "relative flex w-full flex-1 flex-col bg-card overflow-hidden pr-[env(safe-area-inset-right)]",
+        "relative flex w-full flex-1 flex-col bg-card overflow-hidden",
         "md:peer-data-[variant=inset]:m-2",
         "md:peer-data-[variant=inset]:ml-0",
         "md:peer-data-[variant=inset]:rounded-xl",

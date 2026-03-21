@@ -107,7 +107,7 @@ const DialogContent = (props: DialogContentProps) => {
     <DialogContext.Provider value={{ titleId, descriptionId }}>
       <Portal mount={document.body}>
         <div
-          class="fixed inset-0 z-[--z-modal] flex items-center justify-center"
+          class="fixed inset-0 z-50 flex items-center justify-center"
           onClick={() => local.onClose?.()}
         >
           <DialogOverlay />

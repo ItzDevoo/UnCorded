@@ -111,12 +111,12 @@ const MenuContent = (props: { children: JSX.Element; class?: string }) => {
     <Show when={ctx.open()}>
       <Portal mount={document.body}>
         {/* Backdrop */}
-        <div class="fixed inset-0 z-[--z-dropdown]" onClick={() => ctx.setOpen(false)} />
+        <div class="fixed inset-0 z-40" onClick={() => ctx.setOpen(false)} />
         {/* Content */}
         <div
           data-slot="menu-content"
           class={cn(
-            "fixed z-[--z-dropdown] min-w-[160px] rounded-xl border border-border bg-popover p-1 shadow-md animate-scale-in",
+            "fixed z-40 min-w-[160px] rounded-xl border border-border bg-popover p-1 shadow-md animate-scale-in",
             props.class,
           )}
           style={{

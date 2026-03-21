@@ -48,7 +48,7 @@ const Tooltip = (props: TooltipProps) => {
       <Show when={visible()}>
         <div
           class={cn(
-            "absolute z-[--z-tooltip] whitespace-nowrap rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md",
+            "absolute z-60 whitespace-nowrap rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md",
             positionClasses[side()] ?? positionClasses.top,
           )}
         >

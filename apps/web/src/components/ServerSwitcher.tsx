@@ -119,10 +119,10 @@ const ServerSwitcher = (props: ServerSwitcherProps) => {
       <Show when={open()}>
         <Portal mount={document.body}>
           {/* Backdrop */}
-          <div class="fixed inset-0 z-[--z-dropdown]" onClick={close} />
+          <div class="fixed inset-0 z-40" onClick={close} />
           {/* Menu */}
           <div
-            class="absolute z-[--z-dropdown] min-w-[256px] rounded-xl border border-border bg-popover p-1 shadow-md"
+            class="fixed z-40 min-w-[256px] rounded-xl border border-border bg-popover p-1 shadow-md"
             style={{ top: `${pos().top}px`, left: `${pos().left}px` }}
           >
             {/* Servers */}

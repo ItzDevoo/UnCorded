@@ -23,6 +23,7 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  useSidebar,
 } from "./ui/sidebar.js";
 import ServerSwitcher from "./ServerSwitcher.js";
 import CreateServerModal from "./modals/CreateServerModal.js";
@@ -38,11 +39,9 @@ import UnifiedReportDialog from "./modals/UnifiedReportDialog.js";
 const iconBtnClass =
   "rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground";
 
-interface AppSidebarProps {
-  onNavigate?: () => void;
-}
-
-const AppSidebar = (props: AppSidebarProps) => {
+const AppSidebar = () => {
+  const { setOpenMobile } = useSidebar();
+  const closeMobile = () => setOpenMobile(false);
   const session = useSession();
   const navigate = useNavigate();
   const [modal, setModal] = createSignal<"create" | "join" | "invite" | "create-channel" | null>(
@@ -157,14 +156,14 @@ const AppSidebar = (props: AppSidebarProps) => {
   );
 
   return (
-    <Sidebar>
+    <Sidebar variant="inset" collapsible="icon">
       {/* ── Header: Brand Home + Server Switcher ────────────────────── */}
       <SidebarHeader>
         <button
           onClick={() => {
             selectHome();
             navigate("/home/friends");
-            props.onNavigate?.();
+            closeMobile();
           }}
           class="flex w-full items-center gap-1.5 rounded-lg px-1 py-1 transition-colors hover:bg-accent"
         >
@@ -194,7 +193,7 @@ const AppSidebar = (props: AppSidebarProps) => {
                   <SidebarMenuButton
                     onClick={() => {
                       navigate("/home/friends");
-                      props.onNavigate?.();
+                      closeMobile();
                     }}
                   >
                     <svg
@@ -238,7 +237,7 @@ const AppSidebar = (props: AppSidebarProps) => {
                             active={isActive()}
                             onClick={() => {
                               selectDmChannel(dm.id);
-                              props.onNavigate?.();
+                              closeMobile();
                             }}
                           >
                             <div class="relative shrink-0">
@@ -301,7 +300,7 @@ const AppSidebar = (props: AppSidebarProps) => {
                           active={isActive()}
                           onClick={() => {
                             setSelectedChannelId(channel.id);
-                            props.onNavigate?.();
+                            closeMobile();
                           }}
                         >
                           <span class="text-muted-foreground">#</span>
@@ -363,7 +362,7 @@ const AppSidebar = (props: AppSidebarProps) => {
             onClick={() => {
               selectHome();
               navigate("/home/feedback");
-              props.onNavigate?.();
+              closeMobile();
             }}
           >
             <svg

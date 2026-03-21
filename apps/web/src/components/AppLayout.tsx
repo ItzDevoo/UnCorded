@@ -2,7 +2,6 @@ import {
   onCleanup,
   onMount,
   createEffect,
-  createSignal,
   Show,
   type ParentComponent,
 } from "solid-js";
@@ -20,7 +19,7 @@ import ChatArea from "./ChatArea.js";
 import ShortcutsDialog from "./ShortcutsDialog.js";
 import { ToastContainer } from "./ui/toast.js";
 import { Empty } from "./ui/empty.js";
-import { Sheet, SheetContent } from "./ui/sheet.js";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "./ui/sidebar.js";
 import P2PNoticeDialog from "./P2PNoticeDialog.js";
 import GiftNotification from "./modals/GiftNotification.js";
 import { getP2pDialogOpen, confirmP2pDialog, cancelP2pDialog } from "../stores/file-store.js";
@@ -31,7 +30,6 @@ const AppLayout: ParentComponent = (props) => {
   const session = useSession();
   const location = useLocation();
   const isSettingsPage = () => SETTINGS_PATHS.some((p) => location.pathname.startsWith(p));
-  const [sidebarOpen, setSidebarOpen] = createSignal(false);
 
   createEffect(() => {
     const s = session();
@@ -56,39 +54,12 @@ const AppLayout: ParentComponent = (props) => {
         onConfirm={confirmP2pDialog}
         onCancel={cancelP2pDialog}
       />
-      <div class="flex h-screen overflow-hidden">
-        {/* Desktop sidebar */}
-        <div class="hidden sm:block">
-          <AppSidebar />
-        </div>
-
-        {/* Mobile sidebar sheet */}
-        <Sheet open={sidebarOpen()} onOpenChange={setSidebarOpen} side="left">
-          <SheetContent side="left" onClose={() => setSidebarOpen(false)}>
-            <AppSidebar onNavigate={() => setSidebarOpen(false)} />
-          </SheetContent>
-        </Sheet>
-
-        <main class="flex min-w-0 flex-1 flex-col bg-secondary">
-          {/* Mobile header with hamburger */}
-          <div class="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2 sm:hidden">
-            <button
-              type="button"
-              class="rounded p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              aria-label="Open sidebar"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
+      <SidebarProvider class="h-screen !min-h-0">
+        <AppSidebar />
+        <SidebarInset>
+          {/* Mobile header with sidebar trigger */}
+          <div class="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2 md:hidden">
+            <SidebarTrigger />
             <span class="text-sm font-semibold text-foreground">UnCorded</span>
           </div>
 
@@ -135,8 +106,8 @@ const AppLayout: ParentComponent = (props) => {
               <ChatArea />
             </Show>
           </Show>
-        </main>
-      </div>
+        </SidebarInset>
+      </SidebarProvider>
     </AuthGuard>
   );
 };

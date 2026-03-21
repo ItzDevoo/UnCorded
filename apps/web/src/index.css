@@ -160,11 +160,7 @@
   --sidebar: oklch(0.16 0.022 155);
   --sidebar-foreground: oklch(0.955 0.008 155);
 
-  /* Z-index scale */
-  --z-dropdown: 40;
-  --z-modal: 50;
-  --z-tooltip: 60;
-  --z-toast: 70;
+  /* Z-index scale (consumed directly as Tailwind utilities: z-40, z-50, z-60, z-70) */
   --z-noise: 9999;
 }
 

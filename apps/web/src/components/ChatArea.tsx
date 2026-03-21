@@ -48,7 +48,7 @@ const ChatArea = () => {
   let mql: MediaQueryList | null = null;
   const handleResize = (e: MediaQueryListEvent) => setIsMobile(e.matches);
   onMount(() => {
-    mql = window.matchMedia("(max-width: 639px)");
+    mql = window.matchMedia("(max-width: 767px)");
     setIsMobile(mql.matches);
     mql.addEventListener("change", handleResize);
   });
@@ -197,7 +197,7 @@ const ChatArea = () => {
               {/* Desktop member list */}
               <Show when={isServerChannel() && showMembers() && currentServer()}>
                 {(server) => (
-                  <div class="hidden sm:block">
+                  <div class="hidden md:block">
                     <MemberList serverId={server().id} ownerId={server().ownerId} />
                   </div>
                 )}

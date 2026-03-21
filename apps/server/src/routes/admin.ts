@@ -731,8 +731,9 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       const entries = await readdir("/app/worktrees", { withFileTypes: true });
       const branches = entries.filter((e) => e.isDirectory()).map((e) => e.name).toSorted();
       return { branches };
-    } catch {
-      return { branches: [] };
+    } catch (err) {
+      console.error("Failed to read worktrees directory:", err);
+      throw new InternalError("Failed to list branches");
     }
   })
 
@@ -741,22 +742,25 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
     if (!(await stateFile.exists())) {
       return { branch: "dev", switchedAt: null, switchedBy: null, status: "active" };
     }
+    const schema = z.object({
+      branch: z.string(),
+      switchedAt: z.string().nullable(),
+      switchedBy: z.string().nullable(),
+      status: z.enum(["active", "pending"]),
+    });
+    let raw: unknown;
     try {
-      const raw: unknown = await stateFile.json();
-      const schema = z.object({
-        branch: z.string(),
-        switchedAt: z.string().nullable(),
-        switchedBy: z.string().nullable(),
-        status: z.enum(["active", "pending"]),
-      });
-      const parsed = schema.safeParse(raw);
-      if (!parsed.success) {
-        return { branch: "dev", switchedAt: null, switchedBy: null, status: "active" };
-      }
-      return parsed.data;
-    } catch {
-      return { branch: "dev", switchedAt: null, switchedBy: null, status: "active" };
+      raw = await stateFile.json();
+    } catch (err) {
+      console.error("Failed to read dev-state/branch.json:", err);
+      throw new InternalError("Failed to read dev environment state");
     }
+    const parsed = schema.safeParse(raw);
+    if (!parsed.success) {
+      console.error("Corrupt dev-state/branch.json:", parsed.error.message);
+      throw new InternalError("Dev environment state file is corrupt");
+    }
+    return parsed.data;
   })
 
   .post("/switch-dev", async ({ body, user: sessionUser }) => {
@@ -766,6 +770,20 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
     }
     const { branch } = parsed.data;
+
+    // Reject switching to the already-active branch
+    const currentState = Bun.file("/app/dev-state/branch.json");
+    if (await currentState.exists()) {
+      try {
+        const current = (await currentState.json()) as { branch?: string };
+        if (current.branch === branch) {
+          throw new ValidationError(`Dev environment is already set to "${branch}"`);
+        }
+      } catch (err) {
+        if (err instanceof ValidationError) throw err;
+        // State file unreadable — proceed with the switch
+      }
+    }
 
     // Reject path traversal characters before touching the filesystem
     if (/[/\\]/.test(branch) || branch === ".." || branch === ".") {

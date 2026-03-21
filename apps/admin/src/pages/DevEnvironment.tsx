@@ -116,7 +116,9 @@ const DevEnvironment = () => {
                 {(s) => (
                   <div class="space-y-3">
                     <div class="flex items-center justify-between">
-                      <span class="text-sm text-muted-foreground">Active Branch</span>
+                      <span class="text-sm text-muted-foreground">
+                        {s().status === "pending" ? "Pending Branch" : "Active Branch"}
+                      </span>
                       <span class="rounded-md bg-primary/10 px-2.5 py-1 text-sm font-medium text-primary">
                         {s().branch}
                       </span>

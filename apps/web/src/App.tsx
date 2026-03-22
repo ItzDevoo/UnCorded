@@ -10,6 +10,7 @@ const ForgotPassword = lazy(() => import("./pages/ForgotPassword.js"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.js"));
 const Privacy = lazy(() => import("./pages/Privacy.js"));
 const Terms = lazy(() => import("./pages/Terms.js"));
+const Onboarding = lazy(() => import("./pages/Onboarding.js"));
 const Home = lazy(() => import("./pages/Home.js"));
 const Friends = lazy(() => import("./pages/Friends.js"));
 const Settings = lazy(() => import("./pages/Settings.js"));
@@ -26,6 +27,7 @@ const App = () => {
       <Route path="/reset-password" component={ResetPassword} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
+      <Route path="/onboarding" component={Onboarding} />
       <Route path="/home" component={AppLayout}>
         <Route path="/" component={Home} />
         <Route path="/friends" component={Friends} />

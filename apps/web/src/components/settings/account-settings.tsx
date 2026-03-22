@@ -50,6 +50,20 @@ const AccountSettings = () => {
   }
 
   onMount(async () => {
+    // After OAuth link redirect, force session refresh and clean up URL
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("linked")) {
+      params.delete("linked");
+      const clean = `${window.location.pathname}${params.size ? `?${params}` : ""}`;
+      window.history.replaceState(null, "", clean);
+      // Force the auth client to re-read the session cookie (best-effort)
+      try {
+        await authClient.getSession({ fetchOptions: { throw: false } });
+      } catch {
+        if (import.meta.env.DEV) console.error("[settings] Session refresh after link failed");
+      }
+    }
+
     try {
       const me = await api<{ email: string }>("/api/users/@me");
       setEmail(me.email);
@@ -110,7 +124,7 @@ const AccountSettings = () => {
   async function handleConnect(provider: "google" | "discord") {
     setConnecting(true);
     try {
-      await signIn.social({ provider, callbackURL: `${window.location.origin}/settings` });
+      await signIn.social({ provider, callbackURL: `${window.location.origin}/home/settings?linked=1` });
     } catch {
       showToast("Failed to connect account", "error");
       setConnecting(false);

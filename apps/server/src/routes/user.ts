@@ -1,5 +1,6 @@
 import { Elysia } from "elysia";
-import { eq, ilike, ne, and, or } from "drizzle-orm";
+import { NeonDbError } from "@neondatabase/serverless";
+import { eq, ilike, ne, and, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   updateUserSchema,
@@ -214,10 +215,13 @@ export const userRoutes = new Elysia()
       const [existing] = await db
         .select({ id: user.id })
         .from(user)
-        .where(eq(user.username, parsed.data.username))
+        .where(and(
+          sql`lower(${user.username}) = lower(${parsed.data.username})`,
+          ne(user.id, sessionUser.id),
+        ))
         .limit(1);
 
-      if (existing && existing.id !== sessionUser.id) {
+      if (existing) {
         throw new ConflictError("USERNAME_TAKEN", "Username is already taken");
       }
 
@@ -237,14 +241,24 @@ export const userRoutes = new Elysia()
       throw new ValidationError("No fields to update");
     }
 
-    const [updated] = await db
-      .update(user)
-      .set(updates)
-      .where(eq(user.id, sessionUser.id))
-      .returning();
+    let updated: typeof user.$inferSelect;
+    try {
+      const [row] = await db
+        .update(user)
+        .set(updates)
+        .where(eq(user.id, sessionUser.id))
+        .returning();
 
-    if (!updated) {
-      throw new NotFoundError("User");
+      if (!row) {
+        throw new NotFoundError("User");
+      }
+      updated = row;
+    } catch (err) {
+      // Handle unique constraint race condition (another user took the username between check and update)
+      if (err instanceof NeonDbError && err.code === "23505") {
+        throw new ConflictError("USERNAME_TAKEN", "Username is already taken");
+      }
+      throw err;
     }
 
     return serializeUser(updated);

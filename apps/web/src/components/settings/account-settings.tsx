@@ -4,6 +4,7 @@ import { authClient, signIn } from "../../lib/auth.js";
 import { showToast } from "../ui/toast.js";
 import { Button } from "../ui/button.js";
 import { GoogleIcon, DiscordIcon } from "../ui/oauth-buttons.js";
+import { showPendingDeletion } from "../../stores/deletion-store.js";
 import {
   Dialog,
   DialogContent,
@@ -165,11 +166,16 @@ const AccountSettings = () => {
     }
 
     setDeleting(true);
+    let expiresAt: string | undefined;
     try {
-      await api("/api/users/@me", {
-        method: "DELETE",
-        body: JSON.stringify({ password: deletePassword() }),
-      });
+      const res = await api<{ success: boolean; pending?: boolean; expiresAt?: string }>(
+        "/api/users/@me",
+        {
+          method: "DELETE",
+          body: JSON.stringify({ password: deletePassword() }),
+        },
+      );
+      expiresAt = res.expiresAt;
     } catch (err) {
       const message =
         err instanceof ApiRequestError ? err.body.message : "Failed to delete account";
@@ -178,7 +184,10 @@ const AccountSettings = () => {
       return;
     }
 
-    // Close dialog — the server sends a WS frame that triggers the DeletionCountdown modal
+    // Show countdown immediately from REST response (WS frame reconciles later)
+    if (expiresAt) {
+      showPendingDeletion(expiresAt);
+    }
     setDeletePassword("");
     setShowDeleteDialog(false);
     setDeleting(false);

@@ -386,7 +386,12 @@ export const userRoutes = new Elysia()
 
     return { success: true, pending: true, expiresAt: expiresAt.toISOString() };
   })
-  .post("/@me/cancel-deletion", async ({ user: sessionUser }) => {
+  .post("/@me/cancel-deletion", async ({ user: sessionUser, request }) => {
+    const ip = getClientIp(request);
+    if (!(await checkIpRateLimit(ip, 5, 900_000, "acct-del-cancel"))) {
+      throw new RateLimitError("Too many requests, try again later");
+    }
+
     const pending = pendingDeletions.get(sessionUser.id);
     if (!pending) {
       throw new ConflictError("NO_PENDING_DELETION", "No pending deletion to cancel");

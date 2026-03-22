@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { InternalError } from "@uncorded/shared";
 import { env } from "../env.js";
 
 const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
@@ -21,5 +22,5 @@ export async function sendEmail(opts: { to: string; subject: string; html: strin
     ...opts,
   });
 
-  if (error) throw error;
+  if (error) throw new InternalError("Failed to send email", { cause: error });
 }

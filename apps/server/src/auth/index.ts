@@ -24,10 +24,11 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user, url }) => {
-      await sendEmail({
-        to: user.email,
-        subject: "Reset your UnCorded password",
-        html: `
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: "Reset your UnCorded password",
+          html: `
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
@@ -54,7 +55,10 @@ export const auth = betterAuth({
   </table>
 </body>
 </html>`.trim(),
-      });
+        });
+      } catch (err) {
+        console.error("[email] Failed to send password reset email:", err);
+      }
     },
   },
   plugins: [username()],

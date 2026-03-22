@@ -1,7 +1,5 @@
 import { createSignal, Show } from "solid-js";
-import { useNavigate } from "@solidjs/router";
 import { USERNAME_MIN, USERNAME_MAX, USERNAME_REGEX, DISPLAY_NAME_MAX } from "@uncorded/shared";
-import { authClient } from "../lib/auth.js";
 import { api, ApiRequestError } from "../lib/api.js";
 import AuthLayout from "../components/AuthLayout.js";
 import AuthGuard from "../components/AuthGuard.js";
@@ -9,8 +7,6 @@ import { Input } from "../components/ui/input.js";
 import { Button } from "../components/ui/button.js";
 
 const Onboarding = () => {
-  const navigate = useNavigate();
-
   const [username, setUsername] = createSignal("");
   const [displayName, setDisplayName] = createSignal("");
   const [error, setError] = createSignal("");
@@ -27,7 +23,7 @@ const Onboarding = () => {
       return;
     }
     if (!USERNAME_REGEX.test(trimmed)) {
-      setError("Username can only contain letters, numbers, and underscores");
+      setError("Username can only contain letters, numbers, underscores, and periods");
       return;
     }
 
@@ -42,13 +38,8 @@ const Onboarding = () => {
         body: JSON.stringify(body),
       });
 
-      // Refresh session so AuthGuard sees the username (best-effort)
-      try {
-        await authClient.getSession({ fetchOptions: { throw: false } });
-      } catch {
-        // Session will refresh on next navigation anyway
-      }
-      navigate("/home", { replace: true });
+      // Full page reload ensures the session cookie is re-read with the updated username
+      window.location.href = "/home";
     } catch (err) {
       const message =
         err instanceof ApiRequestError ? err.body.message ?? "Something went wrong" : "Something went wrong";

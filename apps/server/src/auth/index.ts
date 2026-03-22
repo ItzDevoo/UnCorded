@@ -115,6 +115,10 @@ export const auth = betterAuth({
       generateId: () => createId(),
     },
     cookiePrefix: "uncorded",
+    defaultCookieAttributes: {
+      sameSite: "none",
+      secure: true,
+    },
     ...(env.AUTH_COOKIE_DOMAIN
       ? {
           crossSubDomainCookies: {

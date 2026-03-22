@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const USERNAME_MIN = 2;
 export const USERNAME_MAX = 32;
-export const USERNAME_REGEX = /^[a-zA-Z0-9_]+$/;
+export const USERNAME_REGEX = /^[a-zA-Z0-9._]+$/;
 export const DISPLAY_NAME_MAX = 64;
 export const PASSWORD_MIN = 8;
 
@@ -30,7 +30,7 @@ export const updateUserSchema = z.object({
     .trim()
     .min(USERNAME_MIN)
     .max(USERNAME_MAX)
-    .regex(USERNAME_REGEX, "Username can only contain letters, numbers, and underscores")
+    .regex(USERNAME_REGEX, "Username can only contain letters, numbers, underscores, and periods")
     .optional(),
   displayName: z.string().trim().min(1).max(DISPLAY_NAME_MAX).nullable().optional(),
   status: userStatusSchema.optional(),

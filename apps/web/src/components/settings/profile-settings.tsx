@@ -37,7 +37,7 @@ const ProfileSettings = () => {
   function validateUsername(val: string): string {
     if (val.length < USERNAME_MIN) return `Username must be at least ${USERNAME_MIN} characters`;
     if (val.length > USERNAME_MAX) return `Username must be at most ${USERNAME_MAX} characters`;
-    if (!USERNAME_REGEX.test(val)) return "Only letters, numbers, and underscores";
+    if (!USERNAME_REGEX.test(val)) return "Only letters, numbers, underscores, and periods";
     return "";
   }
 

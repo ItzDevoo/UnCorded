@@ -1,6 +1,6 @@
 import { createSignal, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
-import { USERNAME_MIN, USERNAME_MAX } from "@uncorded/shared";
+import { USERNAME_MIN, USERNAME_MAX, DISPLAY_NAME_MAX } from "@uncorded/shared";
 import { authClient } from "../lib/auth.js";
 import { api, ApiRequestError } from "../lib/api.js";
 import AuthLayout from "../components/AuthLayout.js";
@@ -105,7 +105,7 @@ const Onboarding = () => {
             <Input
               id="onboarding-displayname"
               type="text"
-              maxLength={64}
+              maxLength={DISPLAY_NAME_MAX}
               value={displayName()}
               onInput={(e) => setDisplayName(e.currentTarget.value)}
               placeholder="How others see you"

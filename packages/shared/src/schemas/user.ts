@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const USERNAME_MIN = 2;
 export const USERNAME_MAX = 32;
+export const DISPLAY_NAME_MAX = 64;
 export const PASSWORD_MIN = 8;
 
 export const userStatusSchema = z.enum(["online", "idle", "dnd", "offline"]);
@@ -11,7 +12,7 @@ export type UserStatus = z.infer<typeof userStatusSchema>;
 export const userSchema = z.object({
   id: z.string(),
   username: z.string().trim().min(USERNAME_MIN).max(USERNAME_MAX),
-  displayName: z.string().trim().min(1).max(64).nullable(),
+  displayName: z.string().trim().min(1).max(DISPLAY_NAME_MAX).nullable(),
   email: z.string().email(),
   avatarUrl: z.string().url().nullable(),
   status: userStatusSchema,
@@ -30,7 +31,7 @@ export const updateUserSchema = z.object({
     .max(USERNAME_MAX)
     .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores")
     .optional(),
-  displayName: z.string().trim().min(1).max(64).nullable().optional(),
+  displayName: z.string().trim().min(1).max(DISPLAY_NAME_MAX).nullable().optional(),
   status: userStatusSchema.optional(),
 });
 

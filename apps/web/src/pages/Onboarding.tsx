@@ -18,6 +18,7 @@ const Onboarding = () => {
 
   const handleSubmit = async (e: SubmitEvent) => {
     e.preventDefault();
+    if (loading()) return;
     setError("");
 
     const trimmed = username().trim();

@@ -1,5 +1,5 @@
 import { createSignal, createEffect, Show, onCleanup } from "solid-js";
-import { MAX_AVATAR_SIZE_BYTES, ALLOWED_AVATAR_TYPES, DISPLAY_NAME_MAX, USERNAME_REGEX } from "@uncorded/shared";
+import { MAX_AVATAR_SIZE_BYTES, ALLOWED_AVATAR_TYPES, DISPLAY_NAME_MAX, USERNAME_REGEX, USERNAME_MIN, USERNAME_MAX } from "@uncorded/shared";
 import { api, apiUpload, ApiRequestError } from "../../lib/api.js";
 import { readyData, updateCurrentUser } from "../../lib/gateway-store.js";
 import { showToast } from "../ui/toast.js";
@@ -35,8 +35,8 @@ const ProfileSettings = () => {
   });
 
   function validateUsername(val: string): string {
-    if (val.length < 2) return "Username must be at least 2 characters";
-    if (val.length > 32) return "Username must be at most 32 characters";
+    if (val.length < USERNAME_MIN) return `Username must be at least ${USERNAME_MIN} characters`;
+    if (val.length > USERNAME_MAX) return `Username must be at most ${USERNAME_MAX} characters`;
     if (!USERNAME_REGEX.test(val)) return "Only letters, numbers, and underscores";
     return "";
   }
@@ -243,7 +243,7 @@ const ProfileSettings = () => {
           type="text"
           value={username()}
           onInput={(e) => handleUsernameInput(e.currentTarget.value)}
-          maxLength={32}
+          maxLength={USERNAME_MAX}
           class="block w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-ring"
         />
         <Show when={usernameError()}>

@@ -1,6 +1,6 @@
 import { createSignal, For, onMount } from "solid-js";
 import { api, ApiRequestError } from "../../lib/api.js";
-import { authClient, signIn, signOut } from "../../lib/auth.js";
+import { authClient, signIn } from "../../lib/auth.js";
 import { showToast } from "../ui/toast.js";
 import { Button } from "../ui/button.js";
 import { GoogleIcon, DiscordIcon } from "../ui/oauth-buttons.js";
@@ -178,13 +178,10 @@ const AccountSettings = () => {
       return;
     }
 
-    // Account deleted — sign out and redirect (ignore errors, redirect clears session)
-    try {
-      await signOut();
-    } catch {
-      // Session cleanup is best-effort
-    }
-    window.location.href = "/";
+    // Close dialog — the server sends a WS frame that triggers the DeletionCountdown modal
+    setDeletePassword("");
+    setShowDeleteDialog(false);
+    setDeleting(false);
   }
 
   return (

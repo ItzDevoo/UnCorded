@@ -48,6 +48,12 @@ const Users = () => {
     onConfirm: () => Promise<void>;
   } | null>(null);
 
+  // Delete modal state
+  const [deleteOpen, setDeleteOpen] = createSignal(false);
+  const [deleteTarget, setDeleteTarget] = createSignal<UserRow | null>(null);
+  const [deleteConfirmInput, setDeleteConfirmInput] = createSignal("");
+  const [deleteSubmitting, setDeleteSubmitting] = createSignal(false);
+
   let fetchRequestId = 0;
 
   async function fetchUsers(page: number, searchQuery?: string) {
@@ -161,6 +167,36 @@ const Users = () => {
     }
   }
 
+  // ── Delete actions ──────────────────────────────────
+
+  function confirmDelete(userRow: UserRow) {
+    setDeleteTarget(userRow);
+    setDeleteConfirmInput("");
+    setDeleteOpen(true);
+  }
+
+  async function handleDelete() {
+    const target = deleteTarget();
+    if (!target || deleteSubmitting() || actionInFlight()) return;
+    const expectedName = target.username ?? target.email;
+    if (deleteConfirmInput() !== expectedName) return;
+
+    setDeleteSubmitting(true);
+    setActionInFlight("delete");
+    try {
+      await api(`/api/admin/users/${target.id}`, { method: "DELETE" });
+      showToast("User deleted", "info");
+      setDeleteOpen(false);
+      await fetchUsers(data().page, search());
+    } catch (err) {
+      const msg = err instanceof ApiRequestError ? err.body.message : "Failed to delete user";
+      showToast(msg, "error");
+    } finally {
+      setDeleteSubmitting(false);
+      setActionInFlight(null);
+    }
+  }
+
   // ── Table columns ─────────────────────────────────
 
   const columns: Column<UserRow>[] = [
@@ -225,6 +261,14 @@ const Users = () => {
             onClick={() => confirmBan(row)}
           >
             {row.banned ? "Unban" : "Ban"}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            class="text-destructive"
+            onClick={() => confirmDelete(row)}
+          >
+            Delete
           </Button>
         </div>
       ),
@@ -365,6 +409,71 @@ const Users = () => {
               disabled={actionInFlight() !== null}
             >
               {actionInFlight() ? "Processing..." : "Confirm"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete User Modal ────────────────────── */}
+      <Dialog
+        open={deleteOpen()}
+        onOpenChange={(open) => {
+          if (!open) setDeleteConfirmInput("");
+          setDeleteOpen(open);
+        }}
+      >
+        <DialogContent
+          onClose={() => {
+            setDeleteConfirmInput("");
+            setDeleteOpen(false);
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>Delete User</DialogTitle>
+            <DialogDescription>
+              This will permanently delete{" "}
+              <span class="font-semibold">{deleteTarget()?.username ?? deleteTarget()?.email}</span>'s
+              account and all associated data. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div class="space-y-3 py-2">
+            <div>
+              <label for="delete-confirm" class="mb-1.5 block text-sm font-medium text-foreground">
+                Type{" "}
+                <span class="font-mono text-destructive">
+                  {deleteTarget()?.username ?? deleteTarget()?.email}
+                </span>{" "}
+                to confirm
+              </label>
+              <Input
+                id="delete-confirm"
+                value={deleteConfirmInput()}
+                onInput={(e) => setDeleteConfirmInput(e.currentTarget.value)}
+                placeholder={deleteTarget()?.username ?? deleteTarget()?.email ?? ""}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setDeleteConfirmInput("");
+                setDeleteOpen(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={
+                deleteSubmitting() ||
+                deleteConfirmInput() !== (deleteTarget()?.username ?? deleteTarget()?.email)
+              }
+            >
+              {deleteSubmitting() ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

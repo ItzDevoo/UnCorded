@@ -14,7 +14,7 @@ import {
   ALLOWED_AVATAR_TYPES,
   RATE_LIMIT_USER_SEARCH,
 } from "@uncorded/shared";
-import { userId } from "@uncorded/protocol";
+import { userId, Opcode } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { user, servers } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
@@ -23,6 +23,32 @@ import { isR2Configured, uploadAvatar, deleteAvatar } from "../lib/r2.js";
 import { AppError } from "@uncorded/shared";
 import { checkIpRateLimit } from "../middleware/ip-rate-limit.js";
 import { checkUserRateLimit } from "../helpers/rate-limit.js";
+import { sendToUser, disconnectUser } from "../ws/connections.js";
+
+// ── Pending deletion state (in-memory, single-server) ──────────
+interface PendingDeletion {
+  timer: ReturnType<typeof setTimeout>;
+  avatarUrl: string | null;
+}
+
+const pendingDeletions = new Map<string, PendingDeletion>();
+
+function executeDeletion(targetUserId: string, avatarUrl: string | null) {
+  pendingDeletions.delete(targetUserId);
+  db.delete(user)
+    .where(eq(user.id, targetUserId))
+    .then(() => {
+      disconnectUser(targetUserId);
+      if (avatarUrl && isR2Configured()) {
+        deleteAvatar(avatarUrl).catch((err) =>
+          console.error("[r2] avatar cleanup on account delete failed:", err),
+        );
+      }
+    })
+    .catch((err) => {
+      console.error("[deletion] Failed to delete user:", err);
+    });
+}
 
 function getClientIp(request: Request): string {
   return (
@@ -290,6 +316,11 @@ export const userRoutes = new Elysia()
       throw new RateLimitError("Too many requests, try again later");
     }
 
+    // If there's already a pending deletion, reject
+    if (pendingDeletions.has(sessionUser.id)) {
+      throw new ConflictError("DELETION_PENDING", "Account deletion is already in progress");
+    }
+
     const parsed = deleteAccountSchema.safeParse(body);
     if (!parsed.success) {
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
@@ -342,15 +373,32 @@ export const userRoutes = new Elysia()
       );
     }
 
-    // Delete user first (cascades: sessions, accounts, memberships, dm_members, messages set null)
-    await db.delete(user).where(eq(user.id, sessionUser.id));
+    // Schedule deletion with 10-second countdown
+    const expiresAt = new Date(Date.now() + 10_000);
+    const timer = setTimeout(() => executeDeletion(sessionUser.id, dbUser.avatarUrl), 10_000);
+    pendingDeletions.set(sessionUser.id, { timer, avatarUrl: dbUser.avatarUrl });
 
-    // Clean up avatar from R2 after successful DB delete (fire-and-forget)
-    if (dbUser.avatarUrl && isR2Configured()) {
-      deleteAvatar(dbUser.avatarUrl).catch((err) =>
-        console.error("[r2] avatar cleanup on account delete failed:", err),
-      );
+    // Notify the user via WebSocket
+    sendToUser(sessionUser.id, {
+      op: Opcode.ACCOUNT_DELETION_PENDING,
+      d: { expiresAt: expiresAt.toISOString() },
+    });
+
+    return { success: true, pending: true, expiresAt: expiresAt.toISOString() };
+  })
+  .post("/@me/cancel-deletion", async ({ user: sessionUser }) => {
+    const pending = pendingDeletions.get(sessionUser.id);
+    if (!pending) {
+      throw new ConflictError("NO_PENDING_DELETION", "No pending deletion to cancel");
     }
+
+    clearTimeout(pending.timer);
+    pendingDeletions.delete(sessionUser.id);
+
+    sendToUser(sessionUser.id, {
+      op: Opcode.ACCOUNT_DELETION_CANCELLED,
+      d: null,
+    });
 
     return { success: true };
   }));

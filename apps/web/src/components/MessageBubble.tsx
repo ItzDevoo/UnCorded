@@ -1,4 +1,4 @@
-import { createSignal, Show } from "solid-js";
+import { createSignal, Show, onCleanup } from "solid-js";
 import type { AnyChannelId } from "@uncorded/protocol";
 import { api, ApiRequestError } from "../lib/api.js";
 import { readyData } from "../lib/gateway-store.js";
@@ -61,6 +61,22 @@ const CopyIcon = () => (
   >
     <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
     <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+  </svg>
+);
+
+const CheckIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <path d="M20 6 9 17l-5-5" />
   </svg>
 );
 
@@ -133,6 +149,10 @@ const MessageBubble = (props: MessageBubbleProps) => {
   const [showDeleteDialog, setShowDeleteDialog] = createSignal(false);
   const [deleting, setDeleting] = createSignal(false);
   const [showReportDialog, setShowReportDialog] = createSignal(false);
+  const [copied, setCopied] = createSignal(false);
+
+  let copiedTimer: ReturnType<typeof setTimeout> | undefined;
+  onCleanup(() => clearTimeout(copiedTimer));
 
   const displayName = () =>
     props.message.author.displayName || props.message.author.username || "Unknown";
@@ -149,6 +169,10 @@ const MessageBubble = (props: MessageBubbleProps) => {
   async function handleCopy() {
     try {
       await navigator.clipboard.writeText(props.message.content ?? "");
+      showToast("Copied to clipboard", "info");
+      setCopied(true);
+      clearTimeout(copiedTimer);
+      copiedTimer = setTimeout(() => setCopied(false), 1500);
     } catch {
       showToast("Failed to copy", "error");
     }
@@ -228,7 +252,9 @@ const MessageBubble = (props: MessageBubbleProps) => {
         aria-label="Copy"
         onClick={handleCopy}
       >
-        <CopyIcon />
+        <Show when={copied()} fallback={<CopyIcon />}>
+          <CheckIcon />
+        </Show>
       </button>
       <Show when={!props.isOwn}>
         <button

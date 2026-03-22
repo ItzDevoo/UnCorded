@@ -36,6 +36,7 @@ const Friends = () => {
   const [sending, setSending] = createSignal(false);
   const [searchQuery, setSearchQuery] = createSignal("");
   const [searchSuggestions, setSearchSuggestions] = createSignal<SearchUser[]>([]);
+  const [highlightedIndex, setHighlightedIndex] = createSignal(-1);
 
   // Debounced user search for Add Friend input
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
@@ -187,8 +188,41 @@ const Friends = () => {
               type="text"
               placeholder="Enter a username"
               value={addUsername()}
-              onInput={(e) => setAddUsername(e.currentTarget.value)}
+              onInput={(e) => {
+                setAddUsername(e.currentTarget.value);
+                setHighlightedIndex(-1);
+              }}
               onKeyDown={(e) => {
+                const suggestions = searchSuggestions();
+                if (suggestions.length > 0) {
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setHighlightedIndex((i) => (i + 1) % suggestions.length);
+                    return;
+                  }
+                  if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setHighlightedIndex((i) => (i - 1 + suggestions.length) % suggestions.length);
+                    return;
+                  }
+                  if (e.key === "Enter" && highlightedIndex() >= 0) {
+                    e.preventDefault();
+                    const selected = suggestions[highlightedIndex()];
+                    if (selected) {
+                      suppressNextSearch = true;
+                      setAddUsername(selected.username ?? "");
+                      setSearchSuggestions([]);
+                      setHighlightedIndex(-1);
+                    }
+                    return;
+                  }
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    setSearchSuggestions([]);
+                    setHighlightedIndex(-1);
+                    return;
+                  }
+                }
                 if (e.key === "Enter") handleAddFriend();
               }}
               class="flex-1"
@@ -200,14 +234,16 @@ const Friends = () => {
           <Show when={searchSuggestions().length > 0}>
             <div class="mt-1 rounded-md border border-border bg-popover shadow-md">
               <For each={searchSuggestions()}>
-                {(suggestion) => (
+                {(suggestion, index) => (
                   <button
                     type="button"
-                    class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left hover:bg-accent"
+                    class={`flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left hover:bg-accent ${highlightedIndex() === index() ? "bg-accent" : ""}`}
+                    onMouseEnter={() => setHighlightedIndex(index())}
                     onClick={() => {
                       suppressNextSearch = true;
                       setAddUsername(suggestion.username ?? "");
                       setSearchSuggestions([]);
+                      setHighlightedIndex(-1);
                     }}
                   >
                     <Show

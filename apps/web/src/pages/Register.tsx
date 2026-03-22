@@ -171,6 +171,7 @@ const Register = () => {
             value={password()}
             onInput={(e) => setPassword(e.currentTarget.value)}
           />
+          <p class="mt-1 text-xs text-muted-foreground">Must be at least {PASSWORD_MIN} characters</p>
         </div>
         <label class="flex items-start gap-2 text-sm text-muted-foreground">
           <input

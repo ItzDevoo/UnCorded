@@ -1,5 +1,6 @@
 import { createSignal, createEffect, onCleanup, Show } from "solid-js";
 import { deletionState, dismissDeletion } from "../../stores/deletion-store.js";
+import { gatewayStatus } from "../../lib/gateway-store.js";
 import { api, ApiRequestError } from "../../lib/api.js";
 import { showToast } from "../ui/toast.js";
 import { Button } from "../ui/button.js";
@@ -17,9 +18,11 @@ const DeletionCountdown = () => {
   const [secondsLeft, setSecondsLeft] = createSignal(COUNTDOWN_SECONDS);
   const [cancelling, setCancelling] = createSignal(false);
   const [deleted, setDeleted] = createSignal(false);
+  const [expired, setExpired] = createSignal(false);
 
   let countdownInterval: ReturnType<typeof setInterval> | undefined;
 
+  // Start/stop the visual countdown based on store state
   createEffect(() => {
     const state = deletionState();
     if (state.show && state.expiresAt) {
@@ -29,6 +32,7 @@ const DeletionCountdown = () => {
       );
       setSecondsLeft(remaining);
       setDeleted(false);
+      setExpired(false);
 
       if (countdownInterval !== undefined) clearInterval(countdownInterval);
       countdownInterval = setInterval(() => {
@@ -36,10 +40,7 @@ const DeletionCountdown = () => {
           if (prev <= 1) {
             if (countdownInterval !== undefined) clearInterval(countdownInterval);
             countdownInterval = undefined;
-            setDeleted(true);
-            setTimeout(() => {
-              window.location.href = "/";
-            }, 2000);
+            setExpired(true);
             return 0;
           }
           return prev - 1;
@@ -50,6 +51,18 @@ const DeletionCountdown = () => {
         clearInterval(countdownInterval);
         countdownInterval = undefined;
       }
+      setExpired(false);
+    }
+  });
+
+  // Server-driven confirmation: when WS disconnects after countdown expired,
+  // the server has successfully deleted the account and called disconnectUser()
+  createEffect(() => {
+    if (expired() && deletionState().show && gatewayStatus() === "disconnected") {
+      setDeleted(true);
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 2000);
     }
   });
 
@@ -107,30 +120,44 @@ const DeletionCountdown = () => {
 
           {/* Large countdown number */}
           <div class="my-8 text-center">
-            <span class="text-7xl font-bold tabular-nums text-destructive">
-              {secondsLeft()}
-            </span>
+            <Show
+              when={!expired()}
+              fallback={
+                <div class="flex flex-col items-center gap-2">
+                  <div class="h-8 w-8 animate-spin rounded-full border-2 border-destructive border-t-transparent" />
+                  <span class="text-sm text-muted-foreground">Deleting...</span>
+                </div>
+              }
+            >
+              <span class="text-7xl font-bold tabular-nums text-destructive">
+                {secondsLeft()}
+              </span>
+            </Show>
           </div>
 
           {/* Progress bar */}
-          <div class="mb-6 h-2 w-full overflow-hidden rounded-full bg-muted">
-            <div
-              class="h-full rounded-full bg-destructive transition-all duration-1000 ease-linear"
-              style={{ width: `${progress()}%` }}
-            />
-          </div>
+          <Show when={!expired()}>
+            <div class="mb-6 h-2 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                class="h-full rounded-full bg-destructive transition-all duration-1000 ease-linear"
+                style={{ width: `${progress()}%` }}
+              />
+            </div>
+          </Show>
 
           {/* Cancel button — prominent, large, autofocused by DialogContent */}
-          <div class="flex justify-center">
-            <Button
-              size="lg"
-              onClick={handleCancel}
-              disabled={cancelling()}
-              class="w-full text-base"
-            >
-              {cancelling() ? "Cancelling..." : "Cancel Deletion"}
-            </Button>
-          </div>
+          <Show when={!expired()}>
+            <div class="flex justify-center">
+              <Button
+                size="lg"
+                onClick={handleCancel}
+                disabled={cancelling()}
+                class="w-full text-base"
+              >
+                {cancelling() ? "Cancelling..." : "Cancel Deletion"}
+              </Button>
+            </div>
+          </Show>
         </Show>
       </DialogContent>
     </Dialog>

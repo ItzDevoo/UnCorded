@@ -27,17 +27,17 @@ import { sendToUser, disconnectUser } from "../ws/connections.js";
 
 // ── Pending deletion state (in-memory, single-server) ──────────
 interface PendingDeletion {
-  timer: ReturnType<typeof setTimeout>;
+  timer: ReturnType<typeof setTimeout> | null;
   avatarUrl: string | null;
 }
 
 const pendingDeletions = new Map<string, PendingDeletion>();
 
 function executeDeletion(targetUserId: string, avatarUrl: string | null) {
-  pendingDeletions.delete(targetUserId);
   db.delete(user)
     .where(eq(user.id, targetUserId))
     .then(() => {
+      pendingDeletions.delete(targetUserId);
       disconnectUser(targetUserId);
       if (avatarUrl && isR2Configured()) {
         deleteAvatar(avatarUrl).catch((err) =>
@@ -47,6 +47,11 @@ function executeDeletion(targetUserId: string, avatarUrl: string | null) {
     })
     .catch((err) => {
       console.error("[deletion] Failed to delete user:", err);
+      pendingDeletions.delete(targetUserId);
+      sendToUser(targetUserId, {
+        op: Opcode.ACCOUNT_DELETION_CANCELLED,
+        d: null,
+      });
     });
 }
 
@@ -326,51 +331,62 @@ export const userRoutes = new Elysia()
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
     }
 
-    const [dbUser] = await db
-      .select({ avatarUrl: user.avatarUrl })
-      .from(user)
-      .where(eq(user.id, sessionUser.id))
-      .limit(1);
+    // Reserve the slot atomically before any awaits to prevent races
+    pendingDeletions.set(sessionUser.id, { timer: null, avatarUrl: null });
 
-    if (!dbUser) {
-      throw new NotFoundError("User");
-    }
-
-    // Verify password without creating a session
+    let dbUser: { avatarUrl: string | null };
     try {
-      const result = await auth.api.verifyPassword({
-        body: { password: parsed.data.password },
-        headers: request.headers,
-      });
-      if (!result.status) {
+      const [row] = await db
+        .select({ avatarUrl: user.avatarUrl })
+        .from(user)
+        .where(eq(user.id, sessionUser.id))
+        .limit(1);
+
+      if (!row) {
+        throw new NotFoundError("User");
+      }
+      dbUser = row;
+
+      // Verify password without creating a session
+      try {
+        const result = await auth.api.verifyPassword({
+          body: { password: parsed.data.password },
+          headers: request.headers,
+        });
+        if (!result.status) {
+          throw new UnauthorizedError("Incorrect password");
+        }
+      } catch (err) {
+        if (err instanceof UnauthorizedError) throw err;
+        const code = err instanceof Error && "code" in err ? (err as { code: string }).code : null;
+        if (code === "INVALID_PASSWORD") {
+          throw new UnauthorizedError("Incorrect password");
+        }
+        if (code === "CREDENTIAL_ACCOUNT_NOT_FOUND") {
+          throw new ValidationError("No password set — account uses OAuth only");
+        }
         throw new UnauthorizedError("Incorrect password");
+      }
+
+      // Check server ownership — servers have onDelete: "restrict"
+      const [ownedServer] = await db
+        .select({ id: servers.id })
+        .from(servers)
+        .where(eq(servers.ownerId, sessionUser.id))
+        .limit(1);
+
+      if (ownedServer) {
+        throw new AppError(
+          "ServerOwnerError",
+          409,
+          "SERVER_OWNER",
+          "You must transfer or delete all servers you own before deleting your account",
+        );
       }
     } catch (err) {
-      if (err instanceof UnauthorizedError) throw err;
-      const code = err instanceof Error && "code" in err ? (err as { code: string }).code : null;
-      if (code === "INVALID_PASSWORD") {
-        throw new UnauthorizedError("Incorrect password");
-      }
-      if (code === "CREDENTIAL_ACCOUNT_NOT_FOUND") {
-        throw new ValidationError("No password set — account uses OAuth only");
-      }
-      throw new UnauthorizedError("Incorrect password");
-    }
-
-    // Check server ownership — servers have onDelete: "restrict"
-    const [ownedServer] = await db
-      .select({ id: servers.id })
-      .from(servers)
-      .where(eq(servers.ownerId, sessionUser.id))
-      .limit(1);
-
-    if (ownedServer) {
-      throw new AppError(
-        "ServerOwnerError",
-        409,
-        "SERVER_OWNER",
-        "You must transfer or delete all servers you own before deleting your account",
-      );
+      // Validation failed — release the reservation
+      pendingDeletions.delete(sessionUser.id);
+      throw err;
     }
 
     // Schedule deletion with 10-second countdown
@@ -397,7 +413,7 @@ export const userRoutes = new Elysia()
       throw new ConflictError("NO_PENDING_DELETION", "No pending deletion to cancel");
     }
 
-    clearTimeout(pending.timer);
+    if (pending.timer !== null) clearTimeout(pending.timer);
     pendingDeletions.delete(sessionUser.id);
 
     sendToUser(sessionUser.id, {

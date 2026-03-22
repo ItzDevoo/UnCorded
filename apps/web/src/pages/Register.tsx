@@ -1,10 +1,11 @@
 import { createSignal, Show } from "solid-js";
 import { A, useNavigate } from "@solidjs/router";
 import { USERNAME_MIN, USERNAME_MAX, PASSWORD_MIN } from "@uncorded/shared";
-import { signUp } from "../lib/auth.js";
+import { signIn, signUp } from "../lib/auth.js";
 import AuthLayout from "../components/AuthLayout.js";
 import { Input } from "../components/ui/input.js";
 import { Button } from "../components/ui/button.js";
+import { GoogleButton, DiscordButton, OAuthDivider } from "../components/ui/oauth-buttons.js";
 
 function calculateAge(dob: string): number {
   // Parse as local date to avoid UTC timezone shift (e.g., "2013-03-16" in UTC-5 becoming Mar 15)
@@ -28,6 +29,18 @@ const Register = () => {
   const [tosAgreed, setTosAgreed] = createSignal(false);
   const [error, setError] = createSignal("");
   const [loading, setLoading] = createSignal(false);
+  const [oauthLoading, setOauthLoading] = createSignal(false);
+
+  const handleOAuth = async (provider: "google" | "discord") => {
+    setError("");
+    setOauthLoading(true);
+    try {
+      await signIn.social({ provider, callbackURL: "/home" });
+    } catch {
+      setError("Something went wrong");
+      setOauthLoading(false);
+    }
+  };
 
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -86,6 +99,19 @@ const Register = () => {
           {error()}
         </div>
       </Show>
+
+      <div class="animate-fade-in space-y-3">
+        <GoogleButton
+          onClick={() => handleOAuth("google")}
+          disabled={oauthLoading() || loading()}
+        />
+        <DiscordButton
+          onClick={() => handleOAuth("discord")}
+          disabled={oauthLoading() || loading()}
+        />
+      </div>
+
+      <OAuthDivider />
 
       <form onSubmit={handleSubmit} class="animate-fade-in space-y-4">
         <div>

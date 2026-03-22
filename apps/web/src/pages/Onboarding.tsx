@@ -1,6 +1,6 @@
 import { createSignal, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
-import { USERNAME_MIN, USERNAME_MAX, DISPLAY_NAME_MAX } from "@uncorded/shared";
+import { USERNAME_MIN, USERNAME_MAX, USERNAME_REGEX, DISPLAY_NAME_MAX } from "@uncorded/shared";
 import { authClient } from "../lib/auth.js";
 import { api, ApiRequestError } from "../lib/api.js";
 import AuthLayout from "../components/AuthLayout.js";
@@ -25,7 +25,7 @@ const Onboarding = () => {
       setError(`Username must be between ${USERNAME_MIN} and ${USERNAME_MAX} characters`);
       return;
     }
-    if (!/^[a-zA-Z0-9_]+$/.test(trimmed)) {
+    if (!USERNAME_REGEX.test(trimmed)) {
       setError("Username can only contain letters, numbers, and underscores");
       return;
     }
@@ -50,7 +50,7 @@ const Onboarding = () => {
       navigate("/home", { replace: true });
     } catch (err) {
       const message =
-        err instanceof ApiRequestError ? err.body.message : "Something went wrong";
+        err instanceof ApiRequestError ? err.body.message ?? "Something went wrong" : "Something went wrong";
       setError(message);
     } finally {
       setLoading(false);

@@ -26,6 +26,7 @@ const AccountSettings = () => {
   const [linkedProviders, setLinkedProviders] = createSignal<Set<string>>(new Set());
   const [accountsLoading, setAccountsLoading] = createSignal(true);
   const [unlinking, setUnlinking] = createSignal<string | null>(null);
+  const [connecting, setConnecting] = createSignal(false);
 
   async function fetchLinkedAccounts() {
     try {
@@ -103,10 +104,12 @@ const AccountSettings = () => {
   }
 
   async function handleConnect(provider: "google" | "discord") {
+    setConnecting(true);
     try {
       await signIn.social({ provider, callbackURL: "/settings" });
     } catch {
       showToast("Failed to connect account", "error");
+      setConnecting(false);
     }
   }
 
@@ -292,9 +295,10 @@ const AccountSettings = () => {
                     <Button
                       variant="outline"
                       size="sm"
+                      disabled={connecting()}
                       onClick={() => handleConnect(provider.id)}
                     >
-                      Connect
+                      {connecting() ? "Connecting..." : "Connect"}
                     </Button>
                   )}
                 </div>

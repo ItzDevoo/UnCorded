@@ -48,6 +48,7 @@ export function DiscordIcon(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
   );
 }
 
+// Google brand guidelines require white bg with dark text — raw colors intentional
 export function GoogleButton(props: OAuthButtonProps) {
   const [local, rest] = splitProps(props, ["onClick", "disabled", "label", "class"]);
   return (

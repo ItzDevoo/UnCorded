@@ -37,7 +37,7 @@ export function GoogleIcon(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
 export function DiscordIcon(props: JSX.SvgSVGAttributes<SVGSVGElement>) {
   return (
     <svg
-      class="h-4 w-4 text-white"
+      class="h-4 w-4"
       viewBox="0 0 24 24"
       fill="currentColor"
       aria-hidden="true"

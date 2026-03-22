@@ -27,8 +27,11 @@ const AccountSettings = () => {
   const [accountsLoading, setAccountsLoading] = createSignal(true);
   const [unlinking, setUnlinking] = createSignal<string | null>(null);
   const [connecting, setConnecting] = createSignal(false);
+  const [accountsFetchError, setAccountsFetchError] = createSignal(false);
 
   async function fetchLinkedAccounts() {
+    setAccountsFetchError(false);
+    setAccountsLoading(true);
     try {
       const result = await authClient.listAccounts();
       if (result.data) {
@@ -40,6 +43,7 @@ const AccountSettings = () => {
       }
     } catch (err) {
       if (import.meta.env.DEV) console.error("[settings] Failed to fetch accounts:", err);
+      setAccountsFetchError(true);
     } finally {
       setAccountsLoading(false);
     }
@@ -242,12 +246,20 @@ const AccountSettings = () => {
         <h3 class="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Connected Accounts
         </h3>
+        {accountsFetchError() ? (
+          <div class="rounded-lg border border-border bg-card p-4 text-center">
+            <p class="text-sm text-muted-foreground">Failed to load connected accounts.</p>
+            <Button variant="outline" size="sm" class="mt-2" onClick={fetchLinkedAccounts}>
+              Retry
+            </Button>
+          </div>
+        ) : (
         <div class="space-y-2">
           <For
             each={
               [
-                { id: "discord", name: "Discord", bgClass: "bg-[#5865F2]", icon: DiscordIcon },
-                { id: "google", name: "Google", bgClass: "bg-white", icon: GoogleIcon },
+                { id: "discord", name: "Discord", bgClass: "bg-[#5865F2] text-white", icon: DiscordIcon },
+                { id: "google", name: "Google", bgClass: "bg-white text-foreground", icon: GoogleIcon },
               ] as const
             }
           >
@@ -307,6 +319,7 @@ const AccountSettings = () => {
             }}
           </For>
         </div>
+        )}
       </div>
 
       {/* Danger zone */}

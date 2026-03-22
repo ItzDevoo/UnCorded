@@ -114,6 +114,7 @@ const AccountSettings = () => {
   }
 
   async function handleDisconnect(providerId: string) {
+    if (unlinking()) return;
     if (totalAuthMethods() <= 1) {
       showToast("Can't disconnect — this is your only sign-in method", "error");
       return;
@@ -286,7 +287,7 @@ const AccountSettings = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      disabled={isUnlinking()}
+                      disabled={!!unlinking()}
                       onClick={() => handleDisconnect(provider.id)}
                     >
                       {isUnlinking() ? "Disconnecting..." : "Disconnect"}

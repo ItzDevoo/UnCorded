@@ -65,6 +65,7 @@ export function GoogleButton(props: OAuthButtonProps) {
   );
 }
 
+// Discord brand guidelines require #5865F2 "blurple" background — raw colors intentional
 export function DiscordButton(props: OAuthButtonProps) {
   const [local, rest] = splitProps(props, ["onClick", "disabled", "label", "class"]);
   return (

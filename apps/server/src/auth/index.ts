@@ -6,6 +6,15 @@ import { db } from "../db/index.js";
 import { env } from "../env.js";
 import { sendEmail } from "../lib/email.js";
 
+function escapeHtml(str: string): string {
+  return str
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, { provider: "pg" }),
   secret: env.BETTER_AUTH_SECRET,
@@ -30,11 +39,11 @@ export const auth = betterAuth({
           <h1 style="margin:0;font-size:20px;font-weight:700;color:#22c55e;">UnCorded</h1>
         </td></tr>
         <tr><td style="color:#e4e4e7;font-size:15px;line-height:1.6;">
-          <p style="margin:0 0 16px;">Hi ${user.name ?? "there"},</p>
+          <p style="margin:0 0 16px;">Hi ${escapeHtml(user.name ?? "there")},</p>
           <p style="margin:0 0 24px;">We received a request to reset your password. Click the button below to choose a new one.</p>
         </td></tr>
         <tr><td align="center" style="padding-bottom:24px;">
-          <a href="${url}" style="display:inline-block;background-color:#22c55e;color:#000;font-weight:600;font-size:15px;padding:12px 32px;border-radius:8px;text-decoration:none;">Reset Password</a>
+          <a href="${escapeHtml(url)}" style="display:inline-block;background-color:#22c55e;color:#000;font-weight:600;font-size:15px;padding:12px 32px;border-radius:8px;text-decoration:none;">Reset Password</a>
         </td></tr>
         <tr><td style="color:#a1a1aa;font-size:13px;line-height:1.5;">
           <p style="margin:0 0 8px;">This link expires in 1 hour.</p>

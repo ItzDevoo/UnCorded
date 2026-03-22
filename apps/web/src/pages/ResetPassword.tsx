@@ -1,11 +1,10 @@
 import { createSignal, Show } from "solid-js";
 import { A, useSearchParams } from "@solidjs/router";
+import { PASSWORD_MIN } from "@uncorded/shared";
 import { authClient } from "../lib/auth.js";
 import AuthLayout from "../components/AuthLayout.js";
 import { Input } from "../components/ui/input.js";
 import { Button } from "../components/ui/button.js";
-
-const PASSWORD_MIN = 8;
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();

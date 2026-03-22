@@ -116,7 +116,7 @@ export const auth = betterAuth({
     },
     cookiePrefix: "uncorded",
     defaultCookieAttributes: {
-      sameSite: "none",
+      sameSite: env.NODE_ENV === "production" ? "none" : "lax",
       secure: env.NODE_ENV === "production",
     },
     ...(env.AUTH_COOKIE_DOMAIN

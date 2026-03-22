@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const USERNAME_MIN = 2;
 export const USERNAME_MAX = 32;
-export const USERNAME_REGEX = /^[a-zA-Z0-9._]+$/;
+export const USERNAME_REGEX = /^[a-zA-Z0-9_]+(\.[a-zA-Z0-9_]+)*$/;
 export const DISPLAY_NAME_MAX = 64;
 export const PASSWORD_MIN = 8;
 

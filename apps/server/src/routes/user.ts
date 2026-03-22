@@ -1,4 +1,5 @@
 import { Elysia } from "elysia";
+import { NeonDbError } from "@neondatabase/serverless";
 import { eq, ilike, ne, and, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
@@ -254,7 +255,7 @@ export const userRoutes = new Elysia()
       updated = row;
     } catch (err) {
       // Handle unique constraint race condition (another user took the username between check and update)
-      if (err instanceof Error && err.message.includes("unique")) {
+      if (err instanceof NeonDbError && err.code === "23505") {
         throw new ConflictError("USERNAME_TAKEN", "Username is already taken");
       }
       throw err;

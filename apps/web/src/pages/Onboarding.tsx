@@ -41,8 +41,12 @@ const Onboarding = () => {
         body: JSON.stringify(body),
       });
 
-      // Refresh session so AuthGuard sees the username
-      await authClient.getSession({ fetchOptions: { throw: false } });
+      // Refresh session so AuthGuard sees the username (best-effort)
+      try {
+        await authClient.getSession({ fetchOptions: { throw: false } });
+      } catch {
+        // Session will refresh on next navigation anyway
+      }
       navigate("/home", { replace: true });
     } catch (err) {
       const message =

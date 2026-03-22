@@ -56,8 +56,12 @@ const AccountSettings = () => {
       params.delete("linked");
       const clean = `${window.location.pathname}${params.size ? `?${params}` : ""}`;
       window.history.replaceState(null, "", clean);
-      // Force the auth client to re-read the session cookie
-      await authClient.getSession({ fetchOptions: { throw: false } });
+      // Force the auth client to re-read the session cookie (best-effort)
+      try {
+        await authClient.getSession({ fetchOptions: { throw: false } });
+      } catch {
+        if (import.meta.env.DEV) console.error("[settings] Session refresh after link failed");
+      }
     }
 
     try {

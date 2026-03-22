@@ -53,6 +53,9 @@ const envSchema = z.object({
   // Auth cookies — optional (cross-subdomain for admin panel)
   AUTH_COOKIE_DOMAIN: optionalString,
 
+  // Email — optional (password reset emails disabled without it)
+  RESEND_API_KEY: optionalString,
+
   // Cloudflare R2 — optional (avatars disabled without them)
   R2_ACCOUNT_ID: optionalString,
   R2_ACCESS_KEY_ID: optionalString,

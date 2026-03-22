@@ -73,6 +73,11 @@ const Login = () => {
             value={password()}
             onInput={(e) => setPassword(e.currentTarget.value)}
           />
+          <div class="mt-1 text-right">
+            <A href="/forgot-password" class="text-xs text-primary hover:underline">
+              Forgot your password?
+            </A>
+          </div>
         </div>
         <Button type="submit" disabled={loading()} size="lg" class="w-full">
           {loading() ? "Signing in..." : "Log In"}

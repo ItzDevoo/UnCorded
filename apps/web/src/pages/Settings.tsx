@@ -13,9 +13,17 @@ const tabs: { id: Tab; label: string }[] = [
   { id: "appearance", label: "Appearance" },
 ];
 
+const tabId = (id: Tab) => `settings-tab-${id}`;
+const panelId = (id: Tab) => `settings-panel-${id}`;
+
 const Settings = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = createSignal<Tab>("profile");
+
+  function activateTab(id: Tab) {
+    setActiveTab(id);
+    document.getElementById(tabId(id))?.focus();
+  }
 
   return (
     <div class="flex h-full flex-col">
@@ -50,11 +58,11 @@ const Settings = () => {
           if (e.key === "ArrowRight") {
             e.preventDefault();
             const next = (currentIndex + 1) % tabs.length;
-            setActiveTab(tabs[next]!.id);
+            activateTab(tabs[next]!.id);
           } else if (e.key === "ArrowLeft") {
             e.preventDefault();
             const prev = (currentIndex - 1 + tabs.length) % tabs.length;
-            setActiveTab(tabs[prev]!.id);
+            activateTab(tabs[prev]!.id);
           }
         }}
       >
@@ -62,8 +70,10 @@ const Settings = () => {
           {(tab) => (
             <button
               type="button"
+              id={tabId(tab.id)}
               role="tab"
               aria-selected={activeTab() === tab.id}
+              aria-controls={panelId(tab.id)}
               tabIndex={activeTab() === tab.id ? 0 : -1}
               class={`px-4 py-2.5 text-sm font-medium transition-colors ${
                 activeTab() === tab.id
@@ -79,7 +89,12 @@ const Settings = () => {
       </div>
 
       {/* Tab content */}
-      <div class="flex-1 overflow-y-auto p-6" role="tabpanel">
+      <div
+        class="flex-1 overflow-y-auto p-6"
+        role="tabpanel"
+        id={panelId(activeTab())}
+        aria-labelledby={tabId(activeTab())}
+      >
         <div class="mx-auto max-w-2xl">
           <Show when={activeTab() === "profile"}>
             <ProfileSettings />

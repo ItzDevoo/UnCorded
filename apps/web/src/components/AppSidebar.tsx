@@ -69,10 +69,11 @@ const AppSidebar = () => {
     } catch { /* clipboard unavailable */ }
   };
 
+  const resolvedUsername = () =>
+    readyData.data?.user.username ?? session()?.data?.user?.name ?? "User";
+
   const usernameSizeClass = () => {
-    const name = readyData.data?.user.username ?? session()?.data?.user?.name ?? "User";
-    if (name.length > 20) return "text-[10px]";
-    if (name.length > 12) return "text-xs";
+    if (resolvedUsername().length > 12) return "text-xs";
     return "text-sm";
   };
 
@@ -413,13 +414,12 @@ const AppSidebar = () => {
               fallback={
                 <button
                   type="button"
-                  class={`block truncate ${usernameSizeClass()} font-medium text-foreground cursor-pointer`}
-                  title="Copy username"
+                  class={`block max-w-full truncate ${usernameSizeClass()} font-medium text-foreground cursor-pointer`}
+                  title={resolvedUsername()}
+                  aria-label={`Copy username: ${resolvedUsername()}`}
                   onClick={() => copyUsername()}
                 >
-                  {copiedUsername()
-                    ? "Copied!"
-                    : (readyData.data?.user.username ?? session()?.data?.user?.name ?? "User")}
+                  {copiedUsername() ? "Copied!" : resolvedUsername()}
                 </button>
               }
             >

@@ -110,7 +110,7 @@ const AccountSettings = () => {
   async function handleConnect(provider: "google" | "discord") {
     setConnecting(true);
     try {
-      await signIn.social({ provider, callbackURL: "/settings" });
+      await signIn.social({ provider, callbackURL: `${window.location.origin}/settings` });
     } catch {
       showToast("Failed to connect account", "error");
       setConnecting(false);

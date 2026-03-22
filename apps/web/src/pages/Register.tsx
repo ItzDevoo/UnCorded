@@ -35,7 +35,7 @@ const Register = () => {
     setError("");
     setOauthLoading(true);
     try {
-      await signIn.social({ provider, callbackURL: "/home" });
+      await signIn.social({ provider, callbackURL: `${window.location.origin}/home` });
     } catch {
       setError("Something went wrong");
       setOauthLoading(false);

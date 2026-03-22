@@ -1,4 +1,4 @@
-import { createSignal, lazy, Show } from "solid-js";
+import { createSignal, lazy, Show, For } from "solid-js";
 import { useNavigate } from "@solidjs/router";
 
 const ProfileSettings = lazy(() => import("../components/settings/profile-settings.js"));
@@ -13,9 +13,17 @@ const tabs: { id: Tab; label: string }[] = [
   { id: "appearance", label: "Appearance" },
 ];
 
+const tabId = (id: Tab) => `settings-tab-${id}`;
+const panelId = (id: Tab) => `settings-panel-${id}`;
+
 const Settings = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = createSignal<Tab>("profile");
+
+  function activateTab(id: Tab) {
+    setActiveTab(id);
+    document.getElementById(tabId(id))?.focus();
+  }
 
   return (
     <div class="flex h-full flex-col">
@@ -42,24 +50,51 @@ const Settings = () => {
       </div>
 
       {/* Tab bar */}
-      <div class="flex gap-1 border-b border-border px-6">
-        {tabs.map((tab) => (
-          <button
-            type="button"
-            class={`px-4 py-2.5 text-sm font-medium transition-colors ${
-              activeTab() === tab.id
-                ? "border-b-2 border-primary text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div
+        class="flex gap-1 border-b border-border px-6"
+        role="tablist"
+        onKeyDown={(e) => {
+          const currentIndex = tabs.findIndex((t) => t.id === activeTab());
+          if (e.key === "ArrowRight") {
+            e.preventDefault();
+            const next = (currentIndex + 1) % tabs.length;
+            activateTab(tabs[next]!.id);
+          } else if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            const prev = (currentIndex - 1 + tabs.length) % tabs.length;
+            activateTab(tabs[prev]!.id);
+          }
+        }}
+      >
+        <For each={tabs}>
+          {(tab) => (
+            <button
+              type="button"
+              id={tabId(tab.id)}
+              role="tab"
+              aria-selected={activeTab() === tab.id}
+              aria-controls={panelId(tab.id)}
+              tabIndex={activeTab() === tab.id ? 0 : -1}
+              class={`px-4 py-2.5 text-sm font-medium transition-colors ${
+                activeTab() === tab.id
+                  ? "border-b-2 border-primary text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          )}
+        </For>
       </div>
 
       {/* Tab content */}
-      <div class="flex-1 overflow-y-auto p-6">
+      <div
+        class="flex-1 overflow-y-auto p-6"
+        role="tabpanel"
+        id={panelId(activeTab())}
+        aria-labelledby={tabId(activeTab())}
+      >
         <div class="mx-auto max-w-2xl">
           <Show when={activeTab() === "profile"}>
             <ProfileSettings />

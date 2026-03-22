@@ -4,6 +4,7 @@ import { api, ApiRequestError } from "../../lib/api.js";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog.js";
 import { Input } from "../ui/input.js";
 import { Button } from "../ui/button.js";
+import { showToast } from "../ui/toast.js";
 
 interface InviteResponse {
   code: InviteCode;
@@ -62,6 +63,7 @@ const InviteModal = (props: Props) => {
     if (!inv) return;
     try {
       await navigator.clipboard.writeText(inv.code);
+      showToast("Invite code copied", "info");
       setCopied(true);
       clearTimeout(copiedTimer);
       copiedTimer = setTimeout(() => setCopied(false), 2000);

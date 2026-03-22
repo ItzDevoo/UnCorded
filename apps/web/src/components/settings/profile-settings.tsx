@@ -138,6 +138,11 @@ const ProfileSettings = () => {
     } catch (err) {
       const message = err instanceof ApiRequestError ? err.body.message : "Failed to save";
       showToast(message, "error");
+      // Clear local preview so the user doesn't think upload succeeded
+      const prev = avatarPreview();
+      if (prev) URL.revokeObjectURL(prev);
+      setAvatarPreview(null);
+      setAvatarFile(null);
     } finally {
       setSaving(false);
     }

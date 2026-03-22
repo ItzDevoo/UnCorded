@@ -35,6 +35,7 @@ import SubscriptionModal from "./modals/SubscriptionModal.js";
 import PricingModal from "./modals/PricingModal.js";
 import StatusDot, { type UserStatus } from "./StatusDot.js";
 import UnifiedReportDialog from "./modals/UnifiedReportDialog.js";
+import { showToast } from "./ui/toast.js";
 
 const iconBtnClass =
   "rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground";
@@ -61,10 +62,19 @@ const AppSidebar = () => {
     const username = u?.username ?? session()?.data?.user?.name ?? "User";
     try {
       await navigator.clipboard.writeText(username);
+      showToast("Username copied", "info");
       setCopiedUsername(true);
       clearTimeout(copiedUsernameTimer);
       copiedUsernameTimer = setTimeout(() => setCopiedUsername(false), 1500);
     } catch { /* clipboard unavailable */ }
+  };
+
+  const resolvedUsername = () =>
+    readyData.data?.user.username ?? session()?.data?.user?.name ?? "User";
+
+  const usernameSizeClass = () => {
+    if (resolvedUsername().length > 12) return "text-xs";
+    return "text-sm";
   };
 
   const isServerOwner = () =>
@@ -337,12 +347,13 @@ const AppSidebar = () => {
         <div class="flex gap-2 px-2 pb-2">
           <button
             type="button"
-            class="flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            class="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-muted/30 px-2 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+            aria-label="Report a problem"
             onClick={() => setShowReportDialog(true)}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              class="h-4 w-4"
+              class="h-4 w-4 text-warning"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -358,7 +369,8 @@ const AppSidebar = () => {
           </button>
           <button
             type="button"
-            class="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            class="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-muted/30 px-2 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+            aria-label="Submit a feature request"
             onClick={() => {
               selectHome();
               navigate("/home/feedback");
@@ -402,13 +414,12 @@ const AppSidebar = () => {
               fallback={
                 <button
                   type="button"
-                  class="block truncate text-sm font-medium text-foreground cursor-pointer"
-                  title="Copy username"
+                  class={`block max-w-full truncate ${usernameSizeClass()} font-medium text-foreground cursor-pointer`}
+                  title={resolvedUsername()}
+                  aria-label={`Copy username: ${resolvedUsername()}`}
                   onClick={() => copyUsername()}
                 >
-                  {copiedUsername()
-                    ? "Copied!"
-                    : (readyData.data?.user.username ?? session()?.data?.user?.name ?? "User")}
+                  {copiedUsername() ? "Copied!" : resolvedUsername()}
                 </button>
               }
             >

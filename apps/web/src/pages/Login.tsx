@@ -4,6 +4,7 @@ import { signIn } from "../lib/auth.js";
 import AuthLayout from "../components/AuthLayout.js";
 import { Input } from "../components/ui/input.js";
 import { Button } from "../components/ui/button.js";
+import { GoogleButton, DiscordButton, OAuthDivider } from "../components/ui/oauth-buttons.js";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -11,6 +12,18 @@ const Login = () => {
   const [password, setPassword] = createSignal("");
   const [error, setError] = createSignal("");
   const [loading, setLoading] = createSignal(false);
+  const [oauthLoading, setOauthLoading] = createSignal(false);
+
+  const handleOAuth = async (provider: "google" | "discord") => {
+    setError("");
+    setOauthLoading(true);
+    try {
+      await signIn.social({ provider, callbackURL: "/home" });
+    } catch {
+      setError("Something went wrong");
+      setOauthLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: SubmitEvent) => {
     e.preventDefault();
@@ -48,6 +61,19 @@ const Login = () => {
           {error()}
         </div>
       </Show>
+
+      <div class="animate-fade-in space-y-3">
+        <GoogleButton
+          onClick={() => handleOAuth("google")}
+          disabled={oauthLoading() || loading()}
+        />
+        <DiscordButton
+          onClick={() => handleOAuth("discord")}
+          disabled={oauthLoading() || loading()}
+        />
+      </div>
+
+      <OAuthDivider />
 
       <form onSubmit={handleSubmit} class="animate-fade-in space-y-4">
         <div>

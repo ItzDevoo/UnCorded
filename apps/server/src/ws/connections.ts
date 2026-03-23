@@ -39,12 +39,16 @@ export function getConnections(userId: string): Set<AnyServerWebSocket> | undefi
 }
 
 /** Close all WS connections for a user, forcing reconnect with fresh context. */
-export function disconnectUser(targetUserId: string): void {
+export function disconnectUser(
+  targetUserId: string,
+  closeCode: CloseCode = CloseCode.SESSION_UPDATED,
+  reason = "Session updated",
+): void {
   const set = clients.get(targetUserId);
   if (!set) return;
   for (const ws of set) {
     try {
-      ws.close(CloseCode.SESSION_UPDATED, "Session updated");
+      ws.close(closeCode, reason);
     } catch {
       // Already closed — ignore
     }

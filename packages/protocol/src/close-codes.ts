@@ -15,4 +15,6 @@ export enum CloseCode {
   HEARTBEAT_TIMEOUT = 4007,
   /** Server-side session/context changed — client should reconnect to refresh */
   SESSION_UPDATED = 4010,
+  /** Account was permanently deleted — client should not reconnect */
+  ACCOUNT_DELETED = 4011,
 }

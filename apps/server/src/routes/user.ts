@@ -14,7 +14,7 @@ import {
   ALLOWED_AVATAR_TYPES,
   RATE_LIMIT_USER_SEARCH,
 } from "@uncorded/shared";
-import { userId, Opcode } from "@uncorded/protocol";
+import { userId, Opcode, CloseCode } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { user, servers } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
@@ -26,19 +26,29 @@ import { checkUserRateLimit } from "../helpers/rate-limit.js";
 import { sendToUser, disconnectUser } from "../ws/connections.js";
 
 // ── Pending deletion state (in-memory, single-server) ──────────
+type DeletionStatus = "reserved" | "pending" | "executing";
+
 interface PendingDeletion {
   timer: ReturnType<typeof setTimeout> | null;
   avatarUrl: string | null;
+  status: DeletionStatus;
 }
 
 const pendingDeletions = new Map<string, PendingDeletion>();
 
 function executeDeletion(targetUserId: string, avatarUrl: string | null) {
+  const entry = pendingDeletions.get(targetUserId);
+  if (!entry || entry.status === "reserved") {
+    // Entry removed by cancel handler or still reserving — abort
+    return;
+  }
+  entry.status = "executing";
+
   db.delete(user)
     .where(eq(user.id, targetUserId))
     .then(() => {
       pendingDeletions.delete(targetUserId);
-      disconnectUser(targetUserId);
+      disconnectUser(targetUserId, CloseCode.ACCOUNT_DELETED, "Account deleted");
       if (avatarUrl && isR2Configured()) {
         deleteAvatar(avatarUrl).catch((err) =>
           console.error("[r2] avatar cleanup on account delete failed:", err),
@@ -332,7 +342,7 @@ export const userRoutes = new Elysia()
     }
 
     // Reserve the slot atomically before any awaits to prevent races
-    pendingDeletions.set(sessionUser.id, { timer: null, avatarUrl: null });
+    pendingDeletions.set(sessionUser.id, { timer: null, avatarUrl: null, status: "reserved" });
 
     let dbUser: { avatarUrl: string | null };
     try {
@@ -376,9 +386,7 @@ export const userRoutes = new Elysia()
         .limit(1);
 
       if (ownedServer) {
-        throw new AppError(
-          "ServerOwnerError",
-          409,
+        throw new ConflictError(
           "SERVER_OWNER",
           "You must transfer or delete all servers you own before deleting your account",
         );
@@ -392,7 +400,7 @@ export const userRoutes = new Elysia()
     // Schedule deletion with 10-second countdown
     const expiresAt = new Date(Date.now() + 10_000);
     const timer = setTimeout(() => executeDeletion(sessionUser.id, dbUser.avatarUrl), 10_000);
-    pendingDeletions.set(sessionUser.id, { timer, avatarUrl: dbUser.avatarUrl });
+    pendingDeletions.set(sessionUser.id, { timer, avatarUrl: dbUser.avatarUrl, status: "pending" });
 
     // Notify the user via WebSocket
     sendToUser(sessionUser.id, {
@@ -411,6 +419,9 @@ export const userRoutes = new Elysia()
     const pending = pendingDeletions.get(sessionUser.id);
     if (!pending) {
       throw new ConflictError("NO_PENDING_DELETION", "No pending deletion to cancel");
+    }
+    if (pending.status === "executing") {
+      throw new ConflictError("DELETION_EXECUTING", "Deletion is already in progress and cannot be cancelled");
     }
 
     if (pending.timer !== null) clearTimeout(pending.timer);

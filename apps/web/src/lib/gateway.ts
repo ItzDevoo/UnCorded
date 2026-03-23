@@ -5,6 +5,7 @@ import {
   setGatewayStatus,
   setReadyPayload,
   clearReadyPayload,
+  setLastCloseCode,
   type ReadyData,
 } from "./gateway-store.js";
 import { setupStores } from "../stores/index.js";
@@ -147,12 +148,19 @@ function handleClose(event: CloseEvent) {
 
   clearTimers();
   setGatewayStatus("disconnected");
+  setLastCloseCode(event.code);
   ws = null;
 
   if (intentionalClose) return;
 
   // Auth failures — reconnecting won't help
   if (event.code === CloseCode.MISSING_TOKEN || event.code === CloseCode.INVALID_SESSION) {
+    clearReadyPayload();
+    return;
+  }
+
+  // Account deleted — reconnecting won't help
+  if (event.code === CloseCode.ACCOUNT_DELETED) {
     clearReadyPayload();
     return;
   }

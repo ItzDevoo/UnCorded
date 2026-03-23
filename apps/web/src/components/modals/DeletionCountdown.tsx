@@ -1,6 +1,7 @@
 import { createSignal, createEffect, onCleanup, Show } from "solid-js";
 import { deletionState, dismissDeletion } from "../../stores/deletion-store.js";
-import { gatewayStatus } from "../../lib/gateway-store.js";
+import { lastCloseCode } from "../../lib/gateway-store.js";
+import { CloseCode } from "@uncorded/protocol";
 import { api, ApiRequestError } from "../../lib/api.js";
 import { showToast } from "../ui/toast.js";
 import { Button } from "../ui/button.js";
@@ -55,10 +56,10 @@ const DeletionCountdown = () => {
     }
   });
 
-  // Server-driven confirmation: when WS disconnects after countdown expired,
-  // the server has successfully deleted the account and called disconnectUser()
+  // Server-driven confirmation: when the server closes the WS with ACCOUNT_DELETED
+  // close code, it means db.delete() succeeded and disconnectUser() was called
   createEffect(() => {
-    if (expired() && deletionState().show && gatewayStatus() === "disconnected") {
+    if (expired() && deletionState().show && lastCloseCode() === CloseCode.ACCOUNT_DELETED) {
       setDeleted(true);
       setTimeout(() => {
         window.location.href = "/";

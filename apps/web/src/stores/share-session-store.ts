@@ -67,6 +67,19 @@ const [store, setStore] = createStore<ShareSessionStoreState>({
   sessions: {},
 });
 
+// Track download versions to ignore stale callbacks after leave/close
+const downloadVersions = new Map<string, number>();
+
+function nextDownloadVersion(sessionId: string): number {
+  const v = (downloadVersions.get(sessionId) ?? 0) + 1;
+  downloadVersions.set(sessionId, v);
+  return v;
+}
+
+function isCurrentDownload(sessionId: string, version: number): boolean {
+  return downloadVersions.get(sessionId) === version;
+}
+
 // Active sender session signal (only one at a time)
 const [activeSenderSessionId, setActiveSenderSessionId] = createSignal<string | null>(null);
 // Active receiver session signal
@@ -232,6 +245,9 @@ export function leaveSession(sessionId: string): void {
   const session = store.sessions[sessionId];
   if (!session) return;
 
+  // Invalidate any in-flight download callbacks
+  nextDownloadVersion(sessionId);
+
   sendFrame({
     op: Opcode.FILE_SESSION_LEAVE,
     d: { sessionId },
@@ -339,13 +355,18 @@ export function setupShareSessionStore(): void {
 
       setStore("sessions", d.sessionId, "magnetUri", d.magnetUri);
 
+      // Track version so stale callbacks after leave/close are ignored
+      const version = nextDownloadVersion(d.sessionId);
+
       // Start downloading via WebTorrent
       downloadFromMagnet(d.magnetUri, (progress, speed) => {
+        if (!isCurrentDownload(d.sessionId, version)) return;
         setStore("sessions", d.sessionId, "receiverProgress", progress);
         setStore("sessions", d.sessionId, "receiverSpeed", speed);
         sendProgressThrottled(d.sessionId, progress, speed);
       })
         .then((files) => {
+          if (!isCurrentDownload(d.sessionId, version)) return;
           const file = files[0];
           if (file) {
             setStore("sessions", d.sessionId, "downloadedFile", file);
@@ -360,6 +381,7 @@ export function setupShareSessionStore(): void {
           });
         })
         .catch((err) => {
+          if (!isCurrentDownload(d.sessionId, version)) return;
           if (import.meta.env.DEV) console.error("[share-session] Download error:", err);
           setStore("sessions", d.sessionId, "status", "closed");
         });
@@ -437,6 +459,9 @@ export function setupShareSessionStore(): void {
 
       const session = store.sessions[d.sessionId];
       if (!session) return;
+
+      // Invalidate in-flight download callbacks
+      nextDownloadVersion(d.sessionId);
 
       setStore("sessions", d.sessionId, "status", "closed");
 

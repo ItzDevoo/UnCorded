@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { eq, or, desc, and, lt } from "drizzle-orm";
+import { eq, or, desc, and, lt, isNotNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "../db/index.js";
 import { fileReceipts, user } from "../db/schema.js";
@@ -35,10 +35,14 @@ export const fileReceiptRoutes = new Elysia({ prefix: "/api/file-receipts" })
     }
 
     // Only include DM receipts (those with receiverId set)
-    conditions.push(eq(fileReceipts.receiverId, fileReceipts.receiverId));
+    conditions.push(isNotNull(fileReceipts.receiverId));
 
     if (cursor) {
-      conditions.push(lt(fileReceipts.createdAt, new Date(cursor)));
+      const parsedDate = new Date(cursor);
+      if (Number.isNaN(parsedDate.getTime())) {
+        throw new ValidationError("Invalid cursor value");
+      }
+      conditions.push(lt(fileReceipts.createdAt, parsedDate));
     }
 
     const rows = await db

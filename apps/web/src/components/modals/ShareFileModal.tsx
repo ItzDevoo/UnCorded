@@ -1,6 +1,6 @@
 import { createSignal, createMemo, For, Show, onCleanup } from "solid-js";
 import { Portal } from "solid-js/web";
-// MAX_FILE_SIZE_BYTES used for server channel shares; DM sessions use MAX_SINGLE_FILE_SIZE below
+import { MAX_FILE_SIZE_BYTES } from "@uncorded/shared";
 import { readyData } from "../../lib/gateway-store.js";
 import {
   createSession,
@@ -13,7 +13,8 @@ import { Button } from "../ui/button.js";
 import { Input } from "../ui/input.js";
 import ShareVisualization from "../ShareVisualization.js";
 
-const MAX_SINGLE_FILE_SIZE = 5 * 1024 * 1024 * 1024; // 5GB
+// Use the canonical protocol limit (1 GiB) to match server-side validation
+const MAX_SINGLE_FILE_SIZE = MAX_FILE_SIZE_BYTES;
 
 interface Props {
   onClose: () => void;
@@ -70,7 +71,10 @@ const ShareFileModal = (props: Props) => {
 
   const friends = createMemo(() => {
     const all = readyData.data?.friends ?? [];
-    return all.filter((f) => f.friendshipStatus === "accepted");
+    // P2P requires both peers online — only show online/idle friends
+    return all.filter(
+      (f) => f.friendshipStatus === "accepted" && (f.status === "online" || f.status === "idle"),
+    );
   });
 
   const filteredFriends = createMemo(() => {

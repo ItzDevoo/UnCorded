@@ -26,6 +26,7 @@ interface FileSession {
   infoHash: string;
   invitees: Set<string>;
   participants: Set<string>;
+  completedParticipants: Set<string>;
   createdAt: Date;
 }
 
@@ -74,6 +75,7 @@ export async function handleFileSessionCreate(
     infoHash: data.infoHash,
     invitees: new Set(validInvitees),
     participants: new Set(),
+    completedParticipants: new Set(),
     createdAt: new Date(),
   };
   activeSessions.set(session.id, session);
@@ -172,6 +174,10 @@ export async function handleFileSessionComplete(
   const session = activeSessions.get(data.sessionId);
   if (!session || !session.participants.has(reportingUserId)) return;
 
+  // Dedupe: skip if already completed
+  if (session.completedParticipants.has(reportingUserId)) return;
+  session.completedParticipants.add(reportingUserId);
+
   // Forward to sender
   sendToUser(session.senderId, {
     op: Opcode.FILE_SESSION_COMPLETE,
@@ -234,7 +240,7 @@ export function handleFileSessionLeave(
   });
 }
 
-/** Called on WebSocket close — cleanup all sessions owned by the disconnecting user. */
+/** Called on WebSocket close — cleanup all sessions involving the disconnecting user. */
 export function cleanupSessionsForUser(disconnectedUserId: string): void {
   for (const [sessionId, session] of activeSessions) {
     if (session.senderId === disconnectedUserId) {
@@ -254,6 +260,16 @@ export function cleanupSessionsForUser(disconnectedUserId: string): void {
         }
       }
       activeSessions.delete(sessionId);
+    } else {
+      // Recipient disconnected — notify sender and remove from session
+      if (session.participants.has(disconnectedUserId)) {
+        session.participants.delete(disconnectedUserId);
+        sendToUser(session.senderId, {
+          op: Opcode.FILE_SESSION_LEAVE,
+          d: { sessionId, userId: disconnectedUserId },
+        });
+      }
+      session.invitees.delete(disconnectedUserId);
     }
   }
 }

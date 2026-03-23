@@ -42,7 +42,7 @@ export const reportRoutes = new Elysia({ prefix: "/api/reports" })
       if (!resolution) throw new NotFoundError("Message");
     } else if (data.type === "file") {
       const [fr] = await db
-        .select({ id: fileReceipts.id, channelId: fileReceipts.channelId })
+        .select({ id: fileReceipts.id, channelId: fileReceipts.channelId, senderId: fileReceipts.senderId, receiverId: fileReceipts.receiverId })
         .from(fileReceipts)
         .where(eq(fileReceipts.id, data.fileReceiptId))
         .limit(1);
@@ -50,6 +50,11 @@ export const reportRoutes = new Elysia({ prefix: "/api/reports" })
       if (fr.channelId) {
         const resolution = await resolveChannelMembership(sessionUser.id, fr.channelId);
         if (!resolution) throw new NotFoundError("File receipt");
+      } else {
+        // DM P2P receipt — verify user is sender or receiver
+        if (fr.senderId !== sessionUser.id && fr.receiverId !== sessionUser.id) {
+          throw new NotFoundError("File receipt");
+        }
       }
     } else if (data.type === "player") {
       if (data.targetUserId === sessionUser.id) {

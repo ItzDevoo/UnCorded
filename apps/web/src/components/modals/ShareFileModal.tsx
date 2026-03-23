@@ -69,11 +69,15 @@ const ShareFileModal = (props: Props) => {
 
   // ── Friend Selection ──────────────────────────────────────────────────
 
-  const friends = createMemo(() => {
+  const allAcceptedFriends = createMemo(() => {
     const all = readyData.data?.friends ?? [];
+    return all.filter((f) => f.friendshipStatus === "accepted");
+  });
+
+  const friends = createMemo(() => {
     // P2P requires both peers online — only show online/idle friends
-    return all.filter(
-      (f) => f.friendshipStatus === "accepted" && (f.status === "online" || f.status === "idle"),
+    return allAcceptedFriends().filter(
+      (f) => f.status === "online" || f.status === "idle",
     );
   });
 
@@ -291,7 +295,9 @@ const ShareFileModal = (props: Props) => {
                 when={friends().length > 0}
                 fallback={
                   <p class="py-8 text-center text-sm text-muted-foreground">
-                    No friends yet. Add friends to share files with them.
+                    {allAcceptedFriends().length === 0
+                      ? "No friends yet. Add friends to share files with them."
+                      : "No friends are currently online."}
                   </p>
                 }
               >

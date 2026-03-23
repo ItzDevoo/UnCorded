@@ -261,7 +261,8 @@ export function cleanupSessionsForUser(disconnectedUserId: string): void {
       }
       activeSessions.delete(sessionId);
     } else {
-      // Recipient disconnected — notify sender and remove from session
+      // Recipient disconnected — notify sender, remove from participants
+      // but keep in invitees so they can rejoin if they reconnect
       if (session.participants.has(disconnectedUserId)) {
         session.participants.delete(disconnectedUserId);
         sendToUser(session.senderId, {
@@ -269,7 +270,6 @@ export function cleanupSessionsForUser(disconnectedUserId: string): void {
           d: { sessionId, userId: disconnectedUserId },
         });
       }
-      session.invitees.delete(disconnectedUserId);
     }
   }
 }

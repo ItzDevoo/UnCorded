@@ -72,4 +72,23 @@ export enum Opcode {
 
   /** Server -> Client: error notification (e.g., tier restriction) */
   ERROR = 99,
+
+  // ── File Share Sessions (DM P2P) ──────────────────────────────────────────
+
+  /** Sender -> Server: create a share session */
+  FILE_SESSION_CREATE = 100,
+  /** Server -> Recipients: you've been invited to a share session */
+  FILE_SESSION_INVITE = 101,
+  /** Recipient -> Server: joining the share session */
+  FILE_SESSION_JOIN = 102,
+  /** Server -> Sender: a user joined the session */
+  FILE_SESSION_JOINED = 103,
+  /** Recipient -> Server -> Sender: download progress update */
+  FILE_SESSION_PROGRESS = 104,
+  /** Recipient -> Server -> Sender: download complete */
+  FILE_SESSION_COMPLETE = 105,
+  /** Sender -> Server -> All: session ended */
+  FILE_SESSION_CLOSE = 106,
+  /** Recipient -> Server -> Sender: user left the session */
+  FILE_SESSION_LEAVE = 107,
 }

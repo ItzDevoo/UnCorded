@@ -8,5 +8,14 @@ export type {
   FileShareRequest,
   FileShareBroadcast,
   FileAvailabilityPayload,
+  FileSessionCreatePayload,
+  FileSessionInvitePayload,
+  FileSessionJoinPayload,
+  FileSessionJoinAcceptPayload,
+  FileSessionJoinedPayload,
+  FileSessionProgressPayload,
+  FileSessionCompletePayload,
+  FileSessionClosePayload,
+  FileSessionLeavePayload,
 } from "./signaling.js";
 export * from "./schemas.js";

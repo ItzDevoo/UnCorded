@@ -47,8 +47,10 @@ export const reportRoutes = new Elysia({ prefix: "/api/reports" })
         .where(eq(fileReceipts.id, data.fileReceiptId))
         .limit(1);
       if (!fr) throw new NotFoundError("File receipt");
-      const resolution = await resolveChannelMembership(sessionUser.id, fr.channelId);
-      if (!resolution) throw new NotFoundError("File receipt");
+      if (fr.channelId) {
+        const resolution = await resolveChannelMembership(sessionUser.id, fr.channelId);
+        if (!resolution) throw new NotFoundError("File receipt");
+      }
     } else if (data.type === "player") {
       if (data.targetUserId === sessionUser.id) {
         throw new ValidationError("You cannot report yourself");

@@ -50,7 +50,7 @@ export function cancelP2pDialog(): void {
   p2pReject = null;
 }
 
-async function ensureP2pAcknowledged(): Promise<void> {
+export async function ensureP2pAcknowledged(): Promise<void> {
   if (localStorage.getItem(P2P_ACK_KEY) === "true") return;
 
   return new Promise<void>((resolve, reject) => {

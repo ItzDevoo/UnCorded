@@ -1,9 +1,10 @@
 import { createSignal, For, onMount } from "solid-js";
 import { api, ApiRequestError } from "../../lib/api.js";
-import { authClient, signIn, signOut } from "../../lib/auth.js";
+import { authClient, signIn } from "../../lib/auth.js";
 import { showToast } from "../ui/toast.js";
 import { Button } from "../ui/button.js";
 import { GoogleIcon, DiscordIcon } from "../ui/oauth-buttons.js";
+import { showPendingDeletion } from "../../stores/deletion-store.js";
 import {
   Dialog,
   DialogContent,
@@ -165,11 +166,16 @@ const AccountSettings = () => {
     }
 
     setDeleting(true);
+    let expiresAt: string | undefined;
     try {
-      await api("/api/users/@me", {
-        method: "DELETE",
-        body: JSON.stringify({ password: deletePassword() }),
-      });
+      const res = await api<{ success: boolean; pending?: boolean; expiresAt?: string }>(
+        "/api/users/@me",
+        {
+          method: "DELETE",
+          body: JSON.stringify({ password: deletePassword() }),
+        },
+      );
+      expiresAt = res.expiresAt;
     } catch (err) {
       const message =
         err instanceof ApiRequestError ? err.body.message : "Failed to delete account";
@@ -178,13 +184,13 @@ const AccountSettings = () => {
       return;
     }
 
-    // Account deleted — sign out and redirect (ignore errors, redirect clears session)
-    try {
-      await signOut();
-    } catch {
-      // Session cleanup is best-effort
+    // Show countdown immediately from REST response (WS frame reconciles later)
+    if (expiresAt) {
+      showPendingDeletion(expiresAt);
     }
-    window.location.href = "/";
+    setDeletePassword("");
+    setShowDeleteDialog(false);
+    setDeleting(false);
   }
 
   return (

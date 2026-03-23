@@ -6,6 +6,7 @@ import { setupMemberStore } from "./member-store.js";
 import { setupPresenceStore } from "./presence-store.js";
 import { setupNotificationStore } from "./notification-store.js";
 import { setupGiftStore } from "./gift-store.js";
+import { setupDeletionStore } from "./deletion-store.js";
 
 export {
   setupMessageStore,
@@ -16,6 +17,7 @@ export {
   setupPresenceStore,
   setupNotificationStore,
   setupGiftStore,
+  setupDeletionStore,
 };
 
 export function setupStores() {
@@ -27,4 +29,5 @@ export function setupStores() {
   setupPresenceStore();
   setupNotificationStore();
   setupGiftStore();
+  setupDeletionStore();
 }

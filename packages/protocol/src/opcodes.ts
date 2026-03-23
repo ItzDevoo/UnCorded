@@ -65,6 +65,11 @@ export enum Opcode {
   /** Server -> Client: subscription tier was gifted */
   SUBSCRIPTION_GIFT = 85,
 
+  /** Server -> Client: account deletion countdown started */
+  ACCOUNT_DELETION_PENDING = 90,
+  /** Server -> Client: account deletion was cancelled */
+  ACCOUNT_DELETION_CANCELLED = 91,
+
   /** Server -> Client: error notification (e.g., tier restriction) */
   ERROR = 99,
 }

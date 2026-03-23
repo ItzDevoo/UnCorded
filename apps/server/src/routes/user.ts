@@ -15,7 +15,7 @@ import {
   ALLOWED_AVATAR_TYPES,
   RATE_LIMIT_USER_SEARCH,
 } from "@uncorded/shared";
-import { userId } from "@uncorded/protocol";
+import { userId, Opcode, CloseCode } from "@uncorded/protocol";
 import { db } from "../db/index.js";
 import { user, servers } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
@@ -24,6 +24,47 @@ import { isR2Configured, uploadAvatar, deleteAvatar } from "../lib/r2.js";
 import { AppError } from "@uncorded/shared";
 import { checkIpRateLimit } from "../middleware/ip-rate-limit.js";
 import { checkUserRateLimit } from "../helpers/rate-limit.js";
+import { sendToUser, disconnectUser } from "../ws/connections.js";
+
+// ── Pending deletion state (in-memory, single-server) ──────────
+type DeletionStatus = "reserved" | "pending" | "executing";
+
+interface PendingDeletion {
+  timer: ReturnType<typeof setTimeout> | null;
+  avatarUrl: string | null;
+  status: DeletionStatus;
+}
+
+const pendingDeletions = new Map<string, PendingDeletion>();
+
+function executeDeletion(targetUserId: string, avatarUrl: string | null) {
+  const entry = pendingDeletions.get(targetUserId);
+  if (!entry || entry.status === "reserved") {
+    // Entry removed by cancel handler or still reserving — abort
+    return;
+  }
+  entry.status = "executing";
+
+  db.delete(user)
+    .where(eq(user.id, targetUserId))
+    .then(() => {
+      pendingDeletions.delete(targetUserId);
+      disconnectUser(targetUserId, CloseCode.ACCOUNT_DELETED, "Account deleted");
+      if (avatarUrl && isR2Configured()) {
+        deleteAvatar(avatarUrl).catch((err) =>
+          console.error("[r2] avatar cleanup on account delete failed:", err),
+        );
+      }
+    })
+    .catch((err) => {
+      console.error("[deletion] Failed to delete user:", err);
+      pendingDeletions.delete(targetUserId);
+      sendToUser(targetUserId, {
+        op: Opcode.ACCOUNT_DELETION_CANCELLED,
+        d: null,
+      });
+    });
+}
 
 function getClientIp(request: Request): string {
   return (
@@ -304,67 +345,106 @@ export const userRoutes = new Elysia()
       throw new RateLimitError("Too many requests, try again later");
     }
 
+    // If there's already a pending deletion, reject
+    if (pendingDeletions.has(sessionUser.id)) {
+      throw new ConflictError("DELETION_PENDING", "Account deletion is already in progress");
+    }
+
     const parsed = deleteAccountSchema.safeParse(body);
     if (!parsed.success) {
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
     }
 
-    const [dbUser] = await db
-      .select({ avatarUrl: user.avatarUrl })
-      .from(user)
-      .where(eq(user.id, sessionUser.id))
-      .limit(1);
+    // Reserve the slot atomically before any awaits to prevent races
+    pendingDeletions.set(sessionUser.id, { timer: null, avatarUrl: null, status: "reserved" });
 
-    if (!dbUser) {
-      throw new NotFoundError("User");
-    }
-
-    // Verify password without creating a session
+    let dbUser: { avatarUrl: string | null };
     try {
-      const result = await auth.api.verifyPassword({
-        body: { password: parsed.data.password },
-        headers: request.headers,
-      });
-      if (!result.status) {
+      const [row] = await db
+        .select({ avatarUrl: user.avatarUrl })
+        .from(user)
+        .where(eq(user.id, sessionUser.id))
+        .limit(1);
+
+      if (!row) {
+        throw new NotFoundError("User");
+      }
+      dbUser = row;
+
+      // Verify password without creating a session
+      try {
+        const result = await auth.api.verifyPassword({
+          body: { password: parsed.data.password },
+          headers: request.headers,
+        });
+        if (!result.status) {
+          throw new UnauthorizedError("Incorrect password");
+        }
+      } catch (err) {
+        if (err instanceof UnauthorizedError) throw err;
+        const code = err instanceof Error && "code" in err ? (err as { code: string }).code : null;
+        if (code === "INVALID_PASSWORD") {
+          throw new UnauthorizedError("Incorrect password");
+        }
+        if (code === "CREDENTIAL_ACCOUNT_NOT_FOUND") {
+          throw new ValidationError("No password set — account uses OAuth only");
+        }
         throw new UnauthorizedError("Incorrect password");
+      }
+
+      // Check server ownership — servers have onDelete: "restrict"
+      const [ownedServer] = await db
+        .select({ id: servers.id })
+        .from(servers)
+        .where(eq(servers.ownerId, sessionUser.id))
+        .limit(1);
+
+      if (ownedServer) {
+        throw new ConflictError(
+          "SERVER_OWNER",
+          "You must transfer or delete all servers you own before deleting your account",
+        );
       }
     } catch (err) {
-      if (err instanceof UnauthorizedError) throw err;
-      const code = err instanceof Error && "code" in err ? (err as { code: string }).code : null;
-      if (code === "INVALID_PASSWORD") {
-        throw new UnauthorizedError("Incorrect password");
-      }
-      if (code === "CREDENTIAL_ACCOUNT_NOT_FOUND") {
-        throw new ValidationError("No password set — account uses OAuth only");
-      }
-      throw new UnauthorizedError("Incorrect password");
+      // Validation failed — release the reservation
+      pendingDeletions.delete(sessionUser.id);
+      throw err;
     }
 
-    // Check server ownership — servers have onDelete: "restrict"
-    const [ownedServer] = await db
-      .select({ id: servers.id })
-      .from(servers)
-      .where(eq(servers.ownerId, sessionUser.id))
-      .limit(1);
+    // Schedule deletion with 10-second countdown
+    const expiresAt = new Date(Date.now() + 10_000);
+    const timer = setTimeout(() => executeDeletion(sessionUser.id, dbUser.avatarUrl), 10_000);
+    pendingDeletions.set(sessionUser.id, { timer, avatarUrl: dbUser.avatarUrl, status: "pending" });
 
-    if (ownedServer) {
-      throw new AppError(
-        "ServerOwnerError",
-        409,
-        "SERVER_OWNER",
-        "You must transfer or delete all servers you own before deleting your account",
-      );
+    // Notify the user via WebSocket
+    sendToUser(sessionUser.id, {
+      op: Opcode.ACCOUNT_DELETION_PENDING,
+      d: { expiresAt: expiresAt.toISOString() },
+    });
+
+    return { success: true, pending: true, expiresAt: expiresAt.toISOString() };
+  })
+  .post("/@me/cancel-deletion", async ({ user: sessionUser, request }) => {
+    const ip = getClientIp(request);
+    if (!(await checkIpRateLimit(ip, 5, 900_000, "acct-del-cancel"))) {
+      throw new RateLimitError("Too many requests, try again later");
     }
 
-    // Delete user first (cascades: sessions, accounts, memberships, dm_members, messages set null)
-    await db.delete(user).where(eq(user.id, sessionUser.id));
-
-    // Clean up avatar from R2 after successful DB delete (fire-and-forget)
-    if (dbUser.avatarUrl && isR2Configured()) {
-      deleteAvatar(dbUser.avatarUrl).catch((err) =>
-        console.error("[r2] avatar cleanup on account delete failed:", err),
-      );
+    const pending = pendingDeletions.get(sessionUser.id);
+    if (!pending) {
+      throw new ConflictError("NO_PENDING_DELETION", "No pending deletion to cancel");
     }
+    if (pending.status === "executing") {
+      throw new ConflictError("DELETION_EXECUTING", "Deletion is already in progress and cannot be cancelled");
+    }
+
+    if (pending.timer !== null) clearTimeout(pending.timer);
+    pendingDeletions.delete(sessionUser.id);
+
+    sendToUser(sessionUser.id, {
+      op: Opcode.ACCOUNT_DELETION_CANCELLED,
+      d: null,
+    });
 
     return { success: true };
   }));

@@ -61,6 +61,7 @@ export interface ReadyData {
 }
 
 const [gatewayStatus, setGatewayStatus] = createSignal<GatewayStatus>("disconnected");
+const [lastCloseCode, setLastCloseCode] = createSignal<number | null>(null);
 const [readyData, setReadyData] = createStore<{ data: ReadyData | null }>({ data: null });
 
 // Separate channel cache — channels are fetched lazily per server
@@ -203,4 +204,6 @@ export {
   updateFriendStatus,
   updatePresence,
   updateCurrentUser,
+  lastCloseCode,
+  setLastCloseCode,
 };

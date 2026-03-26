@@ -173,6 +173,9 @@ const ShareFileModal = (props: Props) => {
 
         {/* Modal */}
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Send File"
           class="relative z-10 mx-4 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-border bg-card shadow-lg animate-scale-in sm:mx-0"
           onClick={(e) => e.stopPropagation()}
         >
@@ -329,8 +332,7 @@ const ShareFileModal = (props: Props) => {
                             )}
                           </Show>
                           <div class={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card ${
-                            friend.status === "online" ? "bg-success" :
-                            friend.status === "idle" ? "bg-warning" : "bg-muted-foreground/30"
+                            friend.status === "online" ? "bg-success" : "bg-warning"
                           }`} />
                         </div>
                         <div class="min-w-0 flex-1">

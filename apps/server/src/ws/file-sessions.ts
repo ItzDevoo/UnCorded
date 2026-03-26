@@ -125,6 +125,9 @@ export async function handleFileSessionJoin(
   const session = activeSessions.get(data.sessionId);
   if (!session || !session.invitees.has(joiningUserId)) return;
 
+  // Idempotent: skip if already joined
+  if (session.participants.has(joiningUserId)) return;
+
   session.participants.add(joiningUserId);
 
   // Send magnetUri to the joining recipient so they can start downloading
@@ -185,9 +188,8 @@ export async function handleFileSessionComplete(
 
   // Dedupe: skip if already completed
   if (session.completedParticipants.has(reportingUserId)) return;
-  session.completedParticipants.add(reportingUserId);
 
-  // Create file receipt before notifying sender (so receipt exists if notification succeeds)
+  // Create file receipt before marking complete (so retries can succeed if insert fails)
   try {
     await db.insert(fileReceipts).values({
       id: createId(),
@@ -201,12 +203,14 @@ export async function handleFileSessionComplete(
       infoHash: session.infoHash,
       messageId: null,
     });
+    session.completedParticipants.add(reportingUserId);
   } catch (err) {
     console.error(
       `[file-sessions] Failed to insert receipt: session=${session.id} sender=${session.senderId} receiver=${reportingUserId} file=${session.fileName}`,
       err instanceof Error ? err.message : err,
     );
-    // Still notify sender — the transfer succeeded even if the receipt failed
+    // Don't mark as completed — allows retry on next FILE_SESSION_COMPLETE
+    return;
   }
 
   // Forward to sender

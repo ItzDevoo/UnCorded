@@ -9,7 +9,7 @@ const Card = (props: DivProps) => {
     <div
       data-slot="card"
       class={cn(
-        "rounded-2xl border border-border bg-card text-card-foreground shadow-sm",
+        "rounded-md border border-border bg-card text-card-foreground shadow-sm",
         local.class,
       )}
       {...rest}

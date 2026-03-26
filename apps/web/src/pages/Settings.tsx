@@ -4,13 +4,15 @@ import { useNavigate } from "@solidjs/router";
 const ProfileSettings = lazy(() => import("../components/settings/profile-settings.js"));
 const AccountSettings = lazy(() => import("../components/settings/account-settings.js"));
 const AppearanceSettings = lazy(() => import("../components/settings/appearance-settings.js"));
+const TransferHistory = lazy(() => import("../components/settings/transfer-history.js"));
 
-type Tab = "profile" | "account" | "appearance";
+type Tab = "profile" | "account" | "appearance" | "transfers";
 
 const tabs: { id: Tab; label: string }[] = [
   { id: "profile", label: "Profile" },
   { id: "account", label: "Account" },
   { id: "appearance", label: "Appearance" },
+  { id: "transfers", label: "Transfers" },
 ];
 
 const tabId = (id: Tab) => `settings-tab-${id}`;
@@ -104,6 +106,9 @@ const Settings = () => {
           </Show>
           <Show when={activeTab() === "appearance"}>
             <AppearanceSettings />
+          </Show>
+          <Show when={activeTab() === "transfers"}>
+            <TransferHistory />
           </Show>
         </div>
       </div>

@@ -3,6 +3,7 @@ import {
   onMount,
   createEffect,
   Show,
+  on,
   type ParentComponent,
 } from "solid-js";
 import { useSession } from "../lib/auth.js";
@@ -17,13 +18,19 @@ import AuthGuard from "./AuthGuard.js";
 import AppSidebar from "./AppSidebar.js";
 import ChatArea from "./ChatArea.js";
 import ShortcutsDialog from "./ShortcutsDialog.js";
-import { ToastContainer } from "./ui/toast.js";
+import { ToastContainer, showToast } from "./ui/toast.js";
 import { Empty } from "./ui/empty.js";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "./ui/sidebar.js";
 import P2PNoticeDialog from "./P2PNoticeDialog.js";
 import GiftNotification from "./modals/GiftNotification.js";
 import DeletionCountdown from "./modals/DeletionCountdown.js";
 import { getP2pDialogOpen, confirmP2pDialog, cancelP2pDialog } from "../stores/file-store.js";
+import {
+  pendingInvite,
+  joinSession,
+  activeReceiverSessionId,
+} from "../stores/share-session-store.js";
+import FileReceiveModal from "./modals/FileReceiveModal.js";
 
 const SETTINGS_PATHS = ["/home/server-settings", "/home/settings"];
 
@@ -45,6 +52,26 @@ const AppLayout: ParentComponent = (props) => {
     cleanupShortcuts();
   });
 
+  // Show persistent toast for incoming file share invites
+  createEffect(
+    on(pendingInvite, (invite) => {
+      if (!invite) return;
+      const sizeKb = invite.fileSize < 1024 * 1024
+        ? `${(invite.fileSize / 1024).toFixed(1)} KB`
+        : `${(invite.fileSize / (1024 * 1024)).toFixed(1)} MB`;
+
+      showToast(
+        `${invite.senderDisplayName ?? invite.senderUsername} wants to share "${invite.fileName}" (${sizeKb})`,
+        "info",
+        {
+          durationMs: 60_000, // Long-lived — dismissed manually or on session close
+          subtitle: "Click to join",
+          onClick: () => joinSession(invite.sessionId),
+        },
+      );
+    }),
+  );
+
   return (
     <AuthGuard>
       <ToastContainer />
@@ -56,6 +83,9 @@ const AppLayout: ParentComponent = (props) => {
         onConfirm={confirmP2pDialog}
         onCancel={cancelP2pDialog}
       />
+      <Show when={activeReceiverSessionId()}>
+        <FileReceiveModal />
+      </Show>
       <SidebarProvider class="h-screen !min-h-0">
         <AppSidebar />
         <SidebarInset>

@@ -62,7 +62,9 @@ const ChatArea = () => {
   const isServerChannel = createMemo(() => !!selectedChannelId() && !!selectedServerId());
 
   const isFreeUser = createMemo(() => readyData.data?.user.subscriptionTier === "free");
-  const isFileSharingBlocked = createMemo(() => isFreeUser() && isServerChannel());
+  const isFileSharingBlocked = createMemo(() =>
+    isDm() || (isFreeUser() && isServerChannel()),
+  );
 
   const dmChannel = createMemo(() => {
     if (!isDm()) return null;
@@ -184,7 +186,7 @@ const ChatArea = () => {
                 onFileSelect={handleFileSelect}
                 class="flex min-w-0 flex-1 flex-col"
                 disabled={isFileSharingBlocked()}
-                disabledMessage="Upgrade to Supporter to share files in servers"
+                disabledMessage={isDm() ? "Use the Send File button in the sidebar to share files" : "Upgrade to Supporter to share files in servers"}
               >
                 <VirtualMessageList channelId={id()} />
                 <MessageInput

@@ -195,19 +195,21 @@ export const fileReceipts = pgTable(
   "file_receipts",
   {
     id: id(),
-    channelId: text("channel_id").notNull(),
+    channelId: text("channel_id"),
     senderId: text("sender_id").references(() => user.id, { onDelete: "set null" }),
+    receiverId: text("receiver_id").references(() => user.id, { onDelete: "set null" }),
     fileName: text("file_name").notNull(),
     fileSize: bigint("file_size", { mode: "number" }).notNull(),
     contentType: text("content_type").notNull(),
-    magnetUri: text("magnet_uri").notNull(),
-    infoHash: text("info_hash").notNull(),
+    magnetUri: text("magnet_uri"),
+    infoHash: text("info_hash"),
     messageId: text("message_id").references(() => messages.id, { onDelete: "cascade" }),
     createdAt: createdAt(),
   },
   (t) => [
     index("idx_file_receipts_channel_id").on(t.channelId),
-    unique("uq_file_receipts_message_id").on(t.messageId),
+    index("idx_file_receipts_sender_id").on(t.senderId),
+    index("idx_file_receipts_receiver_id").on(t.receiverId),
   ],
 );
 

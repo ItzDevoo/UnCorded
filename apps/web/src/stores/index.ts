@@ -7,6 +7,7 @@ import { setupPresenceStore } from "./presence-store.js";
 import { setupNotificationStore } from "./notification-store.js";
 import { setupGiftStore } from "./gift-store.js";
 import { setupDeletionStore } from "./deletion-store.js";
+import { setupShareSessionStore } from "./share-session-store.js";
 
 export {
   setupMessageStore,
@@ -18,6 +19,7 @@ export {
   setupNotificationStore,
   setupGiftStore,
   setupDeletionStore,
+  setupShareSessionStore,
 };
 
 export function setupStores() {
@@ -30,4 +32,5 @@ export function setupStores() {
   setupNotificationStore();
   setupGiftStore();
   setupDeletionStore();
+  setupShareSessionStore();
 }

@@ -9,6 +9,12 @@ import {
   fileShareRequestSchema,
   fileAvailabilityRequestSchema,
   presenceUpdateSchema,
+  fileSessionCreateRequestSchema,
+  fileSessionJoinRequestSchema,
+  fileSessionProgressRequestSchema,
+  fileSessionCompleteRequestSchema,
+  fileSessionCloseRequestSchema,
+  fileSessionLeaveRequestSchema,
 } from "@uncorded/protocol";
 import {
   createId,
@@ -19,6 +25,8 @@ import {
   RATE_LIMIT_FILE_AVAILABILITY,
   RATE_LIMIT_WEBRTC,
   RATE_LIMIT_PRESENCE_UPDATE,
+  RATE_LIMIT_FILE_SESSION,
+  RATE_LIMIT_FILE_SESSION_PROGRESS,
 } from "@uncorded/shared";
 import { checkRateLimit } from "./rate-limit.js";
 import { eq, and } from "drizzle-orm";
@@ -33,6 +41,15 @@ import {
   cleanupPresence,
   broadcastPresence,
 } from "./presence.js";
+import {
+  handleFileSessionCreate,
+  handleFileSessionJoin,
+  handleFileSessionProgress,
+  handleFileSessionComplete,
+  handleFileSessionClose,
+  handleFileSessionLeave,
+  cleanupSessionsForUser,
+} from "./file-sessions.js";
 
 const FREE_TIER = "free" as const;
 
@@ -438,6 +455,114 @@ export const gateway = new Elysia().ws("/gateway", {
           break;
         }
 
+        // ── File Share Sessions ─────────────────────────────────────────────
+
+        case Opcode.FILE_SESSION_CREATE: {
+          if (!ctx.userId) {
+            ws.close(CloseCode.NOT_IDENTIFIED, "Not identified");
+            return;
+          }
+
+          if (
+            !(await checkRateLimit(
+              ctx.userId,
+              frame.op,
+              RATE_LIMIT_FILE_SESSION.limit,
+              RATE_LIMIT_FILE_SESSION.windowMs,
+            ))
+          ) {
+            sendToUser(ctx.userId, {
+              op: Opcode.ERROR,
+              d: { code: "RATE_LIMITED", message: "Too many file session requests" },
+            });
+            break;
+          }
+
+          const parsed = fileSessionCreateRequestSchema.safeParse(frame.d);
+          if (!parsed.success) break;
+
+          resetIdleTimer(ctx.userId);
+          await handleFileSessionCreate(ctx.userId, parsed.data);
+          break;
+        }
+
+        case Opcode.FILE_SESSION_JOIN: {
+          if (!ctx.userId) {
+            ws.close(CloseCode.NOT_IDENTIFIED, "Not identified");
+            return;
+          }
+
+          const parsed = fileSessionJoinRequestSchema.safeParse(frame.d);
+          if (!parsed.success) break;
+
+          resetIdleTimer(ctx.userId);
+          await handleFileSessionJoin(ctx.userId, parsed.data);
+          break;
+        }
+
+        case Opcode.FILE_SESSION_PROGRESS: {
+          if (!ctx.userId) {
+            ws.close(CloseCode.NOT_IDENTIFIED, "Not identified");
+            return;
+          }
+
+          if (
+            !(await checkRateLimit(
+              ctx.userId,
+              frame.op,
+              RATE_LIMIT_FILE_SESSION_PROGRESS.limit,
+              RATE_LIMIT_FILE_SESSION_PROGRESS.windowMs,
+            ))
+          ) {
+            break; // Silent drop for progress — high frequency
+          }
+
+          const parsed = fileSessionProgressRequestSchema.safeParse(frame.d);
+          if (!parsed.success) break;
+
+          handleFileSessionProgress(ctx.userId, parsed.data);
+          break;
+        }
+
+        case Opcode.FILE_SESSION_COMPLETE: {
+          if (!ctx.userId) {
+            ws.close(CloseCode.NOT_IDENTIFIED, "Not identified");
+            return;
+          }
+
+          const parsed = fileSessionCompleteRequestSchema.safeParse(frame.d);
+          if (!parsed.success) break;
+
+          await handleFileSessionComplete(ctx.userId, parsed.data);
+          break;
+        }
+
+        case Opcode.FILE_SESSION_CLOSE: {
+          if (!ctx.userId) {
+            ws.close(CloseCode.NOT_IDENTIFIED, "Not identified");
+            return;
+          }
+
+          const parsed = fileSessionCloseRequestSchema.safeParse(frame.d);
+          if (!parsed.success) break;
+
+          handleFileSessionClose(ctx.userId, parsed.data);
+          break;
+        }
+
+        case Opcode.FILE_SESSION_LEAVE: {
+          if (!ctx.userId) {
+            ws.close(CloseCode.NOT_IDENTIFIED, "Not identified");
+            return;
+          }
+
+          const parsed = fileSessionLeaveRequestSchema.safeParse(frame.d);
+          if (!parsed.success) break;
+
+          handleFileSessionLeave(ctx.userId, parsed.data);
+          break;
+        }
+
         default:
           break;
       }
@@ -465,6 +590,7 @@ export const gateway = new Elysia().ws("/gateway", {
 
       if (wasLast) {
         cleanupPresence(ctx.userId);
+        cleanupSessionsForUser(ctx.userId);
         await db.update(user).set({ status: "offline" }).where(eq(user.id, ctx.userId));
         await broadcastPresence(ctx.userId, "offline");
         removeUserFromAllServers(ctx.userId);

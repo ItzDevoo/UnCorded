@@ -22,16 +22,30 @@ const ServerView = lazy(() => import("./pages/ServerView.js"));
 const ServerSettings = lazy(() => import("./pages/ServerSettings.js"));
 const Features = lazy(() => import("./pages/Feedback.js"));
 
-// Settings
+// Settings (route entry-points under pages/settings/)
 const SettingsLayout = lazy(() => import("./pages/SettingsLayout.js"));
 const SettingsRedirect = lazy(() => import("./pages/SettingsRedirect.js"));
-const ProfileSettings = lazy(() => import("./components/settings/profile-settings.js"));
-const AccountSettings = lazy(() => import("./components/settings/account-settings.js"));
-const AppearanceSettings = lazy(() => import("./components/settings/appearance-settings.js"));
-const TransferHistory = lazy(() => import("./components/settings/transfer-history.js"));
+const ProfileSettings = lazy(() => import("./pages/settings/profile-settings.js"));
+const AccountSettings = lazy(() => import("./pages/settings/account-settings.js"));
+const AppearanceSettings = lazy(() => import("./pages/settings/appearance-settings.js"));
+const TransferHistory = lazy(() => import("./pages/settings/transfer-history.js"));
+const NotificationSettings = lazy(() => import("./pages/settings/notification-settings.js"));
 const Upgrade = lazy(() => import("./pages/Upgrade.js"));
 const Billing = lazy(() => import("./pages/Billing.js"));
-const FallbackPage = lazy(() => import("./pages/FallbackPage.js"));
+
+// 404 page (passes different props to FallbackPage)
+const NotFound = lazy(async () => {
+  const mod = await import("./pages/FallbackPage.js");
+  const Comp = () => (
+    <mod.default
+      title="Not Found"
+      description="We couldn't find that page."
+      ctaLabel="Go home"
+      ctaTarget="/"
+    />
+  );
+  return { default: Comp };
+});
 
 const App = () => {
   return (
@@ -63,12 +77,12 @@ const App = () => {
           <Route path="/transfers" component={TransferHistory} />
           <Route path="/upgrade" component={Upgrade} />
           <Route path="/billing" component={Billing} />
-          <Route path="/notifications" component={FallbackPage} />
+          <Route path="/notifications" component={NotificationSettings} />
         </Route>
       </Route>
 
-      {/* Fallback */}
-      <Route path="/*" component={FallbackPage} />
+      {/* 404 */}
+      <Route path="/*" component={NotFound} />
     </Router>
   );
 };

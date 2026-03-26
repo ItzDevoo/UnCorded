@@ -1,4 +1,4 @@
-import { createSignal, For, Show, onCleanup } from "solid-js";
+import { createSignal, createEffect, For, Show, onCleanup } from "solid-js";
 import { useNavigate, useLocation } from "@solidjs/router";
 import { Portal } from "solid-js/web";
 import { useSession, signOut } from "../lib/auth.js";
@@ -56,6 +56,8 @@ const AppSidebar = () => {
 
   let copiedUsernameTimer: ReturnType<typeof setTimeout> | undefined;
   let footerRef!: HTMLDivElement;
+  let triggerRef!: HTMLButtonElement;
+  let menuRef!: HTMLDivElement;
   onCleanup(() => clearTimeout(copiedUsernameTimer));
 
   const copyUsername = async () => {
@@ -96,7 +98,47 @@ const AppSidebar = () => {
     setUserDropdownOpen(true);
   };
 
-  const closeUserDropdown = () => setUserDropdownOpen(false);
+  const closeUserDropdown = () => {
+    setUserDropdownOpen(false);
+    triggerRef?.focus();
+  };
+
+  // Focus first menu item when dropdown opens + wire Escape / focus trap
+  createEffect(() => {
+    if (!userDropdownOpen()) return;
+
+    // Focus first actionable item after render
+    requestAnimationFrame(() => {
+      const first = menuRef?.querySelector<HTMLElement>("button, a, [tabindex]");
+      first?.focus();
+    });
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeUserDropdown();
+        return;
+      }
+      if (e.key !== "Tab") return;
+
+      const focusable = [...(menuRef?.querySelectorAll<HTMLElement>("button, a, [tabindex]") ?? [])];
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first && last) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last && first) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    onCleanup(() => document.removeEventListener("keydown", handleKeyDown));
+  });
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -344,8 +386,11 @@ const AppSidebar = () => {
       <SidebarFooter>
         <div ref={footerRef}>
           <button
+            ref={triggerRef}
             type="button"
             onClick={openUserDropdown}
+            aria-expanded={userDropdownOpen()}
+            aria-haspopup="menu"
             class="flex w-full items-center gap-2 rounded-md px-2 py-2 transition-colors hover:bg-accent"
           >
             <Show
@@ -384,6 +429,8 @@ const AppSidebar = () => {
         <Portal mount={document.body}>
           <div class="fixed inset-0 z-[60]" onClick={closeUserDropdown} />
           <div
+            ref={menuRef}
+            role="menu"
             class="fixed z-[60] w-56 rounded-md border border-border bg-popover p-1 shadow-md"
             style={{
               bottom: `${dropdownPos().bottom}px`,
@@ -429,6 +476,7 @@ const AppSidebar = () => {
 
             <Show when={!isPaidUser()}>
               <button
+                role="menuitem"
                 class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-primary transition-colors hover:bg-accent"
                 onClick={() => {
                   closeUserDropdown();
@@ -440,10 +488,11 @@ const AppSidebar = () => {
                 </svg>
                 Upgrade to Supporter
               </button>
-              <div class="mx-1 my-1 h-px bg-border" />
+              <div role="separator" class="mx-1 my-1 h-px bg-border" />
             </Show>
 
             <button
+              role="menuitem"
               class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-foreground transition-colors hover:bg-accent"
               onClick={() => {
                 closeUserDropdown();
@@ -453,6 +502,7 @@ const AppSidebar = () => {
               Account
             </button>
             <button
+              role="menuitem"
               class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-foreground transition-colors hover:bg-accent"
               onClick={() => {
                 closeUserDropdown();
@@ -462,6 +512,7 @@ const AppSidebar = () => {
               Billing
             </button>
             <button
+              role="menuitem"
               class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-foreground transition-colors hover:bg-accent"
               onClick={() => {
                 closeUserDropdown();
@@ -471,9 +522,10 @@ const AppSidebar = () => {
               Notifications
             </button>
 
-            <div class="mx-1 my-1 h-px bg-border" />
+            <div role="separator" class="mx-1 my-1 h-px bg-border" />
 
             <button
+              role="menuitem"
               class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-foreground transition-colors hover:bg-accent"
               onClick={() => {
                 closeUserDropdown();
@@ -483,6 +535,7 @@ const AppSidebar = () => {
               Report Bug
             </button>
             <button
+              role="menuitem"
               class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive transition-colors hover:bg-accent"
               onClick={() => {
                 closeUserDropdown();

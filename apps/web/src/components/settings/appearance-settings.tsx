@@ -41,10 +41,13 @@ const AppearanceSettings = () => {
         <h3 class="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Message Density
         </h3>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Message density">
           {densityOptions.map((opt) => (
             <button
               type="button"
+              role="radio"
+              aria-checked={messageDensity() === opt.id}
+              tabIndex={messageDensity() === opt.id ? 0 : -1}
               class={`flex flex-col items-start gap-1 rounded-md border-2 p-4 text-left transition-colors ${
                 messageDensity() === opt.id
                   ? "border-primary bg-primary/5"

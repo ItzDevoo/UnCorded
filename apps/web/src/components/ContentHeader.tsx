@@ -56,6 +56,7 @@ const ContentHeader = (props: ContentHeaderProps) => {
       <div class="ml-auto flex items-center">
         <A
           href="/features"
+          aria-label="Feature Requests"
           class="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
           <svg
@@ -65,6 +66,7 @@ const ContentHeader = (props: ContentHeaderProps) => {
             viewBox="0 0 24 24"
             stroke="currentColor"
             stroke-width="2"
+            aria-hidden="true"
           >
             <path
               stroke-linecap="round"

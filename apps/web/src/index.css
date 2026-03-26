@@ -124,8 +124,9 @@
 
 /* ── Terminal Dark palette ─────────────────────────────────────────── */
 :root {
-  --radius: 6px;
   color-scheme: dark;
+
+  --radius: 6px;
 
   --background: #0A0A0A;
   --foreground: #E8E8E8;
@@ -143,7 +144,7 @@
   --secondary-foreground: #888888;
 
   --muted: #181818;
-  --muted-foreground: #3A3A3A;
+  --muted-foreground: #6B6B6B;
 
   --accent: #181818;
   --accent-foreground: #E8E8E8;

@@ -1,7 +1,8 @@
 import { For, Show } from "solid-js";
-import { useNavigate } from "@solidjs/router";
+import { useNavigate, useParams } from "@solidjs/router";
+import type { DmChannelId } from "@uncorded/protocol";
 import { readyData } from "../lib/gateway-store.js";
-import { selectDmChannel, selectedDmChannelId } from "../stores/app-store.js";
+import { selectDmChannel } from "../stores/app-store.js";
 import { fetchMoreDms, loadingMoreDms } from "../stores/friend-store.js";
 import { getUnreadCount } from "../stores/notification-store.js";
 import StatusDot, { type UserStatus } from "../components/StatusDot.js";
@@ -9,11 +10,15 @@ import { Empty } from "../components/ui/empty.js";
 
 const Messages = () => {
   const navigate = useNavigate();
+  const params = useParams<{ userId?: string }>();
 
-  const handleSelect = (dmId: string, userId: string) => {
-    selectDmChannel(dmId as import("@uncorded/protocol").DmChannelId);
+  const handleSelect = (dmId: DmChannelId, userId: string) => {
+    selectDmChannel(dmId);
     navigate(`/messages/${userId}`);
   };
+
+  // Derive active state from route param, not global selection
+  const activeUserId = () => params.userId;
 
   return (
     <div class="flex h-full flex-col">
@@ -52,7 +57,7 @@ const Messages = () => {
                 const displayName = () =>
                   dm.otherUser.displayName ?? dm.otherUser.username ?? "Unknown";
                 const initial = () => displayName().charAt(0).toUpperCase();
-                const isActive = () => selectedDmChannelId() === dm.id;
+                const isActive = () => activeUserId() === dm.otherUser.id;
                 const unread = () => getUnreadCount(dm.id);
 
                 return (

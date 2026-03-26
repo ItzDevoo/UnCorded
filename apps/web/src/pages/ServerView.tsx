@@ -2,6 +2,7 @@ import { createEffect, Show } from "solid-js";
 import { useParams, useNavigate } from "@solidjs/router";
 import type { ServerId } from "@uncorded/protocol";
 import { readyData } from "../lib/gateway-store.js";
+import { channelCacheLoading } from "../lib/gateway-store.js";
 import {
   selectedServerId,
   setSelectedServerId,
@@ -25,6 +26,9 @@ const ServerView = () => {
   const hasServer = () =>
     readyData.data?.servers.some((s) => s.id === params.serverId) ?? false;
 
+  const isLoadingChannels = () =>
+    channelCacheLoading() === (params.serverId as ServerId);
+
   return (
     <Show
       when={hasServer() && selectedChannelId()}
@@ -46,10 +50,22 @@ const ServerView = () => {
             </Empty>
           }
         >
-          <Empty
-            title="No channels"
-            description="This server has no channels yet."
-          />
+          <Show
+            when={!isLoadingChannels()}
+            fallback={
+              <div class="flex flex-1 items-center justify-center">
+                <div class="flex animate-fade-in flex-col items-center gap-3">
+                  <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  <p class="text-muted-foreground">Loading channels...</p>
+                </div>
+              </div>
+            }
+          >
+            <Empty
+              title="No channels"
+              description="This server has no channels yet."
+            />
+          </Show>
         </Show>
       }
     >

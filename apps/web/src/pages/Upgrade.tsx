@@ -1,11 +1,12 @@
 import { createSignal, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
+import type { PaidTier } from "@uncorded/shared";
 import PricingModal from "../components/modals/PricingModal.js";
 import CheckoutModal from "../components/modals/CheckoutModal.js";
 
 const Upgrade = () => {
   const navigate = useNavigate();
-  const [checkoutTier, setCheckoutTier] = createSignal<"supporter" | "server_owner" | null>(null);
+  const [checkoutTier, setCheckoutTier] = createSignal<PaidTier | null>(null);
   const [showPricing, setShowPricing] = createSignal(true);
 
   return (

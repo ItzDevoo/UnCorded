@@ -155,12 +155,8 @@ const ShareFileModal = (props: Props) => {
     if (e.key === "Escape") handleClose();
   };
 
-  // Prevent Escape from closing during active sharing
-  const onMount = () => document.addEventListener("keydown", handleKeyDown);
-  const onUnmount = () => document.removeEventListener("keydown", handleKeyDown);
-
-  onCleanup(onUnmount);
-  onMount();
+  document.addEventListener("keydown", handleKeyDown);
+  onCleanup(() => document.removeEventListener("keydown", handleKeyDown));
 
   // ── File input ref ────────────────────────────────────────────────────
 
@@ -302,6 +298,11 @@ const ShareFileModal = (props: Props) => {
                 }
               >
                 <div class="max-h-60 space-y-1 overflow-y-auto">
+                  <Show when={filteredFriends().length === 0 && searchQuery().trim()}>
+                    <p class="py-4 text-center text-sm text-muted-foreground">
+                      No friends match your search
+                    </p>
+                  </Show>
                   <For each={filteredFriends()}>
                     {(friend) => (
                       <button

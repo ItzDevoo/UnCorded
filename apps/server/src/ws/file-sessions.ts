@@ -64,6 +64,15 @@ export async function handleFileSessionCreate(
     return;
   }
 
+  // Reject if session ID already exists (prevent overwriting another session)
+  if (activeSessions.has(data.sessionId)) {
+    sendToUser(senderId, {
+      op: Opcode.ERROR,
+      d: { code: "SESSION_EXISTS", message: "Session ID already in use" },
+    });
+    return;
+  }
+
   // Store session
   const session: FileSession = {
     id: data.sessionId,
@@ -178,24 +187,32 @@ export async function handleFileSessionComplete(
   if (session.completedParticipants.has(reportingUserId)) return;
   session.completedParticipants.add(reportingUserId);
 
+  // Create file receipt before notifying sender (so receipt exists if notification succeeds)
+  try {
+    await db.insert(fileReceipts).values({
+      id: createId(),
+      channelId: null,
+      senderId: session.senderId,
+      receiverId: reportingUserId,
+      fileName: session.fileName,
+      fileSize: session.fileSize,
+      contentType: session.contentType,
+      magnetUri: session.magnetUri,
+      infoHash: session.infoHash,
+      messageId: null,
+    });
+  } catch (err) {
+    console.error(
+      `[file-sessions] Failed to insert receipt: session=${session.id} sender=${session.senderId} receiver=${reportingUserId} file=${session.fileName}`,
+      err instanceof Error ? err.message : err,
+    );
+    // Still notify sender — the transfer succeeded even if the receipt failed
+  }
+
   // Forward to sender
   sendToUser(session.senderId, {
     op: Opcode.FILE_SESSION_COMPLETE,
     d: { sessionId: session.id, userId: reportingUserId },
-  });
-
-  // Create file receipt for this sender→recipient transfer
-  await db.insert(fileReceipts).values({
-    id: createId(),
-    channelId: null,
-    senderId: session.senderId,
-    receiverId: reportingUserId,
-    fileName: session.fileName,
-    fileSize: session.fileSize,
-    contentType: session.contentType,
-    magnetUri: session.magnetUri,
-    infoHash: session.infoHash,
-    messageId: null,
   });
 }
 

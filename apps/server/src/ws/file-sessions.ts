@@ -187,6 +187,7 @@ export async function handleFileSessionComplete(
   // Create file receipt for this sender→recipient transfer
   await db.insert(fileReceipts).values({
     id: createId(),
+    channelId: null,
     senderId: session.senderId,
     receiverId: reportingUserId,
     fileName: session.fileName,
@@ -194,6 +195,7 @@ export async function handleFileSessionComplete(
     contentType: session.contentType,
     magnetUri: session.magnetUri,
     infoHash: session.infoHash,
+    messageId: null,
   });
 }
 

@@ -9,10 +9,11 @@ import {
   createId,
 } from "@uncorded/shared";
 import { db } from "../db/index.js";
-import { bots, user } from "../db/schema.js";
+import { bots, user, members } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
-import { disconnectUser } from "../ws/connections.js";
-import { CloseCode } from "@uncorded/protocol";
+import { disconnectUser, broadcastToServer } from "../ws/connections.js";
+import { removeServerMember } from "../ws/server-members.js";
+import { CloseCode, Opcode, serverId, userId } from "@uncorded/protocol";
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -188,12 +189,27 @@ export const botRoutes = new Elysia({ prefix: "/api/bots" })
 
     if (!bot) throw new NotFoundError("Bot");
 
+    // Clean up server memberships so clients get MEMBER_REMOVE broadcasts
+    const botMemberships = await db
+      .select({ serverId: members.serverId })
+      .from(members)
+      .where(eq(members.userId, bot.userId));
+
+    for (const m of botMemberships) {
+      removeServerMember(m.serverId, bot.userId);
+      broadcastToServer(m.serverId, {
+        op: Opcode.MEMBER_REMOVE,
+        d: { serverId: serverId(m.serverId), userId: userId(bot.userId) },
+      });
+    }
+
     // Disconnect the bot from WebSocket if connected
     disconnectUser(bot.userId, CloseCode.INVALID_SESSION, "Bot deleted");
 
-    // Delete bot record first, then the bot's user record
+    // Delete bot record, memberships, then the bot's user record
     await db.transaction(async (tx) => {
       await tx.delete(bots).where(eq(bots.id, bot.id));
+      await tx.delete(members).where(eq(members.userId, bot.userId));
       await tx.delete(user).where(eq(user.id, bot.userId));
     });
 
@@ -206,25 +222,21 @@ export const botRoutes = new Elysia({ prefix: "/api/bots" })
       throw new ForbiddenError("Bots cannot regenerate tokens");
     }
 
-    const [bot] = await db
-      .select()
-      .from(bots)
-      .where(and(eq(bots.id, params.id), eq(bots.ownerId, sessionUser.id)))
-      .limit(1);
-
-    if (!bot) throw new NotFoundError("Bot");
-
     const token = generateToken();
     const tokenH = hashToken(token);
     const tokenPfx = token.slice(0, 14);
 
-    await db
+    // Atomic update — no separate read needed
+    const [updated] = await db
       .update(bots)
       .set({ tokenHash: tokenH, tokenPrefix: tokenPfx })
-      .where(eq(bots.id, bot.id));
+      .where(and(eq(bots.id, params.id), eq(bots.ownerId, sessionUser.id)))
+      .returning({ userId: bots.userId });
+
+    if (!updated) throw new NotFoundError("Bot");
 
     // Disconnect bot — old token is now invalid
-    disconnectUser(bot.userId, CloseCode.INVALID_SESSION, "Token regenerated");
+    disconnectUser(updated.userId, CloseCode.INVALID_SESSION, "Token regenerated");
 
     return { token, tokenPrefix: tokenPfx };
   });

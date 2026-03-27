@@ -107,6 +107,10 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
 
   // POST /request — Send friend request
   .post("/request", async ({ user: sessionUser, body, set }) => {
+    if ((sessionUser as Record<string, unknown>).isBot) {
+      throw new ForbiddenError("Bots cannot send friend requests");
+    }
+
     await checkUserRateLimit(
       sessionUser.id,
       "friends:request",

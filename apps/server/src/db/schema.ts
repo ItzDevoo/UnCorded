@@ -95,7 +95,29 @@ export const user = pgTable("user", {
   status: userStatusEnum("status").default("offline").notNull(),
   subscriptionTier: subscriptionTierEnum("subscription_tier").default("free").notNull(),
   banned: boolean("banned").default(false).notNull(),
+  isBot: boolean("is_bot").default(false).notNull(),
 });
+
+export const bots = pgTable(
+  "bots",
+  {
+    id: id(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" })
+      .unique(),
+    name: text("name").notNull(),
+    description: text("description"),
+    tokenHash: text("token_hash").notNull(),
+    tokenPrefix: text("token_prefix").notNull(),
+    lastUsedAt: timestamp("last_used_at", { mode: "date" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("bots_owner_id_idx").on(t.ownerId)],
+);
 
 export const session = pgTable(
   "session",

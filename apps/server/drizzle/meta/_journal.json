@@ -99,6 +99,13 @@
       "when": 1742515200000,
       "tag": "0013_file_session_receipts",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1743091200000,
+      "tag": "0014_add_bots",
+      "breakpoints": true
     }
   ]
 }

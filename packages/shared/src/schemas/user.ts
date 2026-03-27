@@ -18,6 +18,7 @@ export const userSchema = z.object({
   avatarUrl: z.string().url().nullable(),
   status: userStatusSchema,
   subscriptionTier: z.enum(["free", "supporter", "server_owner"]),
+  isBot: z.boolean().default(false),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });

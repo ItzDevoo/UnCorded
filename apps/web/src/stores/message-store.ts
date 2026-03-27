@@ -35,6 +35,7 @@ export interface Message {
     username: string | null;
     displayName: string | null;
     avatarUrl: string | null;
+    isBot?: boolean;
   };
   fileReceipt?: MessageFileReceipt | null | undefined;
 }

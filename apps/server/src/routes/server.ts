@@ -6,6 +6,7 @@ import {
   transferOwnershipSchema,
   ValidationError,
   NotFoundError,
+  ForbiddenError,
   InternalError,
   createId,
   MAX_SERVERS_PER_USER,
@@ -22,6 +23,10 @@ import { Opcode } from "@uncorded/protocol";
 export const serverRoutes = new Elysia({ prefix: "/api/servers" })
   .resolve(authResolve())
   .post("/", async ({ user: sessionUser, body, set }) => {
+    if ((sessionUser as Record<string, unknown>).isBot) {
+      throw new ForbiddenError("Bots cannot create servers");
+    }
+
     const parsed = createServerSchema.safeParse(body);
     if (!parsed.success) {
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");

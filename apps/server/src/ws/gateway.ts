@@ -320,6 +320,7 @@ export const gateway = new Elysia().ws("/gateway", {
               username: user.username,
               displayName: user.displayName,
               avatarUrl: user.avatarUrl,
+              isBot: user.isBot,
             })
             .from(user)
             .where(eq(user.id, ctx.userId))
@@ -335,8 +336,8 @@ export const gateway = new Elysia().ws("/gateway", {
               editedAt: null,
               createdAt: insertedMsg!.createdAt.toISOString(),
               author: author
-                ? { id: author.id, username: author.username, displayName: author.displayName, avatarUrl: author.avatarUrl }
-                : { id: ctx.userId, username: null, displayName: null, avatarUrl: null },
+                ? { id: author.id, username: author.username, displayName: author.displayName, avatarUrl: author.avatarUrl, isBot: author.isBot }
+                : { id: ctx.userId, username: null, displayName: null, avatarUrl: null, isBot: false },
               fileReceipt: {
                 id: receiptId,
                 fileName: d.fileName,

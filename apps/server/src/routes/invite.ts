@@ -192,6 +192,7 @@ export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
           username: user.username,
           displayName: user.displayName,
           avatarUrl: user.avatarUrl,
+          isBot: user.isBot,
         })
         .from(user)
         .where(eq(user.id, sessionUser.id))

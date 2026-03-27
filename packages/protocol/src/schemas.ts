@@ -19,6 +19,7 @@ export const authorSchema = z.object({
   username: z.string().nullable(),
   displayName: z.string().nullable(),
   avatarUrl: z.string().nullable(),
+  isBot: z.boolean().default(false),
 });
 
 const userProfileSchema = z.object({
@@ -41,7 +42,12 @@ export const channelSchema = z.object({
 
 // ── Client → Server (request schemas) ────────────────────────────────────────
 
-export const identifyRequestSchema = z.object({ ticket: z.string() });
+export const identifyRequestSchema = z
+  .object({
+    ticket: z.string().optional(),
+    token: z.string().optional(),
+  })
+  .refine((d) => d.ticket || d.token, "Must provide ticket or token");
 
 export const typingStartRequestSchema = z.object({ channelId: z.string().min(1) });
 
@@ -81,6 +87,7 @@ export const readyEventSchema = z.object({
     avatarUrl: z.string().nullable(),
     status: z.string(),
     subscriptionTier: z.string(),
+    isBot: z.boolean().default(false),
   }),
   servers: z.array(
     z.object({

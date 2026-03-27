@@ -22,6 +22,7 @@ import P2PNoticeDialog from "./P2PNoticeDialog.js";
 import GiftNotification from "./modals/GiftNotification.js";
 import DeletionCountdown from "./modals/DeletionCountdown.js";
 import { getP2pDialogOpen, confirmP2pDialog, cancelP2pDialog } from "../stores/file-store.js";
+import { commandPaletteOpen, setCommandPaletteOpen } from "../stores/command-palette-store.js";
 import {
   pendingInvite,
   joinSession,
@@ -39,7 +40,38 @@ const AppLayout: ParentComponent = (props) => {
     }
   });
 
-  onMount(() => setupShortcuts());
+  onMount(() => {
+    setupShortcuts();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && commandPaletteOpen()) {
+        e.preventDefault();
+        setCommandPaletteOpen(false);
+        return;
+      }
+
+      // Skip Ctrl+K when focus is inside editable elements
+      const target = e.target as HTMLElement;
+      const tag = target.tagName;
+      if (
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        tag === "SELECT" ||
+        target.isContentEditable ||
+        target.closest("[contenteditable]")
+      ) {
+        return;
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    onCleanup(() => window.removeEventListener("keydown", handleKeyDown));
+  });
+
   onCleanup(() => {
     disconnectGateway();
     cleanupShortcuts();

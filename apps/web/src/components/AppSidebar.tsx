@@ -33,11 +33,14 @@ import SubscriptionModal from "./modals/SubscriptionModal.js";
 import PricingModal from "./modals/PricingModal.js";
 import UnifiedReportDialog from "./modals/UnifiedReportDialog.js";
 import ShareFileModal from "./modals/ShareFileModal.js";
+import AddFriendModal from "./modals/AddFriendModal.js";
+import CommandPalette from "./CommandPalette.js";
+import { commandPaletteOpen, setCommandPaletteOpen } from "../stores/command-palette-store.js";
 import SupportSheet from "./SupportSheet.js";
 import { showToast } from "./ui/toast.js";
 
 const AppSidebar = () => {
-  const { setOpenMobile } = useSidebar();
+  const { setOpenMobile, state: sidebarState } = useSidebar();
   const closeMobile = () => setOpenMobile(false);
   const session = useSession();
   const navigate = useNavigate();
@@ -52,6 +55,7 @@ const AppSidebar = () => {
   const [showSubscriptionModal, setShowSubscriptionModal] = createSignal(false);
   const [showReportDialog, setShowReportDialog] = createSignal(false);
   const [showShareModal, setShowShareModal] = createSignal(false);
+  const [showAddFriendModal, setShowAddFriendModal] = createSignal(false);
   const [showSupportSheet, setShowSupportSheet] = createSignal(false);
   const [userDropdownOpen, setUserDropdownOpen] = createSignal(false);
   const [dropdownPos, setDropdownPos] = createSignal({ bottom: 0, left: 0 });
@@ -142,6 +146,26 @@ const AppSidebar = () => {
     onCleanup(() => document.removeEventListener("keydown", handleKeyDown));
   });
 
+  const handleCommandAction = (action: string) => {
+    switch (action) {
+      case "send-file":
+        setShowShareModal(true);
+        break;
+      case "add-friend":
+        setShowAddFriendModal(true);
+        break;
+      case "settings":
+        navigate("/settings");
+        break;
+      case "feature-requests":
+        navigate("/settings/feature-requests");
+        break;
+      case "support":
+        setShowSupportSheet(true);
+        break;
+    }
+  };
+
   const isActive = (path: string) => location.pathname === path;
 
   // ── Channel group header actions ────────────────────────────────
@@ -202,7 +226,7 @@ const AppSidebar = () => {
                 closeMobile();
               }}
             >
-              <img src="/icon-192.png" alt="UnCorded" class="h-8 w-8 shrink-0 rounded-md" />
+              <img src="/icon-192.png" alt="UnCorded" class="h-10 w-10 shrink-0 rounded-md" />
               <span class="truncate font-mono text-sm font-bold uppercase tracking-[0.12em] text-foreground">
                 UNCORDED
               </span>
@@ -216,7 +240,41 @@ const AppSidebar = () => {
 
       {/* ── Content ─────────────────────────────────────────────────── */}
       <SidebarContent>
-        {/* Send File — above Social */}
+        {/* Search — opens command palette */}
+        <SidebarGroup>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <Show
+                when={sidebarState() === "expanded"}
+                fallback={
+                  <SidebarMenuButton
+                    tooltip="Search (Ctrl+K)"
+                    onClick={() => setCommandPaletteOpen(true)}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <span>Search</span>
+                  </SidebarMenuButton>
+                }
+              >
+                <button
+                  type="button"
+                  onClick={() => setCommandPaletteOpen(true)}
+                  class="flex w-full items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <span>Search...</span>
+                  <kbd class="ml-auto text-[10px] text-muted-foreground">Ctrl+K</kbd>
+                </button>
+              </Show>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+
+        {/* Quick actions — Send File + Add Friend */}
         <SidebarGroup>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -228,6 +286,17 @@ const AppSidebar = () => {
                   <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
                 <span>Send File</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                tooltip="Add Friend"
+                onClick={() => { setShowAddFriendModal(true); closeMobile(); }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                </svg>
+                <span>Add Friend</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -609,6 +678,14 @@ const AppSidebar = () => {
       <Show when={showShareModal()}>
         <ShareFileModal onClose={() => setShowShareModal(false)} />
       </Show>
+      <Show when={showAddFriendModal()}>
+        <AddFriendModal onClose={() => setShowAddFriendModal(false)} />
+      </Show>
+      <CommandPalette
+        open={commandPaletteOpen()}
+        onClose={() => setCommandPaletteOpen(false)}
+        onAction={handleCommandAction}
+      />
       <SupportSheet
         open={showSupportSheet()}
         onClose={() => setShowSupportSheet(false)}

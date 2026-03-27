@@ -17,7 +17,7 @@ import {
   dmChannelId as brandDmChannelId,
 } from "@uncorded/protocol";
 import { db } from "../db/index.js";
-import { friendships, user, dmChannels, dmMembers } from "../db/schema.js";
+import { friendships, user, dmChannels, dmMembers, bots } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
 import { sendToUser } from "../ws/connections.js";
 import { checkUserRateLimit } from "../helpers/rate-limit.js";
@@ -131,6 +131,7 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
         displayName: user.displayName,
         avatarUrl: user.avatarUrl,
         status: user.status,
+        isBot: user.isBot,
       })
       .from(user)
       .where(eq(user.username, parsed.data.username))
@@ -146,6 +147,81 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
 
     if (targetId === sessionUser.id) {
       throw new ValidationError("Cannot send a friend request to yourself");
+    }
+
+    // Bot visibility: only the bot's owner can add it as a friend
+    if (target.isBot) {
+      const [bot] = await db
+        .select({ ownerId: bots.ownerId })
+        .from(bots)
+        .where(eq(bots.userId, targetId))
+        .limit(1);
+
+      if (!bot || bot.ownerId !== sessionUser.id) {
+        // Don't reveal the bot exists — same shape as "user not found"
+        set.status = 200;
+        return { status: "pending" };
+      }
+
+      // Owner is adding their own bot — auto-accept immediately
+      // Upsert to handle races and repeated adds atomically
+      const [upserted] = await db
+        .insert(friendships)
+        .values({
+          userId: sessionUser.id,
+          friendId: targetId,
+          status: "accepted",
+        })
+        .onConflictDoUpdate({
+          target: [friendships.userId, friendships.friendId],
+          set: { status: "accepted" },
+        })
+        .returning({ status: friendships.status });
+
+      if (!upserted || upserted.status !== "accepted") {
+        set.status = 200;
+        return { status: "pending" };
+      }
+
+      const [me] = await db
+        .select({
+          username: user.username,
+          displayName: user.displayName,
+          avatarUrl: user.avatarUrl,
+          status: user.status,
+        })
+        .from(user)
+        .where(eq(user.id, sessionUser.id))
+        .limit(1);
+
+      sendToUser(sessionUser.id, {
+        op: Opcode.FRIEND_ACCEPT,
+        d: {
+          userId: brandUserId(targetId),
+          username: target.username ?? null,
+          displayName: target.displayName ?? null,
+          avatarUrl: target.avatarUrl ?? null,
+          status: target.status ?? "offline",
+        },
+      });
+      sendToUser(targetId, {
+        op: Opcode.FRIEND_ACCEPT,
+        d: {
+          userId: brandUserId(sessionUser.id),
+          username: me?.username ?? null,
+          displayName: me?.displayName ?? null,
+          avatarUrl: me?.avatarUrl ?? null,
+          status: me?.status ?? "offline",
+        },
+      });
+
+      const dmId = await ensureDmChannel(sessionUser.id, targetId);
+
+      set.status = 200;
+      return {
+        status: "accepted",
+        ...(dmId ? { dmChannelId: brandDmChannelId(dmId) } : {}),
+      };
     }
 
     // Check for existing friendship in either direction

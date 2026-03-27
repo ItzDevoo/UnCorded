@@ -230,6 +230,7 @@ export const userRoutes = new Elysia()
       .where(and(
         or(ilike(user.username, `%${escaped}%`), ilike(user.displayName, `%${escaped}%`)),
         ne(user.id, sessionUser.id),
+        eq(user.isBot, false),
       ))
       .limit(3);
 

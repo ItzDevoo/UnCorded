@@ -111,6 +111,7 @@ export const pluginRoutes = new Elysia({ prefix: "/api/plugins" })
       botUsername: string | null;
       botTokenPrefix: string | null;
       lastConnected: string | null;
+      ownerId: string;
     } | null = null;
 
     if (params.pluginId === "claude-code") {
@@ -133,6 +134,7 @@ export const pluginRoutes = new Elysia({ prefix: "/api/plugins" })
         botUsername: botRow?.username ?? null,
         botTokenPrefix: botRow?.tokenPrefix ?? null,
         lastConnected: botRow?.lastUsedAt?.toISOString() ?? null,
+        ownerId: sessionUser.id,
       };
     }
 

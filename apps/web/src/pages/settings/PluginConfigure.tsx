@@ -34,6 +34,7 @@ interface ClaudeCodeSetup {
   botUsername: string | null;
   botTokenPrefix: string | null;
   lastConnected: string | null;
+  ownerId: string;
 }
 
 interface PluginResponse {
@@ -210,20 +211,20 @@ const PluginConfigure = () => {
                         {/* Step 2: Install the Plugin */}
                         <StepItem number={2} title="Install the Plugin" completed={false}>
                           <p class="mt-1 text-sm text-muted-foreground">
-                            Run in your terminal:
+                            Run inside Claude Code:
                           </p>
-                          <CodeBlock text="claude plugin install uncorded" />
+                          <CodeBlock text="/plugin install uncorded@uncorded-plugins" />
                         </StepItem>
 
-                        {/* Step 3: Start Claude with Channel */}
-                        <StepItem number={3} title="Start Claude with Channel" completed={false}>
+                        {/* Step 3: Configure Bot Token */}
+                        <StepItem number={3} title="Configure Bot Token" completed={false}>
                           <p class="mt-1 text-sm text-muted-foreground">
-                            Run in your terminal with your bot token:
+                            Run inside Claude Code with your bot token:
                           </p>
-                          <CodeBlock text="claude --channels plugin:uncorded@YOUR_BOT_TOKEN" />
+                          <CodeBlock text="/uncorded:configure uncrd_YOUR_BOT_TOKEN" />
                           <Show when={s().botTokenPrefix}>
                             <p class="mt-1.5 text-xs text-muted-foreground">
-                              Your bot token starts with <span class="font-mono text-foreground">{s().botTokenPrefix}...</span>
+                              Your token starts with <span class="font-mono text-foreground">{s().botTokenPrefix}...</span>
                               {" "}&mdash;{" "}
                               <A href="/settings/bots" class="text-primary hover:underline">
                                 regenerate it in Bot Settings
@@ -233,9 +234,39 @@ const PluginConfigure = () => {
                           </Show>
                         </StepItem>
 
-                        {/* Step 4: Connection Status */}
+                        {/* Step 4: Set Owner ID */}
+                        <StepItem number={4} title="Set Owner ID" completed={false}>
+                          <p class="mt-1 text-sm text-muted-foreground">
+                            Tell the plugin which UnCorded account owns it. Run inside Claude Code:
+                          </p>
+                          <CodeBlock text={`/uncorded:configure owner ${s().ownerId}`} />
+                          <p class="mt-1.5 text-xs text-muted-foreground">
+                            Your user ID:{" "}
+                            <button
+                              type="button"
+                              onClick={() => copyToClipboard(s().ownerId)}
+                              class="font-mono text-foreground hover:text-primary"
+                            >
+                              {s().ownerId}
+                            </button>
+                          </p>
+                        </StepItem>
+
+                        {/* Step 5: Start Claude with Channel */}
+                        <StepItem number={5} title="Start Claude with Channel" completed={false}>
+                          <p class="mt-1 text-sm text-muted-foreground">
+                            Restart Claude Code with the channel flag:
+                          </p>
+                          <CodeBlock text="claude --dangerously-load-development-channels plugin:uncorded@uncorded-plugins" />
+                          <p class="mt-2 text-xs text-muted-foreground">
+                            To also skip permission prompts (auto-approve all tool calls):
+                          </p>
+                          <CodeBlock text="claude --dangerously-skip-permissions --dangerously-load-development-channels plugin:uncorded@uncorded-plugins" />
+                        </StepItem>
+
+                        {/* Step 6: Connection Status */}
                         <StepItem
-                          number={4}
+                          number={6}
                           title="Connection Status"
                           completed={s().botOnline}
                         >

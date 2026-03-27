@@ -42,10 +42,11 @@ const ServerView = () => {
     if (hasServer() && !isLoadingChannels()) {
       const channels = serverChannels();
       const currentChannelId = selectedChannelId();
-      const hasValidChannel = currentChannelId && channels.some((c) => c.id === currentChannelId);
+      const isValidChannel = currentChannelId && channels.some((c) => c.id === currentChannelId);
 
-      if (channels.length > 0 && !hasValidChannel) {
-        setSelectedChannelId(channels[0].id);
+      const first = channels[0];
+      if (first && !isValidChannel) {
+        setSelectedChannelId(first.id);
       }
     }
   });

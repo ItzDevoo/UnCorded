@@ -43,10 +43,9 @@ const CommandPalette = (props: CommandPaletteProps) => {
     const q = query().trim().toLowerCase();
     const results: ResultItem[] = [];
     const data = readyData.data;
-    if (!data) return results;
 
-    // Friends — only accepted friends
-    const friends = data.friends.filter((f) => f.friendshipStatus === "accepted");
+    // Friends — only accepted friends (skip if gateway not ready)
+    const friends = data ? data.friends.filter((f) => f.friendshipStatus === "accepted") : [];
     const matchedFriends = q
       ? friends.filter((f) => matchUser(f, q))
       : friends;
@@ -64,9 +63,10 @@ const CommandPalette = (props: CommandPaletteProps) => {
     }
 
     // Servers
+    const servers = data?.servers ?? [];
     const matchedServers = q
-      ? data.servers.filter((s) => s.name.toLowerCase().includes(q))
-      : data.servers;
+      ? servers.filter((s) => s.name.toLowerCase().includes(q))
+      : servers;
     for (const s of matchedServers.slice(0, 8)) {
       results.push({
         id: `server-${s.id}`,
@@ -81,7 +81,7 @@ const CommandPalette = (props: CommandPaletteProps) => {
 
     // Channels — iterate cached channels for all servers
     const channels: (ReadyChannel & { serverName: string })[] = [];
-    for (const server of data.servers) {
+    for (const server of servers) {
       const serverChannels = channelCache[server.id];
       if (!serverChannels) continue;
       for (const ch of serverChannels) {
@@ -233,6 +233,9 @@ const CommandPalette = (props: CommandPaletteProps) => {
 
           {/* Palette */}
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Command palette"
             class="relative mx-4 flex w-full max-w-lg flex-col overflow-hidden rounded-xl border border-border bg-card shadow-lg animate-scale-in"
             onClick={(e) => e.stopPropagation()}
             onKeyDown={handleKeyDown}
@@ -246,6 +249,7 @@ const CommandPalette = (props: CommandPaletteProps) => {
                 ref={inputRef}
                 type="text"
                 placeholder="Search friends, servers, channels..."
+                aria-label="Search friends, servers, channels"
                 value={query()}
                 onInput={(e) => handleInput(e.currentTarget.value)}
                 class="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"

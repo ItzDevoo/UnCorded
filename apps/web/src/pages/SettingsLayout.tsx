@@ -1,5 +1,6 @@
 import { For } from "solid-js";
 import { A, useLocation, type RouteSectionProps } from "@solidjs/router";
+import ContentHeader from "../components/ContentHeader.js";
 
 const navItems = [
   { label: "Profile", href: "/settings/profile" },
@@ -17,8 +18,18 @@ const SettingsLayout = (props: RouteSectionProps) => {
 
   const isActive = (href: string) => location.pathname === href;
 
+  const activeLabel = () => {
+    const item = navItems.find((n) => "href" in n && isActive(n.href));
+    return item && "label" in item ? item.label : "Settings";
+  };
+
   return (
-    <div class="flex h-full">
+    <div class="flex h-full flex-col">
+      <ContentHeader
+        title={activeLabel()}
+        breadcrumbs={[{ label: "Settings", href: "/settings" }]}
+      />
+      <div class="flex min-h-0 flex-1">
       {/* Settings sidebar nav — hidden on mobile, shows as list page instead */}
       <nav class="hidden w-52 shrink-0 border-r border-border sm:block">
         <div class="flex flex-col gap-0.5 p-3">
@@ -84,6 +95,7 @@ const SettingsLayout = (props: RouteSectionProps) => {
       {/* Desktop content area */}
       <div class="hidden flex-1 overflow-y-auto p-6 sm:block">
         <div class="mx-auto max-w-2xl">{props.children}</div>
+      </div>
       </div>
     </div>
   );

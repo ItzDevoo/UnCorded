@@ -14,6 +14,7 @@ import { Badge } from "../components/ui/badge.js";
 import { Input } from "../components/ui/input.js";
 import { Empty } from "../components/ui/empty.js";
 import StatusDot, { type UserStatus } from "../components/StatusDot.js";
+import ContentHeader from "../components/ContentHeader.js";
 
 interface SearchUser {
   id: string;
@@ -144,8 +145,8 @@ const Friends = () => {
 
   return (
     <div class="flex h-full flex-col">
+      <ContentHeader title="Friends" breadcrumbs={[{ label: "Social", href: "/home" }]} />
       <div class="flex h-14 shrink-0 items-center gap-3 border-b border-border px-4">
-        <span class="font-semibold text-foreground">Friends</span>
         <div class="flex gap-1">
           <Button
             size="sm"

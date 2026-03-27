@@ -5,6 +5,7 @@ import { Button } from "../components/ui/button.js";
 import { Badge } from "../components/ui/badge.js";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card.js";
 import FeedbackDialog from "../components/modals/FeedbackDialog.js";
+import ContentHeader from "../components/ContentHeader.js";
 
 interface FeedbackItem {
   id: string;
@@ -90,9 +91,10 @@ const Feedback = () => {
   }
 
   return (
-    <div class="mx-auto max-w-3xl p-6">
-      <div class="mb-6 flex items-center justify-between">
-        <h1 class="text-2xl font-bold">Feature Requests</h1>
+    <div class="flex h-full flex-col">
+      <ContentHeader title="Feature Requests" />
+      <div class="mx-auto max-w-3xl flex-1 overflow-y-auto p-6">
+      <div class="mb-6 flex items-center justify-end">
         <Button onClick={() => setDialogOpen(true)}>Submit Feature Request</Button>
       </div>
 
@@ -193,6 +195,7 @@ const Feedback = () => {
         onClose={() => setDialogOpen(false)}
         onSubmitted={fetchFeedback}
       />
+      </div>
     </div>
   );
 };

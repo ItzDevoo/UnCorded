@@ -102,7 +102,11 @@ const ProfileSettings = () => {
         const formData = new FormData();
         formData.append("avatar", avatarFile()!);
         const result = await apiUpload<{ avatarUrl: string }>("/api/users/@me/avatar", formData);
-        updateCurrentUser({ avatarUrl: result.avatarUrl });
+        // Append cache-buster to force browsers to fetch the new image
+        const bustUrl = result.avatarUrl.includes("?")
+          ? `${result.avatarUrl}&_=${Date.now()}`
+          : `${result.avatarUrl}?_=${Date.now()}`;
+        updateCurrentUser({ avatarUrl: bustUrl });
         setAvatarFile(null);
         const prev = avatarPreview();
         if (prev) URL.revokeObjectURL(prev);

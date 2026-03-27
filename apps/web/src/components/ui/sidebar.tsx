@@ -13,7 +13,6 @@ import {
   type ParentProps,
 } from "solid-js";
 import { cn } from "../../lib/cn.js";
-import { ScrollArea } from "./scroll-area.js";
 import { Sheet, SheetContent } from "./sheet.js";
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -325,13 +324,16 @@ type SidebarContentProps = ParentProps<JSX.HTMLAttributes<HTMLDivElement>>;
 const SidebarContent = (props: SidebarContentProps) => {
   const [local, rest] = splitProps(props, ["class", "children"]);
   return (
-    <ScrollArea
+    <div
       data-slot="sidebar-content"
-      class={cn("flex-1 overflow-hidden group-data-[collapsible=icon]:overflow-hidden", local.class)}
+      class={cn(
+        "flex min-h-0 flex-1 flex-col gap-0 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
+        local.class,
+      )}
       {...rest}
     >
       {local.children}
-    </ScrollArea>
+    </div>
   );
 };
 
@@ -344,7 +346,7 @@ const SidebarFooter = (props: SidebarFooterProps) => {
   return (
     <div
       data-slot="sidebar-footer"
-      class={cn("flex shrink-0 items-center border-t border-border p-2", local.class)}
+      class={cn("flex shrink-0 flex-col gap-2 p-2", local.class)}
       {...rest}
     >
       {local.children}
@@ -373,12 +375,12 @@ const SidebarGroup = (props: SidebarGroupProps) => {
   const [open, setOpen] = createSignal(local.defaultOpen ?? true);
 
   return (
-    <div data-slot="sidebar-group" class={cn("py-1", local.class)} {...rest}>
+    <div data-slot="sidebar-group" class={cn("relative flex w-full min-w-0 flex-col p-2", local.class)} {...rest}>
       <Show when={local.label}>
-        <div class="flex items-center gap-1 px-4 py-1.5">
+        <div class="flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-semibold uppercase text-muted-foreground transition-[margin,opacity] duration-200 ease-linear group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0">
           <button
             type="button"
-            class="flex flex-1 items-center gap-1 text-xs font-semibold uppercase text-muted-foreground"
+            class="flex flex-1 items-center gap-1"
             classList={{ "cursor-pointer hover:text-foreground": !!local.collapsible }}
             onClick={() => local.collapsible && setOpen((o) => !o)}
           >
@@ -446,11 +448,11 @@ const SidebarMenuButton = (props: SidebarMenuButtonProps) => {
   const sizeClass = () => {
     switch (local.size) {
       case "sm":
-        return "px-2 py-1 text-xs";
+        return "h-7 px-2 py-1 text-xs";
       case "lg":
-        return "px-2.5 py-2.5 text-sm";
+        return "h-12 px-2.5 py-2.5 text-sm group-data-[collapsible=icon]:!p-0";
       default:
-        return "px-2.5 py-1.5 text-sm";
+        return "h-8 px-2.5 py-1.5 text-sm";
     }
   };
   return (

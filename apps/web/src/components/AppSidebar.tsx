@@ -191,22 +191,27 @@ const AppSidebar = () => {
     <Sidebar variant="inset" collapsible="icon">
       {/* ── Header: UNCORDED Logo ───────────────────────────────────── */}
       <SidebarHeader>
-        <button
-          onClick={() => {
-            selectHome();
-            navigate("/home");
-            closeMobile();
-          }}
-          class="flex w-full items-center gap-2 px-1 py-2 transition-colors hover:opacity-80"
-        >
-          <img src="/icon-192.png" alt="UnCorded" class="h-8 w-8 rounded-md" />
-          <span class="font-mono text-sm font-bold uppercase tracking-[0.12em] text-foreground">
-            UNCORDED
-          </span>
-          <span class="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[8px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            Alpha
-          </span>
-        </button>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              size="lg"
+              tooltip="UnCorded"
+              onClick={() => {
+                selectHome();
+                navigate("/home");
+                closeMobile();
+              }}
+            >
+              <img src="/icon-192.png" alt="UnCorded" class="h-8 w-8 shrink-0 rounded-md" />
+              <span class="truncate font-mono text-sm font-bold uppercase tracking-[0.12em] text-foreground">
+                UNCORDED
+              </span>
+              <span class="ml-auto rounded-md bg-muted px-2 py-0.5 font-mono text-[11px] font-medium uppercase text-muted-foreground">
+                Alpha
+              </span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
 
       {/* ── Content ─────────────────────────────────────────────────── */}

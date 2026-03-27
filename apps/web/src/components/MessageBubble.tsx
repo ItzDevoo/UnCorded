@@ -414,7 +414,7 @@ const MessageBubble = (props: MessageBubbleProps) => {
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2">
                 <span class="text-sm font-semibold text-foreground">{displayName()}</span>
-                <span class="text-xs text-muted-foreground">
+                <span class="font-mono text-xs text-muted-foreground">
                   {formatTimestamp(props.message.createdAt)}
                 </span>
                 <Toolbar />

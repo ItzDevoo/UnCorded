@@ -7,16 +7,13 @@ import {
   type ParentComponent,
 } from "solid-js";
 import { useSession } from "../lib/auth.js";
-import { useLocation } from "@solidjs/router";
 import { connectGateway, disconnectGateway } from "../lib/gateway.js";
 import { gatewayStatus } from "../lib/gateway-store.js";
-import { selectedServerId, selectedDmChannelId } from "../stores/app-store.js";
 import { setupShortcuts, cleanupShortcuts } from "../stores/shortcut-store.js";
 import "../lib/gateway-errors.js";
 import "../stores/server-store.js";
 import AuthGuard from "./AuthGuard.js";
 import AppSidebar from "./AppSidebar.js";
-import ChatArea from "./ChatArea.js";
 import ShortcutsDialog from "./ShortcutsDialog.js";
 import { ToastContainer, showToast } from "./ui/toast.js";
 import { Empty } from "./ui/empty.js";
@@ -32,12 +29,8 @@ import {
 } from "../stores/share-session-store.js";
 import FileReceiveModal from "./modals/FileReceiveModal.js";
 
-const SETTINGS_PATHS = ["/home/server-settings", "/home/settings"];
-
 const AppLayout: ParentComponent = (props) => {
   const session = useSession();
-  const location = useLocation();
-  const isSettingsPage = () => SETTINGS_PATHS.some((p) => location.pathname.startsWith(p));
 
   createEffect(() => {
     const s = session();
@@ -64,7 +57,7 @@ const AppLayout: ParentComponent = (props) => {
         `${invite.senderDisplayName ?? invite.senderUsername} wants to share "${invite.fileName}" (${sizeKb})`,
         "info",
         {
-          durationMs: 60_000, // Long-lived — dismissed manually or on session close
+          durationMs: 60_000,
           subtitle: "Click to join",
           onClick: () => joinSession(invite.sessionId),
         },
@@ -92,7 +85,9 @@ const AppLayout: ParentComponent = (props) => {
           {/* Mobile header with sidebar trigger */}
           <div class="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2 md:hidden">
             <SidebarTrigger />
-            <span class="text-sm font-semibold text-foreground">UnCorded</span>
+            <span class="font-mono text-sm font-semibold tracking-wide text-foreground">
+              UNCORDED
+            </span>
           </div>
 
           <Show
@@ -131,12 +126,7 @@ const AppLayout: ParentComponent = (props) => {
               </div>
             }
           >
-            <Show
-              when={!isSettingsPage() && (selectedServerId() || selectedDmChannelId())}
-              fallback={<div class="flex-1 overflow-y-auto">{props.children}</div>}
-            >
-              <ChatArea />
-            </Show>
+            <div class="flex-1 overflow-y-auto">{props.children}</div>
           </Show>
         </SidebarInset>
       </SidebarProvider>

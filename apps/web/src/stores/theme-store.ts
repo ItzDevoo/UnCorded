@@ -1,6 +1,5 @@
 import { createSignal } from "solid-js";
 
-export type Theme = "dark" | "light";
 export type MessageDensity = "cozy" | "compact";
 
 function readLocal<T extends string>(key: string, fallback: T, allowed: readonly T[]): T {
@@ -12,34 +11,11 @@ function readLocal<T extends string>(key: string, fallback: T, allowed: readonly
   }
 }
 
-const THEMES: readonly Theme[] = ["dark", "light"];
 const DENSITIES: readonly MessageDensity[] = ["cozy", "compact"];
 
-const [theme, setThemeSignal] = createSignal<Theme>(readLocal("uncorded-theme", "dark", THEMES));
 const [messageDensity, setDensitySignal] = createSignal<MessageDensity>(
   readLocal("uncorded-density", "cozy", DENSITIES),
 );
-
-function applyTheme(t: Theme) {
-  const html = document.documentElement;
-  html.classList.add("no-transitions");
-  html.classList.remove("dark", "light");
-  html.classList.add(t);
-  html.style.colorScheme = t;
-  // Force reflow then remove no-transitions
-  void html.offsetHeight;
-  html.classList.remove("no-transitions");
-}
-
-export function setTheme(t: Theme) {
-  setThemeSignal(t);
-  applyTheme(t);
-  try {
-    localStorage.setItem("uncorded-theme", t);
-  } catch {
-    // Quota exceeded or private browsing — signal + UI already updated
-  }
-}
 
 export function setMessageDensity(d: MessageDensity) {
   setDensitySignal(d);
@@ -50,7 +26,8 @@ export function setMessageDensity(d: MessageDensity) {
   }
 }
 
-// Initialize theme on module load
-applyTheme(theme());
+// Dark-only — no theme switching. Ensure dark class is present on init.
+document.documentElement.classList.add("dark");
+document.documentElement.style.colorScheme = "dark";
 
-export { theme, messageDensity };
+export { messageDensity };

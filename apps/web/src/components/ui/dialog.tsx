@@ -119,7 +119,7 @@ const DialogContent = (props: DialogContentProps) => {
             aria-labelledby={titleId}
             aria-describedby={descriptionId}
             class={cn(
-              "relative mx-4 max-h-[85vh] w-full max-w-md overflow-y-auto rounded-xl border border-border bg-card p-6 shadow-md animate-scale-in sm:mx-0",
+              "relative mx-4 max-h-[85vh] w-full max-w-md overflow-y-auto rounded-md border border-border bg-card p-6 shadow-md animate-scale-in sm:mx-0",
               local.class,
             )}
             onClick={(e) => e.stopPropagation()}

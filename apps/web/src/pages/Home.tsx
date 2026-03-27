@@ -4,6 +4,7 @@ import type { ActivePoll, ActivePollEntry } from "@uncorded/shared";
 import { readyData } from "../lib/gateway-store.js";
 import { api, ApiRequestError } from "../lib/api.js";
 import { showToast } from "../components/ui/toast.js";
+import ContentHeader from "../components/ContentHeader.js";
 import {
   Dialog,
   DialogContent,
@@ -94,7 +95,9 @@ const Home = () => {
   const hasVoted = () => poll()?.userVote !== null && poll()?.userVote !== undefined;
 
   return (
-    <div class="flex h-full flex-col items-center justify-start gap-4 overflow-y-auto px-6 pt-[15vh] text-center">
+    <div class="flex h-full flex-col">
+      <ContentHeader title="Home" />
+      <div class="flex flex-1 flex-col items-center justify-start gap-4 overflow-y-auto px-6 pt-[15vh] text-center">
       <h1 class="text-2xl font-bold text-foreground">
         Welcome back{username() ? `, ${username()}` : ""}
       </h1>
@@ -212,6 +215,7 @@ const Home = () => {
           </p>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 };

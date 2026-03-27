@@ -21,6 +21,7 @@ import { SidebarProvider, SidebarInset } from "./ui/sidebar.js";
 import P2PNoticeDialog from "./P2PNoticeDialog.js";
 import GiftNotification from "./modals/GiftNotification.js";
 import DeletionCountdown from "./modals/DeletionCountdown.js";
+import VerificationBanner from "./VerificationBanner.js";
 import { getP2pDialogOpen, confirmP2pDialog, cancelP2pDialog } from "../stores/file-store.js";
 import {
   pendingInvite,
@@ -82,6 +83,7 @@ const AppLayout: ParentComponent = (props) => {
       <SidebarProvider class="h-screen !min-h-0">
         <AppSidebar />
         <SidebarInset>
+          <VerificationBanner />
           <Show
             when={gatewayStatus() === "connected"}
             fallback={

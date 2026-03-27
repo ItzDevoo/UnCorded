@@ -11,6 +11,7 @@ const ForgotPassword = lazy(() => import("./pages/ForgotPassword.js"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.js"));
 const Privacy = lazy(() => import("./pages/Privacy.js"));
 const Terms = lazy(() => import("./pages/Terms.js"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail.js"));
 const Onboarding = lazy(() => import("./pages/Onboarding.js"));
 
 // Authenticated pages
@@ -59,6 +60,7 @@ const App = () => {
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
+      <Route path="/verify-email" component={VerifyEmail} />
 
       {/* Authenticated — all under AppLayout with AuthGuard */}
       <Route path="/" component={AppLayout}>

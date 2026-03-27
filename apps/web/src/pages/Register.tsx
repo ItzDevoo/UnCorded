@@ -75,7 +75,7 @@ const Register = () => {
       if (result.error) {
         setError(result.error.message ?? "Registration failed");
       } else {
-        navigate("/home", { replace: true });
+        navigate("/verify-email", { replace: true });
       }
     } catch {
       setError("Something went wrong");

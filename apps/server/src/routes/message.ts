@@ -81,7 +81,7 @@ async function fetchMessageWithAuthor(msgId: string) {
 }
 
 export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/messages" })
-  .resolve(authResolve())
+  .resolve(authResolve({ allowBots: true }))
 
   // POST / — Create message
   .post("/", async ({ user: sessionUser, params, body, set }) => {

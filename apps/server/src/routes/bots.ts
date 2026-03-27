@@ -105,7 +105,13 @@ export const botRoutes = new Elysia({ prefix: "/api/bots" })
     const username = `bot_${sanitizeUsername(parsed.data.name)}_${shortId}`;
 
     const result = await db.transaction(async (tx) => {
-      // Check bot limit inside transaction to prevent races
+      // Lock owner row to serialize concurrent bot creates per-owner
+      await tx
+        .select({ id: user.id })
+        .from(user)
+        .where(eq(user.id, sessionUser.id))
+        .for("update");
+
       const [countRow] = await tx
         .select({ value: count() })
         .from(bots)

@@ -173,6 +173,14 @@ const BotsSettings = () => {
 
       {/* Bot list */}
       <Show when={!botList.loading} fallback={<p class="text-sm text-muted-foreground">Loading...</p>}>
+        <Show when={!botList.error} fallback={
+          <div class="rounded-lg border border-destructive/50 bg-destructive/10 p-6 text-center">
+            <p class="text-sm text-destructive">Failed to load bots.</p>
+            <Button variant="outline" size="sm" class="mt-2" onClick={() => refetch()}>
+              Retry
+            </Button>
+          </div>
+        }>
         <Show
           when={(botList()?.length ?? 0) > 0}
           fallback={
@@ -225,6 +233,7 @@ const BotsSettings = () => {
               )}
             </For>
           </div>
+        </Show>
         </Show>
       </Show>
 

@@ -19,11 +19,15 @@ export async function getBotSession(headers: Headers) {
   const row = rows[0];
   if (!row) return null;
 
-  // Update lastUsedAt (fire and forget)
-  db.update(bots)
-    .set({ lastUsedAt: new Date() })
-    .where(eq(bots.id, row.bots.id))
-    .catch(() => {});
+  // Update lastUsedAt at most once every 5 minutes to reduce write amplification
+  const STALE_MS = 5 * 60_000;
+  const lastUsed = row.bots.lastUsedAt?.getTime() ?? 0;
+  if (Date.now() - lastUsed > STALE_MS) {
+    db.update(bots)
+      .set({ lastUsedAt: new Date() })
+      .where(eq(bots.id, row.bots.id))
+      .catch(() => {});
+  }
 
   return {
     user: row.user,

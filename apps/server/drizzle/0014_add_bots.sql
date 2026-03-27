@@ -15,4 +15,5 @@ CREATE TABLE "bots" (
   CONSTRAINT "bots_user_id_unique" UNIQUE("user_id")
 );--> statement-breakpoint
 
-CREATE INDEX "bots_owner_id_idx" ON "bots" ("owner_id");
+CREATE INDEX "bots_owner_id_idx" ON "bots" ("owner_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "bots_token_hash_unique" ON "bots" ("token_hash");

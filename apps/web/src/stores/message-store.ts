@@ -232,6 +232,7 @@ export function setupMessageStore(): void {
         username: d.author.username,
         displayName: d.author.displayName,
         avatarUrl: d.author.avatarUrl,
+        isBot: d.author.isBot,
       },
       fileReceipt: d.fileReceipt ?? null,
     };

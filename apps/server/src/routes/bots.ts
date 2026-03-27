@@ -95,17 +95,6 @@ export const botRoutes = new Elysia({ prefix: "/api/bots" })
     const tierKey = String(sessionUser.subscriptionTier);
     const limit = BOT_LIMITS[tierKey] ?? 1;
 
-    const [countRow] = await db
-      .select({ value: count() })
-      .from(bots)
-      .where(eq(bots.ownerId, sessionUser.id));
-
-    if ((countRow?.value ?? 0) >= limit) {
-      throw new ValidationError(
-        `Bot limit reached (${limit} for ${sessionUser.subscriptionTier} tier)`,
-      );
-    }
-
     const token = generateToken();
     const tokenH = hashToken(token);
     const tokenPfx = token.slice(0, 14); // "uncrd_" + 8 chars
@@ -116,6 +105,18 @@ export const botRoutes = new Elysia({ prefix: "/api/bots" })
     const username = `bot_${sanitizeUsername(parsed.data.name)}_${shortId}`;
 
     const result = await db.transaction(async (tx) => {
+      // Check bot limit inside transaction to prevent races
+      const [countRow] = await tx
+        .select({ value: count() })
+        .from(bots)
+        .where(eq(bots.ownerId, sessionUser.id));
+
+      if ((countRow?.value ?? 0) >= limit) {
+        throw new ValidationError(
+          `Bot limit reached (${limit} for ${sessionUser.subscriptionTier} tier)`,
+        );
+      }
+
       // Create user record for the bot
       const [botUser] = await tx
         .insert(user)

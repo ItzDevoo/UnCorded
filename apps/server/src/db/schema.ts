@@ -116,7 +116,10 @@ export const bots = pgTable(
     lastUsedAt: timestamp("last_used_at", { mode: "date" }),
     createdAt: createdAt(),
   },
-  (t) => [index("bots_owner_id_idx").on(t.ownerId)],
+  (t) => [
+    index("bots_owner_id_idx").on(t.ownerId),
+    unique("bots_token_hash_unique").on(t.tokenHash),
+  ],
 );
 
 export const session = pgTable(

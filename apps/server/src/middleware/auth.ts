@@ -19,6 +19,9 @@ export function authResolve() {
       // Try bot token auth as fallback
       const botSession = await getBotSession(request.headers);
       if (botSession) {
+        if ((botSession.user as Record<string, unknown>).banned === true) {
+          throw new ForbiddenError("Account banned");
+        }
         return { user: botSession.user, session: null };
       }
       throw new UnauthorizedError();

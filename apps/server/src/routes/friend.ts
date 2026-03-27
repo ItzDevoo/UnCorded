@@ -164,6 +164,27 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
       }
 
       // Owner is adding their own bot — auto-accept immediately
+      // Check if already friends to avoid duplicate PK conflict
+      const [existingBot] = await db
+        .select({ status: friendships.status })
+        .from(friendships)
+        .where(
+          and(
+            eq(friendships.userId, sessionUser.id),
+            eq(friendships.friendId, targetId),
+          ),
+        )
+        .limit(1);
+
+      if (existingBot?.status === "accepted") {
+        const dmId = await ensureDmChannel(sessionUser.id, targetId);
+        set.status = 200;
+        return {
+          status: "accepted",
+          ...(dmId ? { dmChannelId: brandDmChannelId(dmId) } : {}),
+        };
+      }
+
       await db.insert(friendships).values({
         userId: sessionUser.id,
         friendId: targetId,

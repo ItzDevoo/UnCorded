@@ -69,8 +69,8 @@ const AppSidebar = () => {
       setCopiedUsername(true);
       clearTimeout(copiedUsernameTimer);
       copiedUsernameTimer = setTimeout(() => setCopiedUsername(false), 1500);
-    } catch {
-      /* clipboard unavailable */
+    } catch (err) {
+      if (import.meta.env.DEV) console.error("[AppSidebar] clipboard write failed:", err);
     }
   };
 

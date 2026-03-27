@@ -168,6 +168,10 @@
   --sidebar: #0A0A0A;
   --sidebar-foreground: #E8E8E8;
 
+  --scroll-track: #0A0A0A;
+  --scroll-thumb: #2A2A2A;
+  --scroll-thumb-hover: #3A3A3A;
+
   --z-noise: 9999;
 }
 
@@ -192,7 +196,7 @@ body::after {
 /* ── Scrollbars — thin 3px ─────────────────────────────────────────── */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #2A2A2A #0A0A0A;
+  scrollbar-color: var(--scroll-thumb) var(--scroll-track);
 }
 
 *::-webkit-scrollbar {
@@ -201,16 +205,16 @@ body::after {
 }
 
 *::-webkit-scrollbar-track {
-  background: #0A0A0A;
+  background: var(--scroll-track);
 }
 
 *::-webkit-scrollbar-thumb {
-  background: #2A2A2A;
+  background: var(--scroll-thumb);
   border-radius: 9999px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: #3A3A3A;
+  background: var(--scroll-thumb-hover);
 }
 
 .typing-dots {

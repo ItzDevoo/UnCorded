@@ -41,7 +41,29 @@ const AppearanceSettings = () => {
         <h3 class="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Message Density
         </h3>
-        <div class="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Message density">
+        <div
+          class="grid grid-cols-2 gap-3"
+          role="radiogroup"
+          aria-label="Message density"
+          onKeyDown={(e: KeyboardEvent) => {
+            const keys = ["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp"];
+            if (!keys.includes(e.key)) return;
+            e.preventDefault();
+            const currentIdx = densityOptions.findIndex((o) => o.id === messageDensity());
+            const forward = e.key === "ArrowRight" || e.key === "ArrowDown";
+            const nextIdx = forward
+              ? (currentIdx + 1) % densityOptions.length
+              : (currentIdx - 1 + densityOptions.length) % densityOptions.length;
+            const next = densityOptions[nextIdx];
+            if (next) {
+              setMessageDensity(next.id);
+              // Move focus to the newly selected radio
+              const container = e.currentTarget as HTMLElement;
+              const buttons = container.querySelectorAll<HTMLElement>("[role=radio]");
+              buttons[nextIdx]?.focus();
+            }
+          }}
+        >
           {densityOptions.map((opt) => (
             <button
               type="button"

@@ -1,6 +1,6 @@
 import { For, Show } from "solid-js";
 import { useNavigate, useParams } from "@solidjs/router";
-import type { DmChannelId } from "@uncorded/protocol";
+import type { DmChannelId, UserId } from "@uncorded/protocol";
 import { readyData } from "../lib/gateway-store.js";
 import { selectDmChannel } from "../stores/app-store.js";
 import { fetchMoreDms, loadingMoreDms } from "../stores/friend-store.js";
@@ -12,7 +12,7 @@ const Messages = () => {
   const navigate = useNavigate();
   const params = useParams<{ userId?: string }>();
 
-  const handleSelect = (dmId: DmChannelId, userId: string) => {
+  const handleSelect = (dmId: DmChannelId, userId: UserId) => {
     selectDmChannel(dmId);
     navigate(`/messages/${userId}`);
   };

@@ -29,7 +29,7 @@ const FallbackPage = (props: FallbackPageProps) => {
       <button
         type="button"
         onClick={handleCta}
-        class="mt-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+        class="mt-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
       >
         {ctaLabel()}
       </button>

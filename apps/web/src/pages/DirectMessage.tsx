@@ -1,4 +1,4 @@
-import { createEffect, Show } from "solid-js";
+import { createEffect, createSignal, Show } from "solid-js";
 import { useParams, useNavigate } from "@solidjs/router";
 import type { UserId } from "@uncorded/protocol";
 import { readyData } from "../lib/gateway-store.js";
@@ -10,6 +10,7 @@ import { Empty } from "../components/ui/empty.js";
 const DirectMessage = () => {
   const params = useParams<{ userId: string }>();
   const navigate = useNavigate();
+  const [fetchFailed, setFetchFailed] = createSignal(false);
 
   const userId = () => params.userId as UserId;
 
@@ -24,15 +25,15 @@ const DirectMessage = () => {
     }
   });
 
-  // If DM not in loaded slice but more pages exist, fetch them
+  // If DM not in loaded slice but more pages exist, fetch them (once)
   createEffect(() => {
-    if (!findDm() && readyData.data?.hasMoreDmChannels && !loadingMoreDms()) {
-      fetchMoreDms();
+    if (!findDm() && readyData.data?.hasMoreDmChannels && !loadingMoreDms() && !fetchFailed()) {
+      fetchMoreDms().catch(() => setFetchFailed(true));
     }
   });
 
   const isLoading = () =>
-    !findDm() && (loadingMoreDms() || (readyData.data?.hasMoreDmChannels ?? false));
+    !findDm() && !fetchFailed() && (loadingMoreDms() || (readyData.data?.hasMoreDmChannels ?? false));
 
   const hasDm = () => findDm() !== undefined;
 

@@ -1,4 +1,5 @@
 import { useNavigate } from "@solidjs/router";
+import ContentHeader from "../components/ContentHeader.js";
 
 interface FallbackPageProps {
   title?: string;
@@ -23,7 +24,9 @@ const FallbackPage = (props: FallbackPageProps) => {
   };
 
   return (
-    <div class="flex h-full flex-col items-center justify-center gap-4 px-6 text-center">
+    <div class="flex h-full flex-col">
+      <ContentHeader title={title()} />
+      <div class="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
       <h1 class="font-mono text-xl font-semibold text-foreground">{title()}</h1>
       <p class="max-w-sm text-sm text-muted-foreground">{description()}</p>
       <button
@@ -33,6 +36,7 @@ const FallbackPage = (props: FallbackPageProps) => {
       >
         {ctaLabel()}
       </button>
+      </div>
     </div>
   );
 };

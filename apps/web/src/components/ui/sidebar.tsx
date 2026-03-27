@@ -437,17 +437,33 @@ const SidebarMenuItem = (props: SidebarMenuItemProps) => {
 
 interface SidebarMenuButtonProps extends ParentProps<JSX.ButtonHTMLAttributes<HTMLButtonElement>> {
   active?: boolean;
+  size?: "default" | "sm" | "lg";
+  tooltip?: string;
 }
 
 const SidebarMenuButton = (props: SidebarMenuButtonProps) => {
-  const [local, rest] = splitProps(props, ["class", "children", "active"]);
+  const [local, rest] = splitProps(props, ["class", "children", "active", "size", "tooltip"]);
+  const sizeClass = () => {
+    switch (local.size) {
+      case "sm":
+        return "px-2 py-1 text-xs";
+      case "lg":
+        return "px-2.5 py-2.5 text-sm";
+      default:
+        return "px-2.5 py-1.5 text-sm";
+    }
+  };
   return (
     <button
       data-slot="sidebar-menu-button"
+      title={local.tooltip}
       class={cn(
-        "flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-colors",
+        "flex w-full items-center gap-2 rounded-lg transition-colors",
+        sizeClass(),
         "group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 group-data-[collapsible=icon]:justify-center",
         "[&>span]:group-data-[collapsible=icon]:hidden",
+        "[&>div]:group-data-[collapsible=icon]:hidden",
+        "[&>svg:last-child]:group-data-[collapsible=icon]:hidden",
         local.active
           ? "bg-accent font-medium text-foreground"
           : "text-secondary-foreground hover:bg-accent hover:text-foreground",

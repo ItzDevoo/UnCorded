@@ -17,7 +17,7 @@ import AppSidebar from "./AppSidebar.js";
 import ShortcutsDialog from "./ShortcutsDialog.js";
 import { ToastContainer, showToast } from "./ui/toast.js";
 import { Empty } from "./ui/empty.js";
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "./ui/sidebar.js";
+import { SidebarProvider, SidebarInset } from "./ui/sidebar.js";
 import P2PNoticeDialog from "./P2PNoticeDialog.js";
 import GiftNotification from "./modals/GiftNotification.js";
 import DeletionCountdown from "./modals/DeletionCountdown.js";
@@ -82,14 +82,6 @@ const AppLayout: ParentComponent = (props) => {
       <SidebarProvider class="h-screen !min-h-0">
         <AppSidebar />
         <SidebarInset>
-          {/* Mobile header with sidebar trigger */}
-          <div class="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2 md:hidden">
-            <SidebarTrigger />
-            <span class="font-mono text-sm font-semibold tracking-wide text-foreground">
-              UNCORDED
-            </span>
-          </div>
-
           <Show
             when={gatewayStatus() === "connected"}
             fallback={
@@ -126,7 +118,7 @@ const AppLayout: ParentComponent = (props) => {
               </div>
             }
           >
-            <div class="flex-1 overflow-y-auto">{props.children}</div>
+            <div class="flex min-h-0 flex-1 flex-col overflow-hidden">{props.children}</div>
           </Show>
         </SidebarInset>
       </SidebarProvider>

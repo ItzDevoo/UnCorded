@@ -7,6 +7,7 @@ import { fetchMoreDms, loadingMoreDms } from "../stores/friend-store.js";
 import { getUnreadCount } from "../stores/notification-store.js";
 import StatusDot, { type UserStatus } from "../components/StatusDot.js";
 import { Empty } from "../components/ui/empty.js";
+import ContentHeader from "../components/ContentHeader.js";
 
 const Messages = () => {
   const navigate = useNavigate();
@@ -22,9 +23,7 @@ const Messages = () => {
 
   return (
     <div class="flex h-full flex-col">
-      <div class="border-b border-border px-6 py-4">
-        <h1 class="text-lg font-semibold text-foreground">Direct Messages</h1>
-      </div>
+      <ContentHeader title="Direct Messages" breadcrumbs={[{ label: "Social", href: "/home" }]} />
 
       <div class="flex-1 overflow-y-auto">
         <Show

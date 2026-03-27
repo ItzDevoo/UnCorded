@@ -33,6 +33,7 @@ import SubscriptionModal from "./modals/SubscriptionModal.js";
 import PricingModal from "./modals/PricingModal.js";
 import UnifiedReportDialog from "./modals/UnifiedReportDialog.js";
 import ShareFileModal from "./modals/ShareFileModal.js";
+import SupportSheet from "./SupportSheet.js";
 import { showToast } from "./ui/toast.js";
 
 const AppSidebar = () => {
@@ -51,6 +52,7 @@ const AppSidebar = () => {
   const [showSubscriptionModal, setShowSubscriptionModal] = createSignal(false);
   const [showReportDialog, setShowReportDialog] = createSignal(false);
   const [showShareModal, setShowShareModal] = createSignal(false);
+  const [showSupportSheet, setShowSupportSheet] = createSignal(false);
   const [userDropdownOpen, setUserDropdownOpen] = createSignal(false);
   const [dropdownPos, setDropdownPos] = createSignal({ bottom: 0, left: 0 });
 
@@ -209,11 +211,29 @@ const AppSidebar = () => {
 
       {/* ── Content ─────────────────────────────────────────────────── */}
       <SidebarContent>
+        {/* Send File — above Social */}
+        <SidebarGroup>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                tooltip="Send File"
+                onClick={() => { setShowShareModal(true); closeMobile(); }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <span>Send File</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+
         {/* Social group */}
         <SidebarGroup label="Social" collapsible defaultOpen>
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
+                tooltip="All Friends"
                 active={isActive("/friends")}
                 onClick={() => {
                   selectHome();
@@ -224,11 +244,12 @@ const AppSidebar = () => {
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                All Friends
+                <span>All Friends</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton
+                tooltip="Direct Messages"
                 active={isActive("/messages") || location.pathname.startsWith("/messages/")}
                 onClick={() => {
                   selectHome();
@@ -239,7 +260,7 @@ const AppSidebar = () => {
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
-                Direct Messages
+                <span>Direct Messages</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -249,19 +270,19 @@ const AppSidebar = () => {
         <SidebarGroup label="Servers" collapsible defaultOpen>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => { setModal("join"); closeMobile(); }}>
+              <SidebarMenuButton tooltip="Join Server" onClick={() => { setModal("join"); closeMobile(); }}>
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                 </svg>
-                Join Server
+                <span>Join Server</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => { setModal("create"); closeMobile(); }}>
+              <SidebarMenuButton tooltip="Create Server" onClick={() => { setModal("create"); closeMobile(); }}>
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
-                Create Server
+                <span>Create Server</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -289,6 +310,7 @@ const AppSidebar = () => {
                     return (
                       <SidebarMenuItem>
                         <SidebarMenuButton
+                          tooltip={`# ${channel.name}`}
                           active={active()}
                           onClick={() => {
                             setSelectedChannelId(channel.id);
@@ -332,39 +354,28 @@ const AppSidebar = () => {
           </Show>
         </SidebarGroup>
 
-        {/* Send File button */}
-        <div class="px-3 pt-2">
-          <button
-            onClick={() => setShowShareModal(true)}
-            class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-            title="Send File"
-            aria-label="Send File"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-            Send File
-          </button>
-        </div>
-
         {/* Bottom nav — pushed to bottom */}
-        <div class="mt-auto px-3 pb-2">
+        <SidebarGroup class="mt-auto">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
+                size="sm"
+                tooltip="Support"
                 onClick={() => {
-                  setShowReportDialog(true);
+                  setShowSupportSheet(true);
                   closeMobile();
                 }}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
-                Support
+                <span>Support</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton
+                size="sm"
+                tooltip="Settings"
                 active={location.pathname.startsWith("/settings")}
                 onClick={() => {
                   navigate("/settings");
@@ -375,53 +386,56 @@ const AppSidebar = () => {
                   <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                Settings
+                <span>Settings</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
-        </div>
+        </SidebarGroup>
       </SidebarContent>
 
       {/* ── Footer: User Card + Dropdown ────────────────────────────── */}
       <SidebarFooter>
-        <div ref={footerRef}>
-          <button
-            ref={triggerRef}
-            type="button"
-            onClick={openUserDropdown}
-            aria-expanded={userDropdownOpen()}
-            aria-haspopup="menu"
-            class="flex w-full items-center gap-2 rounded-md px-2 py-2 transition-colors hover:bg-accent"
-          >
-            <Show
-              when={readyData.data?.user.avatarUrl}
-              fallback={
-                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
-                  {resolvedDisplayName().charAt(0).toUpperCase()}
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <div ref={footerRef}>
+              <SidebarMenuButton
+                ref={triggerRef}
+                size="lg"
+                tooltip={resolvedDisplayName()}
+                onClick={openUserDropdown}
+                aria-expanded={userDropdownOpen()}
+                aria-haspopup="menu"
+                class="data-[state=open]:bg-accent data-[state=open]:text-foreground"
+              >
+                <Show
+                  when={readyData.data?.user.avatarUrl}
+                  fallback={
+                    <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground">
+                      {resolvedDisplayName().charAt(0).toUpperCase()}
+                    </div>
+                  }
+                >
+                  {(url) => (
+                    <img
+                      src={url()}
+                      alt={resolvedDisplayName()}
+                      class="h-8 w-8 shrink-0 rounded-lg object-cover"
+                    />
+                  )}
+                </Show>
+                <div class="grid min-w-0 flex-1 text-left text-sm leading-tight">
+                  <span class="truncate font-medium">{resolvedDisplayName()}</span>
+                  <span class="truncate text-xs text-muted-foreground">@{resolvedUsername()}</span>
                 </div>
-              }
-            >
-              {(url) => (
-                <img
-                  src={url()}
-                  alt={resolvedDisplayName()}
-                  class="h-8 w-8 shrink-0 rounded-md object-cover"
-                />
-              )}
-            </Show>
-            <div class="min-w-0 flex-1 text-left">
-              <div class="truncate text-sm font-medium text-foreground">
-                {resolvedDisplayName()}
-              </div>
-              <div class="truncate font-mono text-xs text-muted-foreground">
-                @{resolvedUsername()}
-              </div>
+                {/* ChevronsUpDown icon */}
+                <svg xmlns="http://www.w3.org/2000/svg" class="ml-auto h-4 w-4 shrink-0 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 15l5 5 5-5" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 9l5-5 5 5" />
+                </svg>
+              </SidebarMenuButton>
             </div>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-        </div>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
 
       {/* ── User Dropdown Menu ──────────────────────────────────────── */}
@@ -442,7 +456,7 @@ const AppSidebar = () => {
               <Show
                 when={readyData.data?.user.avatarUrl}
                 fallback={
-                  <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
+                  <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground">
                     {resolvedDisplayName().charAt(0).toUpperCase()}
                   </div>
                 }
@@ -451,7 +465,7 @@ const AppSidebar = () => {
                   <img
                     src={url()}
                     alt={resolvedDisplayName()}
-                    class="h-8 w-8 shrink-0 rounded-md object-cover"
+                    class="h-8 w-8 shrink-0 rounded-lg object-cover"
                   />
                 )}
               </Show>
@@ -590,6 +604,11 @@ const AppSidebar = () => {
       <Show when={showShareModal()}>
         <ShareFileModal onClose={() => setShowShareModal(false)} />
       </Show>
+      <SupportSheet
+        open={showSupportSheet()}
+        onClose={() => setShowSupportSheet(false)}
+        onReportBug={() => setShowReportDialog(true)}
+      />
     </Sidebar>
   );
 };

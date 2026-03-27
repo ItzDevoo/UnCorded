@@ -6,6 +6,7 @@ import { selectDmChannel, selectedDmChannelId } from "../stores/app-store.js";
 import { fetchMoreDms, loadingMoreDms } from "../stores/friend-store.js";
 import ChatArea from "../components/ChatArea.js";
 import { Empty } from "../components/ui/empty.js";
+import ContentHeader from "../components/ContentHeader.js";
 
 const DirectMessage = () => {
   const params = useParams<{ userId: string }>();
@@ -37,38 +38,49 @@ const DirectMessage = () => {
 
   const hasDm = () => findDm() !== undefined;
 
+  const dmName = () => {
+    const dm = findDm();
+    return dm ? (dm.otherUser.displayName ?? dm.otherUser.username ?? "DM") : "DM";
+  };
+
   return (
-    <Show
-      when={!isLoading()}
-      fallback={
-        <div class="flex flex-1 items-center justify-center">
-          <div class="flex animate-fade-in flex-col items-center gap-3">
-            <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            <p class="text-muted-foreground">Loading conversation...</p>
-          </div>
-        </div>
-      }
-    >
+    <div class="flex h-full flex-col">
+      <ContentHeader
+        title={dmName()}
+        breadcrumbs={[{ label: "Messages", href: "/messages" }]}
+      />
       <Show
-        when={hasDm()}
+        when={!isLoading()}
         fallback={
-          <Empty
-            title="Conversation not found"
-            description="This DM doesn't exist or hasn't started yet."
-          >
-            <button
-              type="button"
-              onClick={() => navigate("/messages")}
-              class="mt-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-            >
-              &larr; Back to Messages
-            </button>
-          </Empty>
+          <div class="flex flex-1 items-center justify-center">
+            <div class="flex animate-fade-in flex-col items-center gap-3">
+              <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              <p class="text-muted-foreground">Loading conversation...</p>
+            </div>
+          </div>
         }
       >
-        <ChatArea />
+        <Show
+          when={hasDm()}
+          fallback={
+            <Empty
+              title="Conversation not found"
+              description="This DM doesn't exist or hasn't started yet."
+            >
+              <button
+                type="button"
+                onClick={() => navigate("/messages")}
+                class="mt-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+              >
+                &larr; Back to Messages
+              </button>
+            </Empty>
+          }
+        >
+          <ChatArea />
+        </Show>
       </Show>
-    </Show>
+    </div>
   );
 };
 

@@ -154,11 +154,8 @@ const CommandPalette = (props: CommandPaletteProps) => {
     return groups;
   });
 
-  // Flatten for index-based keyboard nav
-  const flatResults = createMemo(() => allResults());
-
   const handleKeyDown = (e: KeyboardEvent) => {
-    const total = flatResults().length;
+    const total = allResults().length;
     if (total === 0) return;
 
     if (e.key === "ArrowDown") {
@@ -171,7 +168,7 @@ const CommandPalette = (props: CommandPaletteProps) => {
       scrollToSelected();
     } else if (e.key === "Enter") {
       e.preventDefault();
-      const item = flatResults()[selectedIndex()];
+      const item = allResults()[selectedIndex()];
       item?.onSelect();
     }
   };
@@ -262,7 +259,7 @@ const CommandPalette = (props: CommandPaletteProps) => {
             {/* Results */}
             <div ref={listRef} class="max-h-80 overflow-y-auto p-2">
               <Show
-                when={flatResults().length > 0}
+                when={allResults().length > 0}
                 fallback={
                   <p class="px-2 py-6 text-center text-sm text-muted-foreground">
                     {query().trim() ? "No results found." : "Start typing to search..."}

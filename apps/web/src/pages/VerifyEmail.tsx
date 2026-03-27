@@ -1,4 +1,4 @@
-import { createSignal } from "solid-js";
+import { createSignal, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
 import { sendVerificationEmail, useSession } from "../lib/auth.js";
 import AuthLayout from "../components/AuthLayout.js";
@@ -9,6 +9,7 @@ const VerifyEmail = () => {
   const session = useSession();
   const [resending, setResending] = createSignal(false);
   const [resent, setResent] = createSignal(false);
+  const [error, setError] = createSignal("");
 
   const email = () => session()?.data?.user?.email ?? "";
 
@@ -17,9 +18,12 @@ const VerifyEmail = () => {
     if (!addr) return;
     setResending(true);
     setResent(false);
+    setError("");
     try {
       await sendVerificationEmail({ email: addr, callbackURL: "/home" });
       setResent(true);
+    } catch {
+      setError("Failed to send verification email. Please try again.");
     } finally {
       setResending(false);
     }
@@ -58,12 +62,16 @@ const VerifyEmail = () => {
             disabled={resending()}
             onClick={handleResend}
           >
-            {resending() ? "Sending..." : resent() ? "Sent!" : "Resend Email"}
+            {resending() ? "Sending..." : resent() ? "Sent!" : error() ? "Retry" : "Resend Email"}
           </Button>
           <Button class="flex-1" onClick={() => navigate("/home", { replace: true })}>
             Continue Anyway
           </Button>
         </div>
+
+        <Show when={error()}>
+          <p class="mt-3 text-sm text-destructive">{error()}</p>
+        </Show>
 
         <p class="mt-4 text-xs text-muted-foreground">
           Didn't receive it? Check your spam folder.

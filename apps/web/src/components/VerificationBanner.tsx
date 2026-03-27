@@ -1,5 +1,6 @@
 import { createSignal, Show } from "solid-js";
 import { sendVerificationEmail, useSession } from "../lib/auth.js";
+import { showToast } from "./ui/toast.js";
 
 const DISMISSED_KEY = "verification-banner-dismissed";
 
@@ -25,6 +26,8 @@ const VerificationBanner = () => {
     try {
       await sendVerificationEmail({ email, callbackURL: "/home" });
       setResent(true);
+    } catch {
+      showToast("Failed to resend verification email. Please try again.", "error");
     } finally {
       setResending(false);
     }

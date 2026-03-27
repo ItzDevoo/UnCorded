@@ -24,6 +24,7 @@ export const auth = betterAuth({
   emailVerification: {
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
+    expiresIn: 86_400,
     sendVerificationEmail: async ({ user, url }) => {
       try {
         await sendEmail({
@@ -59,6 +60,7 @@ export const auth = betterAuth({
         });
       } catch (err) {
         console.error("[email] Failed to send verification email:", err);
+        throw err;
       }
     },
   },

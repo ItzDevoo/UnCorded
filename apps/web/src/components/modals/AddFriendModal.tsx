@@ -1,13 +1,13 @@
 import { createSignal, createEffect, onCleanup, For, Show } from "solid-js";
+import type { UserId } from "@uncorded/protocol";
 import { sendFriendRequest } from "../../stores/friend-store.js";
 import { api } from "../../lib/api.js";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog.js";
 import { Input } from "../ui/input.js";
 import { Button } from "../ui/button.js";
-import { showToast } from "../ui/toast.js";
 
 interface SearchUser {
-  id: string;
+  id: UserId;
   username: string | null;
   displayName: string | null;
   avatarUrl: string | null;
@@ -27,6 +27,7 @@ const AddFriendModal = (props: Props) => {
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
   let searchAbort: AbortController | undefined;
   let suppressNextSearch = false;
+  let sendInFlight = false;
 
   createEffect(() => {
     const q = username().trim();
@@ -71,16 +72,17 @@ const AddFriendModal = (props: Props) => {
 
   const handleSend = async () => {
     const name = username().trim();
-    if (!name) return;
+    if (!name || sendInFlight) return;
     setError(null);
     setSending(true);
+    sendInFlight = true;
     try {
       await sendFriendRequest(name);
-      showToast(`Friend request sent to ${name}`, "success");
       props.onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to send request");
     } finally {
+      sendInFlight = false;
       setSending(false);
     }
   };

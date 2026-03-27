@@ -249,7 +249,7 @@ const AppSidebar = () => {
                 fallback={
                   <SidebarMenuButton
                     tooltip="Search (Ctrl+K)"
-                    onClick={() => setCommandPaletteOpen(true)}
+                    onClick={() => { closeMobile(); setCommandPaletteOpen(true); }}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -260,7 +260,7 @@ const AppSidebar = () => {
               >
                 <button
                   type="button"
-                  onClick={() => setCommandPaletteOpen(true)}
+                  onClick={() => { closeMobile(); setCommandPaletteOpen(true); }}
                   class="flex w-full items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">

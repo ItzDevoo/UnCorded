@@ -44,13 +44,28 @@ const AppLayout: ParentComponent = (props) => {
     setupShortcuts();
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setCommandPaletteOpen((prev) => !prev);
-      }
       if (e.key === "Escape" && commandPaletteOpen()) {
         e.preventDefault();
         setCommandPaletteOpen(false);
+        return;
+      }
+
+      // Skip Ctrl+K when focus is inside editable elements
+      const target = e.target as HTMLElement;
+      const tag = target.tagName;
+      if (
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        tag === "SELECT" ||
+        target.isContentEditable ||
+        target.closest("[contenteditable]")
+      ) {
+        return;
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setCommandPaletteOpen((prev) => !prev);
       }
     };
     window.addEventListener("keydown", handleKeyDown);

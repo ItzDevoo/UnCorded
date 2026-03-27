@@ -1,8 +1,9 @@
-import { createSignal, createMemo, onMount, onCleanup, For, Show } from "solid-js";
+import { createSignal, createMemo, createEffect, on, For, Show } from "solid-js";
 import { Portal } from "solid-js/web";
 import { useNavigate } from "@solidjs/router";
 import { readyData, channelCache } from "../lib/gateway-store.js";
-import type { ReadyFriend, ReadyServer, ReadyChannel } from "../lib/gateway-store.js";
+import { setSelectedChannelId } from "../stores/app-store.js";
+import type { ReadyFriend, ReadyChannel } from "../lib/gateway-store.js";
 
 interface CommandPaletteProps {
   open: boolean;
@@ -13,7 +14,7 @@ interface CommandPaletteProps {
 interface ResultItem {
   id: string;
   label: string;
-  sublabel?: string;
+  sublabel?: string | undefined;
   category: "Friends" | "Servers" | "Channels" | "Actions";
   onSelect: () => void;
 }
@@ -25,12 +26,18 @@ const CommandPalette = (props: CommandPaletteProps) => {
   let inputRef!: HTMLInputElement;
   let listRef!: HTMLDivElement;
 
-  // Reset state when opening
-  onMount(() => {
-    setQuery("");
-    setSelectedIndex(0);
-    requestAnimationFrame(() => inputRef?.focus());
-  });
+  // Reset state and focus input whenever the palette opens
+  createEffect(
+    on(
+      () => props.open,
+      (open) => {
+        if (!open) return;
+        setQuery("");
+        setSelectedIndex(0);
+        requestAnimationFrame(() => inputRef?.focus());
+      },
+    ),
+  );
 
   const allResults = createMemo<ResultItem[]>(() => {
     const q = query().trim().toLowerCase();
@@ -91,6 +98,7 @@ const CommandPalette = (props: CommandPaletteProps) => {
         sublabel: ch.serverName,
         category: "Channels",
         onSelect: () => {
+          setSelectedChannelId(ch.id);
           navigate(`/servers/${ch.serverId}`);
           props.onClose();
         },

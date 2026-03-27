@@ -442,6 +442,25 @@ export const pollVotes = pgTable(
   (t) => [unique("poll_vote_unique").on(t.pollId, t.userId)],
 );
 
+// ─── Plugin Tables ──────────────────────────────────────────
+
+export const pluginInstalls = pgTable(
+  "plugin_installs",
+  {
+    id: id(),
+    pluginId: text("plugin_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    installedAt: timestamp("installed_at", { mode: "date" }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("plugin_installs_plugin_id_idx").on(t.pluginId),
+    index("plugin_installs_user_id_idx").on(t.userId),
+    unique("plugin_installs_plugin_user").on(t.pluginId, t.userId),
+  ],
+);
+
 export const adminAuditLog = pgTable(
   "admin_audit_log",
   {

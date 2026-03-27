@@ -31,6 +31,8 @@ const AccountSettings = lazy(() => import("./pages/settings/account-settings.js"
 const AppearanceSettings = lazy(() => import("./pages/settings/appearance-settings.js"));
 const TransferHistory = lazy(() => import("./pages/settings/transfer-history.js"));
 const BotsSettings = lazy(() => import("./pages/settings/bots-settings.js"));
+const PluginsSettings = lazy(() => import("./pages/settings/PluginsSettings.js"));
+const PluginConfigure = lazy(() => import("./pages/settings/PluginConfigure.js"));
 const NotificationSettings = lazy(() => import("./pages/settings/notification-settings.js"));
 const Upgrade = lazy(() => import("./pages/Upgrade.js"));
 const Billing = lazy(() => import("./pages/Billing.js"));
@@ -79,6 +81,8 @@ const App = () => {
           <Route path="/appearance" component={AppearanceSettings} />
           <Route path="/transfers" component={TransferHistory} />
           <Route path="/bots" component={BotsSettings} />
+          <Route path="/plugins" component={PluginsSettings} />
+          <Route path="/plugins/:pluginId" component={PluginConfigure} />
           <Route path="/upgrade" component={Upgrade} />
           <Route path="/billing" component={Billing} />
           <Route path="/notifications" component={NotificationSettings} />

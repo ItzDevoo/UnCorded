@@ -8,6 +8,7 @@ const navItems = [
   { label: "Appearance", href: "/settings/appearance" },
   { label: "Transfers", href: "/settings/transfers" },
   { label: "Bots", href: "/settings/bots" },
+  { label: "Plugins", href: "/settings/plugins" },
   { divider: true as const },
   { label: "Upgrade", href: "/settings/upgrade" },
   { label: "Billing", href: "/settings/billing" },
@@ -17,7 +18,8 @@ const navItems = [
 const SettingsLayout = (props: RouteSectionProps) => {
   const location = useLocation();
 
-  const isActive = (href: string) => location.pathname === href;
+  const isActive = (href: string) =>
+    location.pathname === href || location.pathname.startsWith(`${href}/`);
 
   const activeLabel = () => {
     const item = navItems.find((n) => "href" in n && isActive(n.href));

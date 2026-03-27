@@ -11,7 +11,7 @@ import { broadcastToServer, sendToUser, clients } from "../ws/connections.js";
 import { paginationQuerySchema } from "../helpers/pagination.js";
 
 export const memberRoutes = new Elysia({ prefix: "/api/servers/:serverId/members" })
-  .resolve(authResolve())
+  .resolve(authResolve({ allowBots: true }))
   .get("/", async ({ user: sessionUser, params, query }) => {
     await requireMember(sessionUser.id, params.serverId);
 
@@ -26,6 +26,7 @@ export const memberRoutes = new Elysia({ prefix: "/api/servers/:serverId/members
         displayName: user.displayName,
         avatarUrl: user.avatarUrl,
         status: user.status,
+        isBot: user.isBot,
       })
       .from(members)
       .innerJoin(user, eq(user.id, members.userId))

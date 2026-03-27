@@ -45,6 +45,7 @@ const DELETED_AUTHOR = {
   username: "[deleted user]",
   displayName: null as string | null,
   avatarUrl: null as string | null,
+  isBot: false,
 };
 
 /** Fetch a single message with author info. Uses leftJoin to include messages from deleted users. */
@@ -61,6 +62,7 @@ async function fetchMessageWithAuthor(msgId: string) {
         username: user.username,
         displayName: user.displayName,
         avatarUrl: user.avatarUrl,
+        isBot: user.isBot,
       },
     })
     .from(messages)
@@ -79,7 +81,7 @@ async function fetchMessageWithAuthor(msgId: string) {
 }
 
 export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/messages" })
-  .resolve(authResolve())
+  .resolve(authResolve({ allowBots: true }))
 
   // POST / — Create message
   .post("/", async ({ user: sessionUser, params, body, set }) => {
@@ -185,6 +187,7 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
           username: user.username,
           displayName: user.displayName,
           avatarUrl: user.avatarUrl,
+          isBot: user.isBot,
         },
         fileReceipt: {
           id: fileReceipts.id,

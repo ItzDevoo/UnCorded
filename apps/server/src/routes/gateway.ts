@@ -42,7 +42,7 @@ export async function consumeTicket(ticket: string): Promise<string | null> {
 // ── Route ───────────────────────────────────────────────────────────────────
 
 export const gatewayTicketRoutes = new Elysia({ prefix: "/api/gateway" })
-  .resolve(authResolve())
+  .resolve(authResolve({ allowBots: true }))
   .post("/ticket", async ({ user: sessionUser }) => {
     const ticket = crypto.randomUUID();
     const redisKey = `ws:ticket:${ticket}`;

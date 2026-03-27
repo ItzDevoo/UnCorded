@@ -35,6 +35,7 @@ export interface Message {
     username: string | null;
     displayName: string | null;
     avatarUrl: string | null;
+    isBot?: boolean;
   };
   fileReceipt?: MessageFileReceipt | null | undefined;
 }
@@ -231,6 +232,7 @@ export function setupMessageStore(): void {
         username: d.author.username,
         displayName: d.author.displayName,
         avatarUrl: d.author.avatarUrl,
+        isBot: d.author.isBot,
       },
       fileReceipt: d.fileReceipt ?? null,
     };

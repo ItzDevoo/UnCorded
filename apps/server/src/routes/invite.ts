@@ -139,7 +139,7 @@ export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
       memberCount: memberCount?.count ?? 0,
     };
   })
-  .resolve(authResolve())
+  .resolve(authResolve({ allowBots: true }))
   .post("/accept", async ({ user: sessionUser, params }) => {
     const { invite, server, joinerProfile, serverChannels } = await db.transaction(async (tx) => {
       const [inv] = await tx
@@ -192,6 +192,7 @@ export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
           username: user.username,
           displayName: user.displayName,
           avatarUrl: user.avatarUrl,
+          isBot: user.isBot,
         })
         .from(user)
         .where(eq(user.id, sessionUser.id))

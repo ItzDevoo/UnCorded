@@ -21,6 +21,7 @@ export interface Member {
   avatarUrl: string | null;
   status: string;
   online: boolean;
+  isBot?: boolean;
 }
 
 interface MemberStoreState {
@@ -105,6 +106,7 @@ export function setupMemberStore(): void {
           avatarUrl: d.user.avatarUrl,
           status: "online",
           online: true,
+          isBot: d.user.isBot,
         });
       }),
     );

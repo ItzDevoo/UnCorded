@@ -414,6 +414,11 @@ const MessageBubble = (props: MessageBubbleProps) => {
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2">
                 <span class="text-sm font-semibold text-foreground">{displayName()}</span>
+                <Show when={props.message.author.isBot}>
+                  <span class="rounded bg-primary/20 px-1 py-0.5 text-[9px] font-bold uppercase text-primary">
+                    Bot
+                  </span>
+                </Show>
                 <span class="font-mono text-xs text-muted-foreground">
                   {formatTimestamp(props.message.createdAt)}
                 </span>

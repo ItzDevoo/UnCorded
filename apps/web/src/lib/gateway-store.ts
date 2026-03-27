@@ -11,6 +11,7 @@ export interface ReadyUser {
   avatarUrl: string | null;
   status: string;
   subscriptionTier: string;
+  isBot?: boolean;
 }
 
 export interface ReadyChannel {

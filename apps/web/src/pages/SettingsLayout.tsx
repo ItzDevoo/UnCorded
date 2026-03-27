@@ -7,6 +7,7 @@ const navItems = [
   { label: "Account", href: "/settings/account" },
   { label: "Appearance", href: "/settings/appearance" },
   { label: "Transfers", href: "/settings/transfers" },
+  { label: "Bots", href: "/settings/bots" },
   { divider: true as const },
   { label: "Upgrade", href: "/settings/upgrade" },
   { label: "Billing", href: "/settings/billing" },

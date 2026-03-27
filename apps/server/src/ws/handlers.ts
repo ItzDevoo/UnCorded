@@ -16,6 +16,7 @@ import { registerUserServers } from "./server-members.js";
 import { seedChannelCache } from "./channel-cache.js";
 import { consumeTicket } from "../routes/gateway.js";
 import { resetIdleTimer, broadcastPresence } from "./presence.js";
+import { getBotSession } from "../middleware/bot-auth.js";
 
 type IdentifyResult =
   | { success: true; userId: string; username: string | null; subscriptionTier: string }
@@ -30,23 +31,38 @@ export async function handleIdentify(
     return {
       success: false,
       closeCode: CloseCode.MISSING_TOKEN,
-      closeReason: "Missing ticket in IDENTIFY",
+      closeReason: "Missing ticket or token in IDENTIFY",
     };
   }
-  const ticket = parsed.data.ticket;
 
   try {
-    // Validate one-time ticket
-    const ticketUserId = await consumeTicket(ticket);
-    if (!ticketUserId) {
-      return {
-        success: false,
-        closeCode: CloseCode.INVALID_SESSION,
-        closeReason: "Invalid or expired ticket",
-      };
-    }
+    let identifiedUserId: string;
 
-    const identifiedUserId = ticketUserId;
+    if (parsed.data.token) {
+      // Bot token flow
+      const botSession = await getBotSession(
+        new Headers({ Authorization: `Bearer ${parsed.data.token}` }),
+      );
+      if (!botSession) {
+        return {
+          success: false,
+          closeCode: CloseCode.INVALID_SESSION,
+          closeReason: "Invalid bot token",
+        };
+      }
+      identifiedUserId = botSession.user.id;
+    } else {
+      // Existing ticket flow
+      const ticketUserId = await consumeTicket(parsed.data.ticket!);
+      if (!ticketUserId) {
+        return {
+          success: false,
+          closeCode: CloseCode.INVALID_SESSION,
+          closeReason: "Invalid or expired ticket",
+        };
+      }
+      identifiedUserId = ticketUserId;
+    }
 
     // Register connection
     addConnection(identifiedUserId, ws);
@@ -60,6 +76,7 @@ export async function handleIdentify(
         avatarUrl: user.avatarUrl,
         status: user.status,
         subscriptionTier: user.subscriptionTier,
+        isBot: user.isBot,
       })
       .from(user)
       .where(eq(user.id, identifiedUserId))

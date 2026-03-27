@@ -22,6 +22,7 @@ import { webhookRoutes } from "./routes/webhook.js";
 import { stripeRoutes } from "./routes/stripe.js";
 import { turnRoutes } from "./routes/turn.js";
 import { fileReceiptRoutes } from "./routes/file-receipts.js";
+import { botRoutes } from "./routes/bots.js";
 import { gatewayTicketRoutes } from "./routes/gateway.js";
 import { gateway } from "./ws/gateway.js";
 import { subscribeCacheInvalidation, PubSubChannel } from "./lib/redis-pubsub.js";
@@ -79,6 +80,7 @@ const app = new Elysia()
   .use(pollRoutes)
   .use(safetyRoutes)
   .use(fileReceiptRoutes)
+  .use(botRoutes)
   .use(gatewayTicketRoutes)
   .use(gateway)
   .get("/health", () => ({ status: "ok" }))

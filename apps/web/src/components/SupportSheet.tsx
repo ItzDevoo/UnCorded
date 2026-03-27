@@ -27,22 +27,27 @@ const quickLinks = [
 
 const faqItems = [
   {
+    id: "create-server",
     question: "How do I create a server?",
     answer: "Click 'Create Server' under Servers in the sidebar. Give it a name and you're ready to go.",
   },
   {
+    id: "add-friends",
     question: "How do I add friends?",
     answer: "Go to Friends in the sidebar and use the Add Friend input at the top. Search by username and send a request.",
   },
   {
+    id: "p2p-file-sharing",
     question: "How does P2P file sharing work?",
     answer: "Files are shared directly between users using WebTorrent. Click Send File in the sidebar, select a friend and file. No server storage needed.",
   },
   {
+    id: "subscription-tiers",
     question: "What are the subscription tiers?",
     answer: "Supporter gives you unlimited servers, 100MB uploads, and file sharing in server channels. Server Owner adds server customization. Check Settings > Upgrade for full details.",
   },
   {
+    id: "delete-account",
     question: "Can I delete my account?",
     answer: "Yes. Go to Settings > Account and scroll to the Danger Zone at the bottom. Account deletion is permanent and cannot be undone.",
   },
@@ -56,7 +61,7 @@ interface SupportSheetProps {
 
 const SupportSheet = (props: SupportSheetProps) => {
   const [search, setSearch] = createSignal("");
-  const [expandedFaq, setExpandedFaq] = createSignal<number | null>(null);
+  const [expandedFaq, setExpandedFaq] = createSignal<string | null>(null);
 
   const filteredFaqs = () =>
     faqItems.filter(
@@ -66,17 +71,23 @@ const SupportSheet = (props: SupportSheetProps) => {
         f.answer.toLowerCase().includes(search().toLowerCase()),
     );
 
+  const handleClose = () => {
+    setSearch("");
+    setExpandedFaq(null);
+    props.onClose();
+  };
+
   const handleLinkClick = (href: string) => {
     if (href === "#bug" && props.onReportBug) {
-      props.onClose();
+      handleClose();
       props.onReportBug();
       return;
     }
   };
 
   return (
-    <Sheet open={props.open} onOpenChange={(open) => { if (!open) props.onClose(); }} side="right">
-      <SheetContent side="right" onClose={props.onClose} class="w-full sm:max-w-md">
+    <Sheet open={props.open} onOpenChange={(open) => { if (!open) handleClose(); }} side="right">
+      <SheetContent side="right" onClose={handleClose} class="w-full sm:max-w-md">
         <div class="flex h-full flex-col">
           {/* Header */}
           <div class="px-6 pt-6 pb-4">
@@ -91,9 +102,11 @@ const SupportSheet = (props: SupportSheetProps) => {
               </svg>
               <input
                 type="text"
+                id="search-input"
                 placeholder="Search for help..."
                 value={search()}
                 onInput={(e) => setSearch(e.currentTarget.value)}
+                aria-label="Search for help"
                 class="w-full rounded-md border border-border bg-input px-3 py-2 pl-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
               />
             </div>
@@ -136,7 +149,7 @@ const SupportSheet = (props: SupportSheetProps) => {
                         <A
                           href={link.href}
                           class="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-accent/50"
-                          onClick={() => props.onClose()}
+                          onClick={() => handleClose()}
                         >
                           <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
                             {link.icon}
@@ -173,13 +186,13 @@ const SupportSheet = (props: SupportSheetProps) => {
               >
                 <div class="space-y-1">
                   <For each={filteredFaqs()}>
-                    {(faq, i) => {
-                      const isExpanded = () => expandedFaq() === i();
+                    {(faq) => {
+                      const isExpanded = () => expandedFaq() === faq.id;
                       return (
                         <button
                           type="button"
                           class="w-full rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-accent/50"
-                          onClick={() => setExpandedFaq(isExpanded() ? null : i())}
+                          onClick={() => setExpandedFaq(isExpanded() ? null : faq.id)}
                         >
                           <div class="flex items-center justify-between gap-2">
                             <p class="text-sm font-medium text-foreground">{faq.question}</p>

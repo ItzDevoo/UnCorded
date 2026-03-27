@@ -27,7 +27,6 @@ const FallbackPage = (props: FallbackPageProps) => {
     <div class="flex h-full flex-col">
       <ContentHeader title={title()} />
       <div class="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
-      <h1 class="font-mono text-xl font-semibold text-foreground">{title()}</h1>
       <p class="max-w-sm text-sm text-muted-foreground">{description()}</p>
       <button
         type="button"

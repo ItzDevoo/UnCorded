@@ -164,32 +164,24 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
       }
 
       // Owner is adding their own bot — auto-accept immediately
-      // Check if already friends to avoid duplicate PK conflict
-      const [existingBot] = await db
-        .select({ status: friendships.status })
-        .from(friendships)
-        .where(
-          and(
-            eq(friendships.userId, sessionUser.id),
-            eq(friendships.friendId, targetId),
-          ),
-        )
-        .limit(1);
-
-      if (existingBot?.status === "accepted") {
-        const dmId = await ensureDmChannel(sessionUser.id, targetId);
-        set.status = 200;
-        return {
+      // Upsert to handle races and repeated adds atomically
+      const [upserted] = await db
+        .insert(friendships)
+        .values({
+          userId: sessionUser.id,
+          friendId: targetId,
           status: "accepted",
-          ...(dmId ? { dmChannelId: brandDmChannelId(dmId) } : {}),
-        };
-      }
+        })
+        .onConflictDoUpdate({
+          target: [friendships.userId, friendships.friendId],
+          set: { status: "accepted" },
+        })
+        .returning({ status: friendships.status });
 
-      await db.insert(friendships).values({
-        userId: sessionUser.id,
-        friendId: targetId,
-        status: "accepted",
-      });
+      if (!upserted || upserted.status !== "accepted") {
+        set.status = 200;
+        return { status: "pending" };
+      }
 
       const [me] = await db
         .select({

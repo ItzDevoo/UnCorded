@@ -131,13 +131,22 @@ const CommandPalette = (props: CommandPaletteProps) => {
     return results;
   });
 
-  // Group results by category for rendering
+  // Group results by category with precomputed flat indices for keyboard nav
+  interface IndexedItem extends ResultItem {
+    flatIndex: number;
+  }
   const groupedResults = createMemo(() => {
-    const groups: { category: string; items: ResultItem[] }[] = [];
+    const groups: { category: string; items: IndexedItem[] }[] = [];
     const categoryOrder: ResultItem["category"][] = ["Friends", "Servers", "Channels", "Actions"];
+    let idx = 0;
 
     for (const cat of categoryOrder) {
-      const items = allResults().filter((r) => r.category === cat);
+      const items: IndexedItem[] = [];
+      for (const r of allResults()) {
+        if (r.category === cat) {
+          items.push({ ...r, flatIndex: idx++ });
+        }
+      }
       if (items.length > 0) {
         groups.push({ category: cat, items });
       }
@@ -212,9 +221,6 @@ const CommandPalette = (props: CommandPaletteProps) => {
     }
   };
 
-  // Track flat index across grouped rendering
-  let flatIdx = 0;
-
   return (
     <Show when={props.open}>
       <Portal mount={document.body}>
@@ -259,10 +265,6 @@ const CommandPalette = (props: CommandPaletteProps) => {
                   </p>
                 }
               >
-                {(() => {
-                  flatIdx = 0;
-                  return null;
-                })()}
                 <For each={groupedResults()}>
                   {(group) => (
                     <div class="mb-2 last:mb-0">
@@ -271,27 +273,24 @@ const CommandPalette = (props: CommandPaletteProps) => {
                         {group.category}
                       </div>
                       <For each={group.items}>
-                        {(item) => {
-                          const idx = flatIdx++;
-                          return (
-                            <button
-                              type="button"
-                              data-index={idx}
-                              class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors"
-                              classList={{
-                                "bg-accent text-foreground": selectedIndex() === idx,
-                                "text-secondary-foreground hover:bg-accent hover:text-foreground": selectedIndex() !== idx,
-                              }}
-                              onMouseEnter={() => setSelectedIndex(idx)}
-                              onClick={() => item.onSelect()}
-                            >
-                              <span class="flex-1 truncate">{item.label}</span>
-                              <Show when={item.sublabel}>
-                                <span class="shrink-0 text-xs text-muted-foreground">{item.sublabel}</span>
-                              </Show>
-                            </button>
-                          );
-                        }}
+                        {(item) => (
+                          <button
+                            type="button"
+                            data-index={item.flatIndex}
+                            class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors"
+                            classList={{
+                              "bg-accent text-foreground": selectedIndex() === item.flatIndex,
+                              "text-secondary-foreground hover:bg-accent hover:text-foreground": selectedIndex() !== item.flatIndex,
+                            }}
+                            onMouseEnter={() => setSelectedIndex(item.flatIndex)}
+                            onClick={() => item.onSelect()}
+                          >
+                            <span class="flex-1 truncate">{item.label}</span>
+                            <Show when={item.sublabel}>
+                              <span class="shrink-0 text-xs text-muted-foreground">{item.sublabel}</span>
+                            </Show>
+                          </button>
+                        )}
                       </For>
                     </div>
                   )}

@@ -327,7 +327,7 @@ const SidebarContent = (props: SidebarContentProps) => {
     <div
       data-slot="sidebar-content"
       class={cn(
-        "flex min-h-0 flex-1 flex-col gap-0 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
+        "flex min-h-0 flex-1 flex-col gap-0 overflow-auto group-data-[collapsible=icon]:overflow-x-hidden",
         local.class,
       )}
       {...rest}
@@ -373,11 +373,13 @@ const SidebarGroup = (props: SidebarGroupProps) => {
     "defaultOpen",
   ]);
   const [open, setOpen] = createSignal(local.defaultOpen ?? true);
+  const { state } = useSidebar();
+  const sidebarExpanded = () => state() === "expanded";
 
   return (
     <div data-slot="sidebar-group" class={cn("relative flex w-full min-w-0 flex-col p-2", local.class)} {...rest}>
-      <Show when={local.label}>
-        <div class="flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-semibold uppercase text-muted-foreground transition-[margin,opacity] duration-200 ease-linear group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0">
+      <Show when={local.label && sidebarExpanded()}>
+        <div class="flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-semibold uppercase text-muted-foreground">
           <button
             type="button"
             class="flex flex-1 items-center gap-1"
@@ -448,11 +450,11 @@ const SidebarMenuButton = (props: SidebarMenuButtonProps) => {
   const sizeClass = () => {
     switch (local.size) {
       case "sm":
-        return "h-7 px-2 py-1 text-xs";
+        return "h-7 px-2 py-1 text-xs group-data-[collapsible=icon]:!p-2";
       case "lg":
         return "h-12 px-2.5 py-2.5 text-sm group-data-[collapsible=icon]:!p-0";
       default:
-        return "h-8 px-2.5 py-1.5 text-sm";
+        return "h-8 px-2.5 py-1.5 text-sm group-data-[collapsible=icon]:!p-2";
     }
   };
   return (
@@ -462,7 +464,7 @@ const SidebarMenuButton = (props: SidebarMenuButtonProps) => {
       class={cn(
         "flex w-full items-center gap-2 rounded-lg transition-colors",
         sizeClass(),
-        "group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 group-data-[collapsible=icon]:justify-center",
+        "group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:justify-center",
         "[&>span]:group-data-[collapsible=icon]:hidden",
         "[&>div]:group-data-[collapsible=icon]:hidden",
         "[&>svg:last-child]:group-data-[collapsible=icon]:hidden",

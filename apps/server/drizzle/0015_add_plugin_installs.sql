@@ -7,5 +7,4 @@ CREATE TABLE "plugin_installs" (
   CONSTRAINT "plugin_installs_plugin_user" UNIQUE("plugin_id", "user_id")
 );--> statement-breakpoint
 
-CREATE INDEX "plugin_installs_plugin_id_idx" ON "plugin_installs" ("plugin_id");--> statement-breakpoint
 CREATE INDEX "plugin_installs_user_id_idx" ON "plugin_installs" ("user_id");

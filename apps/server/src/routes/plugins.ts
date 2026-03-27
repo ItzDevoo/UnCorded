@@ -1,9 +1,18 @@
 import { Elysia } from "elysia";
-import { eq, and, sql } from "drizzle-orm";
-import { NotFoundError } from "@uncorded/shared";
+import { eq, and, sql, desc } from "drizzle-orm";
+import { NotFoundError, RateLimitError } from "@uncorded/shared";
 import { db } from "../db/index.js";
 import { pluginInstalls, bots, user } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
+import { checkIpRateLimit } from "../middleware/ip-rate-limit.js";
+
+function getClientIp(request: Request): string {
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    request.headers.get("x-real-ip") ??
+    "unknown"
+  );
+}
 
 // ── Plugin Catalog (hardcoded for now) ──────────────────────────────────────
 
@@ -115,6 +124,7 @@ export const pluginRoutes = new Elysia({ prefix: "/api/plugins" })
         .from(bots)
         .innerJoin(user, eq(bots.userId, user.id))
         .where(eq(bots.ownerId, sessionUser.id))
+        .orderBy(desc(bots.createdAt))
         .limit(1);
 
       setup = {
@@ -130,7 +140,11 @@ export const pluginRoutes = new Elysia({ prefix: "/api/plugins" })
   })
 
   // ── POST /api/plugins/:pluginId/install — install for current user ────
-  .post("/:pluginId/install", async ({ user: sessionUser, params }) => {
+  .post("/:pluginId/install", async ({ user: sessionUser, params, request }) => {
+    const ip = getClientIp(request);
+    if (!(await checkIpRateLimit(ip, 10, 60_000, "plugin-install"))) {
+      throw new RateLimitError("Too many requests, try again later");
+    }
     const catalog = findPlugin(params.pluginId);
     if (!catalog) throw new NotFoundError("Plugin");
 
@@ -152,7 +166,11 @@ export const pluginRoutes = new Elysia({ prefix: "/api/plugins" })
   })
 
   // ── DELETE /api/plugins/:pluginId/install — uninstall ─────────────────
-  .delete("/:pluginId/install", async ({ user: sessionUser, params }) => {
+  .delete("/:pluginId/install", async ({ user: sessionUser, params, request }) => {
+    const ip = getClientIp(request);
+    if (!(await checkIpRateLimit(ip, 10, 60_000, "plugin-install"))) {
+      throw new RateLimitError("Too many requests, try again later");
+    }
     const catalog = findPlugin(params.pluginId);
     if (!catalog) throw new NotFoundError("Plugin");
 

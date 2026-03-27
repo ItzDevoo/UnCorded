@@ -12,6 +12,7 @@ export type AnyChannelId = ChannelId | DmChannelId;
 export type SubscriptionId = Brand<string, "SubscriptionId">;
 export type ReportId = Brand<string, "ReportId">;
 export type RoleId = Brand<string, "RoleId">;
+export type PluginId = Brand<string, "PluginId">;
 
 // Cast constructors (brand raw strings at application boundaries)
 export function userId(raw: string): UserId {
@@ -43,4 +44,7 @@ export function reportId(raw: string): ReportId {
 }
 export function roleId(raw: string): RoleId {
   return raw as RoleId;
+}
+export function pluginId(raw: string): PluginId {
+  return raw as PluginId;
 }

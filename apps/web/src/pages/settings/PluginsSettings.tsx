@@ -1,5 +1,6 @@
 import { createSignal, createResource, For, Show } from "solid-js";
 import { A } from "@solidjs/router";
+import type { PluginId } from "@uncorded/protocol";
 import { api, ApiRequestError } from "../../lib/api.js";
 import { showToast } from "../../components/ui/toast.js";
 import { Button } from "../../components/ui/button.js";
@@ -7,7 +8,7 @@ import { Button } from "../../components/ui/button.js";
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface Plugin {
-  id: string;
+  id: PluginId;
   name: string;
   description: string;
   author: string;
@@ -46,7 +47,7 @@ const COMING_SOON_PLUGINS = [
 
 const PluginsSettings = () => {
   const [search, setSearch] = createSignal("");
-  const [installing, setInstalling] = createSignal<string | null>(null);
+  const [installing, setInstalling] = createSignal<PluginId | null>(null);
 
   const [plugins, { refetch, mutate }] = createResource(async () => {
     const res = await api<{ plugins: Plugin[] }>("/api/plugins");
@@ -73,7 +74,7 @@ const PluginsSettings = () => {
     );
   };
 
-  async function handleInstall(pluginId: string) {
+  async function handleInstall(pluginId: PluginId) {
     if (installing()) return;
     setInstalling(pluginId);
     try {

@@ -455,7 +455,6 @@ export const pluginInstalls = pgTable(
     installedAt: timestamp("installed_at", { mode: "date" }).defaultNow().notNull(),
   },
   (t) => [
-    index("plugin_installs_plugin_id_idx").on(t.pluginId),
     index("plugin_installs_user_id_idx").on(t.userId),
     unique("plugin_installs_plugin_user").on(t.pluginId, t.userId),
   ],

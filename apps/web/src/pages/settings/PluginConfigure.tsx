@@ -1,5 +1,6 @@
-import { createSignal, createResource, Show } from "solid-js";
+import { createSignal, createResource, Show, type ParentProps } from "solid-js";
 import { A, useParams, useNavigate } from "@solidjs/router";
+import type { PluginId } from "@uncorded/protocol";
 import { api, ApiRequestError } from "../../lib/api.js";
 import { showToast } from "../../components/ui/toast.js";
 import { Button } from "../../components/ui/button.js";
@@ -15,7 +16,7 @@ import {
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface PluginDetail {
-  id: string;
+  id: PluginId;
   name: string;
   description: string;
   author: string;
@@ -217,11 +218,19 @@ const PluginConfigure = () => {
                         {/* Step 3: Start Claude with Channel */}
                         <StepItem number={3} title="Start Claude with Channel" completed={false}>
                           <p class="mt-1 text-sm text-muted-foreground">
-                            Run in your terminal:
+                            Run in your terminal with your bot token:
                           </p>
-                          <CodeBlock
-                            text={`claude --channels\n  plugin:uncorded@${s().botTokenPrefix ?? "your-token"}...`}
-                          />
+                          <CodeBlock text="claude --channels plugin:uncorded@YOUR_BOT_TOKEN" />
+                          <Show when={s().botTokenPrefix}>
+                            <p class="mt-1.5 text-xs text-muted-foreground">
+                              Your bot token starts with <span class="font-mono text-foreground">{s().botTokenPrefix}...</span>
+                              {" "}&mdash;{" "}
+                              <A href="/settings/bots" class="text-primary hover:underline">
+                                regenerate it in Bot Settings
+                              </A>{" "}
+                              if you've lost it.
+                            </p>
+                          </Show>
                         </StepItem>
 
                         {/* Step 4: Connection Status */}
@@ -253,40 +262,42 @@ const PluginConfigure = () => {
                   )}
                 </Show>
 
-                {/* Uninstall */}
-                <div class="border-t border-border pt-4">
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => setShowUninstall(true)}
-                  >
-                    Uninstall Plugin
-                  </Button>
-                </div>
+                {/* Uninstall — only show when installed */}
+                <Show when={plugin().installed}>
+                  <div class="border-t border-border pt-4">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => setShowUninstall(true)}
+                    >
+                      Uninstall Plugin
+                    </Button>
+                  </div>
 
-                {/* Uninstall Confirmation Dialog */}
-                <Dialog open={showUninstall()} onOpenChange={setShowUninstall}>
-                  <DialogContent onClose={() => setShowUninstall(false)}>
-                    <DialogHeader>
-                      <DialogTitle>Uninstall Plugin</DialogTitle>
-                      <DialogDescription>
-                        Are you sure you want to uninstall <strong>{plugin().name}</strong>? You can reinstall it later.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                      <Button variant="ghost" onClick={() => setShowUninstall(false)}>
-                        Cancel
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        onClick={handleUninstall}
-                        disabled={uninstalling()}
-                      >
-                        {uninstalling() ? "Uninstalling..." : "Uninstall"}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                  {/* Uninstall Confirmation Dialog */}
+                  <Dialog open={showUninstall()} onOpenChange={setShowUninstall}>
+                    <DialogContent onClose={() => setShowUninstall(false)}>
+                      <DialogHeader>
+                        <DialogTitle>Uninstall Plugin</DialogTitle>
+                        <DialogDescription>
+                          Are you sure you want to uninstall <strong>{plugin().name}</strong>? You can reinstall it later.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <DialogFooter>
+                        <Button variant="ghost" onClick={() => setShowUninstall(false)}>
+                          Cancel
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          onClick={handleUninstall}
+                          disabled={uninstalling()}
+                        >
+                          {uninstalling() ? "Uninstalling..." : "Uninstall"}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </Show>
               </>
             );
           }}
@@ -298,12 +309,11 @@ const PluginConfigure = () => {
 
 // ── Step Item ────────────────────────────────────────────────────────────────
 
-function StepItem(props: {
+function StepItem(props: ParentProps<{
   number: number;
   title: string;
   completed: boolean;
-  children: any;
-}) {
+}>) {
   return (
     <div class="flex gap-3">
       {/* Step indicator */}

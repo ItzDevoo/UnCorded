@@ -1,5 +1,6 @@
 import { createSignal, createResource, For, Show } from "solid-js";
-import { api, ApiRequestError } from "../../lib/api.js";
+import { MAX_AVATAR_SIZE_BYTES, ALLOWED_AVATAR_TYPES } from "@uncorded/shared";
+import { api, apiUpload, ApiRequestError } from "../../lib/api.js";
 import { readyData } from "../../lib/gateway-store.js";
 import { showToast } from "../ui/toast.js";
 import { Button } from "../ui/button.js";
@@ -20,6 +21,7 @@ interface Bot {
   description: string | null;
   userId: string;
   username: string | null;
+  avatarUrl: string | null;
   tokenPrefix: string;
   lastUsedAt: string | null;
   createdAt: string;
@@ -141,6 +143,27 @@ const BotsSettings = () => {
     }
   }
 
+  async function handleAvatarUpload(bot: Bot, file: File) {
+    if (!ALLOWED_AVATAR_TYPES.includes(file.type as (typeof ALLOWED_AVATAR_TYPES)[number])) {
+      showToast("Invalid file type. Use PNG, JPEG, GIF, or WebP.", "error");
+      return;
+    }
+    if (file.size > MAX_AVATAR_SIZE_BYTES) {
+      showToast("File too large. Maximum size is 4 MB.", "error");
+      return;
+    }
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
+      await apiUpload<{ avatarUrl: string }>(`/api/bots/${bot.id}/avatar`, formData);
+      showToast("Bot avatar updated", "info");
+      refetch();
+    } catch (err) {
+      const msg = err instanceof ApiRequestError ? err.body.message : "Failed to upload avatar";
+      showToast(msg, "error");
+    }
+  }
+
   async function copyToken() {
     const token = revealedToken();
     if (!token) return;
@@ -196,6 +219,39 @@ const BotsSettings = () => {
               {(bot) => (
                 <div class="rounded-lg border border-border p-4">
                   <div class="flex items-start justify-between gap-4">
+                    {/* Bot avatar */}
+                    <button
+                      type="button"
+                      class="group relative flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-border transition-colors hover:border-primary"
+                      onClick={() => {
+                        const input = document.createElement("input");
+                        input.type = "file";
+                        input.accept = "image/png,image/jpeg,image/gif,image/webp";
+                        input.onchange = () => {
+                          const file = input.files?.[0];
+                          if (file) handleAvatarUpload(bot, file);
+                        };
+                        input.click();
+                      }}
+                      title="Change bot avatar"
+                    >
+                      <Show
+                        when={bot.avatarUrl}
+                        fallback={
+                          <div class="flex h-full w-full items-center justify-center bg-primary/15 text-lg font-bold text-primary">
+                            {bot.name[0]?.toUpperCase() ?? "?"}
+                          </div>
+                        }
+                      >
+                        {(url) => <img src={url()} alt={bot.name} class="h-full w-full object-cover" />}
+                      </Show>
+                      <div class="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      </div>
+                    </button>
                     <div class="min-w-0 flex-1">
                       <div class="flex items-center gap-2">
                         <span class="font-semibold text-foreground">{bot.name}</span>

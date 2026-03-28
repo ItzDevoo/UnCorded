@@ -21,6 +21,7 @@ import {
   pollEntries,
   pollVotes,
   giftedSubscriptions,
+  bots,
 } from "../db/schema.js";
 
 import { readdir } from "node:fs/promises";
@@ -113,12 +114,13 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
     const offset = (page - 1) * PAGE_SIZE;
 
     const escaped = search.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
-    const conditions = search
+    const searchFilter = search
       ? or(
           like(user.username, `%${escaped}%`),
           like(user.email, `%${escaped}%`),
         )
       : undefined;
+    const conditions = and(eq(user.isBot, false), searchFilter);
 
     const now = new Date();
     const [rows, [total]] = await Promise.all([
@@ -134,6 +136,7 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
           createdAt: user.createdAt,
           giftedTier: giftedSubscriptions.tier,
           giftExpiresAt: giftedSubscriptions.expiresAt,
+          botCount: sql<number>`(select count(*)::int from bots where bots.owner_id = ${user.id})`,
         })
         .from(user)
         .leftJoin(
@@ -161,6 +164,7 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       createdAt: r.createdAt,
       giftedTier: r.giftedTier ?? null,
       giftExpiresAt: r.giftExpiresAt?.toISOString() ?? null,
+      botCount: r.botCount,
     }));
 
     return { users, total: total?.value ?? 0, page, pageSize: PAGE_SIZE };
@@ -324,6 +328,57 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
     await logAudit(sessionUser.id, "delete_user", "user", params.id);
 
     return { success: true };
+  })
+
+  // ── User Bots ────────────────────────────────────────────────────────────
+  .get("/users/:id/bots", async ({ params, query }) => {
+    const page = Math.max(1, Number(query.page) || 1);
+    const pageSize = Math.min(50, Math.max(1, Number(query.pageSize) || 25));
+    const offset = (page - 1) * pageSize;
+
+    const [target] = await db
+      .select({ id: user.id })
+      .from(user)
+      .where(eq(user.id, params.id))
+      .limit(1);
+    if (!target) throw new NotFoundError("User");
+
+    const condition = eq(bots.ownerId, params.id);
+
+    const [rows, [total]] = await Promise.all([
+      db
+        .select({
+          id: bots.id,
+          name: bots.name,
+          description: bots.description,
+          username: user.username,
+          tokenPrefix: bots.tokenPrefix,
+          lastUsedAt: bots.lastUsedAt,
+          createdAt: bots.createdAt,
+        })
+        .from(bots)
+        .innerJoin(user, eq(bots.userId, user.id))
+        .where(condition)
+        .orderBy(desc(bots.createdAt))
+        .limit(pageSize)
+        .offset(offset),
+      db.select({ value: count() }).from(bots).where(condition),
+    ]);
+
+    return {
+      bots: rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        description: r.description,
+        username: r.username,
+        tokenPrefix: r.tokenPrefix,
+        lastUsedAt: r.lastUsedAt?.toISOString() ?? null,
+        createdAt: r.createdAt.toISOString(),
+      })),
+      total: total?.value ?? 0,
+      page,
+      pageSize,
+    };
   })
 
   // ── Report Management ─────────────────────────────────────────────────────

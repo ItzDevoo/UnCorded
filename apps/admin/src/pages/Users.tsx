@@ -1,6 +1,6 @@
-import { createSignal, onMount, For } from "solid-js";
-import type { UserRow, UsersResponse } from "@uncorded/shared";
-import { usersResponseSchema } from "@uncorded/shared";
+import { createSignal, onMount, For, Show } from "solid-js";
+import type { UserRow, UsersResponse, UserBotsResponse } from "@uncorded/shared";
+import { usersResponseSchema, userBotsResponseSchema } from "@uncorded/shared";
 import { api, ApiRequestError } from "../lib/api.js";
 import { showToast } from "../components/ui/toast.js";
 import { Button } from "../components/ui/button.js";
@@ -78,6 +78,22 @@ const Users = () => {
   function handleSearch(query: string) {
     setSearch(query);
     fetchUsers(1, query);
+  }
+
+  // ── Bots cache ────────────────────────────────────
+
+  const [botsCache, setBotsCache] = createSignal<Record<string, UserBotsResponse | "loading" | "error">>({});
+
+  async function fetchUserBots(userId: string) {
+    const cached = botsCache()[userId];
+    if (cached && cached !== "error") return;
+    setBotsCache((prev) => ({ ...prev, [userId]: "loading" }));
+    try {
+      const res = await api(`/api/admin/users/${userId}/bots`, undefined, userBotsResponseSchema);
+      setBotsCache((prev) => ({ ...prev, [userId]: res }));
+    } catch {
+      setBotsCache((prev) => ({ ...prev, [userId]: "error" }));
+    }
   }
 
   // ── Gift actions ──────────────────────────────────
@@ -203,9 +219,16 @@ const Users = () => {
     {
       header: "User",
       accessor: (row) => (
-        <div>
-          <p class="font-medium">{row.username ?? row.displayName ?? "—"}</p>
-          <p class="text-xs text-muted-foreground">{row.email}</p>
+        <div class="flex items-center gap-2">
+          <div>
+            <p class="font-medium">{row.username ?? row.displayName ?? "—"}</p>
+            <p class="text-xs text-muted-foreground">{row.email}</p>
+          </div>
+          <Show when={row.botCount && row.botCount > 0}>
+            <Badge variant="outline" class="text-[10px]">
+              {row.botCount} {row.botCount === 1 ? "bot" : "bots"}
+            </Badge>
+          </Show>
         </div>
       ),
     },
@@ -290,26 +313,82 @@ const Users = () => {
         searchPlaceholder="Search by username or email..."
         onSearch={handleSearch}
         loading={loading()}
-        expandRow={(row) => (
-          <div class="grid grid-cols-2 gap-x-8 gap-y-2 text-xs sm:grid-cols-4">
-            <div>
-              <p class="text-muted-foreground">User ID</p>
-              <p class="font-mono">{row.id}</p>
+        onExpand={(row) => fetchUserBots(row.id)}
+        expandRow={(row) => {
+          const botData = () => botsCache()[row.id];
+          return (
+            <div class="space-y-4">
+              <div class="grid grid-cols-2 gap-x-8 gap-y-2 text-xs sm:grid-cols-4">
+                <div>
+                  <p class="text-muted-foreground">User ID</p>
+                  <p class="font-mono">{row.id}</p>
+                </div>
+                <div>
+                  <p class="text-muted-foreground">Email</p>
+                  <p>{row.email}</p>
+                </div>
+                <div>
+                  <p class="text-muted-foreground">Subscription Tier</p>
+                  <p>{row.subscriptionTier}</p>
+                </div>
+                <div>
+                  <p class="text-muted-foreground">Gifted Tier</p>
+                  <p>{hasActiveGift(row) ? `${row.giftedTier} (expires ${new Date(row.giftExpiresAt!).toLocaleDateString()})` : "None"}</p>
+                </div>
+              </div>
+
+              {/* Bots section */}
+              <div class="border-t border-border pt-3">
+                <p class="mb-2 text-xs font-medium text-muted-foreground">Bots</p>
+                {(() => {
+                  const raw = botData();
+                  if (raw === "loading" || raw === undefined) {
+                    return <p class="text-xs text-muted-foreground">Loading bots...</p>;
+                  }
+                  if (raw === "error") {
+                    return (
+                      <div class="flex items-center gap-2 text-xs">
+                        <p class="text-destructive">Failed to load bots</p>
+                        <Button variant="ghost" size="sm" onClick={() => fetchUserBots(row.id)}>
+                          Retry
+                        </Button>
+                      </div>
+                    );
+                  }
+                  if (raw.bots.length === 0) {
+                    return <p class="text-xs text-muted-foreground">No bots</p>;
+                  }
+                  return (
+                    <div class="space-y-2">
+                      <For each={raw.bots}>
+                        {(bot) => (
+                          <div class="flex items-center gap-4 rounded-lg border border-border bg-card px-3 py-2 text-xs">
+                            <div class="min-w-0 flex-1">
+                              <p class="font-medium">{bot.name}</p>
+                              <p class="text-muted-foreground">{bot.username ?? "No username"}</p>
+                            </div>
+                            <div>
+                              <p class="text-muted-foreground">Token</p>
+                              <p class="font-mono">{bot.tokenPrefix}••••••</p>
+                            </div>
+                            <div>
+                              <p class="text-muted-foreground">Last used</p>
+                              <p>{bot.lastUsedAt ? new Date(bot.lastUsedAt).toLocaleDateString() : "Never"}</p>
+                            </div>
+                            <div>
+                              <p class="text-muted-foreground">Created</p>
+                              <p>{new Date(bot.createdAt).toLocaleDateString()}</p>
+                            </div>
+                          </div>
+                        )}
+                      </For>
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
-            <div>
-              <p class="text-muted-foreground">Email</p>
-              <p>{row.email}</p>
-            </div>
-            <div>
-              <p class="text-muted-foreground">Subscription Tier</p>
-              <p>{row.subscriptionTier}</p>
-            </div>
-            <div>
-              <p class="text-muted-foreground">Gifted Tier</p>
-              <p>{hasActiveGift(row) ? `${row.giftedTier} (expires ${new Date(row.giftExpiresAt!).toLocaleDateString()})` : "None"}</p>
-            </div>
-          </div>
-        )}
+          );
+        }}
       />
 
       {/* ── Gift Tier Modal ────────────────────────── */}

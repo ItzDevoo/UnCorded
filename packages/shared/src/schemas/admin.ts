@@ -123,6 +123,7 @@ export const userRowSchema = z.object({
   createdAt: z.string(),
   giftedTier: z.string().nullable().optional(),
   giftExpiresAt: z.string().nullable().optional(),
+  botCount: z.number().optional(),
 });
 
 export type UserRow = z.infer<typeof userRowSchema>;
@@ -135,6 +136,29 @@ export const usersResponseSchema = z.object({
 });
 
 export type UsersResponse = z.infer<typeof usersResponseSchema>;
+
+// ── User Bots ──────────────────────────────────────
+
+export const userBotRowSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  username: z.string().nullable(),
+  tokenPrefix: z.string(),
+  lastUsedAt: z.string().nullable(),
+  createdAt: z.string(),
+});
+
+export type UserBotRow = z.infer<typeof userBotRowSchema>;
+
+export const userBotsResponseSchema = z.object({
+  bots: z.array(userBotRowSchema),
+  total: z.number(),
+  page: z.number(),
+  pageSize: z.number(),
+});
+
+export type UserBotsResponse = z.infer<typeof userBotsResponseSchema>;
 
 // ── Polls ──────────────────────────────────────────
 

@@ -78,7 +78,7 @@ const Messages = () => {
                       <Show
                         when={dm.otherUser.avatarUrl}
                         fallback={
-                          <div class="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
+                          <div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
                             {initial()}
                           </div>
                         }
@@ -87,7 +87,7 @@ const Messages = () => {
                           <img
                             src={url()}
                             alt={displayName()}
-                            class="h-10 w-10 rounded-md object-cover"
+                            class="h-10 w-10 rounded-full object-cover"
                           />
                         )}
                       </Show>

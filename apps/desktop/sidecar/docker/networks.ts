@@ -1,10 +1,10 @@
-import Dockerode from "dockerode";
+import { createDockerClient } from "./docker-host";
 
 export class NetworkManager {
-  private docker: Dockerode;
+  private docker: ReturnType<typeof createDockerClient>;
 
   constructor() {
-    this.docker = new Dockerode();
+    this.docker = createDockerClient();
   }
 
   async createPluginNetwork(pluginId: string): Promise<string> {

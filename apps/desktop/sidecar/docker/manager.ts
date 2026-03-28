@@ -1,5 +1,6 @@
 import Dockerode from "dockerode";
 import path from "node:path";
+import { createDockerClient } from "./docker-host";
 
 export interface ContainerConfig {
   image: string;
@@ -31,7 +32,7 @@ export class DockerManager {
   private dataDir: string;
 
   constructor(dataDir: string) {
-    this.docker = new Dockerode();
+    this.docker = createDockerClient();
     this.dataDir = dataDir;
   }
 
@@ -44,10 +45,28 @@ export class DockerManager {
     }
   }
 
+  async imageExists(image: string): Promise<boolean> {
+    try {
+      await this.docker.getImage(image).inspect();
+      return true;
+    } catch (err: unknown) {
+      if (typeof err === "object" && err !== null && "statusCode" in err && (err as { statusCode: number }).statusCode === 404) {
+        return false;
+      }
+      throw err;
+    }
+  }
+
   async pullImage(
     image: string,
     onProgress?: (event: { status: string; progress?: string }) => void,
+    { skipIfExists = true }: { skipIfExists?: boolean } = {},
   ): Promise<void> {
+    if (skipIfExists && await this.imageExists(image)) {
+      console.error(`[docker] Image ${image} already exists locally, skipping pull`);
+      return;
+    }
+
     const stream = await this.docker.pull(image);
     return new Promise((resolve, reject) => {
       this.docker.modem.followProgress(

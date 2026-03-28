@@ -15,8 +15,9 @@ let isQuitting = false;
 const sidecar = new SidecarManager();
 
 const IS_DEV = !app.isPackaged;
-const WEB_URL = IS_DEV ? "http://localhost:5173" : "https://uncorded.app";
-const PRELOAD_PATH = path.join(__dirname, "preload.js");
+const WEB_URL = process.env["UNCORDED_WEB_URL"]
+  ?? (IS_DEV ? "http://localhost:5173" : "https://uncorded.app");
+const PRELOAD_PATH = path.join(__dirname, "preload.cjs");
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({

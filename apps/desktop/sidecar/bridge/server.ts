@@ -28,6 +28,103 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
     // Health check (unauthenticated)
     .get("/health", () => ({ status: "ok", timestamp: new Date().toISOString() }))
 
+    // --- Plugin management (called by Electron main process, no auth) ---
+    .get("/plugins", () => {
+      return options.plugins.list().map((p) => ({
+        id: p.pluginId,
+        name: p.manifest.name,
+        icon: p.manifest.icon ?? null,
+        uiSlot: p.manifest.ui?.type ?? "content",
+        header: false,
+        rightPanel: false,
+        status: p.state === "installed" ? "stopped" : p.state,
+        port: p.hostPort ?? 0,
+        permissions: p.manifest.permissions,
+      }));
+    })
+
+    .post("/plugins/install", async ({ body }) => {
+      const parsed = body as Record<string, unknown> | null;
+      if (!parsed || typeof parsed !== "object" || !("manifest" in parsed) || parsed.manifest == null) {
+        throw new Response(JSON.stringify({ error: "Request body must include a 'manifest' object" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      const serverId = typeof parsed.serverId === "string" ? parsed.serverId : "local";
+      const result = await options.plugins.install(parsed.manifest, serverId);
+      if (result.errors && result.errors.length > 0) {
+        throw new Response(JSON.stringify({ error: result.errors.join(", ") }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return { pluginId: result.pluginId, installed: true };
+    })
+
+    .post("/plugins/:id/start", async ({ params }) => {
+      try {
+        await options.plugins.start(params.id);
+        return { pluginId: params.id, started: true };
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        throw new Response(JSON.stringify({ error: message, pluginId: params.id }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+    })
+
+    .post("/plugins/:id/stop", async ({ params }) => {
+      try {
+        await options.plugins.stop(params.id);
+        return { pluginId: params.id, stopped: true };
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        throw new Response(JSON.stringify({ error: message, pluginId: params.id }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+    })
+
+    .post("/plugins/:id/restart", async ({ params }) => {
+      try {
+        await options.plugins.restart(params.id);
+        return { pluginId: params.id, restarted: true };
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        throw new Response(JSON.stringify({ error: message, pluginId: params.id }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+    })
+
+    .get("/plugins/:id/permissions", ({ params }) => {
+      const plugin = options.plugins.get(params.id);
+      if (!plugin) {
+        throw new Response(JSON.stringify({ error: "Plugin not found" }), {
+          status: 404,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return plugin.manifest.permissions;
+    })
+
+    .post("/plugins/:id/uninstall", async ({ params }) => {
+      try {
+        await options.plugins.uninstall(params.id);
+        return { pluginId: params.id, uninstalled: true };
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        throw new Response(JSON.stringify({ error: message, pluginId: params.id }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+    })
+
     // Auth + permissions middleware for /bridge/* routes
     .derive(({ request, path }) => {
       // Skip auth for non-bridge routes

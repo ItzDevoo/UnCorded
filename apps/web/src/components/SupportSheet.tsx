@@ -90,8 +90,19 @@ const SupportSheet = (props: SupportSheetProps) => {
       <SheetContent side="right" onClose={handleClose} class="w-full sm:max-w-md">
         <div class="flex h-full flex-col">
           {/* Header */}
-          <div class="px-6 pt-6 pb-4">
+          <div class="flex items-center justify-between px-6 pt-6 pb-4">
             <h2 class="text-lg font-semibold text-foreground">Help & Support</h2>
+            <button
+              type="button"
+              class="rounded p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              aria-label="Close support"
+              onClick={handleClose}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
           </div>
 
           {/* Search */}

@@ -51,6 +51,8 @@ export class PluginLifecycle {
       if (status === "crashed") {
         plugin.state = "crashed";
         plugin.previouslyRunning = false;
+        revokePluginTokens(pluginId);
+        this.resources.release(plugin.manifest.resources ?? {});
         this.saveState();
       }
     });
@@ -72,54 +74,60 @@ export class PluginLifecycle {
       return { pluginId: manifest.id, errors: [resourceCheck.reason!] };
     }
 
-    // Create data directory
-    const pluginDataDir = path.join(this.dataDir, "plugin-data", manifest.id);
-    fs.mkdirSync(pluginDataDir, { recursive: true });
+    try {
+      // Create data directory
+      const pluginDataDir = path.join(this.dataDir, "plugin-data", manifest.id);
+      fs.mkdirSync(pluginDataDir, { recursive: true });
 
-    // Pull image
-    console.error(`[lifecycle] Pulling image: ${manifest.runtime.image}`);
-    await this.docker.pullImage(manifest.runtime.image, (event) => {
-      console.error(`[lifecycle] Pull: ${event.status} ${event.progress ?? ""}`);
-    });
+      // Pull image
+      console.error(`[lifecycle] Pulling image: ${manifest.runtime.image}`);
+      await this.docker.pullImage(manifest.runtime.image, (event) => {
+        console.error(`[lifecycle] Pull: ${event.status} ${event.progress ?? ""}`);
+      });
 
-    // Create network
-    await this.networks.createPluginNetwork(manifest.id);
+      // Create network
+      await this.networks.createPluginNetwork(manifest.id);
 
-    // Issue bridge token
-    const bridgeToken = issueToken(manifest.id, serverId, manifest.permissions);
+      // Issue bridge token
+      const bridgeToken = issueToken(manifest.id, serverId, manifest.permissions);
 
-    // Create container
-    const containerId = await this.docker.createContainer({
-      image: manifest.runtime.image,
-      pluginId: manifest.id,
-      serverId,
-      bridgeUrl: `http://127.0.0.1:${this.getBridgePort()}`,
-      bridgeToken,
-      resources: manifest.resources,
-      healthCheckPath: manifest.runtime.healthCheck,
-      containerPort: manifest.runtime.port,
-    });
+      // Create container
+      const containerId = await this.docker.createContainer({
+        image: manifest.runtime.image,
+        pluginId: manifest.id,
+        serverId,
+        bridgeUrl: `http://host.docker.internal:${this.getBridgePort()}`,
+        bridgeToken,
+        resources: manifest.resources,
+        healthCheckPath: manifest.runtime.healthCheck,
+        containerPort: manifest.runtime.port,
+      });
 
-    // Connect to plugin network
-    await this.networks.connectContainer(manifest.id, containerId);
+      // Connect to plugin network
+      await this.networks.connectContainer(manifest.id, containerId);
 
-    const record: PluginRecord = {
-      pluginId: manifest.id,
-      serverId,
-      manifest,
-      containerId,
-      state: "installed",
-      hostPort: null,
-      bridgeToken,
-      previouslyRunning: false,
-      installedAt: new Date().toISOString(),
-    };
+      const record: PluginRecord = {
+        pluginId: manifest.id,
+        serverId,
+        manifest,
+        containerId,
+        state: "installed",
+        hostPort: null,
+        bridgeToken,
+        previouslyRunning: false,
+        installedAt: new Date().toISOString(),
+      };
 
-    this.plugins.set(manifest.id, record);
-    this.saveState();
+      this.plugins.set(manifest.id, record);
+      this.saveState();
 
-    console.error(`[lifecycle] Installed plugin: ${manifest.name} (${manifest.id})`);
-    return { pluginId: manifest.id };
+      console.error(`[lifecycle] Installed plugin: ${manifest.name} (${manifest.id})`);
+      return { pluginId: manifest.id };
+    } catch (err) {
+      // Release reserved resources on any failure
+      this.resources.release(manifest.resources ?? {});
+      throw err;
+    }
   }
 
   async start(pluginId: string): Promise<void> {
@@ -131,8 +139,11 @@ export class PluginLifecycle {
     plugin.state = "starting";
     this.saveState();
 
-    // Rotate bridge token on every start
-    plugin.bridgeToken = issueToken(pluginId, plugin.serverId, plugin.manifest.permissions);
+    // Token is baked into the container env at create time — register it in
+    // the auth store so the bridge can validate it (needed after sidecar restart)
+    if (plugin.bridgeToken) {
+      issueToken(pluginId, plugin.serverId, plugin.manifest.permissions);
+    }
 
     // Start container
     await this.docker.startContainer(plugin.containerId);
@@ -164,6 +175,7 @@ export class PluginLifecycle {
     plugin.state = "stopping";
     this.saveState();
 
+    // Stop health monitoring FIRST to prevent restart races
     this.health.stopMonitoring(pluginId);
     revokePluginTokens(pluginId);
 
@@ -228,28 +240,29 @@ export class PluginLifecycle {
     // Pull new image
     await this.docker.pullImage(newManifest.runtime.image);
 
-    // Remove old container
-    if (plugin.containerId) {
-      await this.docker.removeContainer(plugin.containerId, true);
-    }
-
-    // Create new container
+    // Create new container FIRST, then remove old one (rollback-safe)
     const bridgeToken = issueToken(pluginId, plugin.serverId, newManifest.permissions);
-    const containerId = await this.docker.createContainer({
+    const newContainerId = await this.docker.createContainer({
       image: newManifest.runtime.image,
       pluginId,
       serverId: plugin.serverId,
-      bridgeUrl: `http://127.0.0.1:${this.getBridgePort()}`,
+      bridgeUrl: `http://host.docker.internal:${this.getBridgePort()}`,
       bridgeToken,
       resources: newManifest.resources,
       healthCheckPath: newManifest.runtime.healthCheck,
       containerPort: newManifest.runtime.port,
     });
 
-    await this.networks.connectContainer(pluginId, containerId);
+    await this.networks.connectContainer(pluginId, newContainerId);
+
+    // New container ready — now remove the old one
+    const oldContainerId = plugin.containerId;
+    if (oldContainerId) {
+      await this.docker.removeContainer(oldContainerId, true);
+    }
 
     plugin.manifest = newManifest;
-    plugin.containerId = containerId;
+    plugin.containerId = newContainerId;
     plugin.bridgeToken = bridgeToken;
     this.saveState();
 

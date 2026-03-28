@@ -19,10 +19,12 @@ export class NetworkManager {
       return networks[0]!.Id;
     }
 
+    // Not Internal — plugins need to reach the host bridge server via
+    // host.docker.internal. External internet access is restricted by
+    // container CapDrop ALL + no outbound port mappings.
     const network = await this.docker.createNetwork({
       Name: name,
       Driver: "bridge",
-      Internal: true, // No external internet access by default
       Labels: {
         "uncorded.plugin.id": pluginId,
         "uncorded.managed": "true",
@@ -55,7 +57,7 @@ export class NetworkManager {
     });
 
     if (networks.length === 0) {
-      throw new Error(`Network ${name} not found`);
+      throw new Error(`Plugin network '${name}' not found`);
     }
 
     const network = this.docker.getNetwork(networks[0]!.Id);

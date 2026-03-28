@@ -43,9 +43,16 @@ function buildMain(): ChildProcess {
 
 function startElectron(): void {
   if (electronProcess) {
-    electronProcess.kill();
+    const old = electronProcess;
     electronProcess = null;
+    old.once("exit", () => spawnElectron());
+    old.kill();
+    return;
   }
+  spawnElectron();
+}
+
+function spawnElectron(): void {
 
   console.log("[dev] Starting Electron...");
   electronProcess = spawn(
@@ -90,7 +97,7 @@ const waitForBuild = setInterval(() => {
     startElectron();
 
     // Watch for rebuilds and restart Electron
-    watch(DIST, { recursive: true }, (event, filename) => {
+    watch(DIST, { recursive: true }, (_event, filename) => {
       if (filename?.endsWith(".js")) {
         debounceRestart();
       }

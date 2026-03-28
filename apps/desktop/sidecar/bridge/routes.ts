@@ -12,19 +12,48 @@ export interface RouteDeps {
   storage: PluginStorage;
 }
 
+function gatewayError() {
+  return new Response(JSON.stringify({ error: "Gateway not connected" }), {
+    status: 502,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+function notFoundError(resource: string) {
+  return new Response(JSON.stringify({ error: `${resource} not found` }), {
+    status: 404,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+function badRequestError(message: string) {
+  return new Response(JSON.stringify({ error: message }), {
+    status: 400,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+/**
+ * Helper: get server data from gateway for the plugin's server.
+ * The `plugin` property is set by the derive middleware in server.ts.
+ */
+function getPluginServer(gateway: GatewayClient, plugin: PluginContext) {
+  const ready = gateway.getReadyData();
+  if (!ready) return { ready: null, server: null };
+  const server = ready.servers.find((s) => s.id === plugin.serverId);
+  return { ready, server: server ?? null };
+}
+
 export function createRoutes(deps: RouteDeps) {
   const { gateway, storage } = deps;
 
   return new Elysia({ prefix: "/bridge" })
 
     // --- Server info ---
-    .get("/server", ({ store }) => {
-      const ctx = store as { plugin: PluginContext };
-      const ready = gateway.getReadyData();
-      if (!ready) return { error: "Gateway not connected" };
-
-      const server = ready.servers.find((s) => s.id === ctx.plugin.serverId);
-      if (!server) return { error: "Server not found" };
+    .get("/server", (ctx) => {
+      const plugin = (ctx as unknown as { plugin: PluginContext }).plugin;
+      const { server } = getPluginServer(gateway, plugin);
+      if (!server) throw gatewayError();
 
       return {
         id: server.id,
@@ -36,24 +65,20 @@ export function createRoutes(deps: RouteDeps) {
     })
 
     // --- Members ---
-    .get("/members", ({ store }) => {
-      const ctx = store as { plugin: PluginContext };
-      const ready = gateway.getReadyData();
-      if (!ready) return { error: "Gateway not connected" };
-
-      const server = ready.servers.find((s) => s.id === ctx.plugin.serverId);
+    .get("/members", (ctx) => {
+      const plugin = (ctx as unknown as { plugin: PluginContext }).plugin;
+      const { ready, server } = getPluginServer(gateway, plugin);
+      if (!ready) throw gatewayError();
       if (!server) return { members: [] };
 
       return { members: server.members };
     })
 
     // --- Channels ---
-    .get("/channels", ({ store }) => {
-      const ctx = store as { plugin: PluginContext };
-      const ready = gateway.getReadyData();
-      if (!ready) return { error: "Gateway not connected" };
-
-      const server = ready.servers.find((s) => s.id === ctx.plugin.serverId);
+    .get("/channels", (ctx) => {
+      const plugin = (ctx as unknown as { plugin: PluginContext }).plugin;
+      const { ready, server } = getPluginServer(gateway, plugin);
+      if (!ready) throw gatewayError();
       if (!server) return { channels: [] };
 
       return { channels: server.channels };
@@ -76,17 +101,17 @@ export function createRoutes(deps: RouteDeps) {
       };
     })
 
-    // --- Users ---
-    .get("/users/:userId", ({ params }) => {
-      const ready = gateway.getReadyData();
-      if (!ready) return { error: "Gateway not connected" };
+    // --- Users (restricted to caller's server) ---
+    .get("/users/:userId", (ctx) => {
+      const plugin = (ctx as unknown as { plugin: PluginContext }).plugin;
+      const { ready, server } = getPluginServer(gateway, plugin);
+      if (!ready) throw gatewayError();
+      if (!server) throw notFoundError("Server");
 
-      for (const server of ready.servers) {
-        const member = server.members.find((m) => m.id === params.userId);
-        if (member) return member;
-      }
+      const member = server.members.find((m) => m.id === (ctx as unknown as { params: { userId: string } }).params.userId);
+      if (!member) throw notFoundError("User");
 
-      return { error: "User not found" };
+      return member;
     })
 
     // --- Presence ---
@@ -100,37 +125,47 @@ export function createRoutes(deps: RouteDeps) {
     })
 
     // --- Plugin config ---
-    .get("/config", ({ store }) => {
-      const ctx = store as { plugin: PluginContext };
-      const config = storage.get(ctx.plugin.pluginId, "__config");
+    .get("/config", (ctx) => {
+      const plugin = (ctx as unknown as { plugin: PluginContext }).plugin;
+      const config = storage.get(plugin.pluginId, "__config");
       return { config: config ?? {} };
     })
 
     // --- KV Storage ---
-    .get("/storage/:key", ({ params, store }) => {
-      const ctx = store as { plugin: PluginContext };
-      const value = storage.get(ctx.plugin.pluginId, params.key);
-      if (value === null) return { error: "Key not found" };
+    .get("/storage/:key", (ctx) => {
+      const plugin = (ctx as unknown as { plugin: PluginContext }).plugin;
+      const params = (ctx as unknown as { params: { key: string } }).params;
+      const value = storage.get(plugin.pluginId, params.key);
+      if (value === null) throw notFoundError("Key");
       return { key: params.key, value };
     })
 
-    .put("/storage/:key", ({ params, body, query, store }) => {
-      const ctx = store as { plugin: PluginContext };
+    .put("/storage/:key", (ctx) => {
+      const plugin = (ctx as unknown as { plugin: PluginContext }).plugin;
+      const params = (ctx as unknown as { params: { key: string } }).params;
+      const query = (ctx as unknown as { query: Record<string, string | undefined> }).query;
+      const body = (ctx as unknown as { body: unknown }).body;
+
+      // Validate body
+      if (typeof body !== "object" || body === null || !("value" in body)) {
+        throw badRequestError("Request body must be an object with a 'value' property");
+      }
+
       const encrypt = query["encrypt"] === "true";
       const result = storage.set(
-        ctx.plugin.pluginId,
+        plugin.pluginId,
         params.key,
         (body as Record<string, unknown>).value,
         encrypt,
-        encrypt ? ctx.plugin.pluginId : undefined,
       );
-      if (!result.success) return { error: result.error };
+      if (!result.success) throw badRequestError(result.error ?? "Storage error");
       return { key: params.key, stored: true };
     })
 
-    .delete("/storage/:key", ({ params, store }) => {
-      const ctx = store as { plugin: PluginContext };
-      const deleted = storage.delete(ctx.plugin.pluginId, params.key);
+    .delete("/storage/:key", (ctx) => {
+      const plugin = (ctx as unknown as { plugin: PluginContext }).plugin;
+      const params = (ctx as unknown as { params: { key: string } }).params;
+      const deleted = storage.delete(plugin.pluginId, params.key);
       return { key: params.key, deleted };
     });
 }

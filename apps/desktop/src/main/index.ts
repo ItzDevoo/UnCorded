@@ -1,7 +1,7 @@
 import { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage } from "electron";
 import path from "node:path";
 import { SidecarManager } from "./sidecar.js";
-import { setupAutoUpdater, setupAutoUpdateIpc, setIsQuitting } from "./auto-update.js";
+import { setupAutoUpdater, setupAutoUpdateIpc, setIsQuitting, checkForUpdates } from "./auto-update.js";
 
 // Prevent multiple instances
 const gotLock = app.requestSingleInstanceLock();
@@ -10,7 +10,7 @@ if (!gotLock) {
 }
 
 let mainWindow: BrowserWindow | null = null;
-let tray: Tray | null = null; // eslint-disable-line -- stored to prevent GC
+let tray: Tray | null = null;
 let isQuitting = false;
 const sidecar = new SidecarManager();
 
@@ -56,8 +56,10 @@ function createWindow(): BrowserWindow {
 }
 
 function createTray(): Tray {
-  // Use a simple 16x16 empty icon as placeholder — real icons go in resources/
-  const icon = nativeImage.createEmpty();
+  // Placeholder icon — real icons go in resources/ before packaging
+  const icon = nativeImage.createFromDataURL(
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAADklEQVQ4jWNgGAWDEwAAAhAAARqjGFoAAAAASUVORK5CYII=",
+  );
   const t = new Tray(icon);
 
   const contextMenu = Menu.buildFromTemplate([
@@ -71,9 +73,7 @@ function createTray(): Tray {
     { type: "separator" },
     {
       label: "Check for Updates...",
-      click: () => {
-        ipcMain.emit("desktop:update-check");
-      },
+      click: () => checkForUpdates(),
     },
     { type: "separator" },
     {
@@ -136,9 +136,7 @@ function createAppMenu(): void {
       submenu: [
         {
           label: "Check for Updates...",
-          click: () => {
-            ipcMain.emit("desktop:update-check");
-          },
+          click: () => checkForUpdates(),
         },
         {
           label: `About UnCorded v${app.getVersion()}`,
@@ -208,9 +206,14 @@ app.on("activate", () => {
   }
 });
 
-app.on("before-quit", async () => {
+app.on("before-quit", (e) => {
+  if (isQuitting) return; // Guard against re-entry from app.quit() below
+  e.preventDefault();
   isQuitting = true;
   setIsQuitting(true);
   tray?.destroy();
-  await sidecar.stop();
+  tray = null;
+  sidecar.stop().finally(() => {
+    app.quit();
+  });
 });

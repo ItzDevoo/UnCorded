@@ -29,8 +29,8 @@ export function checkPermission(
   const required = PERMISSION_MAP[key];
 
   if (!required) {
-    // Unknown endpoint — allow (route handler will 404 if it doesn't exist)
-    return { allowed: true };
+    // Fail closed — unmapped routes are denied by default
+    return { allowed: false, requiredPermission: "unknown (no permission mapping)" };
   }
 
   if (permissions.includes(required) || permissions.includes("*")) {

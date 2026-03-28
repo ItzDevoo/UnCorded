@@ -16,7 +16,6 @@ export interface ContainerConfig {
 export interface ResourceLimits {
   cpus?: number | undefined;
   memoryMb?: number | undefined;
-  storageMb?: number | undefined;
 }
 
 export interface ContainerStatus {
@@ -88,6 +87,8 @@ export class DockerManager {
       Memory: config.resources?.memoryMb
         ? config.resources.memoryMb * 1024 * 1024
         : 512 * 1024 * 1024, // Default 512MB
+      // Allow container to reach host bridge server
+      ExtraHosts: ["host.docker.internal:host-gateway"],
       // Security
       Privileged: false,
       ReadonlyRootfs: false,

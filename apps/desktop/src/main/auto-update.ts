@@ -74,11 +74,11 @@ function reduceOnCheckFailure(state: UpdateState, error: string): UpdateState {
 }
 
 function reduceOnUpdateAvailable(state: UpdateState, version: string): UpdateState {
-  return { ...state, status: "available", availableVersion: version, checkedAt: new Date().toISOString() };
+  return { ...state, status: "available", availableVersion: version, checkedAt: new Date().toISOString(), message: null, errorContext: null };
 }
 
 function reduceOnNoUpdate(state: UpdateState): UpdateState {
-  return { ...state, status: "up-to-date", availableVersion: null, downloadedVersion: null, checkedAt: new Date().toISOString() };
+  return { ...state, status: "up-to-date", availableVersion: null, downloadedVersion: null, checkedAt: new Date().toISOString(), message: null, errorContext: null };
 }
 
 function reduceOnDownloadStart(state: UpdateState): UpdateState {
@@ -106,6 +106,8 @@ function reduceOnDownloadComplete(state: UpdateState, version: string): UpdateSt
     downloadedVersion: version,
     downloadPercent: 100,
     canRetry: true,
+    message: null,
+    errorContext: null,
   };
 }
 
@@ -140,7 +142,7 @@ function broadcastState(): void {
 
 // --- Check for updates ---
 
-function checkForUpdates(): void {
+export function checkForUpdates(): void {
   if (!updateState.enabled || updateState.status === "checking" || updateState.status === "downloading") {
     return;
   }

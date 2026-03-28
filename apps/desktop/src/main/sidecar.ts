@@ -15,8 +15,10 @@ export class SidecarManager {
   private process: ChildProcess | null = null;
   private port: number | null = null;
   private restartCount = 0;
+  private restartTimer: ReturnType<typeof setTimeout> | null = null;
   private intentionalStop = false;
   private starting = false;
+  private stdoutBuffer = "";
 
   isRunning(): boolean {
     return this.process !== null && !this.process.killed;
@@ -30,6 +32,7 @@ export class SidecarManager {
     if (this.process || this.starting) return;
     this.starting = true;
     this.intentionalStop = false;
+    this.stdoutBuffer = "";
 
     const sidecarEntry = this.getSidecarEntryPath();
 
@@ -44,9 +47,14 @@ export class SidecarManager {
       });
 
       this.process.stdout?.on("data", (data: Buffer) => {
-        const lines = data.toString().split("\n").filter(Boolean);
+        // Buffer incomplete lines across chunks
+        this.stdoutBuffer += data.toString();
+        const lines = this.stdoutBuffer.split("\n");
+        // Keep the last (possibly incomplete) segment in the buffer
+        this.stdoutBuffer = lines.pop() ?? "";
         for (const line of lines) {
-          this.handleStdoutLine(line);
+          const trimmed = line.replace(/\r$/, "");
+          if (trimmed) this.handleStdoutLine(trimmed);
         }
       });
 
@@ -56,6 +64,11 @@ export class SidecarManager {
 
       this.process.on("exit", (code, signal) => {
         console.error(`[sidecar] Exited with code=${code} signal=${signal}`);
+        // Flush any remaining buffered stdout
+        if (this.stdoutBuffer.trim()) {
+          this.handleStdoutLine(this.stdoutBuffer.trim());
+          this.stdoutBuffer = "";
+        }
         this.process = null;
         this.port = null;
         this.starting = false;
@@ -80,8 +93,14 @@ export class SidecarManager {
   }
 
   async stop(): Promise<void> {
-    if (!this.process) return;
+    // Set intentional flag and cancel pending restart FIRST
     this.intentionalStop = true;
+    if (this.restartTimer) {
+      clearTimeout(this.restartTimer);
+      this.restartTimer = null;
+    }
+
+    if (!this.process) return;
 
     return new Promise<void>((resolve) => {
       const timeout = setTimeout(() => {
@@ -105,7 +124,6 @@ export class SidecarManager {
   }
 
   private handleStdoutLine(line: string): void {
-    // Try to parse as JSON message from sidecar
     try {
       const msg: SidecarMessage = JSON.parse(line);
       if (msg.type === "ready" && typeof msg.port === "number") {
@@ -131,7 +149,10 @@ export class SidecarManager {
     this.restartCount++;
     if (this.restartCount <= MAX_RESTART_ATTEMPTS) {
       console.error(`[sidecar] Restarting (attempt ${this.restartCount}/${MAX_RESTART_ATTEMPTS})...`);
-      setTimeout(() => this.start(), 1_000 * this.restartCount);
+      this.restartTimer = setTimeout(() => {
+        this.restartTimer = null;
+        this.start();
+      }, 1_000 * this.restartCount);
     } else {
       console.error("[sidecar] Max restart attempts reached. Giving up.");
       this.broadcastError(
@@ -158,7 +179,8 @@ export class SidecarManager {
 
   private getSidecarEntryPath(): string {
     if (app.isPackaged) {
-      return path.join(process.resourcesPath, "sidecar", "index.ts");
+      // In packaged app, use the compiled sidecar artifact
+      return path.join(process.resourcesPath, "sidecar", "index.js");
     }
     // Dev: run directly from source
     return path.join(__dirname, "..", "..", "sidecar", "index.ts");

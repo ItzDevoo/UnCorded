@@ -47,6 +47,33 @@ const KNOWN_PERMISSIONS = new Set([
 ]);
 
 const SEMVER_REGEX = /^\d+\.\d+\.\d+(-[a-zA-Z0-9.]+)?$/;
+const SAFE_ID_REGEX = /^[a-zA-Z0-9._-]+$/;
+
+function parseStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  if (value.every((v) => typeof v === "string")) return value as string[];
+  return undefined;
+}
+
+function parseResources(value: unknown): ResourceLimits | undefined {
+  if (typeof value !== "object" || value === null) return undefined;
+  const obj = value as Record<string, unknown>;
+  const result: ResourceLimits = {};
+  if (typeof obj["cpus"] === "number" && obj["cpus"] > 0) result.cpus = obj["cpus"];
+  if (typeof obj["memoryMb"] === "number" && obj["memoryMb"] > 0) result.memoryMb = obj["memoryMb"];
+  return result;
+}
+
+function parseUi(value: unknown): PluginManifest["ui"] {
+  if (typeof value !== "object" || value === null) return undefined;
+  const obj = value as Record<string, unknown>;
+  const type = obj["type"];
+  if (type !== "panel" && type !== "page" && type !== "both") return undefined;
+  return {
+    type,
+    panelWidth: typeof obj["panelWidth"] === "number" ? obj["panelWidth"] : undefined,
+  };
+}
 
 export function parseManifest(raw: unknown): { manifest: PluginManifest; errors: string[] } {
   const errors: string[] = [];
@@ -58,7 +85,11 @@ export function parseManifest(raw: unknown): { manifest: PluginManifest; errors:
   const data = raw as Record<string, unknown>;
 
   // Required fields
-  if (typeof data["id"] !== "string" || !data["id"]) errors.push("Missing required field: id");
+  if (typeof data["id"] !== "string" || !data["id"]) {
+    errors.push("Missing required field: id");
+  } else if (!SAFE_ID_REGEX.test(data["id"])) {
+    errors.push("Plugin id contains invalid characters (only alphanumeric, '.', '-', '_' allowed)");
+  }
   if (typeof data["name"] !== "string" || !data["name"]) errors.push("Missing required field: name");
   if (typeof data["version"] !== "string" || !data["version"]) errors.push("Missing required field: version");
   if (typeof data["description"] !== "string") errors.push("Missing required field: description");
@@ -115,13 +146,11 @@ export function parseManifest(raw: unknown): { manifest: PluginManifest; errors:
       healthCheck: typeof (data["runtime"] as Record<string, unknown>)?.["healthCheck"] === "string"
         ? String((data["runtime"] as Record<string, unknown>)["healthCheck"])
         : "/health",
-      command: Array.isArray((data["runtime"] as Record<string, unknown>)?.["command"])
-        ? (data["runtime"] as Record<string, unknown>)["command"] as string[]
-        : undefined,
+      command: parseStringArray((data["runtime"] as Record<string, unknown>)?.["command"]),
     },
-    permissions: Array.isArray(data["permissions"]) ? data["permissions"] as string[] : [],
-    resources: data["resources"] as ResourceLimits | undefined,
-    ui: data["ui"] as PluginManifest["ui"],
+    permissions: parseStringArray(data["permissions"]) ?? [],
+    resources: parseResources(data["resources"]),
+    ui: parseUi(data["ui"]),
   };
 
   return { manifest, errors };

@@ -1,5 +1,9 @@
 import type { ResourceLimits } from "./manager";
 
+// Default per-plugin resource allocation
+const DEFAULT_PLUGIN_CPUS = 1;
+const DEFAULT_PLUGIN_MEMORY_MB = 512;
+
 // Default per-server resource limits
 const DEFAULT_MAX_CPUS = 4;
 const DEFAULT_MAX_MEMORY_MB = 2048;
@@ -30,8 +34,8 @@ export class ResourceEnforcer {
   }
 
   validateAndReserve(requested: ResourceLimits): { allowed: boolean; reason?: string } {
-    const cpus = requested.cpus ?? 1;
-    const memoryMb = requested.memoryMb ?? 512;
+    const cpus = requested.cpus ?? DEFAULT_PLUGIN_CPUS;
+    const memoryMb = requested.memoryMb ?? DEFAULT_PLUGIN_MEMORY_MB;
 
     if (this.currentUsage.pluginCount >= this.serverLimits.maxPlugins) {
       return { allowed: false, reason: `Maximum plugin count (${this.serverLimits.maxPlugins}) reached` };
@@ -60,8 +64,8 @@ export class ResourceEnforcer {
   }
 
   release(resources: ResourceLimits): void {
-    this.currentUsage.cpus = Math.max(0, this.currentUsage.cpus - (resources.cpus ?? 1));
-    this.currentUsage.memoryMb = Math.max(0, this.currentUsage.memoryMb - (resources.memoryMb ?? 512));
+    this.currentUsage.cpus = Math.max(0, this.currentUsage.cpus - (resources.cpus ?? DEFAULT_PLUGIN_CPUS));
+    this.currentUsage.memoryMb = Math.max(0, this.currentUsage.memoryMb - (resources.memoryMb ?? DEFAULT_PLUGIN_MEMORY_MB));
     this.currentUsage.pluginCount = Math.max(0, this.currentUsage.pluginCount - 1);
   }
 

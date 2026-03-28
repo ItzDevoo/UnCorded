@@ -26,7 +26,27 @@ export class PluginStorage {
     return path.join(this.getKvDir(pluginId), `${safeKey}.json`);
   }
 
-  get(pluginId: string, key: string, decryptionKey?: string): unknown | null {
+  /**
+   * Get or create a persistent per-plugin data encryption key.
+   * Stored on disk so encrypted values survive token rotations.
+   */
+  private getPluginDataKey(pluginId: string): string {
+    const keyPath = path.join(this.baseDir, pluginId, ".bridge-kv", ".data-key");
+    try {
+      if (fs.existsSync(keyPath)) {
+        return fs.readFileSync(keyPath, "utf-8").trim();
+      }
+    } catch {
+      // Corrupted key file — regenerate
+    }
+    const key = randomBytes(32).toString("hex");
+    const dir = path.dirname(keyPath);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(keyPath, key, { mode: 0o600 });
+    return key;
+  }
+
+  get(pluginId: string, key: string): unknown | null {
     const filePath = this.getKeyPath(pluginId, key);
     if (!fs.existsSync(filePath)) return null;
 
@@ -34,30 +54,41 @@ export class PluginStorage {
     const stored = JSON.parse(raw) as { encrypted: boolean; value: unknown; iv?: string; tag?: string };
 
     if (stored.encrypted) {
-      if (!decryptionKey) return null;
-      return this.decrypt(stored.value as string, stored.iv!, stored.tag!, decryptionKey);
+      const dataKey = this.getPluginDataKey(pluginId);
+      return this.decrypt(stored.value as string, stored.iv!, stored.tag!, dataKey);
     }
 
     return stored.value;
   }
 
-  set(pluginId: string, key: string, value: unknown, encrypt?: boolean, encryptionKey?: string): { success: boolean; error?: string } {
+  set(pluginId: string, key: string, value: unknown, encrypt?: boolean): { success: boolean; error?: string | undefined } {
     const serialized = JSON.stringify(value);
+    const valueBytes = Buffer.byteLength(serialized, "utf-8");
 
-    if (serialized.length > MAX_VALUE_SIZE) {
+    if (valueBytes > MAX_VALUE_SIZE) {
       return { success: false, error: `Value exceeds max size of ${MAX_VALUE_SIZE / 1024}KB` };
-    }
-
-    // Check total size
-    const totalSize = this.getTotalSize(pluginId);
-    if (totalSize + serialized.length > MAX_TOTAL_SIZE) {
-      return { success: false, error: `Total storage would exceed ${MAX_TOTAL_SIZE / (1024 * 1024)}MB limit` };
     }
 
     const filePath = this.getKeyPath(pluginId, key);
 
-    if (encrypt && encryptionKey) {
-      const { encrypted, iv, tag } = this.encrypt(serialized, encryptionKey);
+    // Account for existing file size when checking total quota (overwrite = delta)
+    let existingSize = 0;
+    try {
+      existingSize = fs.statSync(filePath).size;
+    } catch {
+      // File doesn't exist yet
+    }
+
+    const totalSize = this.getTotalSize(pluginId);
+    // Encrypted values expand due to hex encoding (~2x) + JSON wrapper overhead
+    const estimatedNewSize = encrypt ? valueBytes * 2 + 200 : valueBytes + 50;
+    if (totalSize - existingSize + estimatedNewSize > MAX_TOTAL_SIZE) {
+      return { success: false, error: `Total storage would exceed ${MAX_TOTAL_SIZE / (1024 * 1024)}MB limit` };
+    }
+
+    if (encrypt) {
+      const dataKey = this.getPluginDataKey(pluginId);
+      const { encrypted, iv, tag } = this.encrypt(serialized, dataKey);
       fs.writeFileSync(filePath, JSON.stringify({ encrypted: true, value: encrypted, iv, tag }));
     } else {
       fs.writeFileSync(filePath, JSON.stringify({ encrypted: false, value }));
@@ -78,6 +109,7 @@ export class PluginStorage {
     let total = 0;
     try {
       for (const file of fs.readdirSync(dir)) {
+        if (file === ".data-key") continue; // Don't count the key file
         const stat = fs.statSync(path.join(dir, file));
         total += stat.size;
       }

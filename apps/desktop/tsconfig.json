@@ -7,6 +7,6 @@
       "~/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*.ts", "sidecar/**/*.ts"],
+  "include": ["src/**/*.ts", "sidecar/**/*.ts", "scripts/**/*.ts"],
   "exclude": ["node_modules", "dist-electron"]
 }

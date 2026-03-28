@@ -21,6 +21,7 @@ const envSchema = z.object({
     .transform((s) => (s === "" ? "http://localhost:3000" : s))
     .pipe(z.string().url()),
   CORS_ORIGIN: optionalUrl,
+  DEV_ORIGIN: optionalUrl,
 
   // Optional with defaults
   PORT: z.coerce.number().default(3000),

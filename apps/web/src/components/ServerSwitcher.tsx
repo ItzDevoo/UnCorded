@@ -2,6 +2,7 @@ import { createSignal, createEffect, For, Show, onCleanup } from "solid-js";
 import { Portal } from "solid-js/web";
 import { readyData } from "../lib/gateway-store.js";
 import { selectedServerId, setSelectedServerId, currentServer } from "../stores/app-store.js";
+import { useSidebar } from "./ui/sidebar.js";
 
 interface ServerSwitcherProps {
   onCreateServer: () => void;
@@ -9,6 +10,8 @@ interface ServerSwitcherProps {
 }
 
 const ServerSwitcher = (props: ServerSwitcherProps) => {
+  const { state: sidebarState } = useSidebar();
+  const collapsed = () => sidebarState() === "collapsed";
   const [open, setOpen] = createSignal(false);
   // oxlint-disable-next-line eslint(no-unassigned-vars) -- SolidJS ref pattern
   let triggerRef!: HTMLButtonElement;
@@ -62,7 +65,7 @@ const ServerSwitcher = (props: ServerSwitcherProps) => {
         ref={triggerRef}
         onClick={handleOpen}
         aria-label="Switch server"
-        class="flex w-full items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
+        class={`flex w-full items-center gap-2 overflow-hidden rounded-lg text-sm font-medium transition-colors hover:bg-accent ${collapsed() ? "size-8 border-0 bg-transparent p-1" : "border border-border bg-card px-3 py-2"}`}
       >
         {/* Icon */}
         <Show
@@ -100,12 +103,15 @@ const ServerSwitcher = (props: ServerSwitcherProps) => {
           )}
         </Show>
 
-        <span class="min-w-0 flex-1 truncate text-left text-foreground">{label()}</span>
+        <Show when={!collapsed()}>
+          <span class="min-w-0 flex-1 truncate text-left text-foreground">{label()}</span>
+        </Show>
 
         {/* Chevron */}
         <svg
           xmlns="http://www.w3.org/2000/svg"
           class="h-4 w-4 shrink-0 text-muted-foreground"
+          classList={{ hidden: collapsed() }}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"

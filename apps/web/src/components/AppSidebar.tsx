@@ -226,12 +226,9 @@ const AppSidebar = () => {
                 closeMobile();
               }}
             >
-              <img src="/icon-192.png" alt="UnCorded" class="h-10 w-10 shrink-0 rounded-md" />
-              <span class="truncate font-mono text-sm font-bold uppercase tracking-[0.12em] text-foreground">
+              <img src="/icon-192.png" alt="UnCorded" class="h-8 w-8 shrink-0 rounded-md" />
+              <span class="truncate font-mono text-base font-bold uppercase tracking-wide text-foreground">
                 UNCORDED
-              </span>
-              <span class="ml-auto rounded-md bg-muted px-2 py-0.5 font-mono text-[11px] font-medium uppercase text-muted-foreground">
-                Alpha
               </span>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -362,7 +359,7 @@ const AppSidebar = () => {
           </SidebarMenu>
 
           {/* Server selector */}
-          <div class="px-2 pt-1">
+          <div class="pt-1" classList={{ "px-2": sidebarState() === "expanded", "px-0": sidebarState() === "collapsed" }}>
             <ServerSwitcher
               onCreateServer={() => setModal("create")}
               onJoinServer={() => setModal("join")}
@@ -374,10 +371,12 @@ const AppSidebar = () => {
             <Show
               when={channelCacheLoading() !== selectedServerId()}
               fallback={
-                <p class="px-4 py-3 text-xs text-muted-foreground">Loading channels...</p>
+                <Show when={sidebarState() === "expanded"}>
+                  <p class="px-4 py-3 text-xs text-muted-foreground">Loading channels...</p>
+                </Show>
               }
             >
-              <SidebarMenu class="mt-1">
+              <SidebarMenu class="mt-1" classList={{ hidden: sidebarState() === "collapsed" }}>
                 <For each={currentChannels()}>
                   {(channel) => {
                     const active = () => selectedChannelId() === channel.id;
@@ -421,8 +420,10 @@ const AppSidebar = () => {
                   }}
                 </For>
               </SidebarMenu>
-              <Show when={isServerOwner()}>
-                <div class="flex items-center gap-1 px-3 pt-1">{channelActions()}</div>
+              <Show when={sidebarState() === "expanded"}>
+                <Show when={isServerOwner()}>
+                  <div class="flex items-center gap-1 px-3 pt-1">{channelActions()}</div>
+                </Show>
               </Show>
             </Show>
           </Show>

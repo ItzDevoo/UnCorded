@@ -306,10 +306,12 @@ type SidebarHeaderProps = ParentProps<JSX.HTMLAttributes<HTMLDivElement>>;
 
 const SidebarHeader = (props: SidebarHeaderProps) => {
   const [local, rest] = splitProps(props, ["class", "children"]);
+  const { state } = useSidebar();
+  const collapsed = () => state() === "collapsed";
   return (
     <div
       data-slot="sidebar-header"
-      class={cn("flex shrink-0 flex-col gap-2 p-3", local.class)}
+      class={cn("flex shrink-0 flex-col gap-2", collapsed() ? "p-2" : "p-3", local.class)}
       {...rest}
     >
       {local.children}
@@ -323,11 +325,14 @@ type SidebarContentProps = ParentProps<JSX.HTMLAttributes<HTMLDivElement>>;
 
 const SidebarContent = (props: SidebarContentProps) => {
   const [local, rest] = splitProps(props, ["class", "children"]);
+  const { state } = useSidebar();
+  const collapsed = () => state() === "collapsed";
   return (
     <div
       data-slot="sidebar-content"
       class={cn(
-        "flex min-h-0 flex-1 flex-col gap-0 overflow-auto group-data-[collapsible=icon]:overflow-x-hidden",
+        "flex min-h-0 flex-1 flex-col gap-0 overflow-auto",
+        collapsed() && "overflow-x-hidden",
         local.class,
       )}
       {...rest}
@@ -343,10 +348,12 @@ type SidebarFooterProps = ParentProps<JSX.HTMLAttributes<HTMLDivElement>>;
 
 const SidebarFooter = (props: SidebarFooterProps) => {
   const [local, rest] = splitProps(props, ["class", "children"]);
+  const { state } = useSidebar();
+  const collapsed = () => state() === "collapsed";
   return (
     <div
       data-slot="sidebar-footer"
-      class={cn("flex shrink-0 flex-col gap-2 p-2", local.class)}
+      class={cn("flex shrink-0 flex-col gap-2 p-2", collapsed() && "items-center", local.class)}
       {...rest}
     >
       {local.children}
@@ -377,7 +384,7 @@ const SidebarGroup = (props: SidebarGroupProps) => {
   const sidebarExpanded = () => state() === "expanded";
 
   return (
-    <div data-slot="sidebar-group" class={cn("relative flex w-full min-w-0 flex-col p-2", local.class)} {...rest}>
+    <div data-slot="sidebar-group" class={cn("relative flex w-full min-w-0 flex-col p-2", !sidebarExpanded() && "items-center", local.class)} {...rest}>
       <Show when={local.label && sidebarExpanded()}>
         <div class="flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-semibold uppercase text-muted-foreground">
           <button
@@ -417,8 +424,10 @@ type SidebarMenuProps = ParentProps<JSX.HTMLAttributes<HTMLUListElement>>;
 
 const SidebarMenu = (props: SidebarMenuProps) => {
   const [local, rest] = splitProps(props, ["class", "children"]);
+  const { state } = useSidebar();
+  const collapsed = () => state() === "collapsed";
   return (
-    <ul data-slot="sidebar-menu" class={cn("flex flex-col gap-0.5 px-2", local.class)} {...rest}>
+    <ul data-slot="sidebar-menu" class={cn("flex flex-col gap-0.5", collapsed() ? "items-center px-0" : "px-2", local.class)} {...rest}>
       {local.children}
     </ul>
   );
@@ -447,14 +456,16 @@ interface SidebarMenuButtonProps extends ParentProps<JSX.ButtonHTMLAttributes<HT
 
 const SidebarMenuButton = (props: SidebarMenuButtonProps) => {
   const [local, rest] = splitProps(props, ["class", "children", "active", "size", "tooltip"]);
+  const { state } = useSidebar();
+  const collapsed = () => state() === "collapsed";
   const sizeClass = () => {
     switch (local.size) {
       case "sm":
-        return "h-7 px-2 py-1 text-xs group-data-[collapsible=icon]:!p-2";
+        return "h-7 px-2 py-1 text-xs";
       case "lg":
-        return "h-12 px-2.5 py-2.5 text-sm group-data-[collapsible=icon]:!p-0";
+        return "h-12 px-2.5 py-2.5 text-sm";
       default:
-        return "h-8 px-2.5 py-1.5 text-sm group-data-[collapsible=icon]:!p-2";
+        return "h-8 px-2.5 py-1.5 text-sm";
     }
   };
   return (
@@ -462,12 +473,10 @@ const SidebarMenuButton = (props: SidebarMenuButtonProps) => {
       data-slot="sidebar-menu-button"
       title={local.tooltip}
       class={cn(
-        "flex w-full items-center gap-2 rounded-lg transition-colors",
-        sizeClass(),
-        "group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:justify-center",
-        "[&>span]:group-data-[collapsible=icon]:hidden",
-        "[&>div]:group-data-[collapsible=icon]:hidden",
-        "[&>svg:last-child]:group-data-[collapsible=icon]:hidden",
+        collapsed()
+          ? "flex size-8 items-center justify-center overflow-hidden rounded-lg [&>:not(:first-child)]:hidden"
+          : cn("flex w-full items-center gap-2 overflow-hidden rounded-lg", sizeClass()),
+        "[&>svg]:size-4 [&>svg]:shrink-0",
         local.active
           ? "bg-accent font-medium text-foreground"
           : "text-secondary-foreground hover:bg-accent hover:text-foreground",
@@ -486,18 +495,21 @@ type SidebarMenuActionProps = ParentProps<JSX.ButtonHTMLAttributes<HTMLButtonEle
 
 const SidebarMenuAction = (props: SidebarMenuActionProps) => {
   const [local, rest] = splitProps(props, ["class", "children"]);
+  const { state } = useSidebar();
+  const collapsed = () => state() === "collapsed";
   return (
-    <button
-      data-slot="sidebar-menu-action"
-      class={cn(
-        "absolute right-1 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover/menu-item:opacity-100 hover:text-foreground",
-        "group-data-[collapsible=icon]:hidden",
-        local.class,
-      )}
-      {...rest}
-    >
-      {local.children}
-    </button>
+    <Show when={!collapsed()}>
+      <button
+        data-slot="sidebar-menu-action"
+        class={cn(
+          "absolute right-1 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover/menu-item:opacity-100 hover:text-foreground",
+          local.class,
+        )}
+        {...rest}
+      >
+        {local.children}
+      </button>
+    </Show>
   );
 };
 

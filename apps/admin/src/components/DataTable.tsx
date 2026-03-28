@@ -19,6 +19,7 @@ interface DataTableProps<T> {
   onSearch?: (query: string) => void;
   loading?: boolean;
   expandRow?: (row: T) => JSX.Element;
+  onExpand?: (row: T) => void;
   actions?: JSX.Element;
 }
 
@@ -44,7 +45,12 @@ export function DataTable<T>(props: DataTableProps<T>) {
   }
 
   function toggleExpand(idx: number) {
-    setExpandedIdx(expandedIdx() === idx ? null : idx);
+    if (expandedIdx() === idx) {
+      setExpandedIdx(null);
+    } else {
+      setExpandedIdx(idx);
+      props.onExpand?.(props.data[idx]!);
+    }
   }
 
   function pageNumbers() {

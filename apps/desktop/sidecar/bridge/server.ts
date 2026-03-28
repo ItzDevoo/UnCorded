@@ -44,8 +44,15 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
     })
 
     .post("/plugins/install", async ({ body }) => {
-      const { manifest, serverId } = body as { manifest: unknown; serverId?: string };
-      const result = await options.plugins.install(manifest, serverId ?? "local");
+      const parsed = body as Record<string, unknown> | null;
+      if (!parsed || typeof parsed !== "object" || !("manifest" in parsed) || parsed.manifest == null) {
+        throw new Response(JSON.stringify({ error: "Request body must include a 'manifest' object" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      const serverId = typeof parsed.serverId === "string" ? parsed.serverId : "local";
+      const result = await options.plugins.install(parsed.manifest, serverId);
       if (result.errors && result.errors.length > 0) {
         throw new Response(JSON.stringify({ error: result.errors.join(", ") }), {
           status: 400,
@@ -56,18 +63,42 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
     })
 
     .post("/plugins/:id/start", async ({ params }) => {
-      await options.plugins.start(params.id);
-      return { pluginId: params.id, started: true };
+      try {
+        await options.plugins.start(params.id);
+        return { pluginId: params.id, started: true };
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        throw new Response(JSON.stringify({ error: message, pluginId: params.id }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
     })
 
     .post("/plugins/:id/stop", async ({ params }) => {
-      await options.plugins.stop(params.id);
-      return { pluginId: params.id, stopped: true };
+      try {
+        await options.plugins.stop(params.id);
+        return { pluginId: params.id, stopped: true };
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        throw new Response(JSON.stringify({ error: message, pluginId: params.id }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
     })
 
     .post("/plugins/:id/restart", async ({ params }) => {
-      await options.plugins.restart(params.id);
-      return { pluginId: params.id, restarted: true };
+      try {
+        await options.plugins.restart(params.id);
+        return { pluginId: params.id, restarted: true };
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        throw new Response(JSON.stringify({ error: message, pluginId: params.id }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
     })
 
     .get("/plugins/:id/permissions", ({ params }) => {
@@ -82,8 +113,16 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
     })
 
     .post("/plugins/:id/uninstall", async ({ params }) => {
-      await options.plugins.uninstall(params.id);
-      return { pluginId: params.id, uninstalled: true };
+      try {
+        await options.plugins.uninstall(params.id);
+        return { pluginId: params.id, uninstalled: true };
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        throw new Response(JSON.stringify({ error: message, pluginId: params.id }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
     })
 
     // Auth + permissions middleware for /bridge/* routes

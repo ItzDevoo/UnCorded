@@ -1,5 +1,6 @@
 import Dockerode from "dockerode";
 import path from "node:path";
+import { createDockerClient } from "./docker-host";
 
 export interface ContainerConfig {
   image: string;
@@ -31,18 +32,7 @@ export class DockerManager {
   private dataDir: string;
 
   constructor(dataDir: string) {
-    // Bun's HTTP client doesn't support Windows named pipes, so fall back
-    // to TCP if a DOCKER_HOST env var or known TCP proxy is available.
-    const dockerHost = process.env["DOCKER_HOST"];
-    if (dockerHost && dockerHost.startsWith("tcp://")) {
-      const url = new URL(dockerHost.replace("tcp://", "http://"));
-      this.docker = new Dockerode({ host: url.hostname, port: Number(url.port) });
-    } else if (process.platform === "win32") {
-      // Default Windows TCP proxy (socat bridge to Docker Desktop socket)
-      this.docker = new Dockerode({ host: "127.0.0.1", port: 2375 });
-    } else {
-      this.docker = new Dockerode();
-    }
+    this.docker = createDockerClient();
     this.dataDir = dataDir;
   }
 
@@ -59,17 +49,20 @@ export class DockerManager {
     try {
       await this.docker.getImage(image).inspect();
       return true;
-    } catch {
-      return false;
+    } catch (err: unknown) {
+      if (typeof err === "object" && err !== null && "statusCode" in err && (err as { statusCode: number }).statusCode === 404) {
+        return false;
+      }
+      throw err;
     }
   }
 
   async pullImage(
     image: string,
     onProgress?: (event: { status: string; progress?: string }) => void,
+    { skipIfExists = true }: { skipIfExists?: boolean } = {},
   ): Promise<void> {
-    // Skip pull if image already exists locally (e.g. locally-built images)
-    if (await this.imageExists(image)) {
+    if (skipIfExists && await this.imageExists(image)) {
       console.error(`[docker] Image ${image} already exists locally, skipping pull`);
       return;
     }

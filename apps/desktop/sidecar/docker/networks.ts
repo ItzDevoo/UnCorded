@@ -1,19 +1,7 @@
-import Dockerode from "dockerode";
-
-function createDockerClient(): Dockerode {
-  const dockerHost = process.env["DOCKER_HOST"];
-  if (dockerHost && dockerHost.startsWith("tcp://")) {
-    const url = new URL(dockerHost.replace("tcp://", "http://"));
-    return new Dockerode({ host: url.hostname, port: Number(url.port) });
-  }
-  if (process.platform === "win32") {
-    return new Dockerode({ host: "127.0.0.1", port: 2375 });
-  }
-  return new Dockerode();
-}
+import { createDockerClient } from "./docker-host";
 
 export class NetworkManager {
-  private docker: Dockerode;
+  private docker: ReturnType<typeof createDockerClient>;
 
   constructor() {
     this.docker = createDockerClient();

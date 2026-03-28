@@ -237,8 +237,8 @@ export class PluginLifecycle {
       await this.stop(pluginId);
     }
 
-    // Pull new image
-    await this.docker.pullImage(newManifest.runtime.image);
+    // Pull new image — force re-pull to pick up mutable tag changes (e.g. :latest)
+    await this.docker.pullImage(newManifest.runtime.image, undefined, { skipIfExists: false });
 
     // Create new container FIRST, then remove old one (rollback-safe)
     const bridgeToken = issueToken(pluginId, plugin.serverId, newManifest.permissions);

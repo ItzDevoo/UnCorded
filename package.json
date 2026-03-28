@@ -10,6 +10,7 @@
     "dev": "bun run scripts/dev-runner.ts",
     "dev:server": "turbo dev --filter @uncorded/server",
     "dev:web": "turbo dev --filter @uncorded/web",
+    "dev:desktop": "turbo dev --filter @uncorded/desktop",
     "build": "turbo build",
     "typecheck": "turbo typecheck",
     "lint": "oxlint",

@@ -1,0 +1,46 @@
+appId: com.uncorded.app
+productName: UnCorded
+artifactName: UnCorded-${version}-${arch}.${ext}
+
+directories:
+  buildResources: resources
+  output: release
+
+files:
+  - dist-electron/**/*
+  - src/renderer/**/*
+
+extraResources:
+  - from: sidecar/
+    to: sidecar/
+    filter:
+      - "**/*"
+      - "!node_modules"
+
+publish:
+  - provider: github
+    owner: ItzDevoo
+    repo: UnCorded
+    releaseType: release
+
+mac:
+  target:
+    - dmg
+    - zip
+  icon: resources/icon.icns
+  category: public.app-category.social-networking
+
+linux:
+  target:
+    - AppImage
+  icon: resources/icon.png
+  category: Network
+
+win:
+  target:
+    - nsis
+  icon: resources/icon.ico
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true

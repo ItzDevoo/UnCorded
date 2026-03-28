@@ -6,8 +6,12 @@ import {
   NotFoundError,
   ForbiddenError,
   InternalError,
+  AppError,
   createId,
+  MAX_AVATAR_SIZE_BYTES,
+  ALLOWED_AVATAR_TYPES,
 } from "@uncorded/shared";
+import { isR2Configured, uploadAvatar, deleteAvatar } from "../lib/r2.js";
 import { db } from "../db/index.js";
 import { bots, user, members } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
@@ -70,6 +74,7 @@ export const botRoutes = new Elysia({ prefix: "/api/bots" })
         lastUsedAt: bots.lastUsedAt,
         createdAt: bots.createdAt,
         username: user.username,
+        avatarUrl: user.avatarUrl,
       })
       .from(bots)
       .innerJoin(user, eq(bots.userId, user.id))
@@ -130,6 +135,7 @@ export const botRoutes = new Elysia({ prefix: "/api/bots" })
         .values({
           id: botUserId,
           name: parsed.data.name,
+          displayName: parsed.data.name,
           username,
           displayUsername: username,
           email: `bot-${botId}@bots.uncorded.internal`,
@@ -239,4 +245,101 @@ export const botRoutes = new Elysia({ prefix: "/api/bots" })
     disconnectUser(updated.userId, CloseCode.INVALID_SESSION, "Token regenerated");
 
     return { token, tokenPrefix: tokenPfx };
+  });
+
+// ── Bot Avatar Routes (separate group for multipart parsing) ────────────────
+
+export const botAvatarRoutes = new Elysia({ prefix: "/api/bots" })
+  .resolve(authResolve())
+  .onParse({ as: "local" }, async ({ request, contentType }) => {
+    if (contentType?.startsWith("multipart/form-data")) {
+      return await request.formData();
+    }
+  })
+  .patch("/:id/avatar", async ({ user: sessionUser, params, body: rawBody }) => {
+    if ((sessionUser as Record<string, unknown>).isBot) {
+      throw new ForbiddenError("Bots cannot manage avatars");
+    }
+
+    if (!isR2Configured()) {
+      throw new AppError(
+        "AvatarUploadDisabled",
+        501,
+        "AVATAR_UPLOAD_DISABLED",
+        "Avatar upload is not configured",
+      );
+    }
+
+    const [bot] = await db
+      .select({ id: bots.id, userId: bots.userId })
+      .from(bots)
+      .where(and(eq(bots.id, params.id), eq(bots.ownerId, sessionUser.id)))
+      .limit(1);
+    if (!bot) throw new NotFoundError("Bot");
+
+    const formData = rawBody as FormData;
+    const file = formData.get("avatar");
+
+    if (!file || !(file instanceof File)) {
+      throw new ValidationError("No avatar file provided");
+    }
+    if (!ALLOWED_AVATAR_TYPES.includes(file.type as (typeof ALLOWED_AVATAR_TYPES)[number])) {
+      throw new ValidationError("Invalid file type. Allowed: PNG, JPEG, GIF, WebP");
+    }
+    if (file.size > MAX_AVATAR_SIZE_BYTES) {
+      throw new ValidationError("File too large. Maximum size is 4 MB");
+    }
+
+    const [current] = await db
+      .select({ avatarUrl: user.avatarUrl })
+      .from(user)
+      .where(eq(user.id, bot.userId))
+      .limit(1);
+
+    const buffer = await file.arrayBuffer();
+    const avatarUrl = await uploadAvatar(bot.userId, buffer, file.type);
+
+    await db
+      .update(user)
+      .set({ avatarUrl })
+      .where(eq(user.id, bot.userId));
+
+    if (current?.avatarUrl) {
+      deleteAvatar(current.avatarUrl).catch((err) =>
+        console.error("[r2] bot avatar cleanup failed:", err),
+      );
+    }
+
+    return { avatarUrl };
+  })
+  .delete("/:id/avatar", async ({ user: sessionUser, params }) => {
+    if ((sessionUser as Record<string, unknown>).isBot) {
+      throw new ForbiddenError("Bots cannot manage avatars");
+    }
+
+    const [bot] = await db
+      .select({ id: bots.id, userId: bots.userId })
+      .from(bots)
+      .where(and(eq(bots.id, params.id), eq(bots.ownerId, sessionUser.id)))
+      .limit(1);
+    if (!bot) throw new NotFoundError("Bot");
+
+    const [current] = await db
+      .select({ avatarUrl: user.avatarUrl })
+      .from(user)
+      .where(eq(user.id, bot.userId))
+      .limit(1);
+
+    await db
+      .update(user)
+      .set({ avatarUrl: null })
+      .where(eq(user.id, bot.userId));
+
+    if (current?.avatarUrl && isR2Configured()) {
+      deleteAvatar(current.avatarUrl).catch((err) =>
+        console.error("[r2] bot avatar cleanup failed:", err),
+      );
+    }
+
+    return { success: true };
   });

@@ -22,7 +22,7 @@ import { webhookRoutes } from "./routes/webhook.js";
 import { stripeRoutes } from "./routes/stripe.js";
 import { turnRoutes } from "./routes/turn.js";
 import { fileReceiptRoutes } from "./routes/file-receipts.js";
-import { botRoutes } from "./routes/bots.js";
+import { botRoutes, botAvatarRoutes } from "./routes/bots.js";
 import { pluginRoutes } from "./routes/plugins.js";
 import { gatewayTicketRoutes } from "./routes/gateway.js";
 import { gateway } from "./ws/gateway.js";
@@ -53,7 +53,8 @@ const app = new Elysia()
     if (
       path.startsWith("/api/auth/") ||
       path.startsWith("/api/webhooks/") ||
-      path === "/api/users/@me/avatar"
+      path === "/api/users/@me/avatar" ||
+      (path.startsWith("/api/bots/") && path.endsWith("/avatar"))
     )
       return;
 
@@ -82,6 +83,7 @@ const app = new Elysia()
   .use(safetyRoutes)
   .use(fileReceiptRoutes)
   .use(botRoutes)
+  .use(botAvatarRoutes)
   .use(pluginRoutes)
   .use(gatewayTicketRoutes)
   .use(gateway)

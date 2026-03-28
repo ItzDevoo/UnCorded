@@ -159,7 +159,7 @@ const TransferHistory = () => {
                     <div class="flex items-center gap-2 text-xs text-muted-foreground">
                       <span>{formatBytes(receipt.fileSize)}</span>
                       <span>·</span>
-                      <span class={isSent() ? "text-info-foreground" : "text-success-foreground"}>
+                      <span class={isSent() ? "text-info" : "text-success"}>
                         {isSent() ? "Sent" : "Received"}
                       </span>
                       <Show when={otherUsername()}>

@@ -114,12 +114,13 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
     const offset = (page - 1) * PAGE_SIZE;
 
     const escaped = search.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
-    const conditions = search
+    const searchFilter = search
       ? or(
           like(user.username, `%${escaped}%`),
           like(user.email, `%${escaped}%`),
         )
       : undefined;
+    const conditions = and(eq(user.isBot, false), searchFilter);
 
     const now = new Date();
     const [rows, [total]] = await Promise.all([

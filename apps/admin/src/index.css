@@ -3,6 +3,8 @@
 @theme inline {
   --font-sans:
     "DM Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono:
+    "Fira Code", "JetBrains Mono", "Courier New", monospace;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -30,27 +32,27 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: 3px;
+  --radius-md: 4px;
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-xl: calc(var(--radius) + 2px);
+  --radius-2xl: calc(var(--radius) + 4px);
 
-  --shadow-xs: 0 1px 2px oklch(0.15 0.01 155 / 20%);
-  --shadow-sm: 0 1px 3px oklch(0.15 0.01 155 / 24%), 0 1px 2px oklch(0.15 0.01 155 / 16%);
-  --shadow-md: 0 4px 6px oklch(0.15 0.01 155 / 20%), 0 2px 4px oklch(0.15 0.01 155 / 12%);
-  --shadow-lg: 0 10px 15px oklch(0.15 0.01 155 / 20%), 0 4px 6px oklch(0.15 0.01 155 / 10%);
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 20%);
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / 24%), 0 1px 2px rgb(0 0 0 / 16%);
+  --shadow-md: 0 4px 6px rgb(0 0 0 / 20%), 0 2px 4px rgb(0 0 0 / 12%);
+  --shadow-lg: 0 10px 15px rgb(0 0 0 / 20%), 0 4px 6px rgb(0 0 0 / 10%);
 
-  --animate-fade-in: fade-in 200ms ease-out;
+  --animate-fade-in: fade-in 150ms ease-out;
   --animate-scale-in: scale-in 200ms ease-out;
-  --animate-slide-in-left: slide-in-left 200ms ease-out;
+  --animate-slide-in-left: slide-in-left 150ms ease-out;
 
   @keyframes fade-in {
     from { opacity: 0; }
     to { opacity: 1; }
   }
   @keyframes scale-in {
-    from { transform: scale(0.96); opacity: 0; }
+    from { transform: scale(0.98); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
   }
   @keyframes slide-in-left {
@@ -68,38 +70,56 @@
   }
 }
 
+/* ── Terminal Dark palette ─────────────────────────────────────────── */
 :root {
-  --radius: 0.625rem;
   color-scheme: dark;
 
-  --background: oklch(0.178 0.02 155);
-  --foreground: oklch(0.955 0.008 155);
-  --card: oklch(0.21 0.018 155);
-  --card-foreground: oklch(0.955 0.008 155);
-  --popover: oklch(0.21 0.018 155);
-  --popover-foreground: oklch(0.955 0.008 155);
-  --primary: oklch(0.66 0.17 155);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(1 0 0 / 4%);
-  --secondary-foreground: oklch(0.91 0.008 155);
-  --muted: oklch(1 0 0 / 5%);
-  --muted-foreground: oklch(0.62 0.008 155);
-  --accent: oklch(1 0 0 / 4%);
-  --accent-foreground: oklch(0.955 0.008 155);
-  --destructive: oklch(0.55 0.2 25);
-  --destructive-foreground: oklch(0.78 0.12 25);
-  --border: oklch(1 0 0 / 6%);
-  --input: oklch(1 0 0 / 8%);
-  --ring: oklch(0.66 0.17 155);
-  --success: oklch(0.66 0.17 155);
-  --success-foreground: oklch(0.78 0.12 155);
-  --warning: oklch(0.75 0.16 75);
-  --warning-foreground: oklch(0.85 0.1 75);
-  --info: oklch(0.65 0.16 255);
-  --info-foreground: oklch(0.78 0.1 255);
+  --radius: 6px;
+
+  --background: #0A0A0A;
+  --foreground: #E8E8E8;
+
+  --card: #111111;
+  --card-foreground: #E8E8E8;
+
+  --popover: #111111;
+  --popover-foreground: #E8E8E8;
+
+  --primary: #16A37F;
+  --primary-foreground: #0A0A0A;
+
+  --secondary: #181818;
+  --secondary-foreground: #888888;
+
+  --muted: #181818;
+  --muted-foreground: #6B6B6B;
+
+  --accent: #181818;
+  --accent-foreground: #E8E8E8;
+
+  --destructive: #F87171;
+  --destructive-foreground: #0A0A0A;
+
+  --border: #2A2A2A;
+  --input: #111111;
+  --ring: #16A37F;
+
+  --success: #16A37F;
+  --success-foreground: #0A0A0A;
+
+  --warning: #D97706;
+  --warning-foreground: #0A0A0A;
+
+  --info: #3B82F6;
+  --info-foreground: #0A0A0A;
 }
 
+/* ── Scrollbars — hidden but still scrollable ────────────────────────── */
 * {
-  scrollbar-width: thin;
-  scrollbar-color: oklch(1 0 0 / 12%) transparent;
+  scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }

@@ -21,6 +21,7 @@ import {
   pollEntries,
   pollVotes,
   giftedSubscriptions,
+  bots,
 } from "../db/schema.js";
 
 import { readdir } from "node:fs/promises";
@@ -134,6 +135,7 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
           createdAt: user.createdAt,
           giftedTier: giftedSubscriptions.tier,
           giftExpiresAt: giftedSubscriptions.expiresAt,
+          botCount: sql<number>`(select count(*)::int from bots where bots.owner_id = ${user.id})`,
         })
         .from(user)
         .leftJoin(
@@ -161,6 +163,7 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       createdAt: r.createdAt,
       giftedTier: r.giftedTier ?? null,
       giftExpiresAt: r.giftExpiresAt?.toISOString() ?? null,
+      botCount: r.botCount,
     }));
 
     return { users, total: total?.value ?? 0, page, pageSize: PAGE_SIZE };
@@ -324,6 +327,43 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
     await logAudit(sessionUser.id, "delete_user", "user", params.id);
 
     return { success: true };
+  })
+
+  // ── User Bots ────────────────────────────────────────────────────────────
+  .get("/users/:id/bots", async ({ params }) => {
+    const [target] = await db
+      .select({ id: user.id })
+      .from(user)
+      .where(eq(user.id, params.id))
+      .limit(1);
+    if (!target) throw new NotFoundError("User");
+
+    const rows = await db
+      .select({
+        id: bots.id,
+        name: bots.name,
+        description: bots.description,
+        username: user.username,
+        tokenPrefix: bots.tokenPrefix,
+        lastUsedAt: bots.lastUsedAt,
+        createdAt: bots.createdAt,
+      })
+      .from(bots)
+      .innerJoin(user, eq(bots.userId, user.id))
+      .where(eq(bots.ownerId, params.id))
+      .orderBy(desc(bots.createdAt));
+
+    return {
+      bots: rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        description: r.description,
+        username: r.username,
+        tokenPrefix: r.tokenPrefix,
+        lastUsedAt: r.lastUsedAt?.toISOString() ?? null,
+        createdAt: r.createdAt.toISOString(),
+      })),
+    };
   })
 
   // ── Report Management ─────────────────────────────────────────────────────

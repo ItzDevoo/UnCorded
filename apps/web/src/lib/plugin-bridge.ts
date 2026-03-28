@@ -56,11 +56,11 @@ const METHOD_PERMISSIONS: Record<string, string | null> = {
   getUser: null,
   getServer: null,
   getChannels: null,
-  getMembers: "users:read",
-  getPresence: "presence:read",
-  sendMessage: "chat:write",
-  showToast: "ui:notifications",
-  navigate: "ui:navigate",
+  getMembers: "members.read",
+  getPresence: "presence.read",
+  sendMessage: "messages.send",
+  showToast: "notifications.send",
+  navigate: null,
 };
 
 function checkPermission(pluginId: string, method: string): boolean {

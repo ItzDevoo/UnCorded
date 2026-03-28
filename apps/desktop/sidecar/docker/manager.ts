@@ -31,7 +31,18 @@ export class DockerManager {
   private dataDir: string;
 
   constructor(dataDir: string) {
-    this.docker = new Dockerode();
+    // Bun's HTTP client doesn't support Windows named pipes, so fall back
+    // to TCP if a DOCKER_HOST env var or known TCP proxy is available.
+    const dockerHost = process.env["DOCKER_HOST"];
+    if (dockerHost && dockerHost.startsWith("tcp://")) {
+      const url = new URL(dockerHost.replace("tcp://", "http://"));
+      this.docker = new Dockerode({ host: url.hostname, port: Number(url.port) });
+    } else if (process.platform === "win32") {
+      // Default Windows TCP proxy (socat bridge to Docker Desktop socket)
+      this.docker = new Dockerode({ host: "127.0.0.1", port: 2375 });
+    } else {
+      this.docker = new Dockerode();
+    }
     this.dataDir = dataDir;
   }
 
@@ -44,10 +55,25 @@ export class DockerManager {
     }
   }
 
+  async imageExists(image: string): Promise<boolean> {
+    try {
+      await this.docker.getImage(image).inspect();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async pullImage(
     image: string,
     onProgress?: (event: { status: string; progress?: string }) => void,
   ): Promise<void> {
+    // Skip pull if image already exists locally (e.g. locally-built images)
+    if (await this.imageExists(image)) {
+      console.error(`[docker] Image ${image} already exists locally, skipping pull`);
+      return;
+    }
+
     const stream = await this.docker.pull(image);
     return new Promise((resolve, reject) => {
       this.docker.modem.followProgress(

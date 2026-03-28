@@ -49,7 +49,7 @@ const MemberList = (props: MemberListProps) => {
   });
 
   return (
-    <div class="flex h-full w-60 shrink-0 flex-col border-l border-border bg-card">
+    <div class="flex h-full w-full flex-col border-l border-border bg-card">
       {/* Header */}
       <div class="shrink-0 border-b border-border px-3 py-3">
         <h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">

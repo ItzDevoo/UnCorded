@@ -154,9 +154,6 @@ const AppSidebar = () => {
       case "add-friend":
         setShowAddFriendModal(true);
         break;
-      case "settings":
-        navigate("/settings");
-        break;
       case "feature-requests":
         navigate("/settings/feature-requests");
         break;
@@ -246,7 +243,7 @@ const AppSidebar = () => {
                 fallback={
                   <SidebarMenuButton
                     tooltip="Search (Ctrl+K)"
-                    onClick={() => { closeMobile(); setCommandPaletteOpen(true); }}
+                    onClick={() => setCommandPaletteOpen(true)}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -257,7 +254,7 @@ const AppSidebar = () => {
               >
                 <button
                   type="button"
-                  onClick={() => { closeMobile(); setCommandPaletteOpen(true); }}
+                  onClick={() => setCommandPaletteOpen(true)}
                   class="flex w-full items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -277,7 +274,7 @@ const AppSidebar = () => {
             <SidebarMenuItem>
               <SidebarMenuButton
                 tooltip="Send File"
-                onClick={() => { setShowShareModal(true); closeMobile(); }}
+                onClick={() => setShowShareModal(true)}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -288,7 +285,7 @@ const AppSidebar = () => {
             <SidebarMenuItem>
               <SidebarMenuButton
                 tooltip="Add Friend"
-                onClick={() => { setShowAddFriendModal(true); closeMobile(); }}
+                onClick={() => setShowAddFriendModal(true)}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
@@ -341,7 +338,7 @@ const AppSidebar = () => {
         <SidebarGroup label="Servers" collapsible defaultOpen>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton tooltip="Join Server" onClick={() => { setModal("join"); closeMobile(); }}>
+              <SidebarMenuButton tooltip="Join Server" onClick={() => setModal("join")}>
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                 </svg>
@@ -349,7 +346,7 @@ const AppSidebar = () => {
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton tooltip="Create Server" onClick={() => { setModal("create"); closeMobile(); }}>
+              <SidebarMenuButton tooltip="Create Server" onClick={() => setModal("create")}>
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
@@ -436,10 +433,7 @@ const AppSidebar = () => {
               <SidebarMenuButton
                 size="sm"
                 tooltip="Support"
-                onClick={() => {
-                  setShowSupportSheet(true);
-                  closeMobile();
-                }}
+                onClick={() => setShowSupportSheet(true)}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />

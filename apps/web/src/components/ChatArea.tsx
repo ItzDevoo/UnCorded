@@ -22,34 +22,15 @@ import MemberList from "./MemberList.js";
 import { StatusDotInline, type UserStatus } from "./StatusDot.js";
 import { Sheet, SheetContent } from "./ui/sheet.js";
 
-const UsersIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    stroke-width="2"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-    <circle cx="9" cy="7" r="4" />
-    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-  </svg>
-);
-
 const ChatArea = () => {
-  // Mobile detection for Sheet vs inline member list (deferred to onMount for SSR safety)
-  const [isMobile, setIsMobile] = createSignal(false);
+  // Use Sheet overlay when viewport is too narrow for inline member list.
+  // 1280px ensures sidebar + chat + member list (w-60 = 240px) all fit comfortably.
+  const [useSheet, setUseSheet] = createSignal(true);
   let mql: MediaQueryList | null = null;
-  const handleResize = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+  const handleResize = (e: MediaQueryListEvent) => setUseSheet(!e.matches);
   onMount(() => {
-    mql = window.matchMedia("(max-width: 767px)");
-    setIsMobile(mql.matches);
+    mql = window.matchMedia("(min-width: 1280px)");
+    setUseSheet(!mql.matches);
     mql.addEventListener("change", handleResize);
   });
   onCleanup(() => mql?.removeEventListener("change", handleResize));
@@ -164,7 +145,7 @@ const ChatArea = () => {
                 </Show>
               </Show>
 
-              {/* Spacer + member list toggle (server channels only) */}
+              {/* Member list toggle (server channels only) */}
               <Show when={isServerChannel()}>
                 <div class="ml-auto">
                   <button
@@ -174,7 +155,23 @@ const ChatArea = () => {
                     aria-label="Toggle member list"
                     onClick={() => setShowMembers((prev) => !prev)}
                   >
-                    <UsersIcon />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
                   </button>
                 </div>
               </Show>
@@ -196,18 +193,18 @@ const ChatArea = () => {
                 />
               </FileDropZone>
 
-              {/* Desktop member list */}
-              <Show when={isServerChannel() && showMembers() && currentServer()}>
+              {/* Inline member list — only when viewport is wide enough */}
+              <Show when={!useSheet() && isServerChannel() && showMembers() && currentServer()}>
                 {(server) => (
-                  <div class="hidden md:block">
+                  <div class="w-60 shrink-0">
                     <MemberList serverId={server().id} ownerId={server().ownerId} />
                   </div>
                 )}
               </Show>
             </div>
 
-            {/* Mobile member list sheet */}
-            <Show when={isMobile() && isServerChannel() && currentServer()}>
+            {/* Overlay member list sheet — used when viewport is too narrow for inline */}
+            <Show when={useSheet() && isServerChannel() && currentServer()}>
               {(server) => (
                 <Sheet open={showMembers()} onOpenChange={setShowMembers} side="right">
                   <SheetContent side="right" onClose={() => setShowMembers(false)}>

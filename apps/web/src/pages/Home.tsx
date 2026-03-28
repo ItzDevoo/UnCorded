@@ -97,10 +97,13 @@ const Home = () => {
   return (
     <div class="flex h-full flex-col">
       <ContentHeader title="Home" />
-      <div class="flex flex-1 flex-col items-center justify-start gap-4 overflow-y-auto px-6 pt-[15vh] text-center">
-      <h1 class="text-2xl font-bold text-foreground">
-        Welcome back{username() ? `, ${username()}` : ""}
-      </h1>
+
+      {/* Sub-header */}
+      <div class="flex shrink-0 items-center justify-center border-b border-border px-4 py-3">
+        <span class="font-semibold text-foreground">Welcome{username() ? `, ${username()}` : ""}</span>
+      </div>
+
+      <div class="flex flex-1 flex-col items-center justify-start gap-4 overflow-y-auto px-6 pt-[10vh] text-center">
       <p class="max-w-md text-sm text-muted-foreground">
         Select a server from the sidebar or start a DM to begin chatting.
       </p>

@@ -3,6 +3,7 @@ import { Portal } from "solid-js/web";
 import { useNavigate } from "@solidjs/router";
 import { readyData, channelCache } from "../lib/gateway-store.js";
 import { setSelectedChannelId } from "../stores/app-store.js";
+import { useSidebar } from "./ui/sidebar.js";
 import type { ReadyFriend, ReadyChannel } from "../lib/gateway-store.js";
 
 interface CommandPaletteProps {
@@ -15,16 +16,22 @@ interface ResultItem {
   id: string;
   label: string;
   sublabel?: string | undefined;
-  category: "Friends" | "Servers" | "Channels" | "Actions";
+  category: "Friends" | "Servers" | "Channels" | "Settings" | "Actions";
   onSelect: () => void;
 }
 
 const CommandPalette = (props: CommandPaletteProps) => {
   const navigate = useNavigate();
+  const { setOpenMobile } = useSidebar();
   const [query, setQuery] = createSignal("");
   const [selectedIndex, setSelectedIndex] = createSignal(0);
   let inputRef!: HTMLInputElement;
   let listRef!: HTMLDivElement;
+
+  const closeAll = () => {
+    props.onClose();
+    setOpenMobile(false);
+  };
 
   // Reset state and focus input whenever the palette opens
   createEffect(
@@ -57,7 +64,7 @@ const CommandPalette = (props: CommandPaletteProps) => {
         category: "Friends",
         onSelect: () => {
           navigate(`/messages/${f.userId}`);
-          props.onClose();
+          closeAll();
         },
       });
     }
@@ -74,7 +81,7 @@ const CommandPalette = (props: CommandPaletteProps) => {
         category: "Servers",
         onSelect: () => {
           navigate(`/servers/${s.id}`);
-          props.onClose();
+          closeAll();
         },
       });
     }
@@ -100,7 +107,35 @@ const CommandPalette = (props: CommandPaletteProps) => {
         onSelect: () => {
           setSelectedChannelId(ch.id);
           navigate(`/servers/${ch.serverId}`);
-          props.onClose();
+          closeAll();
+        },
+      });
+    }
+
+    // Settings pages
+    const settingsPages = [
+      { id: "settings-profile", label: "Profile", href: "/settings/profile" },
+      { id: "settings-account", label: "Account", href: "/settings/account" },
+      { id: "settings-appearance", label: "Appearance", href: "/settings/appearance" },
+      { id: "settings-transfers", label: "Transfers", href: "/settings/transfers" },
+      { id: "settings-bots", label: "Bots", href: "/settings/bots" },
+      { id: "settings-plugins", label: "Plugins", href: "/settings/plugins" },
+      { id: "settings-upgrade", label: "Upgrade", href: "/settings/upgrade" },
+      { id: "settings-billing", label: "Billing", href: "/settings/billing" },
+      { id: "settings-notifications", label: "Notifications", href: "/settings/notifications" },
+    ];
+    const matchedSettings = q
+      ? settingsPages.filter((s) => s.label.toLowerCase().includes(q))
+      : settingsPages;
+    for (const s of matchedSettings) {
+      results.push({
+        id: s.id,
+        label: s.label,
+        sublabel: "Settings",
+        category: "Settings",
+        onSelect: () => {
+          navigate(s.href);
+          closeAll();
         },
       });
     }
@@ -109,7 +144,6 @@ const CommandPalette = (props: CommandPaletteProps) => {
     const actions: { id: string; label: string; action: string }[] = [
       { id: "action-send-file", label: "Send File", action: "send-file" },
       { id: "action-add-friend", label: "Add Friend", action: "add-friend" },
-      { id: "action-settings", label: "Settings", action: "settings" },
       { id: "action-feature-requests", label: "Feature Requests", action: "feature-requests" },
       { id: "action-support", label: "Support", action: "support" },
     ];
@@ -137,7 +171,7 @@ const CommandPalette = (props: CommandPaletteProps) => {
   }
   const groupedResults = createMemo(() => {
     const groups: { category: string; items: IndexedItem[] }[] = [];
-    const categoryOrder: ResultItem["category"][] = ["Friends", "Servers", "Channels", "Actions"];
+    const categoryOrder: ResultItem["category"][] = ["Friends", "Servers", "Channels", "Settings", "Actions"];
     let idx = 0;
 
     for (const cat of categoryOrder) {
@@ -205,6 +239,13 @@ const CommandPalette = (props: CommandPaletteProps) => {
         return (
           <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+          </svg>
+        );
+      case "Settings":
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         );
       case "Actions":

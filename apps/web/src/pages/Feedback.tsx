@@ -93,29 +93,33 @@ const Feedback = () => {
   return (
     <div class="flex h-full flex-col">
       <ContentHeader title="Feature Requests" />
-      <div class="mx-auto max-w-3xl flex-1 overflow-y-auto p-6">
-      <div class="mb-6 flex items-center justify-end">
-        <Button onClick={() => setDialogOpen(true)}>Submit Feature Request</Button>
+
+      {/* Sub-header — sort controls + submit button */}
+      <div class="flex shrink-0 items-center gap-3 border-b border-border px-4 py-3">
+        <div class="flex items-center gap-2">
+          <Button
+            variant={sort() === "votes" ? "secondary" : "ghost"}
+            size="sm"
+            aria-pressed={sort() === "votes"}
+            onClick={() => switchSort("votes")}
+          >
+            Top Voted
+          </Button>
+          <Button
+            variant={sort() === "recent" ? "secondary" : "ghost"}
+            size="sm"
+            aria-pressed={sort() === "recent"}
+            onClick={() => switchSort("recent")}
+          >
+            Recent
+          </Button>
+        </div>
+        <div class="ml-auto">
+          <Button size="sm" onClick={() => setDialogOpen(true)}>Submit</Button>
+        </div>
       </div>
 
-      <div class="mb-4 flex items-center justify-end gap-2">
-        <Button
-          variant={sort() === "votes" ? "secondary" : "ghost"}
-          size="sm"
-          aria-pressed={sort() === "votes"}
-          onClick={() => switchSort("votes")}
-        >
-          Top Voted
-        </Button>
-        <Button
-          variant={sort() === "recent" ? "secondary" : "ghost"}
-          size="sm"
-          aria-pressed={sort() === "recent"}
-          onClick={() => switchSort("recent")}
-        >
-          Recent
-        </Button>
-      </div>
+      <div class="mx-auto max-w-3xl flex-1 overflow-y-auto p-6">
 
       <Show
         when={!loading()}

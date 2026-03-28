@@ -25,6 +25,11 @@ const Messages = () => {
     <div class="flex h-full flex-col">
       <ContentHeader title="Direct Messages" breadcrumbs={[{ label: "Social", href: "/home" }]} />
 
+      {/* Sub-header */}
+      <div class="flex shrink-0 items-center gap-3 border-b border-border px-4 py-3">
+        <span class="font-semibold text-foreground">Conversations</span>
+      </div>
+
       <div class="flex-1 overflow-y-auto">
         <Show
           when={(readyData.data?.dmChannels ?? []).length > 0}

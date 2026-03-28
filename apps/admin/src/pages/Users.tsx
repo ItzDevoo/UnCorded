@@ -82,21 +82,17 @@ const Users = () => {
 
   // ── Bots cache ────────────────────────────────────
 
-  const [botsCache, setBotsCache] = createSignal<Record<string, UserBotsResponse | "loading">>({});
+  const [botsCache, setBotsCache] = createSignal<Record<string, UserBotsResponse | "loading" | "error">>({});
 
   async function fetchUserBots(userId: string) {
     const cached = botsCache()[userId];
-    if (cached) return;
+    if (cached && cached !== "error") return;
     setBotsCache((prev) => ({ ...prev, [userId]: "loading" }));
     try {
       const res = await api(`/api/admin/users/${userId}/bots`, undefined, userBotsResponseSchema);
       setBotsCache((prev) => ({ ...prev, [userId]: res }));
     } catch {
-      setBotsCache((prev) => {
-        const next = { ...prev };
-        delete next[userId];
-        return next;
-      });
+      setBotsCache((prev) => ({ ...prev, [userId]: "error" }));
     }
   }
 
@@ -317,8 +313,8 @@ const Users = () => {
         searchPlaceholder="Search by username or email..."
         onSearch={handleSearch}
         loading={loading()}
+        onExpand={(row) => fetchUserBots(row.id)}
         expandRow={(row) => {
-          fetchUserBots(row.id);
           const botData = () => botsCache()[row.id];
           return (
             <div class="space-y-4">
@@ -348,6 +344,16 @@ const Users = () => {
                   const raw = botData();
                   if (raw === "loading" || raw === undefined) {
                     return <p class="text-xs text-muted-foreground">Loading bots...</p>;
+                  }
+                  if (raw === "error") {
+                    return (
+                      <div class="flex items-center gap-2 text-xs">
+                        <p class="text-destructive">Failed to load bots</p>
+                        <Button variant="ghost" size="sm" onClick={() => fetchUserBots(row.id)}>
+                          Retry
+                        </Button>
+                      </div>
+                    );
                   }
                   if (raw.bots.length === 0) {
                     return <p class="text-xs text-muted-foreground">No bots</p>;

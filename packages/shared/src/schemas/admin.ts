@@ -153,6 +153,9 @@ export type UserBotRow = z.infer<typeof userBotRowSchema>;
 
 export const userBotsResponseSchema = z.object({
   bots: z.array(userBotRowSchema),
+  total: z.number(),
+  page: z.number(),
+  pageSize: z.number(),
 });
 
 export type UserBotsResponse = z.infer<typeof userBotsResponseSchema>;

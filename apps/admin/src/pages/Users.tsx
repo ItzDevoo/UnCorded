@@ -344,14 +344,17 @@ const Users = () => {
               {/* Bots section */}
               <div class="border-t border-border pt-3">
                 <p class="mb-2 text-xs font-medium text-muted-foreground">Bots</p>
-                <Show when={botData() !== "loading"} fallback={
-                  <p class="text-xs text-muted-foreground">Loading bots...</p>
-                }>
-                  <Show when={botData() && typeof botData() === "object" && (botData() as UserBotsResponse).bots.length > 0}
-                    fallback={<p class="text-xs text-muted-foreground">No bots</p>}
-                  >
+                {(() => {
+                  const raw = botData();
+                  if (raw === "loading" || raw === undefined) {
+                    return <p class="text-xs text-muted-foreground">Loading bots...</p>;
+                  }
+                  if (raw.bots.length === 0) {
+                    return <p class="text-xs text-muted-foreground">No bots</p>;
+                  }
+                  return (
                     <div class="space-y-2">
-                      <For each={(botData() as UserBotsResponse).bots}>
+                      <For each={raw.bots}>
                         {(bot) => (
                           <div class="flex items-center gap-4 rounded-lg border border-border bg-card px-3 py-2 text-xs">
                             <div class="min-w-0 flex-1">
@@ -374,8 +377,8 @@ const Users = () => {
                         )}
                       </For>
                     </div>
-                  </Show>
-                </Show>
+                  );
+                })()}
               </div>
             </div>
           );

@@ -330,7 +330,11 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
   })
 
   // ── User Bots ────────────────────────────────────────────────────────────
-  .get("/users/:id/bots", async ({ params }) => {
+  .get("/users/:id/bots", async ({ params, query }) => {
+    const page = Math.max(1, Number(query.page) || 1);
+    const pageSize = Math.min(50, Math.max(1, Number(query.pageSize) || 25));
+    const offset = (page - 1) * pageSize;
+
     const [target] = await db
       .select({ id: user.id })
       .from(user)
@@ -338,20 +342,27 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       .limit(1);
     if (!target) throw new NotFoundError("User");
 
-    const rows = await db
-      .select({
-        id: bots.id,
-        name: bots.name,
-        description: bots.description,
-        username: user.username,
-        tokenPrefix: bots.tokenPrefix,
-        lastUsedAt: bots.lastUsedAt,
-        createdAt: bots.createdAt,
-      })
-      .from(bots)
-      .innerJoin(user, eq(bots.userId, user.id))
-      .where(eq(bots.ownerId, params.id))
-      .orderBy(desc(bots.createdAt));
+    const condition = eq(bots.ownerId, params.id);
+
+    const [rows, [total]] = await Promise.all([
+      db
+        .select({
+          id: bots.id,
+          name: bots.name,
+          description: bots.description,
+          username: user.username,
+          tokenPrefix: bots.tokenPrefix,
+          lastUsedAt: bots.lastUsedAt,
+          createdAt: bots.createdAt,
+        })
+        .from(bots)
+        .innerJoin(user, eq(bots.userId, user.id))
+        .where(condition)
+        .orderBy(desc(bots.createdAt))
+        .limit(pageSize)
+        .offset(offset),
+      db.select({ value: count() }).from(bots).where(condition),
+    ]);
 
     return {
       bots: rows.map((r) => ({
@@ -363,6 +374,9 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
         lastUsedAt: r.lastUsedAt?.toISOString() ?? null,
         createdAt: r.createdAt.toISOString(),
       })),
+      total: total?.value ?? 0,
+      page,
+      pageSize,
     };
   })
 

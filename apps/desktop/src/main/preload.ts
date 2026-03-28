@@ -18,6 +18,8 @@ interface SidecarStatus {
   port: number | null;
 }
 
+// Canonical definition: apps/web/src/stores/plugin-store.ts (PluginInfo)
+// Duplicated here because preload runs in a separate build context.
 interface PluginInfo {
   id: string;
   name: string;

@@ -474,8 +474,10 @@ const AppSidebar = () => {
                           </Show>
                           <span
                             class={`absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 rounded-full ${statusColor()}`}
+                            aria-hidden="true"
                             title={plugin.status}
                           />
+                          <span class="sr-only">Status: {plugin.status}</span>
                         </span>
                         <span class="truncate">{plugin.name}</span>
                       </SidebarMenuButton>

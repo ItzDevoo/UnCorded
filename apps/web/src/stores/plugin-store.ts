@@ -53,15 +53,15 @@ export function setupPluginStore(): void {
 
   disposeRoot = createRoot((dispose) => {
     // Fetch initial plugin list
-    window.desktopBridge.plugins
+    window.desktopBridge!.plugins
       .getAll()
       .then((list) => setPlugins(list))
-      .catch((err) => {
+      .catch((err: unknown) => {
         if (import.meta.env.DEV) console.error("[plugin-store] getAll failed:", err);
       });
 
     // Subscribe to state changes from main process
-    unsubStateChange = window.desktopBridge.plugins.onStateChange((list) => {
+    unsubStateChange = window.desktopBridge!.plugins.onStateChange((list) => {
       setPlugins(list);
 
       // If the active plugin was removed or stopped, clear selection

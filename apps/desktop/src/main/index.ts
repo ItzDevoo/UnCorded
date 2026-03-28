@@ -172,6 +172,8 @@ function setupSidecarIpc(): void {
 // These handlers forward requests to the sidecar HTTP API
 // and broadcast state changes to all renderer windows.
 
+// Canonical definition: apps/web/src/stores/plugin-store.ts (PluginInfo)
+// Duplicated here because main process and renderer have separate build targets.
 interface PluginInfo {
   id: string;
   name: string;
@@ -215,7 +217,11 @@ function setupPluginIpc(): void {
   ipcMain.handle("plugins:start", async (_event, pluginId: string) => {
     const port = sidecar.getPort();
     if (!port) throw new Error("Sidecar not running");
-    await fetch(`http://localhost:${port}/plugins/${pluginId}/start`, { method: "POST" });
+    const res = await fetch(`http://localhost:${port}/plugins/${pluginId}/start`, { method: "POST" });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`Plugin start failed (${res.status}): ${body}`);
+    }
     cachedPlugins = await fetchPluginsFromSidecar();
     broadcastPluginState();
   });
@@ -223,7 +229,11 @@ function setupPluginIpc(): void {
   ipcMain.handle("plugins:stop", async (_event, pluginId: string) => {
     const port = sidecar.getPort();
     if (!port) throw new Error("Sidecar not running");
-    await fetch(`http://localhost:${port}/plugins/${pluginId}/stop`, { method: "POST" });
+    const res = await fetch(`http://localhost:${port}/plugins/${pluginId}/stop`, { method: "POST" });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`Plugin stop failed (${res.status}): ${body}`);
+    }
     cachedPlugins = await fetchPluginsFromSidecar();
     broadcastPluginState();
   });
@@ -231,7 +241,11 @@ function setupPluginIpc(): void {
   ipcMain.handle("plugins:restart", async (_event, pluginId: string) => {
     const port = sidecar.getPort();
     if (!port) throw new Error("Sidecar not running");
-    await fetch(`http://localhost:${port}/plugins/${pluginId}/restart`, { method: "POST" });
+    const res = await fetch(`http://localhost:${port}/plugins/${pluginId}/restart`, { method: "POST" });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`Plugin restart failed (${res.status}): ${body}`);
+    }
     cachedPlugins = await fetchPluginsFromSidecar();
     broadcastPluginState();
   });
@@ -255,6 +269,12 @@ let pluginPollTimer: ReturnType<typeof setInterval> | null = null;
 function startPluginPolling(): void {
   if (pluginPollTimer) return;
   pluginPollTimer = setInterval(async () => {
+    if (isQuitting) {
+      stopPluginPolling();
+      return;
+    }
+    // JSON.stringify comparison is intentional — simple change detection
+    // until the sidecar supports a push/event mechanism for state updates.
     const prev = JSON.stringify(cachedPlugins);
     cachedPlugins = await fetchPluginsFromSidecar();
     if (JSON.stringify(cachedPlugins) !== prev) {

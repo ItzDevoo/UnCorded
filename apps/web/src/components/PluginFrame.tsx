@@ -1,4 +1,4 @@
-import { createSignal, Show, onMount } from "solid-js";
+import { createSignal, createEffect, on, Show, onMount } from "solid-js";
 import type { PluginInfo } from "../stores/plugin-store.js";
 import { isDesktop } from "../stores/plugin-store.js";
 import { Empty } from "./ui/empty.js";
@@ -10,6 +10,12 @@ interface PluginFrameProps {
 const PluginFrame = (props: PluginFrameProps) => {
   const [loading, setLoading] = createSignal(true);
   const [error, setError] = createSignal(false);
+
+  // Reset state when switching to a different plugin
+  createEffect(on(() => props.plugin.id, () => {
+    setLoading(true);
+    setError(false);
+  }, { defer: true }));
 
   const isCrashed = () =>
     props.plugin.status === "crashed" || props.plugin.status === "stopped";
@@ -28,7 +34,7 @@ const PluginFrame = (props: PluginFrameProps) => {
 
   const handleRestart = () => {
     if (!isDesktop()) return;
-    window.desktopBridge.plugins.restart(props.plugin.id).catch((err) => {
+    window.desktopBridge!.plugins.restart(props.plugin.id).catch((err: unknown) => {
       if (import.meta.env.DEV) console.error("[PluginFrame] restart failed:", err);
     });
   };

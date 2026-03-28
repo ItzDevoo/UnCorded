@@ -124,6 +124,15 @@ const handlers: Record<string, HandlerFn> = {
     if (!channelId || !content) {
       throw { code: "BAD_REQUEST", message: "channelId and content are required" };
     }
+    // Verify the channel belongs to the current server
+    const serverId = selectedServerId();
+    if (!serverId) {
+      throw { code: "BAD_REQUEST", message: "No server selected" };
+    }
+    const channels = channelCache[serverId];
+    if (!channels?.some((c) => c.id === channelId)) {
+      throw { code: "BAD_REQUEST", message: "Channel not found in current server" };
+    }
     await api(`/api/channels/${channelId}/messages`, {
       method: "POST",
       body: JSON.stringify({ content }),
@@ -145,14 +154,22 @@ const handlers: Record<string, HandlerFn> = {
     const to = params.to as string | undefined;
     const channelId = params.channelId as string | undefined;
     if (to === "channel" && channelId) {
-      // Navigation is handled by pushing to the router — we use a dynamic import
-      // to avoid circular deps. The sidebar already updates selectedChannelId.
+      // Validate that the channel exists in the current server
+      const serverId = selectedServerId();
+      if (!serverId) {
+        return { navigated: false };
+      }
+      const channels = channelCache[serverId];
+      if (!channels?.some((c) => c.id === (channelId as ChannelId))) {
+        return { navigated: false };
+      }
       const { setSelectedChannelId } = await import("../stores/app-store.js");
       const { clearActivePlugin } = await import("../stores/plugin-store.js");
       clearActivePlugin();
       setSelectedChannelId(channelId as ChannelId);
+      return { navigated: true };
     }
-    return { navigated: true };
+    return { navigated: false };
   },
 };
 

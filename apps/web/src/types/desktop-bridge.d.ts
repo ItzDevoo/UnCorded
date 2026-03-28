@@ -25,6 +25,8 @@ interface DesktopBridge {
 
 declare global {
   interface Window {
-    desktopBridge: DesktopBridge;
+    desktopBridge?: DesktopBridge;
   }
 }
+
+export {};

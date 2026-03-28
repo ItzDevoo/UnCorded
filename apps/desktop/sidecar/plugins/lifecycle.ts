@@ -79,11 +79,11 @@ export class PluginLifecycle {
       const pluginDataDir = path.join(this.dataDir, "plugin-data", manifest.id);
       fs.mkdirSync(pluginDataDir, { recursive: true });
 
-      // Pull image
+      // Pull image — force pull to ensure we have the latest for mutable tags
       console.error(`[lifecycle] Pulling image: ${manifest.runtime.image}`);
       await this.docker.pullImage(manifest.runtime.image, (event) => {
         console.error(`[lifecycle] Pull: ${event.status} ${event.progress ?? ""}`);
-      });
+      }, { skipIfExists: false });
 
       // Create network
       await this.networks.createPluginNetwork(manifest.id);

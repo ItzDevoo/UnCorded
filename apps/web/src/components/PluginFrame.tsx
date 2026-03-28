@@ -1,0 +1,110 @@
+import { createSignal, createEffect, on, Show, onMount } from "solid-js";
+import type { PluginInfo } from "../stores/plugin-store.js";
+import { isDesktop } from "../stores/plugin-store.js";
+import { Empty } from "./ui/empty.js";
+
+interface PluginFrameProps {
+  plugin: PluginInfo;
+}
+
+const PluginFrame = (props: PluginFrameProps) => {
+  const [loading, setLoading] = createSignal(true);
+  const [error, setError] = createSignal(false);
+
+  // Reset state when switching to a different plugin
+  createEffect(on(() => props.plugin.id, () => {
+    setLoading(true);
+    setError(false);
+  }, { defer: true }));
+
+  const isCrashed = () =>
+    props.plugin.status === "crashed" || props.plugin.status === "stopped";
+
+  const isStarting = () => props.plugin.status === "starting";
+
+  const handleLoad = () => {
+    setLoading(false);
+    setError(false);
+  };
+
+  const handleError = () => {
+    setLoading(false);
+    setError(true);
+  };
+
+  const handleRestart = () => {
+    if (!isDesktop()) return;
+    window.desktopBridge!.plugins.restart(props.plugin.id).catch((err: unknown) => {
+      if (import.meta.env.DEV) console.error("[PluginFrame] restart failed:", err);
+    });
+  };
+
+  onMount(() => {
+    // Fallback timeout — if iframe doesn't fire load within 15s, show error
+    const timeout = setTimeout(() => {
+      if (loading()) {
+        setLoading(false);
+        setError(true);
+      }
+    }, 15_000);
+
+    return () => clearTimeout(timeout);
+  });
+
+  return (
+    <div class="relative flex h-full w-full flex-col">
+      {/* Error / crashed state */}
+      <Show when={isCrashed() || error()}>
+        <Empty
+          title={`Plugin ${isCrashed() ? props.plugin.status : "failed to load"}`}
+          description={`"${props.plugin.name}" is not responding.`}
+        >
+          <button
+            type="button"
+            onClick={handleRestart}
+            class="mt-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+          >
+            Restart Plugin
+          </button>
+        </Empty>
+      </Show>
+
+      {/* Starting state */}
+      <Show when={isStarting() && !error()}>
+        <div class="flex flex-1 items-center justify-center">
+          <div class="flex animate-fade-in flex-col items-center gap-3">
+            <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <p class="text-muted-foreground">Starting {props.plugin.name}...</p>
+          </div>
+        </div>
+      </Show>
+
+      {/* Loading overlay */}
+      <Show when={loading() && props.plugin.status === "running"}>
+        <div class="absolute inset-0 z-10 flex items-center justify-center bg-background">
+          <div class="flex animate-fade-in flex-col items-center gap-3">
+            <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <p class="text-muted-foreground">Loading {props.plugin.name}...</p>
+          </div>
+        </div>
+      </Show>
+
+      {/* iframe — only render when plugin is running */}
+      <Show when={props.plugin.status === "running" && !error()}>
+        <iframe
+          src={`http://localhost:${props.plugin.port}/`}
+          sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
+          allow="clipboard-write"
+          referrerpolicy="no-referrer"
+          class="h-full w-full border-none"
+          data-plugin-id={props.plugin.id}
+          onLoad={handleLoad}
+          onError={handleError}
+          title={props.plugin.name}
+        />
+      </Show>
+    </div>
+  );
+};
+
+export default PluginFrame;

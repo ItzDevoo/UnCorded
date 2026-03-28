@@ -1,4 +1,4 @@
-import { createEffect, Show } from "solid-js";
+import { createEffect, lazy, Show } from "solid-js";
 import { useParams, useNavigate } from "@solidjs/router";
 import type { ServerId } from "@uncorded/protocol";
 import { readyData, channelCache, channelCacheLoading } from "../lib/gateway-store.js";
@@ -8,9 +8,12 @@ import {
   selectedChannelId,
   setSelectedChannelId,
 } from "../stores/app-store.js";
+import { activePlugin } from "../stores/plugin-store.js";
 import ChatArea from "../components/ChatArea.js";
 import { Empty } from "../components/ui/empty.js";
 import ContentHeader from "../components/ContentHeader.js";
+
+const PluginFrame = lazy(() => import("../components/PluginFrame.js"));
 
 const ServerView = () => {
   const params = useParams<{ serverId: string }>();
@@ -58,50 +61,60 @@ const ServerView = () => {
 
   return (
     <div class="flex h-full flex-col">
-      <ContentHeader
-        title={serverName()}
-        breadcrumbs={[{ label: "Servers" }]}
-      />
+      {/* Plugin takes over the entire content area when active */}
       <Show
-        when={hasServer() && hasValidChannel()}
+        when={activePlugin()}
         fallback={
-          <Show
-            when={hasServer()}
-            fallback={
-              <Empty
-                title="Server not found"
-                description="You may not be a member of this server."
-              >
-                <button
-                  type="button"
-                  onClick={() => navigate("/home")}
-                  class="mt-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-                >
-                  &larr; Back to Home
-                </button>
-              </Empty>
-            }
-          >
+          <>
+            <ContentHeader
+              title={serverName()}
+              breadcrumbs={[{ label: "Servers" }]}
+            />
             <Show
-              when={!isLoadingChannels()}
+              when={hasServer() && hasValidChannel()}
               fallback={
-                <div class="flex flex-1 items-center justify-center">
-                  <div class="flex animate-fade-in flex-col items-center gap-3">
-                    <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    <p class="text-muted-foreground">Loading channels...</p>
-                  </div>
-                </div>
+                <Show
+                  when={hasServer()}
+                  fallback={
+                    <Empty
+                      title="Server not found"
+                      description="You may not be a member of this server."
+                    >
+                      <button
+                        type="button"
+                        onClick={() => navigate("/home")}
+                        class="mt-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+                      >
+                        &larr; Back to Home
+                      </button>
+                    </Empty>
+                  }
+                >
+                  <Show
+                    when={!isLoadingChannels()}
+                    fallback={
+                      <div class="flex flex-1 items-center justify-center">
+                        <div class="flex animate-fade-in flex-col items-center gap-3">
+                          <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                          <p class="text-muted-foreground">Loading channels...</p>
+                        </div>
+                      </div>
+                    }
+                  >
+                    <Empty
+                      title="No channels"
+                      description="This server has no channels yet."
+                    />
+                  </Show>
+                </Show>
               }
             >
-              <Empty
-                title="No channels"
-                description="This server has no channels yet."
-              />
+              <ChatArea />
             </Show>
-          </Show>
+          </>
         }
       >
-        <ChatArea />
+        {(plugin) => <PluginFrame plugin={plugin()} />}
       </Show>
     </div>
   );

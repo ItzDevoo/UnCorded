@@ -18,6 +18,20 @@ interface SidecarStatus {
   port: number | null;
 }
 
+// Canonical definition: apps/web/src/stores/plugin-store.ts (PluginInfo)
+// Duplicated here because preload runs in a separate build context.
+interface PluginInfo {
+  id: string;
+  name: string;
+  icon: string | null;
+  uiSlot: "content" | "panel";
+  header: boolean;
+  rightPanel: boolean;
+  status: "running" | "stopped" | "crashed" | "starting";
+  port: number;
+  permissions: string[];
+}
+
 interface UpdateResult {
   accepted: boolean;
   completed: boolean;
@@ -35,9 +49,29 @@ const desktopBridge = {
   getDockerStatus: (): Promise<{ available: boolean; bridgePort?: number }> =>
     ipcRenderer.invoke("docker:status"),
 
-  // --- Plugins (forwarded to sidecar via bridge) ---
-  // These will call the sidecar's Bridge Server once it's running
-  // For now they're stubs — real implementation comes when Bridge Server is wired
+  // --- Plugins ---
+  plugins: {
+    getAll: (): Promise<PluginInfo[]> =>
+      ipcRenderer.invoke("plugins:get-all"),
+
+    onStateChange: (listener: (plugins: PluginInfo[]) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, list: PluginInfo[]) => listener(list);
+      ipcRenderer.on("plugins:state-change", handler);
+      return () => ipcRenderer.removeListener("plugins:state-change", handler);
+    },
+
+    start: (pluginId: string): Promise<void> =>
+      ipcRenderer.invoke("plugins:start", pluginId),
+
+    stop: (pluginId: string): Promise<void> =>
+      ipcRenderer.invoke("plugins:stop", pluginId),
+
+    restart: (pluginId: string): Promise<void> =>
+      ipcRenderer.invoke("plugins:restart", pluginId),
+
+    getPermissions: (pluginId: string): Promise<string[]> =>
+      ipcRenderer.invoke("plugins:get-permissions", pluginId),
+  },
 
   // --- Auto-update ---
   getUpdateState: (): Promise<UpdateState> =>

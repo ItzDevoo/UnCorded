@@ -167,6 +167,109 @@ function setupSidecarIpc(): void {
   });
 }
 
+// --- IPC: Plugins ---
+// Plugin state is managed by the sidecar's Bridge Server.
+// These handlers forward requests to the sidecar HTTP API
+// and broadcast state changes to all renderer windows.
+
+interface PluginInfo {
+  id: string;
+  name: string;
+  icon: string | null;
+  uiSlot: "content" | "panel";
+  header: boolean;
+  rightPanel: boolean;
+  status: "running" | "stopped" | "crashed" | "starting";
+  port: number;
+  permissions: string[];
+}
+
+let cachedPlugins: PluginInfo[] = [];
+
+function broadcastPluginState(): void {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) {
+      win.webContents.send("plugins:state-change", cachedPlugins);
+    }
+  }
+}
+
+async function fetchPluginsFromSidecar(): Promise<PluginInfo[]> {
+  const port = sidecar.getPort();
+  if (!port) return [];
+  try {
+    const res = await fetch(`http://localhost:${port}/plugins`);
+    if (!res.ok) return [];
+    return (await res.json()) as PluginInfo[];
+  } catch {
+    return [];
+  }
+}
+
+function setupPluginIpc(): void {
+  ipcMain.handle("plugins:get-all", async () => {
+    cachedPlugins = await fetchPluginsFromSidecar();
+    return cachedPlugins;
+  });
+
+  ipcMain.handle("plugins:start", async (_event, pluginId: string) => {
+    const port = sidecar.getPort();
+    if (!port) throw new Error("Sidecar not running");
+    await fetch(`http://localhost:${port}/plugins/${pluginId}/start`, { method: "POST" });
+    cachedPlugins = await fetchPluginsFromSidecar();
+    broadcastPluginState();
+  });
+
+  ipcMain.handle("plugins:stop", async (_event, pluginId: string) => {
+    const port = sidecar.getPort();
+    if (!port) throw new Error("Sidecar not running");
+    await fetch(`http://localhost:${port}/plugins/${pluginId}/stop`, { method: "POST" });
+    cachedPlugins = await fetchPluginsFromSidecar();
+    broadcastPluginState();
+  });
+
+  ipcMain.handle("plugins:restart", async (_event, pluginId: string) => {
+    const port = sidecar.getPort();
+    if (!port) throw new Error("Sidecar not running");
+    await fetch(`http://localhost:${port}/plugins/${pluginId}/restart`, { method: "POST" });
+    cachedPlugins = await fetchPluginsFromSidecar();
+    broadcastPluginState();
+  });
+
+  ipcMain.handle("plugins:get-permissions", async (_event, pluginId: string) => {
+    const port = sidecar.getPort();
+    if (!port) return [];
+    try {
+      const res = await fetch(`http://localhost:${port}/plugins/${pluginId}/permissions`);
+      if (!res.ok) return [];
+      return (await res.json()) as string[];
+    } catch {
+      return [];
+    }
+  });
+}
+
+// Poll sidecar for plugin state changes (until we have a push mechanism)
+let pluginPollTimer: ReturnType<typeof setInterval> | null = null;
+
+function startPluginPolling(): void {
+  if (pluginPollTimer) return;
+  pluginPollTimer = setInterval(async () => {
+    const prev = JSON.stringify(cachedPlugins);
+    cachedPlugins = await fetchPluginsFromSidecar();
+    if (JSON.stringify(cachedPlugins) !== prev) {
+      broadcastPluginState();
+    }
+  }, 3000);
+}
+
+function stopPluginPolling(): void {
+  if (pluginPollTimer) {
+    clearInterval(pluginPollTimer);
+    pluginPollTimer = null;
+  }
+}
+
 // --- App lifecycle ---
 
 app.on("ready", async () => {
@@ -175,11 +278,13 @@ app.on("ready", async () => {
   tray = createTray();
 
   setupSidecarIpc();
+  setupPluginIpc();
   setupAutoUpdater();
   setupAutoUpdateIpc(() => sidecar.stop());
 
   // Spawn sidecar
   await sidecar.start();
+  startPluginPolling();
 });
 
 app.on("second-instance", () => {
@@ -211,6 +316,7 @@ app.on("before-quit", (e) => {
   e.preventDefault();
   isQuitting = true;
   setIsQuitting(true);
+  stopPluginPolling();
   tray?.destroy();
   tray = null;
   sidecar.stop().finally(() => {

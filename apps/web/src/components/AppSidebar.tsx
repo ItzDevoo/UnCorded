@@ -36,6 +36,13 @@ import ShareFileModal from "./modals/ShareFileModal.js";
 import AddFriendModal from "./modals/AddFriendModal.js";
 import CommandPalette from "./CommandPalette.js";
 import { commandPaletteOpen, setCommandPaletteOpen } from "../stores/command-palette-store.js";
+import {
+  isDesktop,
+  visiblePlugins,
+  activePluginId,
+  setActivePluginId,
+  clearActivePlugin,
+} from "../stores/plugin-store.js";
 import SupportSheet from "./SupportSheet.js";
 import { showToast } from "./ui/toast.js";
 
@@ -383,6 +390,7 @@ const AppSidebar = () => {
                           tooltip={`# ${channel.name}`}
                           active={active()}
                           onClick={() => {
+                            clearActivePlugin();
                             setSelectedChannelId(channel.id);
                             const sId = selectedServerId();
                             if (sId) navigate(`/servers/${sId}`);
@@ -425,6 +433,59 @@ const AppSidebar = () => {
             </Show>
           </Show>
         </SidebarGroup>
+
+        {/* Plugins — desktop only */}
+        <Show when={isDesktop() && visiblePlugins().length > 0}>
+          <SidebarGroup label="Plugins" collapsible defaultOpen>
+            <SidebarMenu classList={{ hidden: sidebarState() === "collapsed" }}>
+              <For each={visiblePlugins()}>
+                {(plugin) => {
+                  const isPluginActive = () => activePluginId() === plugin.id;
+                  const statusColor = (): string => {
+                    switch (plugin.status) {
+                      case "running": return "bg-success";
+                      case "starting": return "bg-warning";
+                      case "crashed": return "bg-destructive";
+                      default: return "bg-muted-foreground";
+                    }
+                  };
+                  return (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        tooltip={plugin.name}
+                        active={isPluginActive()}
+                        onClick={() => {
+                          setActivePluginId(plugin.id);
+                          const sId = selectedServerId();
+                          if (sId) navigate(`/servers/${sId}`);
+                          closeMobile();
+                        }}
+                      >
+                        <span class="relative flex h-4 w-4 shrink-0 items-center justify-center">
+                          <Show
+                            when={plugin.icon}
+                            fallback={
+                              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
+                              </svg>
+                            }
+                          >
+                            <span class="text-sm">{plugin.icon}</span>
+                          </Show>
+                          <span
+                            class={`absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 rounded-full ${statusColor()}`}
+                            title={plugin.status}
+                          />
+                        </span>
+                        <span class="truncate">{plugin.name}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                }}
+              </For>
+            </SidebarMenu>
+          </SidebarGroup>
+        </Show>
 
         {/* Bottom nav — pushed to bottom */}
         <SidebarGroup class="mt-auto">

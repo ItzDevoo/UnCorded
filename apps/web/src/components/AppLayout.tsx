@@ -29,6 +29,12 @@ import {
   joinSession,
   activeReceiverSessionId,
 } from "../stores/share-session-store.js";
+import { isDesktop, plugins } from "../stores/plugin-store.js";
+import {
+  setupPluginBridge,
+  teardownPluginBridge,
+  updateAllowedOrigins,
+} from "../lib/plugin-bridge.js";
 import FileReceiveModal from "./modals/FileReceiveModal.js";
 
 const AppLayout: ParentComponent = (props) => {
@@ -38,6 +44,20 @@ const AppLayout: ParentComponent = (props) => {
     const s = session();
     if (s.data?.session && gatewayStatus() === "disconnected") {
       connectGateway();
+    }
+  });
+
+  // Plugin bridge — only active in desktop app
+  onMount(() => {
+    if (isDesktop()) {
+      setupPluginBridge();
+    }
+  });
+
+  // Keep origin allowlist in sync with running plugins
+  createEffect(() => {
+    if (isDesktop()) {
+      updateAllowedOrigins(plugins());
     }
   });
 
@@ -76,6 +96,7 @@ const AppLayout: ParentComponent = (props) => {
   onCleanup(() => {
     disconnectGateway();
     cleanupShortcuts();
+    teardownPluginBridge();
   });
 
   // Show persistent toast for incoming file share invites

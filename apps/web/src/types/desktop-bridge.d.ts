@@ -7,6 +7,7 @@ interface DesktopBridgePlugins {
   stop(pluginId: string): Promise<void>;
   restart(pluginId: string): Promise<void>;
   getPermissions(pluginId: string): Promise<string[]>;
+  uninstall(pluginId: string): Promise<void>;
 }
 
 interface DesktopBridge {

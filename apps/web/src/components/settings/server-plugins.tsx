@@ -36,6 +36,7 @@ interface CatalogPlugin {
 const ServerPluginsTab = (props: ServerPluginsProps) => {
   const [installing, setInstalling] = createSignal<PluginId | null>(null);
   const [uninstalling, setUninstalling] = createSignal<PluginId | null>(null);
+  const [toggling, setToggling] = createSignal<PluginId | null>(null);
 
   const isServerOwnerTier = () =>
     readyData.data?.user.subscriptionTier === "server_owner";
@@ -90,6 +91,15 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
     if (uninstalling()) return;
     setUninstalling(pluginId);
     try {
+      // Stop container + remove Docker resources via desktop bridge
+      if (isDesktop()) {
+        try {
+          await window.desktopBridge!.plugins.uninstall(pluginId);
+        } catch {
+          // Sidecar may not have this plugin — continue with DB cleanup
+        }
+      }
+      // Remove DB record
       await api(`/api/servers/${encodeURIComponent(props.serverId)}/plugins/${encodeURIComponent(pluginId)}`, {
         method: "DELETE",
       });
@@ -103,6 +113,31 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
       showToast(msg, "error");
     } finally {
       setUninstalling(null);
+    }
+  }
+
+  async function handleToggle(pluginId: PluginId, currentState: string) {
+    if (toggling()) return;
+    if (!isDesktop()) {
+      showToast("Start/Stop requires the desktop app", "error");
+      return;
+    }
+    setToggling(pluginId);
+    try {
+      const isRunning = currentState === "active" || currentState === "running";
+      if (isRunning) {
+        await window.desktopBridge!.plugins.stop(pluginId);
+        showToast("Plugin stopped", "info");
+      } else {
+        await window.desktopBridge!.plugins.start(pluginId);
+        showToast("Plugin started", "info");
+      }
+      await refetchInstalled();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Action failed";
+      showToast(msg, "error");
+    } finally {
+      setToggling(null);
     }
   }
 
@@ -183,14 +218,29 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
                     </div>
                   </div>
                   <Show when={isServerOwnerTier()}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleUninstall(plugin.pluginId)}
-                      disabled={uninstalling() === plugin.pluginId}
-                    >
-                      {uninstalling() === plugin.pluginId ? "Removing..." : "Uninstall"}
-                    </Button>
+                    <div class="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleToggle(plugin.pluginId, plugin.state)}
+                        disabled={toggling() === plugin.pluginId || !isDesktop()}
+                        title={!isDesktop() ? "Requires desktop app" : undefined}
+                      >
+                        {toggling() === plugin.pluginId
+                          ? "..."
+                          : plugin.state === "active" || plugin.state === "running"
+                            ? "Stop"
+                            : "Start"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleUninstall(plugin.pluginId)}
+                        disabled={uninstalling() === plugin.pluginId}
+                      >
+                        {uninstalling() === plugin.pluginId ? "Removing..." : "Uninstall"}
+                      </Button>
+                    </div>
                   </Show>
                 </div>
               )}

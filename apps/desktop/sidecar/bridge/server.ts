@@ -134,6 +134,7 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
           headers: { "Content-Type": "application/json" },
         });
       }
+      console.error("[bridge] Auth token received");
       options.plugins.setApiToken(token);
       return { success: true };
     })

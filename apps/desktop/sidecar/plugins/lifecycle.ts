@@ -268,9 +268,15 @@ export class PluginLifecycle {
   }
 
   async uninstall(pluginId: string, keepData = false): Promise<void> {
+    const plugin = this.plugins.get(pluginId);
+
+    // Clear tunnel URL from backend before stopping
+    if (plugin && plugin.scope === "server") {
+      await this.reportTunnelUrl(plugin.serverId, pluginId, null, "stopped").catch(() => {});
+    }
+
     await this.stop(pluginId);
 
-    const plugin = this.plugins.get(pluginId);
     if (!plugin) return;
 
     // Remove container

@@ -251,6 +251,18 @@ function setupPluginIpc(): void {
     broadcastPluginState();
   });
 
+  ipcMain.handle("plugins:uninstall", async (_event, pluginId: string) => {
+    const port = sidecar.getPort();
+    if (!port) throw new Error("Sidecar not running");
+    const res = await fetch(`http://localhost:${port}/plugins/${pluginId}/uninstall`, { method: "POST" });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`Plugin uninstall failed (${res.status}): ${body}`);
+    }
+    cachedPlugins = await fetchPluginsFromSidecar();
+    broadcastPluginState();
+  });
+
   ipcMain.handle("plugins:get-permissions", async (_event, pluginId: string) => {
     const port = sidecar.getPort();
     if (!port) return [];
@@ -295,22 +307,31 @@ function stopPluginPolling(): void {
 
 async function syncAuthToSidecar(): Promise<void> {
   const port = sidecar.getPort();
-  if (!port) return;
+  if (!port) {
+    console.log("[auth] Sidecar not ready, skipping auth sync");
+    return;
+  }
 
   try {
     const cookies = await session.defaultSession.cookies.get({
       name: "better-auth.session_token",
     });
+    console.log("[auth] Cookies found:", cookies.length);
     const token = cookies[0]?.value;
-    if (!token) return;
+    if (!token) {
+      console.log("[auth] No session token cookie found");
+      return;
+    }
 
-    await fetch(`http://localhost:${port}/auth`, {
+    console.log("[auth] Forwarding token to sidecar on port", port);
+    const res = await fetch(`http://127.0.0.1:${port}/auth`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token }),
     });
-  } catch {
-    // Sidecar may not be ready yet — will retry on next cookie change
+    console.log("[auth] Sidecar auth response:", res.status);
+  } catch (err) {
+    console.error("[auth] Failed to sync auth to sidecar:", err);
   }
 }
 
@@ -334,6 +355,9 @@ app.on("ready", async () => {
   mainWindow.webContents.on("dom-ready", () => {
     syncAuthToSidecar();
   });
+
+  // Retry shortly after sidecar is ready (cookie may already exist)
+  setTimeout(() => syncAuthToSidecar(), 3000);
 
   // Re-sync when session cookie changes (login/logout)
   session.defaultSession.cookies.on("changed", (_event, cookie) => {

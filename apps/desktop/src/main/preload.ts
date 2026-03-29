@@ -73,6 +73,9 @@ const desktopBridge = {
 
     getPermissions: (pluginId: string): Promise<string[]> =>
       ipcRenderer.invoke("plugins:get-permissions", pluginId),
+
+    uninstall: (pluginId: string): Promise<void> =>
+      ipcRenderer.invoke("plugins:uninstall", pluginId),
   },
 
   // --- Auto-update ---

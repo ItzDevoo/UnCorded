@@ -2,7 +2,7 @@ import { Elysia } from "elysia";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { NotFoundError, RateLimitError } from "@uncorded/shared";
 import { db } from "../db/index.js";
-import { pluginInstalls, bots, user } from "../db/schema.js";
+import { pluginRegistry, pluginInstalls, bots, user } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
 import { checkIpRateLimit } from "../middleware/ip-rate-limit.js";
 
@@ -14,44 +14,41 @@ function getClientIp(request: Request): string {
   );
 }
 
-// ── Plugin Catalog (hardcoded for now) ──────────────────────────────────────
+// ── Public routes (no auth) ─────────────────────────────────────────────────
 
-const PLUGIN_CATALOG = [
-  {
-    id: "claude-code",
-    name: "Claude Code",
-    description:
-      "Connect your Claude Code session to UnCorded. Chat with Claude from any DM or server channel.",
-    author: "UnCorded",
-    icon: null,
-    category: "AI",
-    scope: "both" as const,
-    tags: ["ai", "developer-tools", "automation"],
-  },
-  {
-    id: "excalidraw-boards",
-    name: "Excalidraw Boards",
-    description:
-      "Collaborative whiteboard — create boards and draw together in real-time.",
-    author: "UnCorded",
-    icon: null,
-    category: "Collaboration",
-    scope: "server" as const,
-    tags: ["whiteboard", "collaboration", "drawing"],
-  },
-] as const;
+export const pluginPublicRoutes = new Elysia({ prefix: "/api/plugins" })
 
-function findPlugin(id: string) {
-  return PLUGIN_CATALOG.find((p) => p.id === id);
-}
+  // ── GET /api/plugins/:pluginId/manifest — public manifest endpoint ────
+  .get("/:pluginId/manifest", async ({ params, request }) => {
+    const ip = getClientIp(request);
+    if (!(await checkIpRateLimit(ip, 30, 60_000, "plugin-manifest"))) {
+      throw new RateLimitError("Too many requests, try again later");
+    }
 
-// ── Routes ──────────────────────────────────────────────────────────────────
+    const [row] = await db
+      .select({ manifest: pluginRegistry.manifest, published: pluginRegistry.published })
+      .from(pluginRegistry)
+      .where(eq(pluginRegistry.id, params.pluginId))
+      .limit(1);
+
+    if (!row || !row.published) throw new NotFoundError("Plugin");
+
+    return { manifest: row.manifest };
+  });
+
+// ── Authenticated routes ────────────────────────────────────────────────────
 
 export const pluginRoutes = new Elysia({ prefix: "/api/plugins" })
   .resolve(authResolve())
 
-  // ── GET /api/plugins — list catalog with install counts + user status ──
+  // ── GET /api/plugins — list published plugins with install counts + user status ──
   .get("/", async ({ user: sessionUser }) => {
+    const rows = await db
+      .select()
+      .from(pluginRegistry)
+      .where(eq(pluginRegistry.published, true))
+      .orderBy(desc(pluginRegistry.featured), pluginRegistry.name);
+
     // Get install counts per plugin
     const countRows = await db
       .select({
@@ -76,21 +73,38 @@ export const pluginRoutes = new Elysia({ prefix: "/api/plugins" })
       userInstalls.map((r) => [r.pluginId, r.installedAt]),
     );
 
-    const plugins = PLUGIN_CATALOG.map((p) =>
-      Object.assign({}, p, {
-        installCount: countMap.get(p.id) ?? 0,
-        installed: userInstallMap.has(p.id),
-        installedAt: userInstallMap.get(p.id)?.toISOString() ?? null,
-      }),
-    );
+    const plugins = rows.map((p) => ({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      author: p.author,
+      icon: p.iconUrl,
+      category: p.category,
+      scope: p.scope as "server" | "personal" | "both",
+      tags: p.tags ?? [],
+      version: p.version,
+      verified: p.verified ?? false,
+      featured: p.featured ?? false,
+      downloads: p.downloads ?? 0,
+      repository: p.repository,
+      screenshots: p.screenshots ?? [],
+      installCount: countMap.get(p.id) ?? 0,
+      installed: userInstallMap.has(p.id),
+      installedAt: userInstallMap.get(p.id)?.toISOString() ?? null,
+    }));
 
     return { plugins };
   })
 
   // ── GET /api/plugins/:pluginId — detail with setup status ─────────────
   .get("/:pluginId", async ({ user: sessionUser, params }) => {
-    const catalog = findPlugin(params.pluginId);
-    if (!catalog) throw new NotFoundError("Plugin");
+    const [row] = await db
+      .select()
+      .from(pluginRegistry)
+      .where(eq(pluginRegistry.id, params.pluginId))
+      .limit(1);
+
+    if (!row || !row.published) throw new NotFoundError("Plugin");
 
     // Install count
     const [countRow] = await db
@@ -110,7 +124,20 @@ export const pluginRoutes = new Elysia({ prefix: "/api/plugins" })
       );
 
     const plugin = {
-      ...catalog,
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      author: row.author,
+      icon: row.iconUrl,
+      category: row.category,
+      scope: row.scope as "server" | "personal" | "both",
+      tags: row.tags ?? [],
+      version: row.version,
+      verified: row.verified ?? false,
+      featured: row.featured ?? false,
+      downloads: row.downloads ?? 0,
+      repository: row.repository,
+      screenshots: row.screenshots ?? [],
       installCount: countRow?.count ?? 0,
       installed: !!userInstall,
       installedAt: userInstall?.installedAt?.toISOString() ?? null,
@@ -159,8 +186,14 @@ export const pluginRoutes = new Elysia({ prefix: "/api/plugins" })
     if (!(await checkIpRateLimit(ip, 10, 60_000, "plugin-install"))) {
       throw new RateLimitError("Too many requests, try again later");
     }
-    const catalog = findPlugin(params.pluginId);
-    if (!catalog) throw new NotFoundError("Plugin");
+
+    // Validate plugin exists in registry
+    const [plugin] = await db
+      .select({ id: pluginRegistry.id })
+      .from(pluginRegistry)
+      .where(and(eq(pluginRegistry.id, params.pluginId), eq(pluginRegistry.published, true)))
+      .limit(1);
+    if (!plugin) throw new NotFoundError("Plugin");
 
     // Upsert — ignore if already installed
     await db
@@ -170,6 +203,12 @@ export const pluginRoutes = new Elysia({ prefix: "/api/plugins" })
         userId: sessionUser.id,
       })
       .onConflictDoNothing({ target: [pluginInstalls.pluginId, pluginInstalls.userId] });
+
+    // Increment downloads
+    await db
+      .update(pluginRegistry)
+      .set({ downloads: sql`${pluginRegistry.downloads} + 1` })
+      .where(eq(pluginRegistry.id, params.pluginId));
 
     const [countRow] = await db
       .select({ count: sql<number>`count(*)::int` })
@@ -185,8 +224,14 @@ export const pluginRoutes = new Elysia({ prefix: "/api/plugins" })
     if (!(await checkIpRateLimit(ip, 10, 60_000, "plugin-install"))) {
       throw new RateLimitError("Too many requests, try again later");
     }
-    const catalog = findPlugin(params.pluginId);
-    if (!catalog) throw new NotFoundError("Plugin");
+
+    // Validate plugin exists in registry
+    const [plugin] = await db
+      .select({ id: pluginRegistry.id })
+      .from(pluginRegistry)
+      .where(eq(pluginRegistry.id, params.pluginId))
+      .limit(1);
+    if (!plugin) throw new NotFoundError("Plugin");
 
     await db
       .delete(pluginInstalls)

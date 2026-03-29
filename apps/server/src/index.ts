@@ -23,7 +23,7 @@ import { stripeRoutes } from "./routes/stripe.js";
 import { turnRoutes } from "./routes/turn.js";
 import { fileReceiptRoutes } from "./routes/file-receipts.js";
 import { botRoutes, botAvatarRoutes } from "./routes/bots.js";
-import { pluginRoutes } from "./routes/plugins.js";
+import { pluginRoutes, pluginPublicRoutes } from "./routes/plugins.js";
 import { serverPluginRoutes } from "./routes/server-plugins.js";
 import { gatewayTicketRoutes } from "./routes/gateway.js";
 import { gateway } from "./ws/gateway.js";
@@ -85,6 +85,7 @@ const app = new Elysia()
   .use(fileReceiptRoutes)
   .use(botRoutes)
   .use(botAvatarRoutes)
+  .use(pluginPublicRoutes)
   .use(pluginRoutes)
   .use(serverPluginRoutes)
   .use(gatewayTicketRoutes)

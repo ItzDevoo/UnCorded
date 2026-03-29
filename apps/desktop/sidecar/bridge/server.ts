@@ -53,9 +53,18 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
           headers: { "Content-Type": "application/json" },
         });
       }
-      const serverId = typeof parsed.serverId === "string" ? parsed.serverId : "local";
       const scope = parsed.scope === "server" ? "server" as const : "personal" as const;
-      const result = await options.plugins.install(parsed.manifest, serverId, scope);
+      const serverId = typeof parsed.serverId === "string" ? parsed.serverId : undefined;
+
+      // Server-scoped installs must provide a real serverId
+      if (scope === "server" && !serverId) {
+        throw new Response(JSON.stringify({ error: "serverId is required for server-scoped plugins" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      const result = await options.plugins.install(parsed.manifest, serverId ?? "local", scope);
       if (result.errors && result.errors.length > 0) {
         throw new Response(JSON.stringify({ error: result.errors.join(", ") }), {
           status: 400,

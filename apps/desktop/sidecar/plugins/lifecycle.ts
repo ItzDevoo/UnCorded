@@ -86,6 +86,14 @@ export class PluginLifecycle {
       };
     }
 
+    // Server-scoped plugins require a real serverId (not the "local" fallback or empty)
+    if (scope === "server" && (!serverId || serverId === "local")) {
+      return {
+        pluginId: manifest.id,
+        errors: ["Server-scoped plugins require a valid serverId"],
+      };
+    }
+
     // Check resources
     const resourceCheck = this.resources.validateAndReserve(manifest.resources ?? {});
     if (!resourceCheck.allowed) {
@@ -186,8 +194,12 @@ export class PluginLifecycle {
       );
     }
 
-    // Clear any stale tunnel URL for server-scope plugins before attempting creation
+    // Create tunnel for server-scope plugins
     if (plugin.scope === "server") {
+      // Clear any stale tunnel URL and notify backend before attempting recreation
+      if (plugin.tunnelUrl) {
+        await this.reportTunnelUrl(plugin.serverId, pluginId, null, "active").catch(() => {});
+      }
       plugin.tunnelUrl = null;
       this.saveState();
 
@@ -221,12 +233,15 @@ export class PluginLifecycle {
     await this.docker.stopContainer(plugin.containerId);
 
     // Destroy tunnel for server-scope plugins (best-effort — never block stop)
-    if (plugin.scope === "server" && this.tunnelManager) {
-      try {
-        await this.tunnelManager.destroy(pluginId);
-      } catch (err) {
-        console.error(`[lifecycle] Tunnel destroy failed for ${pluginId}:`, err);
+    if (plugin.scope === "server") {
+      if (this.tunnelManager) {
+        try {
+          await this.tunnelManager.destroy(pluginId);
+        } catch (err) {
+          console.error(`[lifecycle] Tunnel destroy failed for ${pluginId}:`, err);
+        }
       }
+      // Always notify backend to clear the tunnel URL, even without a local tunnelManager
       await this.reportTunnelUrl(plugin.serverId, pluginId, null, "stopped").catch(() => {});
       plugin.tunnelUrl = null;
     }
@@ -404,7 +419,7 @@ export class PluginLifecycle {
 
     try {
       const res = await fetch(
-        `${this.apiBaseUrl}/api/servers/${serverId}/plugins/${pluginId}/tunnel`,
+        `${this.apiBaseUrl}/api/servers/${encodeURIComponent(serverId)}/plugins/${encodeURIComponent(pluginId)}/tunnel`,
         {
           method: "PUT",
           headers: {

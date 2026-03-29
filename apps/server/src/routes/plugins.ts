@@ -28,6 +28,17 @@ const PLUGIN_CATALOG = [
     scope: "both" as const,
     tags: ["ai", "developer-tools", "automation"],
   },
+  {
+    id: "excalidraw-boards",
+    name: "Excalidraw Boards",
+    description:
+      "Collaborative whiteboard — create boards and draw together in real-time.",
+    author: "UnCorded",
+    icon: null,
+    category: "Collaboration",
+    scope: "server" as const,
+    tags: ["whiteboard", "collaboration", "drawing"],
+  },
 ] as const;
 
 function findPlugin(id: string) {

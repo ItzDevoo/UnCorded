@@ -8,7 +8,7 @@ import {
   selectedChannelId,
   setSelectedChannelId,
 } from "../stores/app-store.js";
-import { activePlugin } from "../stores/plugin-store.js";
+import { activePlugin, activeServerPlugin, type PluginInfo } from "../stores/plugin-store.js";
 import ChatArea from "../components/ChatArea.js";
 import { Empty } from "../components/ui/empty.js";
 import ContentHeader from "../components/ContentHeader.js";
@@ -59,11 +59,32 @@ const ServerView = () => {
     return currentChannelId && serverChannels().some((c) => c.id === currentChannelId);
   };
 
+  // Map a server plugin to the PluginInfo shape PluginFrame expects
+  const serverPluginAsInfo = (): PluginInfo | null => {
+    const sp = activeServerPlugin();
+    if (!sp) return null;
+    return {
+      id: sp.pluginId,
+      name: sp.pluginId.split(/[-_]/).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
+      icon: null,
+      uiSlot: "content",
+      header: false,
+      rightPanel: false,
+      status: sp.state === "active" ? "running" : sp.state === "error" ? "crashed" : "stopped",
+      port: 0,
+      scope: "server",
+      tunnelUrl: sp.tunnelUrl,
+      permissions: [],
+    };
+  };
+
+  const currentPlugin = () => activePlugin() ?? serverPluginAsInfo();
+
   return (
     <div class="flex h-full flex-col">
       {/* Plugin takes over the entire content area when active */}
       <Show
-        when={activePlugin()}
+        when={currentPlugin()}
         fallback={
           <>
             <ContentHeader
@@ -114,7 +135,7 @@ const ServerView = () => {
           </>
         }
       >
-        {(plugin) => <PluginFrame plugin={plugin()} />}
+        {(plugin) => <PluginFrame plugin={plugin()} tunnelUrl={activeServerPlugin()?.tunnelUrl} />}
       </Show>
     </div>
   );

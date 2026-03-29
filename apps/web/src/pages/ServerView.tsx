@@ -135,7 +135,17 @@ const ServerView = () => {
           </>
         }
       >
-        {(plugin) => <PluginFrame plugin={plugin()} tunnelUrl={activeServerPlugin()?.tunnelUrl} />}
+        {(plugin) => (
+          <>
+            <ContentHeader
+              title={plugin().name}
+              breadcrumbs={[{ label: "Servers" }]}
+            />
+            <div class="flex-1 overflow-hidden">
+              <PluginFrame plugin={plugin()} tunnelUrl={activeServerPlugin()?.tunnelUrl} />
+            </div>
+          </>
+        )}
       </Show>
     </div>
   );

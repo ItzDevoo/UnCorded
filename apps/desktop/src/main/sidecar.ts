@@ -43,6 +43,7 @@ export class SidecarManager {
           ...process.env,
           UNCORDED_SIDECAR: "1",
           UNCORDED_DATA_DIR: this.getDataDir(),
+          UNCORDED_API_URL: process.env["UNCORDED_API_URL"] ?? "https://api.uncorded.app",
         },
       });
 

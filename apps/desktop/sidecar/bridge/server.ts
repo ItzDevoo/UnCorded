@@ -124,6 +124,20 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
       return plugin.manifest.permissions;
     })
 
+    // --- Auth config (called by Electron main process, no auth) ---
+    .post("/auth", ({ body }) => {
+      const parsed = body as Record<string, unknown> | null;
+      const token = parsed?.token;
+      if (!token || typeof token !== "string") {
+        throw new Response(JSON.stringify({ error: "token required" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      options.plugins.setApiToken(token);
+      return { success: true };
+    })
+
     .post("/plugins/:id/uninstall", async ({ params }) => {
       try {
         await options.plugins.uninstall(params.id);

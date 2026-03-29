@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage } from "electron";
+import { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, session } from "electron";
 import path from "node:path";
 import { SidecarManager } from "./sidecar.js";
 import { setupAutoUpdater, setupAutoUpdateIpc, setIsQuitting, checkForUpdates } from "./auto-update.js";
@@ -291,6 +291,29 @@ function stopPluginPolling(): void {
   }
 }
 
+// --- Auth: Extract session cookie and forward to sidecar ---
+
+async function syncAuthToSidecar(): Promise<void> {
+  const port = sidecar.getPort();
+  if (!port) return;
+
+  try {
+    const cookies = await session.defaultSession.cookies.get({
+      name: "better-auth.session_token",
+    });
+    const token = cookies[0]?.value;
+    if (!token) return;
+
+    await fetch(`http://localhost:${port}/auth`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+  } catch {
+    // Sidecar may not be ready yet — will retry on next cookie change
+  }
+}
+
 // --- App lifecycle ---
 
 app.on("ready", async () => {
@@ -306,6 +329,18 @@ app.on("ready", async () => {
   // Spawn sidecar
   await sidecar.start();
   startPluginPolling();
+
+  // Forward auth token to sidecar once page loads (cookie is set by then)
+  mainWindow.webContents.on("did-finish-load", () => {
+    syncAuthToSidecar();
+  });
+
+  // Re-sync when session cookie changes (login/logout)
+  session.defaultSession.cookies.on("changed", (_event, cookie) => {
+    if (cookie.name === "better-auth.session_token") {
+      syncAuthToSidecar();
+    }
+  });
 });
 
 app.on("second-instance", () => {

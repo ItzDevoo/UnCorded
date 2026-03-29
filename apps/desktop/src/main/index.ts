@@ -364,9 +364,22 @@ app.on("ready", async () => {
   setTimeout(() => syncAuthToSidecar(), 3000);
 
   // Re-sync when session cookie changes (login/logout)
-  session.defaultSession.cookies.on("changed", (_event, cookie) => {
+  session.defaultSession.cookies.on("changed", (_event, cookie, _cause, removed) => {
     if (cookie.name === "better-auth.session_token") {
-      syncAuthToSidecar();
+      if (removed) {
+        console.log("[auth] Session cookie removed (logout)");
+        return;
+      }
+      console.log("[auth] Session cookie set/changed, forwarding to sidecar");
+      const port = sidecar.getPort();
+      if (!port) return;
+      fetch(`http://127.0.0.1:${port}/auth`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: cookie.value }),
+      })
+        .then((res) => console.log("[auth] Cookie change forwarded, status:", res.status))
+        .catch((err) => console.error("[auth] Cookie change forward failed:", err));
     }
   });
 });

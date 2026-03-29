@@ -47,6 +47,7 @@ export class PluginLifecycle {
     this.docker = docker;
     this.tunnelManager = tunnelManager ?? null;
     this.apiBaseUrl = process.env["UNCORDED_API_URL"] ?? null;
+    console.error(`[lifecycle] API base URL: ${this.apiBaseUrl ?? "NOT SET"}`);
     this.apiToken = null;
     this.networks = new NetworkManager();
     this.health = new HealthMonitor(docker);

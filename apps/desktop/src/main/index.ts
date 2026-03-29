@@ -313,10 +313,14 @@ async function syncAuthToSidecar(): Promise<void> {
   }
 
   try {
+    // Debug: dump all cookies to see what's available
+    const allCookies = await session.defaultSession.cookies.get({});
+    console.log("[auth] All cookies:", allCookies.map(c => `${c.name} (${c.domain})`));
+
     const cookies = await session.defaultSession.cookies.get({
       name: "better-auth.session_token",
     });
-    console.log("[auth] Cookies found:", cookies.length);
+    console.log("[auth] Session cookies found:", cookies.length);
     const token = cookies[0]?.value;
     if (!token) {
       console.log("[auth] No session token cookie found");

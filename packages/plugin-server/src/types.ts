@@ -1,6 +1,8 @@
+import type { ChannelId, MessageId, ServerId, UserId } from "@uncorded/protocol";
+
 /** Server information returned by the bridge. */
 export interface Server {
-  id: string;
+  id: ServerId;
   name: string;
   iconUrl: string | null;
   memberCount: number;
@@ -9,7 +11,7 @@ export interface Server {
 
 /** A server member. */
 export interface Member {
-  id: string;
+  id: UserId;
   username: string;
   displayName: string;
   avatarUrl: string | null;
@@ -19,7 +21,7 @@ export interface Member {
 
 /** A channel. */
 export interface Channel {
-  id: string;
+  id: ChannelId;
   name: string;
   type: string;
   position: number;
@@ -27,9 +29,9 @@ export interface Channel {
 
 /** A chat message. */
 export interface Message {
-  id: string;
-  channelId: string;
-  authorId: string;
+  id: MessageId;
+  channelId: ChannelId;
+  authorId: UserId;
   content: string;
   createdAt: string;
   editedAt: string | null;
@@ -37,7 +39,7 @@ export interface Message {
 
 /** A user profile. */
 export interface User {
-  id: string;
+  id: UserId;
   username: string;
   displayName: string;
   avatarUrl: string | null;
@@ -59,4 +61,6 @@ export interface BridgeOptions {
   baseUrl?: string;
   /** Bearer token for auth (default: UNCORDED_BRIDGE_TOKEN env var). */
   token?: string;
+  /** Request timeout in ms. Defaults to 30000. */
+  timeoutMs?: number;
 }

@@ -9,24 +9,36 @@ import {
 } from "./mock-data.js";
 import { MockStorage } from "./storage.js";
 
+const DEFAULT_LIMIT = 50;
+const MAX_LIMIT = 200;
+
 /** Create the mock bridge Elysia server. */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function createMockBridge() {
   const storage = new MockStorage();
 
   const app = new Elysia()
     // ── Auth middleware (accepts any Bearer token) ──────────
-    .derive(({ headers }) => {
+    .derive(({ headers, set }) => {
       const auth = headers["authorization"];
       if (!auth?.startsWith("Bearer ")) {
-        throw new Error("Unauthorized");
+        set.status = 401;
+        return { pluginId: "", serverId: "", scope: "server" as const, permissions: [] as string[], authError: true as const };
       }
       return {
         pluginId: "mock-plugin",
         serverId: mockServer.id,
         scope: "server" as const,
         permissions: ["*"],
+        authError: false as const,
       };
+    })
+
+    // ── Reject unauthorized requests ───────────────────────
+    .onBeforeHandle(({ authError, set }) => {
+      if (authError) {
+        set.status = 401;
+        return { error: "Unauthorized: Bearer token required" };
+      }
     })
 
     // ── Server ─────────────────────────────────────────────
@@ -43,7 +55,13 @@ export function createMockBridge() {
       "/bridge/channels/:channelId/messages",
       ({ params, query }) => {
         const channelId = params.channelId;
-        const limit = query.limit ? Number(query.limit) : 50;
+        let limit = DEFAULT_LIMIT;
+        if (query.limit !== undefined) {
+          const parsed = parseInt(query.limit, 10);
+          limit = Number.isFinite(parsed) && parsed >= 0
+            ? Math.min(parsed, MAX_LIMIT)
+            : DEFAULT_LIMIT;
+        }
         const messages = mockMessages[channelId] ?? [];
         return {
           channelId,
@@ -86,10 +104,11 @@ export function createMockBridge() {
     )
 
     // ── Users ──────────────────────────────────────────────
-    .get("/bridge/users/:userId", ({ params }) => {
+    .get("/bridge/users/:userId", ({ params, set }) => {
       const user = mockUsers[params.userId];
       if (!user) {
-        throw new Error("User not found");
+        set.status = 404;
+        return { error: "User not found" };
       }
       return user;
     })

@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type { PluginAnswers } from "./prompts.js";
 
@@ -17,6 +17,16 @@ function replaceVars(template: string, vars: Record<string, string>): string {
 }
 
 export function scaffold(targetDir: string, answers: PluginAnswers): void {
+  // Preflight: abort if target directory already exists and is non-empty
+  if (existsSync(targetDir)) {
+    const entries = readdirSync(targetDir);
+    if (entries.length > 0) {
+      throw new Error(
+        `Directory "${targetDir}" already exists and is not empty. Remove it or choose a different name.`,
+      );
+    }
+  }
+
   mkdirSync(targetDir, { recursive: true });
   mkdirSync(join(targetDir, "src"), { recursive: true });
 

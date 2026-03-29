@@ -22,14 +22,19 @@ export class MockStorage {
   get(key: string): unknown {
     const path = this.#keyPath(key);
     if (!existsSync(path)) return null;
-    const raw = readFileSync(path, "utf-8");
-    const parsed = JSON.parse(raw) as { value: unknown };
-    return parsed.value;
+    try {
+      const raw = readFileSync(path, "utf-8");
+      const parsed = JSON.parse(raw) as { value: unknown };
+      return parsed.value;
+    } catch {
+      console.error(`[mock-bridge] Corrupted storage file: ${path}`);
+      return null;
+    }
   }
 
-  set(key: string, value: unknown, _encrypt?: boolean): void {
+  set(key: string, value: unknown, encrypt?: boolean): void {
     const path = this.#keyPath(key);
-    writeFileSync(path, JSON.stringify({ encrypted: false, value }), "utf-8");
+    writeFileSync(path, JSON.stringify({ encrypted: Boolean(encrypt), value }), "utf-8");
   }
 
   delete(key: string): boolean {

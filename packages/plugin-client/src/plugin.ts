@@ -1,33 +1,60 @@
+import type { ChannelId } from "@uncorded/protocol";
+import { BridgeError, PluginDestroyedError, RequestTimeoutError } from "./errors.js";
 import type {
   Channel,
   EventHandler,
   Member,
   NavigateParams,
   PluginEvent,
+  PluginOptions,
   PluginResponse,
   Server,
   ToastType,
   User,
 } from "./types.js";
 
+const DEFAULT_TIMEOUT_MS = 30_000;
+
+interface PendingRequest {
+  resolve: (v: unknown) => void;
+  reject: (e: Error) => void;
+  timer: ReturnType<typeof setTimeout>;
+}
+
 /**
  * PostMessage client for plugin UIs running inside iframes.
  * Communicates with the UnCorded shell via the postMessage bridge protocol.
  */
 export class UnCordedPlugin {
-  readonly #pending = new Map<string, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
+  readonly #pending = new Map<string, PendingRequest>();
   readonly #listeners = new Map<string, Set<EventHandler>>();
+  readonly #shellOrigin: string;
+  readonly #timeoutMs: number;
   #idCounter = 0;
 
-  constructor() {
+  constructor(options?: PluginOptions) {
+    this.#timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+
+    // Derive shell origin from document.referrer if not provided
+    if (options?.shellOrigin) {
+      this.#shellOrigin = options.shellOrigin;
+    } else {
+      try {
+        this.#shellOrigin = new URL(document.referrer).origin;
+      } catch {
+        this.#shellOrigin = "*";
+      }
+    }
+
     window.addEventListener("message", this.#onMessage);
   }
 
   /** Remove the message listener. Call when the plugin is unmounting. */
   destroy(): void {
     window.removeEventListener("message", this.#onMessage);
-    for (const [, { reject }] of this.#pending) {
-      reject(new Error("Plugin destroyed"));
+    for (const [, pending] of this.#pending) {
+      clearTimeout(pending.timer);
+      pending.reject(new PluginDestroyedError());
     }
     this.#pending.clear();
     this.#listeners.clear();
@@ -42,9 +69,16 @@ export class UnCordedPlugin {
   #request<T>(method: string, params?: Record<string, unknown>): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       const id = this.#nextId();
+
+      const timer = setTimeout(() => {
+        this.#pending.delete(id);
+        reject(new RequestTimeoutError(method, id, this.#timeoutMs));
+      }, this.#timeoutMs);
+
       this.#pending.set(id, {
         resolve: resolve as (v: unknown) => void,
         reject,
+        timer,
       });
 
       window.parent.postMessage(
@@ -54,12 +88,16 @@ export class UnCordedPlugin {
           method,
           ...(params !== undefined ? { params } : {}),
         },
-        "*",
+        this.#shellOrigin,
       );
     });
   }
 
   readonly #onMessage = (event: MessageEvent): void => {
+    // Validate message source is our parent window
+    if (event.source !== window.parent) return;
+    if (this.#shellOrigin !== "*" && event.origin !== this.#shellOrigin) return;
+
     const data: unknown = event.data;
     if (typeof data !== "object" || data === null) return;
 
@@ -69,10 +107,11 @@ export class UnCordedPlugin {
       const response = msg as unknown as PluginResponse;
       const pending = this.#pending.get(response.id);
       if (!pending) return;
+      clearTimeout(pending.timer);
       this.#pending.delete(response.id);
 
       if (response.error) {
-        pending.reject(new Error(`${response.error.code}: ${response.error.message}`));
+        pending.reject(new BridgeError(response.error.code, response.error.message));
       } else {
         pending.resolve(response.result);
       }
@@ -120,18 +159,18 @@ export class UnCordedPlugin {
   // ── Actions ──────────────────────────────────────────────
 
   /** Send a message to a channel. */
-  async sendMessage(channelId: string, content: string): Promise<{ sent: boolean }> {
+  async sendMessage(channelId: ChannelId, content: string): Promise<{ sent: boolean }> {
     return this.#request<{ sent: boolean }>("sendMessage", { channelId, content });
   }
 
   /** Show a toast notification. */
-  showToast(message: string, type: ToastType = "info"): void {
-    void this.#request("showToast", { message, type });
+  async showToast(message: string, type: ToastType = "info"): Promise<void> {
+    await this.#request("showToast", { message, type });
   }
 
   /** Navigate within the app. */
-  navigate(to: NavigateParams["to"], channelId: string): void {
-    void this.#request("navigate", { to, channelId } satisfies NavigateParams);
+  async navigate(to: NavigateParams["to"], channelId: ChannelId): Promise<void> {
+    await this.#request("navigate", { to, channelId } satisfies NavigateParams);
   }
 
   // ── Events ───────────────────────────────────────────────

@@ -1,3 +1,5 @@
+import type { ChannelId, UserId } from "@uncorded/protocol";
+import { BridgeConfigError, BridgeHttpError, BridgeNetworkError } from "./errors.js";
 import { BridgeStorage } from "./storage.js";
 import type {
   BridgeOptions,
@@ -9,10 +11,13 @@ import type {
   User,
 } from "./types.js";
 
+const DEFAULT_TIMEOUT_MS = 30_000;
+
 /** Typed HTTP client for Docker plugins to talk to the UnCorded sidecar bridge. */
 export class UnCordedBridge {
   readonly #baseUrl: string;
   readonly #token: string;
+  readonly #timeoutMs: number;
 
   /** KV storage API. */
   readonly storage: BridgeStorage;
@@ -22,18 +27,19 @@ export class UnCordedBridge {
     const token = options?.token ?? process.env["UNCORDED_BRIDGE_TOKEN"];
 
     if (!baseUrl) {
-      throw new Error(
-        "UnCordedBridge: No base URL provided. Set UNCORDED_BRIDGE_URL or pass baseUrl option.",
+      throw new BridgeConfigError(
+        "No base URL provided. Set UNCORDED_BRIDGE_URL or pass baseUrl option.",
       );
     }
     if (!token) {
-      throw new Error(
-        "UnCordedBridge: No token provided. Set UNCORDED_BRIDGE_TOKEN or pass token option.",
+      throw new BridgeConfigError(
+        "No token provided. Set UNCORDED_BRIDGE_TOKEN or pass token option.",
       );
     }
 
     this.#baseUrl = baseUrl.replace(/\/+$/, "");
     this.#token = token;
+    this.#timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.storage = new BridgeStorage((path, init) => this.#fetch(path, init));
   }
 
@@ -41,21 +47,34 @@ export class UnCordedBridge {
 
   async #fetch(path: string, init?: RequestInit): Promise<Response> {
     const url = `${this.#baseUrl}${path}`;
-    const res = await fetch(url, {
-      ...init,
-      headers: {
-        Authorization: `Bearer ${this.#token}`,
-        ...init?.headers,
-      },
-    });
-    return res;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.#timeoutMs);
+
+    try {
+      const res = await fetch(url, {
+        ...init,
+        signal: controller.signal,
+        headers: {
+          Authorization: `Bearer ${this.#token}`,
+          ...init?.headers,
+        },
+      });
+      return res;
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        throw new BridgeNetworkError(`Request to ${path} timed out after ${this.#timeoutMs}ms`);
+      }
+      throw new BridgeNetworkError(`Network error on ${path}`, { cause: err });
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   async #get<T>(path: string): Promise<T> {
     const res = await this.#fetch(path);
     if (!res.ok) {
       const text = await res.text();
-      throw new Error(`Bridge GET ${path} failed (${res.status}): ${text}`);
+      throw new BridgeHttpError("GET", path, res.status, text);
     }
     return (await res.json()) as T;
   }
@@ -68,7 +87,7 @@ export class UnCordedBridge {
     });
     if (!res.ok) {
       const text = await res.text();
-      throw new Error(`Bridge POST ${path} failed (${res.status}): ${text}`);
+      throw new BridgeHttpError("POST", path, res.status, text);
     }
     return (await res.json()) as T;
   }
@@ -99,8 +118,8 @@ export class UnCordedBridge {
   // ── Messages ─────────────────────────────────────────────
 
   /** Get messages from a channel. */
-  async getMessages(channelId: string, options?: GetMessagesOptions): Promise<Message[]> {
-    const params = options?.limit ? `?limit=${options.limit}` : "";
+  async getMessages(channelId: ChannelId, options?: GetMessagesOptions): Promise<Message[]> {
+    const params = options?.limit !== undefined ? `?limit=${options.limit}` : "";
     const body = await this.#get<{ channelId: string; messages: Message[]; limit: number }>(
       `/bridge/channels/${encodeURIComponent(channelId)}/messages${params}`,
     );
@@ -108,14 +127,14 @@ export class UnCordedBridge {
   }
 
   /** Send a message to a channel. */
-  async sendMessage(channelId: string, content: string): Promise<{ sent: boolean; error?: string }> {
+  async sendMessage(channelId: ChannelId, content: string): Promise<{ sent: boolean; error?: string }> {
     return this.#post(`/bridge/channels/${encodeURIComponent(channelId)}/messages`, { content });
   }
 
   // ── Users ────────────────────────────────────────────────
 
   /** Get a user by ID. */
-  async getUser(userId: string): Promise<User> {
+  async getUser(userId: UserId): Promise<User> {
     return this.#get<User>(`/bridge/users/${encodeURIComponent(userId)}`);
   }
 

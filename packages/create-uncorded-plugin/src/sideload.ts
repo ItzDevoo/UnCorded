@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -15,9 +15,9 @@ export async function sideload(pluginDir: string): Promise<void> {
 
   const imageName = manifest.runtime.image;
 
-  // Build Docker image
+  // Build Docker image (use execFileSync to avoid shell injection via imageName)
   console.log(`\nBuilding Docker image: ${imageName}`);
-  execSync(`docker build -t ${imageName} .`, {
+  execFileSync("docker", ["build", "-t", imageName, "."], {
     cwd: pluginDir,
     stdio: "inherit",
   });
@@ -36,8 +36,7 @@ export async function sideload(pluginDir: string): Promise<void> {
 
   if (!res.ok) {
     const text = await res.text();
-    console.error(`Sideload failed (${res.status}): ${text}`);
-    process.exit(1);
+    throw new Error(`Sideload failed (${res.status}): ${text}`);
   }
 
   const result = await res.json();

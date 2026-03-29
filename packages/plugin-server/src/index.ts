@@ -1,5 +1,12 @@
 export { UnCordedBridge } from "./bridge.js";
 export { BridgeStorage } from "./storage.js";
+export {
+  BridgeConfigError,
+  BridgeError,
+  BridgeHttpError,
+  BridgeNetworkError,
+  BridgeNotFoundError,
+} from "./errors.js";
 export type {
   BridgeOptions,
   Channel,

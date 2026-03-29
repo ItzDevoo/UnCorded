@@ -186,20 +186,21 @@ export class PluginLifecycle {
       );
     }
 
-    // Create tunnel for server-scope plugins
-    if (plugin.scope === "server" && plugin.hostPort && this.tunnelManager) {
-      // Clear any stale tunnel URL from a previous run before attempting creation
+    // Clear any stale tunnel URL for server-scope plugins before attempting creation
+    if (plugin.scope === "server") {
       plugin.tunnelUrl = null;
       this.saveState();
 
-      try {
-        const tunnelUrl = await this.tunnelManager.create(pluginId, plugin.hostPort);
-        plugin.tunnelUrl = tunnelUrl;
-        this.saveState();
-        await this.reportTunnelUrl(plugin.serverId, pluginId, tunnelUrl, "active");
-      } catch (err) {
-        console.error(`[lifecycle] Failed to create tunnel for ${pluginId}:`, err);
-        // Plugin still runs, just no tunnel
+      if (plugin.hostPort && this.tunnelManager) {
+        try {
+          const tunnelUrl = await this.tunnelManager.create(pluginId, plugin.hostPort);
+          plugin.tunnelUrl = tunnelUrl;
+          this.saveState();
+          await this.reportTunnelUrl(plugin.serverId, pluginId, tunnelUrl, "active");
+        } catch (err) {
+          console.error(`[lifecycle] Failed to create tunnel for ${pluginId}:`, err);
+          // Plugin still runs, just no tunnel
+        }
       }
     }
 

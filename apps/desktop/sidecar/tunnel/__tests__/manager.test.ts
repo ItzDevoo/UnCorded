@@ -27,6 +27,17 @@ vi.mock("../binary", () => ({ ensureCloudflared: mockEnsureCloudflared }));
 
 import { TunnelManager } from "../manager";
 
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function getStderrCallback(proc: typeof mockProcess): (data: Buffer) => void {
+  const entry = proc.stderr.on.mock.calls.find(
+    (c: unknown[]) => c[0] === "data",
+  );
+  expect(entry).toBeDefined();
+  expect(typeof entry![1]).toBe("function");
+  return entry![1] as (data: Buffer) => void;
+}
+
 // ── Tests ──────────────────────────────────────────────────────────────────
 
 describe("TunnelManager", () => {
@@ -46,12 +57,7 @@ describe("TunnelManager", () => {
     it("spawns cloudflared and resolves with tunnel URL", async () => {
       const createPromise = manager.create("test-plugin", 3000);
 
-      // Simulate cloudflared output on stderr
-      const stderrCallback = mockProcess.stderr.on.mock.calls.find(
-        (c: unknown[]) => c[0] === "data",
-      )?.[1];
-      expect(stderrCallback).toBeDefined();
-
+      const stderrCallback = getStderrCallback(mockProcess);
       stderrCallback(Buffer.from(
         "2026-01-01 INF | https://random-words.trycloudflare.com\n",
       ));
@@ -68,9 +74,7 @@ describe("TunnelManager", () => {
     it("returns the tunnel URL from getUrl after creation", async () => {
       const createPromise = manager.create("test-plugin", 3000);
 
-      const stderrCallback = mockProcess.stderr.on.mock.calls.find(
-        (c: unknown[]) => c[0] === "data",
-      )?.[1];
+      const stderrCallback = getStderrCallback(mockProcess);
       stderrCallback(Buffer.from("https://abc-def.trycloudflare.com"));
 
       await createPromise;
@@ -125,9 +129,7 @@ describe("TunnelManager", () => {
     it("kills the tunnel process and waits for exit", async () => {
       // Set up a tunnel first
       const createPromise = manager.create("test-plugin", 3000);
-      const stderrCallback = mockProcess.stderr.on.mock.calls.find(
-        (c: unknown[]) => c[0] === "data",
-      )?.[1];
+      const stderrCallback = getStderrCallback(mockProcess);
       stderrCallback(Buffer.from("https://abc.trycloudflare.com"));
       await createPromise;
 
@@ -151,14 +153,18 @@ describe("TunnelManager", () => {
     it("cleans up all tunnels", async () => {
       // Create first tunnel
       const p1 = manager.create("plugin-1", 3001);
-      let stderrCb = mockProcess.stderr.on.mock.calls.find(
-        (c: unknown[]) => c[0] === "data",
-      )?.[1];
-      stderrCb(Buffer.from("https://a.trycloudflare.com"));
+      const stderrCb1 = getStderrCallback(mockProcess);
+      stderrCb1(Buffer.from("https://a.trycloudflare.com"));
       await p1;
 
-      // Reset mock for second spawn
-      vi.clearAllMocks();
+      // Save reference to first process's kill before clearing listener mocks
+      const firstKill = mockProcess.kill;
+
+      // Clear only listener mocks (not kill) for second spawn
+      mockProcess.stderr.on.mockClear();
+      mockProcess.stdout.on.mockClear();
+      mockProcess.on.mockClear();
+
       const mockProcess2 = {
         stderr: { on: vi.fn() },
         stdout: { on: vi.fn() },
@@ -168,10 +174,8 @@ describe("TunnelManager", () => {
       mockSpawn.mockReturnValue(mockProcess2);
 
       const p2 = manager.create("plugin-2", 3002);
-      stderrCb = mockProcess2.stderr.on.mock.calls.find(
-        (c: unknown[]) => c[0] === "data",
-      )?.[1];
-      stderrCb(Buffer.from("https://b.trycloudflare.com"));
+      const stderrCb2 = getStderrCallback(mockProcess2);
+      stderrCb2(Buffer.from("https://b.trycloudflare.com"));
       await p2;
 
       const destroyPromise = manager.destroyAll();
@@ -179,6 +183,8 @@ describe("TunnelManager", () => {
       await vi.advanceTimersByTimeAsync(6_000);
       await destroyPromise;
 
+      expect(firstKill).toHaveBeenCalled();
+      expect(mockProcess2.kill).toHaveBeenCalled();
       expect(manager.getUrl("plugin-1")).toBeNull();
       expect(manager.getUrl("plugin-2")).toBeNull();
     });

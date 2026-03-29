@@ -1,5 +1,5 @@
 import { createSignal, createResource, For, Show } from "solid-js";
-import type { ServerId, PluginId } from "@uncorded/protocol";
+import type { ServerId, PluginId, UserId } from "@uncorded/protocol";
 import { api, ApiRequestError } from "../../lib/api.js";
 import { showToast } from "../ui/toast.js";
 import { Button } from "../ui/button.js";
@@ -15,7 +15,7 @@ interface ServerPlugin {
   pluginId: PluginId;
   state: "active" | "stopped" | "error";
   tunnelUrl: string | null;
-  installedBy: string;
+  installedBy: UserId;
   installedAt: string;
   config: Record<string, unknown>;
 }
@@ -45,7 +45,7 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
     () => props.serverId,
     async (serverId) => {
       const res = await api<{ plugins: ServerPlugin[] }>(
-        `/api/servers/${serverId}/plugins`,
+        `/api/servers/${encodeURIComponent(serverId)}/plugins`,
       );
       return res.plugins;
     },
@@ -69,7 +69,7 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
     if (installing()) return;
     setInstalling(pluginId);
     try {
-      await api(`/api/servers/${props.serverId}/plugins`, {
+      await api(`/api/servers/${encodeURIComponent(props.serverId)}/plugins`, {
         method: "POST",
         body: JSON.stringify({ pluginId }),
       });
@@ -90,7 +90,7 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
     if (uninstalling()) return;
     setUninstalling(pluginId);
     try {
-      await api(`/api/servers/${props.serverId}/plugins/${pluginId}`, {
+      await api(`/api/servers/${encodeURIComponent(props.serverId)}/plugins/${encodeURIComponent(pluginId)}`, {
         method: "DELETE",
       });
       mutateInstalled((prev) => prev?.filter((p) => p.pluginId !== pluginId));

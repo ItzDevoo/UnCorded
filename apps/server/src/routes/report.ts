@@ -11,6 +11,7 @@ import { db } from "../db/index.js";
 import { reports, messages, fileReceipts, user, servers, members } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
 import { checkUserRateLimit } from "../helpers/rate-limit.js";
+import { RL } from "../helpers/rate-limit-keys.js";
 import { resolveChannelMembership } from "../helpers/resolve-channel.js";
 
 export const reportRoutes = new Elysia({ prefix: "/api/reports" })
@@ -23,7 +24,7 @@ export const reportRoutes = new Elysia({ prefix: "/api/reports" })
 
     await checkUserRateLimit(
       sessionUser.id,
-      "report:create",
+      RL.REPORT_CREATE,
       RATE_LIMIT_REPORT_CREATE.limit,
       RATE_LIMIT_REPORT_CREATE.windowMs,
     );

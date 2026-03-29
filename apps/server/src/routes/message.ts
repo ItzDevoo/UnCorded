@@ -19,6 +19,7 @@ import { authResolve } from "../middleware/auth.js";
 import { resolveChannelMembership } from "../helpers/resolve-channel.js";
 import { broadcastToServer, broadcastToDm, sendToUser } from "../ws/connections.js";
 import { checkUserRateLimit } from "../helpers/rate-limit.js";
+import { RL } from "../helpers/rate-limit-keys.js";
 
 const DEFAULT_LIMIT = MESSAGE_PAGE_LIMIT;
 
@@ -87,7 +88,7 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
   .post("/", async ({ user: sessionUser, params, body, set }) => {
     await checkUserRateLimit(
       sessionUser.id,
-      "messages:create",
+      RL.MESSAGE_CREATE,
       RATE_LIMIT_MESSAGE_CREATE.limit,
       RATE_LIMIT_MESSAGE_CREATE.windowMs,
     );

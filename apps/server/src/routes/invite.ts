@@ -15,6 +15,7 @@ import { db } from "../db/index.js";
 import { invites, servers, members, channels, user } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
 import { checkIpRateLimit } from "../middleware/ip-rate-limit.js";
+import { RL } from "../helpers/rate-limit-keys.js";
 import { requireMember, requireOwner } from "../helpers/permissions.js";
 import { addServerMember } from "../ws/server-members.js";
 import { sendToUser, broadcastToServer } from "../ws/connections.js";
@@ -88,7 +89,7 @@ export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
       request.headers.get("x-real-ip") ??
       "unknown";
-    if (!(await checkIpRateLimit(ip, 10, 60_000, "invite-lookup"))) {
+    if (!(await checkIpRateLimit(ip, 10, 60_000, RL.INVITE_LOOKUP))) {
       throw new RateLimitError("Too many requests, try again later");
     }
 

@@ -24,6 +24,7 @@ import { isR2Configured, uploadAvatar, deleteAvatar } from "../lib/r2.js";
 import { AppError } from "@uncorded/shared";
 import { checkIpRateLimit } from "../middleware/ip-rate-limit.js";
 import { checkUserRateLimit } from "../helpers/rate-limit.js";
+import { RL } from "../helpers/rate-limit-keys.js";
 import { sendToUser, disconnectUser } from "../ws/connections.js";
 
 // ── Pending deletion state (in-memory, single-server) ──────────
@@ -99,7 +100,7 @@ const avatarRoutes = new Elysia({ prefix: "/api/users" })
   })
   .patch("/@me/avatar", async ({ user: sessionUser, body: rawBody, request }) => {
     const ip = getClientIp(request);
-    if (!(await checkIpRateLimit(ip, 10, 300_000, "avatar-up"))) {
+    if (!(await checkIpRateLimit(ip, 10, 300_000, RL.AVATAR_UPLOAD))) {
       throw new RateLimitError("Too many requests, try again later");
     }
 
@@ -158,7 +159,7 @@ const avatarRoutes = new Elysia({ prefix: "/api/users" })
   })
   .delete("/@me/avatar", async ({ user: sessionUser, request }) => {
     const ip = getClientIp(request);
-    if (!(await checkIpRateLimit(ip, 10, 300_000, "avatar-del"))) {
+    if (!(await checkIpRateLimit(ip, 10, 300_000, RL.AVATAR_DELETE))) {
       throw new RateLimitError("Too many requests, try again later");
     }
 
@@ -211,7 +212,7 @@ export const userRoutes = new Elysia()
 
     await checkUserRateLimit(
       sessionUser.id,
-      "users:search",
+      RL.USER_SEARCH,
       RATE_LIMIT_USER_SEARCH.limit,
       RATE_LIMIT_USER_SEARCH.windowMs,
     );
@@ -307,7 +308,7 @@ export const userRoutes = new Elysia()
   })
   .post("/@me/password", async ({ body, request }) => {
     const ip = getClientIp(request);
-    if (!(await checkIpRateLimit(ip, 5, 900_000, "pwd"))) {
+    if (!(await checkIpRateLimit(ip, 5, 900_000, RL.PASSWORD))) {
       throw new RateLimitError("Too many requests, try again later");
     }
 
@@ -342,7 +343,7 @@ export const userRoutes = new Elysia()
   })
   .delete("/@me", async ({ user: sessionUser, body, request }) => {
     const ip = getClientIp(request);
-    if (!(await checkIpRateLimit(ip, 3, 900_000, "acct-del"))) {
+    if (!(await checkIpRateLimit(ip, 3, 900_000, RL.ACCOUNT_DELETE))) {
       throw new RateLimitError("Too many requests, try again later");
     }
 
@@ -427,7 +428,7 @@ export const userRoutes = new Elysia()
   })
   .post("/@me/cancel-deletion", async ({ user: sessionUser, request }) => {
     const ip = getClientIp(request);
-    if (!(await checkIpRateLimit(ip, 5, 900_000, "acct-del-cancel"))) {
+    if (!(await checkIpRateLimit(ip, 5, 900_000, RL.ACCOUNT_DELETE_CANCEL))) {
       throw new RateLimitError("Too many requests, try again later");
     }
 

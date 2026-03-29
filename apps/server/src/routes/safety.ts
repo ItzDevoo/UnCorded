@@ -2,6 +2,7 @@ import { Elysia } from "elysia";
 import { ValidationError, RATE_LIMIT_MESSAGE_CREATE } from "@uncorded/shared";
 import { authResolve } from "../middleware/auth.js";
 import { checkUserRateLimit } from "../helpers/rate-limit.js";
+import { RL } from "../helpers/rate-limit-keys.js";
 import { env } from "../env.js";
 
 export const safetyRoutes = new Elysia({ prefix: "/api/safety" })
@@ -9,7 +10,7 @@ export const safetyRoutes = new Elysia({ prefix: "/api/safety" })
   .post("/check-hash", async ({ user: sessionUser, body }) => {
     await checkUserRateLimit(
       sessionUser.id,
-      "safety:check-hash",
+      RL.SAFETY_CHECK_HASH,
       RATE_LIMIT_MESSAGE_CREATE.limit,
       RATE_LIMIT_MESSAGE_CREATE.windowMs,
     );

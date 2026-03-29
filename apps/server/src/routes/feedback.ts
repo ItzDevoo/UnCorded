@@ -11,6 +11,7 @@ import { db } from "../db/index.js";
 import { feedback, feedbackVotes, user } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
 import { checkUserRateLimit } from "../helpers/rate-limit.js";
+import { RL } from "../helpers/rate-limit-keys.js";
 
 const PAGE_SIZE = 20;
 
@@ -83,7 +84,7 @@ export const feedbackRoutes = new Elysia({ prefix: "/api/feedback" })
 
     await checkUserRateLimit(
       sessionUser.id,
-      "feedback:create",
+      RL.FEEDBACK_CREATE,
       RATE_LIMIT_FEEDBACK_CREATE.limit,
       RATE_LIMIT_FEEDBACK_CREATE.windowMs,
     );
@@ -106,7 +107,7 @@ export const feedbackRoutes = new Elysia({ prefix: "/api/feedback" })
   .post("/:id/vote", async ({ params, user: sessionUser }) => {
     await checkUserRateLimit(
       sessionUser.id,
-      "feedback:vote",
+      RL.FEEDBACK_VOTE,
       RATE_LIMIT_FEEDBACK_VOTE.limit,
       RATE_LIMIT_FEEDBACK_VOTE.windowMs,
     );

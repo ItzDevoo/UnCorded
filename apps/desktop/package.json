@@ -1,0 +1,33 @@
+{
+  "name": "@uncorded/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist-electron/main/index.cjs",
+  "scripts": {
+    "dev": "bun run scripts/dev.ts",
+    "build:main": "tsdown src/main/index.ts --out-dir dist-electron/main --format cjs --external electron && tsdown src/main/preload.ts --out-dir dist-electron/main --format cjs --external electron",
+    "build:sidecar": "bun build sidecar/index.ts --outdir dist-electron/sidecar --target bun",
+    "build": "bun run build:main && bun run build:sidecar",
+    "typecheck": "tsc --noEmit",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9",
+    "elysia": "^1.2.25",
+    "dockerode": "^4.0.4",
+    "msgpackr": "^1.11.3",
+    "ws": "^8.18.0",
+    "webtorrent": "^2.5.1"
+  },
+  "devDependencies": {
+    "@types/dockerode": "^3.3.34",
+    "@types/ws": "^8.5.14",
+    "@types/webtorrent": "^0.109.8",
+    "electron": "^33.3.1",
+    "electron-builder": "^25.1.8",
+    "tsdown": "^0.9.2",
+    "typescript": "^5.7.0"
+  }
+}

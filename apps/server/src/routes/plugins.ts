@@ -25,6 +25,7 @@ const PLUGIN_CATALOG = [
     author: "UnCorded",
     icon: null,
     category: "AI",
+    scope: "both" as const,
     tags: ["ai", "developer-tools", "automation"],
   },
 ] as const;

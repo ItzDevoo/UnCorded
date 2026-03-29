@@ -113,6 +113,13 @@
       "when": 1743177600000,
       "tag": "0015_add_plugin_installs",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1743264000000,
+      "tag": "0016_add_server_plugins",
+      "breakpoints": true
     }
   ]
 }

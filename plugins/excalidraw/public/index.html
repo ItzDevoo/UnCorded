@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Excalidraw Boards</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0A0A0A;
+      color: #E8E8E8;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #E8E8E8;
+    }
+
+    h1 span {
+      color: #16A37F;
+    }
+
+    .create-section {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    input[type="text"] {
+      background: #111111;
+      border: 1px solid #2A2A2A;
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      color: #E8E8E8;
+      font-size: 0.875rem;
+      outline: none;
+      width: 200px;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus {
+      border-color: #16A37F;
+    }
+
+    input[type="text"]::placeholder {
+      color: #6B6B6B;
+    }
+
+    button {
+      background: #16A37F;
+      color: #0A0A0A;
+      border: none;
+      border-radius: 6px;
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #139169;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .boards-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .board-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #111111;
+      border: 1px solid #2A2A2A;
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+      transition: border-color 0.2s, background 0.2s;
+      color: inherit;
+    }
+
+    .board-card:hover {
+      border-color: #16A37F;
+      background: #181818;
+    }
+
+    .board-link {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      text-decoration: none;
+      color: inherit;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .board-name {
+      font-weight: 500;
+      font-size: 1rem;
+      color: #E8E8E8;
+    }
+
+    .board-meta {
+      font-size: 0.75rem;
+      color: #6B6B6B;
+    }
+
+    .board-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .active-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      color: #16A37F;
+    }
+
+    .active-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #16A37F;
+    }
+
+    .delete-btn {
+      background: transparent;
+      color: #6B6B6B;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      border-radius: 4px;
+    }
+
+    .delete-btn:hover {
+      background: #1a0a0a;
+      color: #F87171;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: #6B6B6B;
+    }
+
+    .empty-state p {
+      margin-bottom: 0.5rem;
+      font-size: 1rem;
+    }
+
+    .empty-state small {
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1><span>Excalidraw</span> Boards</h1>
+      <div class="create-section">
+        <input type="text" id="board-name" placeholder="New board name..." />
+        <button id="create-btn">Create</button>
+      </div>
+    </header>
+
+    <div id="boards-list" class="boards-list">
+      <div class="empty-state">
+        <p>Loading boards...</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const listEl = document.getElementById('boards-list');
+    const nameInput = document.getElementById('board-name');
+    const createBtn = document.getElementById('create-btn');
+
+    function timeAgo(dateStr) {
+      const diff = Date.now() - new Date(dateStr).getTime();
+      const mins = Math.floor(diff / 60000);
+      if (mins < 1) return 'just now';
+      if (mins < 60) return mins + 'm ago';
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return hrs + 'h ago';
+      const days = Math.floor(hrs / 24);
+      return days + 'd ago';
+    }
+
+    async function loadBoards() {
+      try {
+        const res = await fetch('/api/boards');
+        const boards = await res.json();
+
+        if (boards.length === 0) {
+          listEl.innerHTML = `
+            <div class="empty-state">
+              <p>No boards yet</p>
+              <small>Create one to get started</small>
+            </div>`;
+          return;
+        }
+
+        boards.sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified));
+
+        listEl.innerHTML = boards.map(b => `
+          <div class="board-card" data-id="${b.id}">
+            <a class="board-link" href="/board/${b.id}">
+              <span class="board-name">${escapeHtml(b.name)}</span>
+              <span class="board-meta">Modified ${timeAgo(b.lastModified)}</span>
+            </a>
+            <div class="board-right">
+              ${b.activeUsers > 0 ? `
+                <span class="active-badge">
+                  <span class="active-dot"></span>
+                  ${b.activeUsers} active
+                </span>
+              ` : ''}
+              <button class="delete-btn" onclick="deleteBoard(event, '${b.id}')">Delete</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        listEl.innerHTML = `<div class="empty-state"><p>Failed to load boards</p></div>`;
+      }
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    let creating = false;
+    async function createNewBoard() {
+      const name = nameInput.value.trim();
+      if (!name || creating) return;
+
+      creating = true;
+      createBtn.disabled = true;
+      nameInput.disabled = true;
+      try {
+        const res = await fetch('/api/boards', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name }),
+        });
+        if (res.ok) {
+          const board = await res.json();
+          nameInput.value = '';
+          window.location.href = `/board/${board.id}`;
+        } else {
+          const err = await res.json().catch(() => ({ error: 'Failed to create board' }));
+          alert(err.error || 'Failed to create board');
+        }
+      } catch (err) {
+        console.error('Create board error:', err);
+        alert('Network error — could not create board');
+      } finally {
+        creating = false;
+        createBtn.disabled = false;
+        nameInput.disabled = false;
+      }
+    }
+
+    async function deleteBoard(e, id) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!confirm('Delete this board?')) return;
+
+      try {
+        const res = await fetch(`/api/boards/${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: 'Failed to delete board' }));
+          alert(err.error || 'Failed to delete board');
+          return;
+        }
+        loadBoards();
+      } catch (err) {
+        console.error('Delete board error:', err);
+        alert('Network error — could not delete board');
+      }
+    }
+
+    createBtn.addEventListener('click', createNewBoard);
+    nameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') createNewBoard();
+    });
+
+    loadBoards();
+    setInterval(loadBoards, 10000);
+  </script>
+</body>
+</html>

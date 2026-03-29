@@ -2,7 +2,6 @@ import type { ChannelId } from "@uncorded/protocol";
 import { BridgeError, PluginDestroyedError, RequestTimeoutError } from "./errors.js";
 import type {
   Channel,
-  EventHandler,
   Member,
   NavigateParams,
   PluginEvent,
@@ -27,7 +26,7 @@ interface PendingRequest {
  */
 export class UnCordedPlugin {
   readonly #pending = new Map<string, PendingRequest>();
-  readonly #listeners = new Map<string, Set<EventHandler>>();
+  readonly #listeners = new Map<string, Set<(data: unknown) => void>>();
   readonly #shellOrigin: string;
   readonly #timeoutMs: number;
   #idCounter = 0;
@@ -176,20 +175,20 @@ export class UnCordedPlugin {
   // ── Events ───────────────────────────────────────────────
 
   /** Subscribe to a bridge event. */
-  on<T = unknown>(event: string, handler: EventHandler<T>): void {
+  on<T = unknown>(event: string, handler: (data: T) => void): void {
     let set = this.#listeners.get(event);
     if (!set) {
       set = new Set();
       this.#listeners.set(event, set);
     }
-    set.add(handler as EventHandler);
+    set.add(handler as (data: unknown) => void);
   }
 
   /** Unsubscribe from a bridge event. */
-  off<T = unknown>(event: string, handler: EventHandler<T>): void {
+  off<T = unknown>(event: string, handler: (data: T) => void): void {
     const set = this.#listeners.get(event);
     if (set) {
-      set.delete(handler as EventHandler);
+      set.delete(handler as (data: unknown) => void);
       if (set.size === 0) this.#listeners.delete(event);
     }
   }

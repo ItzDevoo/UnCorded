@@ -4,7 +4,7 @@ import { runPrompts } from "./prompts.js";
 import { scaffold } from "./scaffold.js";
 import { sideload } from "./sideload.js";
 
-const VALID_NAME = /^[a-zA-Z0-9_-]+$/;
+const VALID_NAME = /^[a-zA-Z0-9._-]+$/;
 
 const args = process.argv.slice(2);
 
@@ -16,7 +16,7 @@ const answers = await runPrompts(pluginName);
 // Validate plugin name
 const safeName = basename(answers.name);
 if (!safeName || !VALID_NAME.test(safeName)) {
-  console.error(`Invalid plugin name: "${answers.name}". Use alphanumeric characters, hyphens, or underscores only.`);
+  console.error(`Invalid plugin name: "${answers.name}". Use alphanumeric characters, hyphens, underscores, or dots only.`);
   process.exit(1);
 }
 

@@ -1,0 +1,21 @@
+{
+  "id": "excalidraw-boards",
+  "name": "Excalidraw Boards",
+  "version": "1.0.0",
+  "description": "Collaborative whiteboard — create boards and draw together in real-time",
+  "author": "UnCorded",
+  "scope": "server",
+  "runtime": {
+    "image": "excalidraw-boards:latest",
+    "port": 3000,
+    "healthCheck": "/health"
+  },
+  "permissions": ["server.read", "members.read"],
+  "resources": {
+    "cpus": 0.5,
+    "memoryMb": 256
+  },
+  "ui": {
+    "type": "page"
+  }
+}

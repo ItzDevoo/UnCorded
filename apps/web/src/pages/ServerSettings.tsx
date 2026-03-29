@@ -7,14 +7,16 @@ const OverviewTab = lazy(() => import("../components/settings/server-overview.js
 const ChannelsTab = lazy(() => import("../components/settings/channel-management.js"));
 const MembersTab = lazy(() => import("../components/settings/member-management.js"));
 const InvitesTab = lazy(() => import("../components/settings/invite-management.js"));
+const PluginsTab = lazy(() => import("../components/settings/server-plugins.js"));
 
-type Tab = "overview" | "channels" | "members" | "invites";
+type Tab = "overview" | "channels" | "members" | "invites" | "plugins";
 
 const tabs: { id: Tab; label: string }[] = [
   { id: "overview", label: "Overview" },
   { id: "channels", label: "Channels" },
   { id: "members", label: "Members" },
   { id: "invites", label: "Invites" },
+  { id: "plugins", label: "Plugins" },
 ];
 
 const ServerSettings = () => {
@@ -104,6 +106,9 @@ const ServerSettings = () => {
             </Show>
             <Show when={activeTab() === "invites"}>
               <InvitesTab serverId={serverId()!} />
+            </Show>
+            <Show when={activeTab() === "plugins"}>
+              <PluginsTab serverId={serverId()!} />
             </Show>
           </div>
         </div>

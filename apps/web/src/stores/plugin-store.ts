@@ -1,4 +1,5 @@
 import { createSignal, createRoot } from "solid-js";
+import { api } from "../lib/api.js";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -11,7 +12,18 @@ export interface PluginInfo {
   rightPanel: boolean;
   status: "running" | "stopped" | "crashed" | "starting";
   port: number;
+  scope: "server" | "personal";
+  tunnelUrl: string | null;
   permissions: string[];
+}
+
+export interface ServerPluginInfo {
+  id: string;
+  pluginId: string;
+  state: "active" | "stopped" | "error";
+  tunnelUrl: string | null;
+  installedBy: string;
+  installedAt: string;
 }
 
 // ── Desktop detection ──────────────────────────────────────────────────────
@@ -32,6 +44,37 @@ const visiblePlugins = () =>
 
 function clearActivePlugin() {
   setActivePluginId(null);
+}
+
+// ── Server plugins (fetched from API, available to all users) ─────────────
+
+const [serverPlugins, setServerPlugins] = createSignal<ServerPluginInfo[]>([]);
+const [activeServerPluginId, setActiveServerPluginId] = createSignal<string | null>(null);
+const [serverPluginsLoading, setServerPluginsLoading] = createSignal(false);
+
+const activeServerPlugin = () =>
+  serverPlugins().find((p) => p.pluginId === activeServerPluginId()) ?? null;
+
+const visibleServerPlugins = () =>
+  serverPlugins().filter((p) => p.state === "active");
+
+async function fetchServerPlugins(serverId: string): Promise<void> {
+  setServerPluginsLoading(true);
+  try {
+    const res = await api<{ plugins: ServerPluginInfo[] }>(
+      `/api/servers/${serverId}/plugins`,
+    );
+    setServerPlugins(res.plugins);
+  } catch {
+    setServerPlugins([]);
+  } finally {
+    setServerPluginsLoading(false);
+  }
+}
+
+function clearServerPlugins() {
+  setServerPlugins([]);
+  setActiveServerPluginId(null);
 }
 
 // ── Lifecycle ──────────────────────────────────────────────────────────────
@@ -92,4 +135,13 @@ export {
   activePlugin,
   visiblePlugins,
   clearActivePlugin,
+  serverPlugins,
+  setServerPlugins,
+  activeServerPluginId,
+  setActiveServerPluginId,
+  activeServerPlugin,
+  visibleServerPlugins,
+  serverPluginsLoading,
+  fetchServerPlugins,
+  clearServerPlugins,
 };

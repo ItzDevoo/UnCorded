@@ -1,21 +1,17 @@
-import { createSignal, createEffect, on, Show, onMount } from "solid-js";
+import { createSignal, createEffect, Show, onCleanup } from "solid-js";
 import type { PluginInfo } from "../stores/plugin-store.js";
 import { isDesktop } from "../stores/plugin-store.js";
 import { Empty } from "./ui/empty.js";
 
 interface PluginFrameProps {
   plugin: PluginInfo;
+  /** Override URL for server plugins loaded via tunnel */
+  tunnelUrl?: string | null;
 }
 
 const PluginFrame = (props: PluginFrameProps) => {
   const [loading, setLoading] = createSignal(true);
   const [error, setError] = createSignal(false);
-
-  // Reset state when switching to a different plugin
-  createEffect(on(() => props.plugin.id, () => {
-    setLoading(true);
-    setError(false);
-  }, { defer: true }));
 
   const isCrashed = () =>
     props.plugin.status === "crashed" || props.plugin.status === "stopped";
@@ -39,16 +35,38 @@ const PluginFrame = (props: PluginFrameProps) => {
     });
   };
 
-  onMount(() => {
-    // Fallback timeout — if iframe doesn't fire load within 15s, show error
+  // Determine the iframe URL based on scope
+  const iframeUrl = () => {
+    // Tunnel URL takes priority (server plugin for browser user)
+    if (props.tunnelUrl) return props.tunnelUrl;
+    // Server plugin with tunnel URL from plugin info
+    if (props.plugin.scope === "server" && props.plugin.tunnelUrl) return props.plugin.tunnelUrl;
+    // Local plugin (personal or server on desktop owner)
+    if (props.plugin.port) return `http://localhost:${props.plugin.port}/`;
+    return null;
+  };
+
+  const isOffline = () => !iframeUrl();
+
+  // Longer timeout for tunnel URLs (network latency)
+  const timeoutMs = () =>
+    (props.tunnelUrl || props.plugin.tunnelUrl) ? 20_000 : 15_000;
+
+  // Reactive timeout — restarts when plugin ID or timeout duration changes
+  createEffect(() => {
+    void props.plugin.id; // track plugin switches (SolidJS reactivity)
+    const ms = timeoutMs();
+    setLoading(true);
+    setError(false);
+
     const timeout = setTimeout(() => {
       if (loading()) {
         setLoading(false);
         setError(true);
       }
-    }, 15_000);
+    }, ms);
 
-    return () => clearTimeout(timeout);
+    onCleanup(() => clearTimeout(timeout));
   });
 
   return (
@@ -89,10 +107,18 @@ const PluginFrame = (props: PluginFrameProps) => {
         </div>
       </Show>
 
-      {/* iframe — only render when plugin is running */}
-      <Show when={props.plugin.status === "running" && !error()}>
+      {/* Offline state — server plugin with no tunnel URL */}
+      <Show when={isOffline() && !isCrashed() && !error()}>
+        <Empty
+          title="Plugin offline"
+          description={`"${props.plugin.name}" is not currently running on the server owner's machine.`}
+        />
+      </Show>
+
+      {/* iframe — only render when plugin is running and URL is available */}
+      <Show when={(props.plugin.status === "running" || props.tunnelUrl) && !error() && !isOffline()}>
         <iframe
-          src={`http://localhost:${props.plugin.port}/`}
+          src={iframeUrl()!}
           sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
           allow="clipboard-write"
           referrerpolicy="no-referrer"

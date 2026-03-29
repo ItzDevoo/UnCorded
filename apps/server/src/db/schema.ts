@@ -444,6 +444,34 @@ export const pollVotes = pgTable(
 
 // ─── Plugin Tables ──────────────────────────────────────────
 
+export const serverPluginStateEnum = pgEnum("server_plugin_state", [
+  "active",
+  "stopped",
+  "error",
+]);
+
+export const serverPlugins = pgTable(
+  "server_plugins",
+  {
+    id: id(),
+    serverId: text("server_id")
+      .notNull()
+      .references(() => servers.id, { onDelete: "cascade" }),
+    pluginId: text("plugin_id").notNull(),
+    installedBy: text("installed_by")
+      .notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    installedAt: timestamp("installed_at", { mode: "date" }).defaultNow().notNull(),
+    config: text("config"),
+    tunnelUrl: text("tunnel_url"),
+    state: serverPluginStateEnum("state").default("stopped").notNull(),
+  },
+  (t) => [
+    unique("server_plugins_server_plugin").on(t.serverId, t.pluginId),
+    index("server_plugins_server_id_idx").on(t.serverId),
+  ],
+);
+
 export const pluginInstalls = pgTable(
   "plugin_installs",
   {

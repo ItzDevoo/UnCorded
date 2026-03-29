@@ -4,19 +4,23 @@ import type { DockerManager } from "../docker/manager";
 import { NetworkManager } from "../docker/networks";
 import { HealthMonitor } from "../docker/health";
 import { ResourceEnforcer } from "../docker/resources";
-import { issueToken, revokePluginTokens } from "./tokens";
-import { parseManifest, type PluginManifest } from "./manifest";
+import { issueToken, reregisterToken, revokePluginTokens } from "./tokens";
+import { parseManifest, type PluginManifest, type PluginScope } from "./manifest";
+import type { ResolvedScope } from "../bridge/auth";
+import type { TunnelManager } from "../tunnel/manager";
 
 export type PluginState = "installed" | "starting" | "running" | "stopping" | "stopped" | "crashed" | "error";
 
 interface PluginRecord {
   pluginId: string;
   serverId: string;
+  scope: ResolvedScope;
   manifest: PluginManifest;
   containerId: string | null;
   state: PluginState;
   hostPort: number | null;
   bridgeToken: string | null;
+  tunnelUrl: string | null;
   previouslyRunning: boolean;
   installedAt: string;
   error?: string | undefined;
@@ -31,13 +35,19 @@ export class PluginLifecycle {
   private networks: NetworkManager;
   private health: HealthMonitor;
   private resources: ResourceEnforcer;
+  private tunnelManager: TunnelManager | null;
+  private apiBaseUrl: string | null;
+  private apiToken: string | null;
   private dataDir: string;
   private statePath: string;
   private plugins = new Map<string, PluginRecord>();
   private bridgePort = 0;
 
-  constructor(docker: DockerManager, dataDir: string) {
+  constructor(docker: DockerManager, dataDir: string, tunnelManager?: TunnelManager) {
     this.docker = docker;
+    this.tunnelManager = tunnelManager ?? null;
+    this.apiBaseUrl = process.env["UNCORDED_API_URL"] ?? null;
+    this.apiToken = null;
     this.networks = new NetworkManager();
     this.health = new HealthMonitor(docker);
     this.resources = new ResourceEnforcer();
@@ -62,10 +72,26 @@ export class PluginLifecycle {
 
   // --- Public API ---
 
-  async install(manifestRaw: unknown, serverId: string): Promise<{ pluginId: string; errors?: string[] }> {
+  async install(manifestRaw: unknown, serverId: string, scope: ResolvedScope = "personal"): Promise<{ pluginId: string; errors?: string[] }> {
     const { manifest, errors } = parseManifest(manifestRaw);
     if (errors.length > 0) {
       return { pluginId: "", errors };
+    }
+
+    // Validate requested scope is allowed by the manifest
+    if (!PluginLifecycle.isScopeAllowed(manifest.scope, scope)) {
+      return {
+        pluginId: manifest.id,
+        errors: [`Manifest scope "${manifest.scope}" does not allow installing as "${scope}"`],
+      };
+    }
+
+    // Server-scoped plugins require a real serverId (not the "local" fallback or empty)
+    if (scope === "server" && (!serverId || serverId === "local")) {
+      return {
+        pluginId: manifest.id,
+        errors: ["Server-scoped plugins require a valid serverId"],
+      };
     }
 
     // Check resources
@@ -89,7 +115,7 @@ export class PluginLifecycle {
       await this.networks.createPluginNetwork(manifest.id);
 
       // Issue bridge token
-      const bridgeToken = issueToken(manifest.id, serverId, manifest.permissions);
+      const bridgeToken = issueToken(manifest.id, serverId, manifest.permissions, scope);
 
       // Create container
       const containerId = await this.docker.createContainer({
@@ -109,11 +135,13 @@ export class PluginLifecycle {
       const record: PluginRecord = {
         pluginId: manifest.id,
         serverId,
+        scope,
         manifest,
         containerId,
         state: "installed",
         hostPort: null,
         bridgeToken,
+        tunnelUrl: null,
         previouslyRunning: false,
         installedAt: new Date().toISOString(),
       };
@@ -139,10 +167,11 @@ export class PluginLifecycle {
     plugin.state = "starting";
     this.saveState();
 
-    // Token is baked into the container env at create time — register it in
-    // the auth store so the bridge can validate it (needed after sidecar restart)
+    // Token is baked into the container env at create time — re-register it in
+    // the auth store so the bridge can validate it (needed after sidecar restart).
+    // We must NOT issue a new token here because the container already has the old one.
     if (plugin.bridgeToken) {
-      issueToken(pluginId, plugin.serverId, plugin.manifest.permissions);
+      reregisterToken(plugin.bridgeToken, pluginId, plugin.serverId, plugin.manifest.permissions, plugin.scope);
     }
 
     // Start container
@@ -165,6 +194,28 @@ export class PluginLifecycle {
       );
     }
 
+    // Create tunnel for server-scope plugins
+    if (plugin.scope === "server") {
+      // Clear any stale tunnel URL and notify backend before attempting recreation
+      if (plugin.tunnelUrl) {
+        await this.reportTunnelUrl(plugin.serverId, pluginId, null, "active").catch(() => {});
+      }
+      plugin.tunnelUrl = null;
+      this.saveState();
+
+      if (plugin.hostPort && this.tunnelManager) {
+        try {
+          const tunnelUrl = await this.tunnelManager.create(pluginId, plugin.hostPort);
+          plugin.tunnelUrl = tunnelUrl;
+          this.saveState();
+          await this.reportTunnelUrl(plugin.serverId, pluginId, tunnelUrl, "active");
+        } catch (err) {
+          console.error(`[lifecycle] Failed to create tunnel for ${pluginId}:`, err);
+          // Plugin still runs, just no tunnel
+        }
+      }
+    }
+
     console.error(`[lifecycle] Started plugin: ${pluginId} on port ${plugin.hostPort}`);
   }
 
@@ -180,6 +231,20 @@ export class PluginLifecycle {
     revokePluginTokens(pluginId);
 
     await this.docker.stopContainer(plugin.containerId);
+
+    // Destroy tunnel for server-scope plugins (best-effort — never block stop)
+    if (plugin.scope === "server") {
+      if (this.tunnelManager) {
+        try {
+          await this.tunnelManager.destroy(pluginId);
+        } catch (err) {
+          console.error(`[lifecycle] Tunnel destroy failed for ${pluginId}:`, err);
+        }
+      }
+      // Always notify backend to clear the tunnel URL, even without a local tunnelManager
+      await this.reportTunnelUrl(plugin.serverId, pluginId, null, "stopped").catch(() => {});
+      plugin.tunnelUrl = null;
+    }
 
     plugin.state = "stopped";
     plugin.previouslyRunning = false;
@@ -232,6 +297,13 @@ export class PluginLifecycle {
     const { manifest: newManifest, errors } = parseManifest(newManifestRaw);
     if (errors.length > 0) return { errors };
 
+    // Validate the existing scope is still allowed by the new manifest
+    if (!PluginLifecycle.isScopeAllowed(newManifest.scope, plugin.scope)) {
+      return {
+        errors: [`Updated manifest scope "${newManifest.scope}" does not allow current scope "${plugin.scope}"`],
+      };
+    }
+
     const wasRunning = plugin.state === "running";
     if (wasRunning) {
       await this.stop(pluginId);
@@ -241,7 +313,7 @@ export class PluginLifecycle {
     await this.docker.pullImage(newManifest.runtime.image, undefined, { skipIfExists: false });
 
     // Create new container FIRST, then remove old one (rollback-safe)
-    const bridgeToken = issueToken(pluginId, plugin.serverId, newManifest.permissions);
+    const bridgeToken = issueToken(pluginId, plugin.serverId, newManifest.permissions, plugin.scope);
     const newContainerId = await this.docker.createContainer({
       image: newManifest.runtime.image,
       pluginId,
@@ -310,6 +382,10 @@ export class PluginLifecycle {
     this.bridgePort = port;
   }
 
+  setApiToken(token: string): void {
+    this.apiToken = token;
+  }
+
   // --- Queries ---
 
   list(): PluginRecord[] {
@@ -320,6 +396,62 @@ export class PluginLifecycle {
     return this.plugins.get(pluginId);
   }
 
+  // --- Tunnel reporting ---
+
+  private static readonly REPORT_TIMEOUT_MS = 5_000;
+
+  private async reportTunnelUrl(
+    serverId: string,
+    pluginId: string,
+    tunnelUrl: string | null,
+    state: string,
+  ): Promise<void> {
+    if (!this.apiBaseUrl || !this.apiToken) {
+      console.error("[lifecycle] Cannot report tunnel URL: API URL or token not configured");
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(
+      () => controller.abort(),
+      PluginLifecycle.REPORT_TIMEOUT_MS,
+    );
+
+    try {
+      const res = await fetch(
+        `${this.apiBaseUrl}/api/servers/${encodeURIComponent(serverId)}/plugins/${encodeURIComponent(pluginId)}/tunnel`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Cookie: `better-auth.session_token=${this.apiToken}`,
+          },
+          body: JSON.stringify({ tunnelUrl, state }),
+          signal: controller.signal,
+        },
+      );
+
+      if (!res.ok) {
+        console.error(`[lifecycle] Failed to report tunnel URL: ${res.status}`);
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        console.error("[lifecycle] Tunnel URL report timed out");
+      } else {
+        console.error("[lifecycle] Error reporting tunnel URL:", err);
+      }
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  // --- Helpers ---
+
+  private static isScopeAllowed(manifestScope: PluginScope, requestedScope: ResolvedScope): boolean {
+    if (manifestScope === "both") return true;
+    return manifestScope === requestedScope;
+  }
+
   // --- State persistence ---
 
   private loadState(): void {
@@ -328,6 +460,9 @@ export class PluginLifecycle {
         const raw = fs.readFileSync(this.statePath, "utf-8");
         const state = JSON.parse(raw) as StateFile;
         for (const [id, record] of Object.entries(state.plugins)) {
+          // Backwards compat: default missing scope/tunnelUrl for pre-scope installs
+          if (!record.scope) record.scope = "personal";
+          if (record.tunnelUrl === undefined) record.tunnelUrl = null;
           this.plugins.set(id, record);
         }
         console.error(`[lifecycle] Loaded ${this.plugins.size} plugins from state`);

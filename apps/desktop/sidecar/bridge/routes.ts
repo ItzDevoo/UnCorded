@@ -34,6 +34,13 @@ function badRequestError(message: string) {
 }
 
 /**
+ * Check if a plugin is in personal scope (plugin.scope === "personal").
+ */
+function isPersonalScope(plugin: PluginContext): boolean {
+  return plugin.scope === "personal";
+}
+
+/**
  * Helper: get server data from gateway for the plugin's server.
  * The `plugin` property is set by the derive middleware in server.ts.
  */
@@ -52,6 +59,19 @@ export function createRoutes(deps: RouteDeps) {
     // --- Server info ---
     .get("/server", (ctx) => {
       const plugin = (ctx as unknown as { plugin: PluginContext }).plugin;
+      const ready = gateway.getReadyData();
+      if (!ready) throw gatewayError();
+
+      if (isPersonalScope(plugin)) {
+        return {
+          id: `personal:${ready.user.id}`,
+          name: `${ready.user.displayName ?? ready.user.username}'s Space`,
+          iconUrl: ready.user.avatarUrl ?? null,
+          memberCount: (ready.friends?.length ?? 0) + 1,
+          channelCount: ready.dmChannels?.length ?? 0,
+        };
+      }
+
       const { server } = getPluginServer(gateway, plugin);
       if (!server) throw gatewayError();
 
@@ -67,8 +87,15 @@ export function createRoutes(deps: RouteDeps) {
     // --- Members ---
     .get("/members", (ctx) => {
       const plugin = (ctx as unknown as { plugin: PluginContext }).plugin;
-      const { ready, server } = getPluginServer(gateway, plugin);
+      const ready = gateway.getReadyData();
       if (!ready) throw gatewayError();
+
+      if (isPersonalScope(plugin)) {
+        // Personal plugins see friends instead of server members
+        return { members: ready.friends ?? [] };
+      }
+
+      const { server } = getPluginServer(gateway, plugin);
       if (!server) return { members: [] };
 
       return { members: server.members };
@@ -77,8 +104,15 @@ export function createRoutes(deps: RouteDeps) {
     // --- Channels ---
     .get("/channels", (ctx) => {
       const plugin = (ctx as unknown as { plugin: PluginContext }).plugin;
-      const { ready, server } = getPluginServer(gateway, plugin);
+      const ready = gateway.getReadyData();
       if (!ready) throw gatewayError();
+
+      if (isPersonalScope(plugin)) {
+        // Personal plugins see DM channels instead of server channels
+        return { channels: ready.dmChannels ?? [] };
+      }
+
+      const { server } = getPluginServer(gateway, plugin);
       if (!server) return { channels: [] };
 
       return { channels: server.channels };

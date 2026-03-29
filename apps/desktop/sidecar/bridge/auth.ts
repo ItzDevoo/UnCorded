@@ -1,8 +1,11 @@
 import { createHash } from "node:crypto";
 
+export type ResolvedScope = "server" | "personal";
+
 export interface PluginContext {
   pluginId: string;
   serverId: string;
+  scope: ResolvedScope;
   permissions: string[];
 }
 

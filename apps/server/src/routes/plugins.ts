@@ -81,13 +81,13 @@ export const pluginRoutes = new Elysia({ prefix: "/api/plugins" })
       icon: p.iconUrl,
       category: p.category,
       scope: p.scope as "server" | "personal" | "both",
-      tags: p.tags ?? [],
+      tags: p.tags,
       version: p.version,
-      verified: p.verified ?? false,
-      featured: p.featured ?? false,
-      downloads: p.downloads ?? 0,
+      verified: p.verified,
+      featured: p.featured,
+      downloads: p.downloads,
       repository: p.repository,
-      screenshots: p.screenshots ?? [],
+      screenshots: p.screenshots,
       installCount: countMap.get(p.id) ?? 0,
       installed: userInstallMap.has(p.id),
       installedAt: userInstallMap.get(p.id)?.toISOString() ?? null,
@@ -131,13 +131,13 @@ export const pluginRoutes = new Elysia({ prefix: "/api/plugins" })
       icon: row.iconUrl,
       category: row.category,
       scope: row.scope as "server" | "personal" | "both",
-      tags: row.tags ?? [],
+      tags: row.tags,
       version: row.version,
-      verified: row.verified ?? false,
-      featured: row.featured ?? false,
-      downloads: row.downloads ?? 0,
+      verified: row.verified,
+      featured: row.featured,
+      downloads: row.downloads,
       repository: row.repository,
-      screenshots: row.screenshots ?? [],
+      screenshots: row.screenshots,
       installCount: countRow?.count ?? 0,
       installed: !!userInstall,
       installedAt: userInstall?.installedAt?.toISOString() ?? null,
@@ -196,19 +196,22 @@ export const pluginRoutes = new Elysia({ prefix: "/api/plugins" })
     if (!plugin) throw new NotFoundError("Plugin");
 
     // Upsert — ignore if already installed
-    await db
+    const [inserted] = await db
       .insert(pluginInstalls)
       .values({
         pluginId: params.pluginId,
         userId: sessionUser.id,
       })
-      .onConflictDoNothing({ target: [pluginInstalls.pluginId, pluginInstalls.userId] });
+      .onConflictDoNothing({ target: [pluginInstalls.pluginId, pluginInstalls.userId] })
+      .returning({ id: pluginInstalls.id });
 
-    // Increment downloads
-    await db
-      .update(pluginRegistry)
-      .set({ downloads: sql`${pluginRegistry.downloads} + 1` })
-      .where(eq(pluginRegistry.id, params.pluginId));
+    // Only increment downloads when a new install row was created
+    if (inserted) {
+      await db
+        .update(pluginRegistry)
+        .set({ downloads: sql`${pluginRegistry.downloads} + 1` })
+        .where(eq(pluginRegistry.id, params.pluginId));
+    }
 
     const [countRow] = await db
       .select({ count: sql<number>`count(*)::int` })
@@ -225,11 +228,11 @@ export const pluginRoutes = new Elysia({ prefix: "/api/plugins" })
       throw new RateLimitError("Too many requests, try again later");
     }
 
-    // Validate plugin exists in registry
+    // Validate plugin exists in registry and is published
     const [plugin] = await db
       .select({ id: pluginRegistry.id })
       .from(pluginRegistry)
-      .where(eq(pluginRegistry.id, params.pluginId))
+      .where(and(eq(pluginRegistry.id, params.pluginId), eq(pluginRegistry.published, true)))
       .limit(1);
     if (!plugin) throw new NotFoundError("Plugin");
 

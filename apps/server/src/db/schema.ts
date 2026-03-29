@@ -455,16 +455,16 @@ export const pluginRegistry = pgTable(
     iconUrl: text("icon_url"),
     category: text("category").notNull().default("other"),
     scope: text("scope").notNull().default("server"),
-    tags: text("tags").array().default([]),
+    tags: text("tags").array().notNull().default([]),
     image: text("image").notNull(),
     version: text("version").notNull().default("1.0.0"),
     manifest: jsonb("manifest").notNull(),
     repository: text("repository"),
-    verified: boolean("verified").default(false),
-    featured: boolean("featured").default(false),
-    downloads: integer("downloads").default(0),
-    screenshots: jsonb("screenshots").default([]),
-    published: boolean("published").default(true),
+    verified: boolean("verified").notNull().default(false),
+    featured: boolean("featured").notNull().default(false),
+    downloads: integer("downloads").notNull().default(0),
+    screenshots: jsonb("screenshots").notNull().default([]),
+    published: boolean("published").notNull().default(true),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -487,7 +487,9 @@ export const serverPlugins = pgTable(
     serverId: text("server_id")
       .notNull()
       .references(() => servers.id, { onDelete: "cascade" }),
-    pluginId: text("plugin_id").notNull(),
+    pluginId: text("plugin_id")
+      .notNull()
+      .references(() => pluginRegistry.id, { onDelete: "cascade" }),
     installedBy: text("installed_by")
       .notNull()
       .references(() => user.id, { onDelete: "restrict" }),
@@ -506,7 +508,9 @@ export const pluginInstalls = pgTable(
   "plugin_installs",
   {
     id: id(),
-    pluginId: text("plugin_id").notNull(),
+    pluginId: text("plugin_id")
+      .notNull()
+      .references(() => pluginRegistry.id, { onDelete: "cascade" }),
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),

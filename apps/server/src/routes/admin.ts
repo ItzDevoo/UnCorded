@@ -1059,19 +1059,21 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
   .delete("/plugins/:pluginId", async ({ params, user: sessionUser, adminLevel }) => {
     if (adminLevel !== "owner") throw new ForbiddenError("Owner access required");
 
-    const [plugin] = await db
-      .select({ id: pluginRegistry.id })
-      .from(pluginRegistry)
-      .where(eq(pluginRegistry.id, params.pluginId))
-      .limit(1);
-    if (!plugin) throw new NotFoundError("Plugin");
+    await db.transaction(async (tx) => {
+      const [plugin] = await tx
+        .select({ id: pluginRegistry.id })
+        .from(pluginRegistry)
+        .where(eq(pluginRegistry.id, params.pluginId))
+        .limit(1);
+      if (!plugin) throw new NotFoundError("Plugin");
 
-    // Cascade: remove from server_plugins and plugin_installs first
-    await db.delete(serverPlugins).where(eq(serverPlugins.pluginId, params.pluginId));
-    await db.delete(pluginInstalls).where(eq(pluginInstalls.pluginId, params.pluginId));
-    await db.delete(pluginRegistry).where(eq(pluginRegistry.id, params.pluginId));
+      // Cascade: remove from server_plugins and plugin_installs first
+      await tx.delete(serverPlugins).where(eq(serverPlugins.pluginId, params.pluginId));
+      await tx.delete(pluginInstalls).where(eq(pluginInstalls.pluginId, params.pluginId));
+      await tx.delete(pluginRegistry).where(eq(pluginRegistry.id, params.pluginId));
 
-    await logAudit(sessionUser.id, "delete_plugin", "plugin", params.pluginId);
+      await logAudit(sessionUser.id, "delete_plugin", "plugin", params.pluginId);
+    });
 
     return { success: true };
   })

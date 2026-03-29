@@ -189,14 +189,30 @@ interface PluginInfo {
 
 let cachedPlugins: PluginInfo[] = [];
 
+// Derive API base URL: explicit env > web URL origin > hardcoded default
 const API_URL = process.env["UNCORDED_API_URL"]
+  ?? process.env["UNCORDED_WEB_URL"]
   ?? (IS_DEV ? "http://localhost:3000" : "https://uncorded.app");
+
+class PluginManifestError extends Error {
+  pluginId: string;
+  status: number;
+  body: string;
+
+  constructor(pluginId: string, status: number, body: string) {
+    super(`Failed to fetch manifest for ${pluginId} (${status}): ${body}`);
+    this.name = "PluginManifestError";
+    this.pluginId = pluginId;
+    this.status = status;
+    this.body = body;
+  }
+}
 
 async function fetchPluginManifest(pluginId: string): Promise<object> {
   const res = await fetch(`${API_URL}/api/plugins/${pluginId}/manifest`);
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(`Failed to fetch manifest for ${pluginId} (${res.status}): ${body}`);
+    throw new PluginManifestError(pluginId, res.status, body);
   }
   const data = (await res.json()) as { manifest: object };
   return data.manifest;

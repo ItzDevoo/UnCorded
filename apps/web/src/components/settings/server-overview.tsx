@@ -3,7 +3,7 @@ import type { ServerId } from "@uncorded/protocol";
 import { api } from "../../lib/api.js";
 import { updateServer } from "../../lib/gateway-store.js";
 import { showToast } from "../ui/toast.js";
-import { handleApiError } from "../../lib/error-handling.js";
+import { useAsyncAction } from "../../lib/use-async-action.js";
 import { Button } from "../ui/button.js";
 import { useNavigate } from "@solidjs/router";
 
@@ -24,13 +24,13 @@ const ServerOverview = (props: OverviewProps) => {
 
   const [name, setName] = createSignal(props.serverName);
   const [iconUrl, setIconUrl] = createSignal(props.serverIconUrl ?? "");
-  const [saving, setSaving] = createSignal(false);
+  const save = useAsyncAction();
   const [nameError, setNameError] = createSignal("");
 
   // Delete confirmation
   const [showDeleteConfirm, setShowDeleteConfirm] = createSignal(false);
   const [deleteInput, setDeleteInput] = createSignal("");
-  const [deleting, setDeleting] = createSignal(false);
+  const del = useAsyncAction();
 
   // Reset state when server changes
   createEffect(() => {
@@ -48,8 +48,6 @@ const ServerOverview = (props: OverviewProps) => {
   }
 
   async function handleSave() {
-    if (saving()) return;
-
     const validationErr = validateName(name());
     if (validationErr) {
       setNameError(validationErr);
@@ -57,8 +55,7 @@ const ServerOverview = (props: OverviewProps) => {
     }
 
     const serverId = props.serverId;
-    setSaving(true);
-    try {
+    await save.run(async () => {
       const body: Record<string, string | null> = {};
       if (name() !== props.serverName) body.name = name();
 
@@ -79,26 +76,16 @@ const ServerOverview = (props: OverviewProps) => {
       if (serverId !== props.serverId) return;
       updateServer(serverId, { name: result.name, iconUrl: result.iconUrl });
       showToast("Server updated", "info");
-    } catch (err) {
-      handleApiError(err, "Failed to save");
-    } finally {
-      setSaving(false);
-    }
+    }, "Failed to save");
   }
 
   async function handleDelete() {
-    if (deleting()) return;
     const serverId = props.serverId;
-    setDeleting(true);
-    try {
+    await del.run(async () => {
       await api(`/api/servers/${serverId}`, { method: "DELETE" });
       showToast("Server deleted", "info");
       navigate("/home");
-    } catch (err) {
-      handleApiError(err, "Failed to delete server");
-    } finally {
-      setDeleting(false);
-    }
+    }, "Failed to delete server");
   }
 
   return (
@@ -162,8 +149,8 @@ const ServerOverview = (props: OverviewProps) => {
       </div>
 
       {/* Save */}
-      <Button onClick={handleSave} disabled={saving() || !!nameError()}>
-        {saving() ? "Saving..." : "Save Changes"}
+      <Button onClick={handleSave} disabled={save.loading() || !!nameError()}>
+        {save.loading() ? "Saving..." : "Save Changes"}
       </Button>
 
       {/* Danger Zone */}
@@ -197,9 +184,9 @@ const ServerOverview = (props: OverviewProps) => {
               <Button
                 variant="destructive"
                 onClick={handleDelete}
-                disabled={deleteInput() !== props.serverName || deleting()}
+                disabled={deleteInput() !== props.serverName || del.loading()}
               >
-                {deleting() ? "Deleting..." : "Confirm Delete"}
+                {del.loading() ? "Deleting..." : "Confirm Delete"}
               </Button>
               <Button
                 variant="outline"

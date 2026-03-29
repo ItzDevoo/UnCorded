@@ -1,7 +1,7 @@
 import { createSignal } from "solid-js";
 import { api } from "../../lib/api.js";
 import { showToast } from "../ui/toast.js";
-import { handleApiError } from "../../lib/error-handling.js";
+import { useAsyncAction } from "../../lib/use-async-action.js";
 import { Button } from "../ui/button.js";
 import {
   Dialog,
@@ -21,7 +21,7 @@ interface FeedbackDialogProps {
 const FeedbackDialog = (props: FeedbackDialogProps) => {
   const [title, setTitle] = createSignal("");
   const [description, setDescription] = createSignal("");
-  const [submitting, setSubmitting] = createSignal(false);
+  const submit = useAsyncAction();
 
   function resetForm() {
     setTitle("");
@@ -34,14 +34,12 @@ const FeedbackDialog = (props: FeedbackDialogProps) => {
   }
 
   async function handleSubmit() {
-    if (submitting()) return;
     if (!title().trim() || !description().trim()) {
       showToast("Please fill in all fields", "error");
       return;
     }
 
-    setSubmitting(true);
-    try {
+    await submit.run(async () => {
       await api("/api/feedback", {
         method: "POST",
         body: JSON.stringify({
@@ -53,11 +51,7 @@ const FeedbackDialog = (props: FeedbackDialogProps) => {
       showToast("Feature request submitted! Thank you.", "info");
       handleClose();
       props.onSubmitted?.();
-    } catch (err) {
-      handleApiError(err, "Failed to submit feature request");
-    } finally {
-      setSubmitting(false);
-    }
+    }, "Failed to submit feature request");
   }
 
   return (
@@ -102,8 +96,8 @@ const FeedbackDialog = (props: FeedbackDialogProps) => {
           <Button variant="ghost" onClick={handleClose}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={submitting()}>
-            {submitting() ? "Submitting..." : "Submit"}
+          <Button onClick={handleSubmit} disabled={submit.loading()}>
+            {submit.loading() ? "Submitting..." : "Submit"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -3,6 +3,7 @@ import { api } from "../../lib/api.js";
 import { authClient, signIn } from "../../lib/auth.js";
 import { showToast } from "../ui/toast.js";
 import { handleApiError } from "../../lib/error-handling.js";
+import { useAsyncAction } from "../../lib/use-async-action.js";
 import { Button } from "../ui/button.js";
 import { GoogleIcon, DiscordIcon } from "../ui/oauth-buttons.js";
 import { showPendingDeletion } from "../../stores/deletion-store.js";
@@ -21,7 +22,7 @@ const AccountSettings = () => {
   const [currentPassword, setCurrentPassword] = createSignal("");
   const [newPassword, setNewPassword] = createSignal("");
   const [confirmPassword, setConfirmPassword] = createSignal("");
-  const [changingPassword, setChangingPassword] = createSignal(false);
+  const changePassword = useAsyncAction();
   const [showDeleteDialog, setShowDeleteDialog] = createSignal(false);
   const [deletePassword, setDeletePassword] = createSignal("");
   const [deleting, setDeleting] = createSignal(false);
@@ -78,8 +79,6 @@ const AccountSettings = () => {
   });
 
   async function handleChangePassword() {
-    if (changingPassword()) return;
-
     if (!currentPassword() || !newPassword()) {
       showToast("Please fill in all password fields", "error");
       return;
@@ -95,8 +94,7 @@ const AccountSettings = () => {
       return;
     }
 
-    setChangingPassword(true);
-    try {
+    await changePassword.run(async () => {
       await api("/api/users/@me/password", {
         method: "POST",
         body: JSON.stringify({
@@ -108,11 +106,7 @@ const AccountSettings = () => {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-    } catch (err) {
-      handleApiError(err, "Failed to change password");
-    } finally {
-      setChangingPassword(false);
-    }
+    }, "Failed to change password");
   }
 
   function totalAuthMethods(): number {
@@ -252,8 +246,8 @@ const AccountSettings = () => {
               autocomplete="new-password"
             />
           </div>
-          <Button onClick={handleChangePassword} disabled={changingPassword()}>
-            {changingPassword() ? "Changing..." : "Change Password"}
+          <Button onClick={handleChangePassword} disabled={changePassword.loading()}>
+            {changePassword.loading() ? "Changing..." : "Change Password"}
           </Button>
         </div>
       </div>

@@ -2,7 +2,7 @@ import { Elysia } from "elysia";
 import { eq, and } from "drizzle-orm";
 import { ForbiddenError, NotFoundError, ValidationError, RateLimitError } from "@uncorded/shared";
 import { db } from "../db/index.js";
-import { serverPlugins } from "../db/schema.js";
+import { serverPlugins, pluginRegistry } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
 import { requireMember, requireOwner } from "../helpers/permissions.js";
 import { computeEffectiveTier } from "../helpers/resolve-tier.js";
@@ -74,6 +74,14 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
     if (!pluginId || typeof pluginId !== "string") {
       throw new ForbiddenError("pluginId is required");
     }
+
+    // Validate plugin exists in registry
+    const [registryPlugin] = await db
+      .select({ id: pluginRegistry.id })
+      .from(pluginRegistry)
+      .where(and(eq(pluginRegistry.id, pluginId), eq(pluginRegistry.published, true)))
+      .limit(1);
+    if (!registryPlugin) throw new NotFoundError("Plugin");
 
     // Upsert — ignore if already installed
     const [row] = await db

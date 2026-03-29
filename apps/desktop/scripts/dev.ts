@@ -89,6 +89,7 @@ function spawnElectron(): void {
         ...process.env,
         NODE_ENV: "development",
         UNCORDED_WEB_URL: webUrl,
+        UNCORDED_API_URL: process.env["UNCORDED_API_URL"] ?? webUrl,
       },
       shell: true,
     },

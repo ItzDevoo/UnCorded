@@ -22,6 +22,9 @@ import {
   pollVotes,
   giftedSubscriptions,
   bots,
+  pluginRegistry,
+  pluginInstalls,
+  serverPlugins,
 } from "../db/schema.js";
 
 import { readdir } from "node:fs/promises";
@@ -898,4 +901,235 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
     ]);
 
     return { entries: rows, total: total?.value ?? 0, page, pageSize: PAGE_SIZE };
+  })
+
+  // ── Plugin Management ────────────────────────────────────────────────────
+  .get("/plugins", async ({ query }) => {
+    const page = Math.max(1, Number(query.page) || 1);
+    const search = typeof query.search === "string" ? query.search.trim() : "";
+    const offset = (page - 1) * PAGE_SIZE;
+
+    const escaped = search.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+    const searchFilter = search
+      ? or(
+          like(pluginRegistry.name, `%${escaped}%`),
+          like(pluginRegistry.author, `%${escaped}%`),
+          like(pluginRegistry.id, `%${escaped}%`),
+        )
+      : undefined;
+
+    const [rows, [total]] = await Promise.all([
+      db
+        .select()
+        .from(pluginRegistry)
+        .where(searchFilter)
+        .orderBy(desc(pluginRegistry.createdAt))
+        .limit(PAGE_SIZE)
+        .offset(offset),
+      db.select({ value: count() }).from(pluginRegistry).where(searchFilter),
+    ]);
+
+    const plugins = rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      description: r.description,
+      author: r.author,
+      iconUrl: r.iconUrl,
+      category: r.category,
+      scope: r.scope,
+      tags: r.tags ?? [],
+      image: r.image,
+      version: r.version,
+      repository: r.repository,
+      verified: r.verified ?? false,
+      featured: r.featured ?? false,
+      downloads: r.downloads ?? 0,
+      published: r.published ?? true,
+      createdAt: r.createdAt.toISOString(),
+      updatedAt: r.updatedAt.toISOString(),
+    }));
+
+    return { plugins, total: total?.value ?? 0, page, pageSize: PAGE_SIZE };
+  })
+
+  .post("/plugins", async ({ body, user: sessionUser }) => {
+    const pluginSchema = z.object({
+      id: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/, "ID must be lowercase alphanumeric with hyphens"),
+      name: z.string().min(1).max(100),
+      description: z.string().min(1).max(2000),
+      author: z.string().min(1).max(100),
+      iconUrl: z.string().max(500).nullable().optional(),
+      category: z.string().min(1).max(50),
+      scope: z.enum(["server", "personal", "both"]),
+      tags: z.array(z.string().max(50)).max(20).optional(),
+      image: z.string().min(1).max(500),
+      version: z.string().min(1).max(20).optional(),
+      manifest: z.record(z.unknown()),
+      repository: z.string().max(500).nullable().optional(),
+      screenshots: z.array(z.string().max(500)).max(10).optional(),
+    });
+
+    const parsed = pluginSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
+    }
+    const data = parsed.data;
+
+    // Atomic insert with conflict check
+    const [inserted] = await db
+      .insert(pluginRegistry)
+      .values({
+        id: data.id,
+        name: data.name,
+        description: data.description,
+        author: data.author,
+        iconUrl: data.iconUrl ?? null,
+        category: data.category,
+        scope: data.scope,
+        tags: data.tags ?? [],
+        image: data.image,
+        version: data.version ?? "1.0.0",
+        manifest: data.manifest,
+        repository: data.repository ?? null,
+        screenshots: data.screenshots ?? [],
+      })
+      .onConflictDoNothing()
+      .returning({ id: pluginRegistry.id });
+
+    if (!inserted) throw new ValidationError("Plugin with this ID already exists");
+
+    await logAudit(sessionUser.id, "create_plugin", "plugin", data.id);
+
+    return { success: true };
+  })
+
+  .put("/plugins/:pluginId", async ({ params, body, user: sessionUser }) => {
+    const pluginUpdateSchema = z.object({
+      name: z.string().min(1).max(100).optional(),
+      description: z.string().min(1).max(2000).optional(),
+      author: z.string().min(1).max(100).optional(),
+      iconUrl: z.string().max(500).nullable().optional(),
+      category: z.string().min(1).max(50).optional(),
+      scope: z.enum(["server", "personal", "both"]).optional(),
+      tags: z.array(z.string().max(50)).max(20).optional(),
+      image: z.string().min(1).max(500).optional(),
+      version: z.string().min(1).max(20).optional(),
+      manifest: z.record(z.unknown()).optional(),
+      repository: z.string().max(500).nullable().optional(),
+      screenshots: z.array(z.string().max(500)).max(10).optional(),
+    });
+
+    const parsed = pluginUpdateSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
+    }
+
+    const [plugin] = await db
+      .select({ id: pluginRegistry.id })
+      .from(pluginRegistry)
+      .where(eq(pluginRegistry.id, params.pluginId))
+      .limit(1);
+    if (!plugin) throw new NotFoundError("Plugin");
+
+    const updates: Record<string, unknown> = {};
+    const data = parsed.data;
+    if (data.name !== undefined) updates.name = data.name;
+    if (data.description !== undefined) updates.description = data.description;
+    if (data.author !== undefined) updates.author = data.author;
+    if (data.iconUrl !== undefined) updates.iconUrl = data.iconUrl;
+    if (data.category !== undefined) updates.category = data.category;
+    if (data.scope !== undefined) updates.scope = data.scope;
+    if (data.tags !== undefined) updates.tags = data.tags;
+    if (data.image !== undefined) updates.image = data.image;
+    if (data.version !== undefined) updates.version = data.version;
+    if (data.manifest !== undefined) updates.manifest = data.manifest;
+    if (data.repository !== undefined) updates.repository = data.repository;
+    if (data.screenshots !== undefined) updates.screenshots = data.screenshots;
+
+    if (Object.keys(updates).length > 0) {
+      await db.update(pluginRegistry).set(updates).where(eq(pluginRegistry.id, params.pluginId));
+    }
+
+    await logAudit(sessionUser.id, "update_plugin", "plugin", params.pluginId, JSON.stringify(data));
+
+    return { success: true };
+  })
+
+  .delete("/plugins/:pluginId", async ({ params, user: sessionUser, adminLevel }) => {
+    if (adminLevel !== "owner") throw new ForbiddenError("Owner access required");
+
+    await db.transaction(async (tx) => {
+      const [plugin] = await tx
+        .select({ id: pluginRegistry.id })
+        .from(pluginRegistry)
+        .where(eq(pluginRegistry.id, params.pluginId))
+        .limit(1);
+      if (!plugin) throw new NotFoundError("Plugin");
+
+      // Cascade: remove from server_plugins and plugin_installs first
+      await tx.delete(serverPlugins).where(eq(serverPlugins.pluginId, params.pluginId));
+      await tx.delete(pluginInstalls).where(eq(pluginInstalls.pluginId, params.pluginId));
+      await tx.delete(pluginRegistry).where(eq(pluginRegistry.id, params.pluginId));
+
+      await logAudit(sessionUser.id, "delete_plugin", "plugin", params.pluginId);
+    });
+
+    return { success: true };
+  })
+
+  .patch("/plugins/:pluginId/publish", async ({ params, user: sessionUser }) => {
+    const [plugin] = await db
+      .select({ id: pluginRegistry.id, published: pluginRegistry.published })
+      .from(pluginRegistry)
+      .where(eq(pluginRegistry.id, params.pluginId))
+      .limit(1);
+    if (!plugin) throw new NotFoundError("Plugin");
+
+    const newValue = !plugin.published;
+    await db
+      .update(pluginRegistry)
+      .set({ published: newValue })
+      .where(eq(pluginRegistry.id, params.pluginId));
+
+    await logAudit(sessionUser.id, newValue ? "publish_plugin" : "unpublish_plugin", "plugin", params.pluginId);
+
+    return { success: true, published: newValue };
+  })
+
+  .patch("/plugins/:pluginId/verify", async ({ params, user: sessionUser }) => {
+    const [plugin] = await db
+      .select({ id: pluginRegistry.id, verified: pluginRegistry.verified })
+      .from(pluginRegistry)
+      .where(eq(pluginRegistry.id, params.pluginId))
+      .limit(1);
+    if (!plugin) throw new NotFoundError("Plugin");
+
+    const newValue = !plugin.verified;
+    await db
+      .update(pluginRegistry)
+      .set({ verified: newValue })
+      .where(eq(pluginRegistry.id, params.pluginId));
+
+    await logAudit(sessionUser.id, newValue ? "verify_plugin" : "unverify_plugin", "plugin", params.pluginId);
+
+    return { success: true, verified: newValue };
+  })
+
+  .patch("/plugins/:pluginId/feature", async ({ params, user: sessionUser }) => {
+    const [plugin] = await db
+      .select({ id: pluginRegistry.id, featured: pluginRegistry.featured })
+      .from(pluginRegistry)
+      .where(eq(pluginRegistry.id, params.pluginId))
+      .limit(1);
+    if (!plugin) throw new NotFoundError("Plugin");
+
+    const newValue = !plugin.featured;
+    await db
+      .update(pluginRegistry)
+      .set({ featured: newValue })
+      .where(eq(pluginRegistry.id, params.pluginId));
+
+    await logAudit(sessionUser.id, newValue ? "feature_plugin" : "unfeature_plugin", "plugin", params.pluginId);
+
+    return { success: true, featured: newValue };
   });

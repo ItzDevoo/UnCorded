@@ -16,6 +16,12 @@ interface Plugin {
   category: string;
   scope: "server" | "personal" | "both";
   tags: string[];
+  version: string;
+  verified: boolean;
+  featured: boolean;
+  downloads: number;
+  repository: string | null;
+  screenshots: string[];
   installCount: number;
   installed: boolean;
   installedAt: string | null;
@@ -48,6 +54,8 @@ const COMING_SOON_PLUGINS = [
 
 const PluginsSettings = () => {
   const [search, setSearch] = createSignal("");
+  const [categoryFilter, setCategoryFilter] = createSignal("all");
+  const [scopeFilter, setScopeFilter] = createSignal("all");
   const [installing, setInstalling] = createSignal<PluginId | null>(null);
 
   const [plugins, { refetch, mutate }] = createResource(async () => {
@@ -55,18 +63,47 @@ const PluginsSettings = () => {
     return res.plugins;
   });
 
+  // Extract unique categories from plugins for filter dropdown
+  const categories = () => {
+    const cats = new Set((plugins() ?? []).map((p) => p.category));
+    return [...cats].sort();
+  };
+
   // Only show personal/both scope plugins in user settings
   const personalPlugins = () =>
     (plugins() ?? []).filter((p) => p.scope === "personal" || p.scope === "both");
 
   const filteredPlugins = () => {
+    let list = personalPlugins();
+
+    // Category filter
+    const cat = categoryFilter();
+    if (cat !== "all") {
+      list = list.filter((p) => p.category === cat);
+    }
+
+    // Scope filter
+    const scope = scopeFilter();
+    if (scope !== "all") {
+      list = list.filter((p) => p.scope === scope);
+    }
+
+    // Search by name, description, and tags
     const q = search().toLowerCase();
-    if (!q) return personalPlugins();
-    return personalPlugins().filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.description.toLowerCase().includes(q),
-    );
+    if (q) {
+      list = list.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.description.toLowerCase().includes(q) ||
+          p.tags.some((t) => t.toLowerCase().includes(q)),
+      );
+    }
+
+    // Featured plugins first
+    return list.sort((a, b) => {
+      if (a.featured !== b.featured) return a.featured ? -1 : 1;
+      return 0;
+    });
   };
 
   const filteredComingSoon = () => {
@@ -113,29 +150,52 @@ const PluginsSettings = () => {
         </p>
       </div>
 
-      {/* Search */}
-      <div class="relative">
-        <svg
-          class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+      {/* Search + Filters */}
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="relative flex-1">
+          <svg
+            class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+            />
+          </svg>
+          <input
+            type="text"
+            placeholder="Search plugins by name, description, or tags..."
+            value={search()}
+            onInput={(e) => setSearch(e.currentTarget.value)}
+            class="w-full rounded-lg border border-border bg-input py-2 pl-10 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground transition-shadow duration-200 focus:ring-2 focus:ring-ring/50"
           />
-        </svg>
-        <input
-          type="text"
-          placeholder="Search plugins..."
-          value={search()}
-          onInput={(e) => setSearch(e.currentTarget.value)}
-          class="w-full rounded-lg border border-border bg-input py-2 pl-10 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground transition-shadow duration-200 focus:ring-2 focus:ring-ring/50"
-        />
+        </div>
+
+        <select
+          value={categoryFilter()}
+          onChange={(e) => setCategoryFilter(e.currentTarget.value)}
+          class="rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground outline-none"
+        >
+          <option value="all">All Categories</option>
+          <For each={categories()}>
+            {(cat) => <option value={cat}>{cat}</option>}
+          </For>
+        </select>
+
+        <select
+          value={scopeFilter()}
+          onChange={(e) => setScopeFilter(e.currentTarget.value)}
+          class="rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground outline-none"
+        >
+          <option value="all">All Scopes</option>
+          <option value="personal">Personal</option>
+          <option value="both">Personal + Server</option>
+        </select>
       </div>
 
       {/* Plugin cards from API */}
@@ -212,7 +272,9 @@ function PluginCard(props: {
   const p = () => props.plugin;
 
   return (
-    <div class="rounded-xl border border-border bg-card p-4 transition-colors hover:border-border/80">
+    <div class={`rounded-xl border p-4 transition-colors hover:border-border/80 ${
+      p().featured ? "border-warning/30 bg-warning/5" : "border-border bg-card"
+    }`}>
       <div class="flex items-start gap-3">
         {/* Icon */}
         <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -236,16 +298,44 @@ function PluginCard(props: {
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2">
             <span class="font-semibold text-foreground">{p().name}</span>
-            <span class="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">
-              Official
-            </span>
+            {/* Verified badge */}
+            <Show when={p().verified}>
+              <span class="inline-flex items-center gap-0.5 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary" title="Verified">
+                <svg class="h-3 w-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                  <path fill-rule="evenodd" d="M8.603 3.799A4.49 4.49 0 0112 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 013.498 1.307 4.491 4.491 0 011.307 3.497A4.49 4.49 0 0121.75 12a4.49 4.49 0 01-1.549 3.397 4.491 4.491 0 01-1.307 3.497 4.491 4.491 0 01-3.497 1.307A4.49 4.49 0 0112 21.75a4.49 4.49 0 01-3.397-1.549 4.49 4.49 0 01-3.498-1.306 4.491 4.491 0 01-1.307-3.498A4.49 4.49 0 012.25 12c0-1.357.6-2.573 1.549-3.397a4.49 4.49 0 011.307-3.497 4.49 4.49 0 013.497-1.307zm7.007 6.387a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clip-rule="evenodd" />
+                </svg>
+                Verified
+              </span>
+            </Show>
+            {/* Featured badge */}
+            <Show when={p().featured}>
+              <span class="rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold text-warning">
+                Featured
+              </span>
+            </Show>
           </div>
           <p class="mt-1 text-sm text-muted-foreground">{p().description}</p>
           <div class="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
             <span>By {p().author}</span>
             <span class="rounded bg-muted px-1.5 py-0.5">{p().category}</span>
             <span>{p().installCount} {p().installCount === 1 ? "install" : "installs"}</span>
+            <Show when={p().downloads > 0}>
+              <span>{p().downloads.toLocaleString()} {p().downloads === 1 ? "download" : "downloads"}</span>
+            </Show>
+            <span class="font-mono">v{p().version}</span>
           </div>
+          {/* Tags */}
+          <Show when={p().tags.length > 0}>
+            <div class="mt-2 flex flex-wrap gap-1">
+              <For each={p().tags}>
+                {(tag) => (
+                  <span class="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                    {tag}
+                  </span>
+                )}
+              </For>
+            </div>
+          </Show>
         </div>
 
         {/* Action */}

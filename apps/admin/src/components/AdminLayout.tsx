@@ -69,6 +69,15 @@ const NAV_ITEMS = [
     ),
   },
   {
+    href: "/plugins",
+    label: "Plugins",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 14.5M14.25 3.104c.251.023.501.05.75.082M19.8 14.5l-2.147 2.147a2.25 2.25 0 01-.659.591c-.197.12-.417.207-.649.257l-2.095.349a.75.75 0 01-.867-.867l.349-2.095a2.25 2.25 0 01.848-1.308L19.8 14.5z" />
+      </svg>
+    ),
+  },
+  {
     href: "/dev",
     label: "Dev Environment",
     icon: (
@@ -87,6 +96,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/polls": "Polls",
   "/admins": "Admins",
   "/audit-log": "Audit Log",
+  "/plugins": "Plugins",
   "/dev": "Dev Environment",
 };
 

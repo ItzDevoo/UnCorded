@@ -9,6 +9,7 @@ import {
   index,
   primaryKey,
   unique,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 import { nanoid } from "nanoid";
@@ -444,6 +445,35 @@ export const pollVotes = pgTable(
 
 // ─── Plugin Tables ──────────────────────────────────────────
 
+export const pluginRegistry = pgTable(
+  "plugin_registry",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    description: text("description").notNull(),
+    author: text("author").notNull(),
+    iconUrl: text("icon_url"),
+    category: text("category").notNull().default("other"),
+    scope: text("scope").notNull().default("server"),
+    tags: text("tags").array().notNull().default([]),
+    image: text("image").notNull(),
+    version: text("version").notNull().default("1.0.0"),
+    manifest: jsonb("manifest").notNull(),
+    repository: text("repository"),
+    verified: boolean("verified").notNull().default(false),
+    featured: boolean("featured").notNull().default(false),
+    downloads: integer("downloads").notNull().default(0),
+    screenshots: jsonb("screenshots").notNull().default([]),
+    published: boolean("published").notNull().default(true),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index("plugin_registry_category_idx").on(t.category),
+    index("plugin_registry_scope_idx").on(t.scope),
+  ],
+);
+
 export const serverPluginStateEnum = pgEnum("server_plugin_state", [
   "active",
   "stopped",
@@ -457,7 +487,9 @@ export const serverPlugins = pgTable(
     serverId: text("server_id")
       .notNull()
       .references(() => servers.id, { onDelete: "cascade" }),
-    pluginId: text("plugin_id").notNull(),
+    pluginId: text("plugin_id")
+      .notNull()
+      .references(() => pluginRegistry.id, { onDelete: "cascade" }),
     installedBy: text("installed_by")
       .notNull()
       .references(() => user.id, { onDelete: "restrict" }),
@@ -476,7 +508,9 @@ export const pluginInstalls = pgTable(
   "plugin_installs",
   {
     id: id(),
-    pluginId: text("plugin_id").notNull(),
+    pluginId: text("plugin_id")
+      .notNull()
+      .references(() => pluginRegistry.id, { onDelete: "cascade" }),
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),

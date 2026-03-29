@@ -13,12 +13,20 @@ const { mockRequireMember, mockRequireOwner, mockComputeEffectiveTier, selectRes
     const deletedRows: unknown[][] = [];
     const insertedRow: unknown[] = [];
 
+    /** Returns a chainable that supports both `await where(...)` and `where(...).limit(n)` */
+    function makeWhereResult() {
+      const resolve = () => selectResults.shift() ?? [];
+      return {
+        limit: vi.fn().mockImplementation(() => Promise.resolve(resolve())),
+        then: (onFulfilled: (v: unknown[]) => unknown, onRejected?: (e: unknown) => unknown) =>
+          Promise.resolve(resolve()).then(onFulfilled, onRejected),
+      };
+    }
+
     const mockDb = {
       select: vi.fn().mockImplementation(() => ({
         from: vi.fn().mockReturnValue({
-          where: vi.fn().mockImplementation(() =>
-            Promise.resolve(selectResults.shift() ?? []),
-          ),
+          where: vi.fn().mockImplementation(() => makeWhereResult()),
         }),
       })),
       insert: vi.fn().mockImplementation(() => ({
@@ -64,6 +72,10 @@ vi.mock("../../db/schema.js", () => ({
     installedBy: "server_plugins.installed_by",
     tunnelUrl: "server_plugins.tunnel_url",
     state: "server_plugins.state",
+  },
+  pluginRegistry: {
+    id: "plugin_registry.id",
+    published: "plugin_registry.published",
   },
 }));
 vi.mock("../../helpers/permissions.js", () => ({
@@ -160,6 +172,9 @@ describe("server plugin routes", () => {
 
   describe("POST /api/servers/:serverId/plugins", () => {
     it("installs a plugin for server_owner tier users", async () => {
+      // Registry lookup returns a published plugin
+      selectResults.push([{ id: "claude-code" }]);
+
       insertedRow.push({
         id: "sp1",
         pluginId: "claude-code",

@@ -384,6 +384,15 @@ export class PluginLifecycle {
 
   setApiToken(token: string): void {
     this.apiToken = token;
+    // Re-report tunnel URLs for all running server plugins now that auth is available
+    if (this.apiBaseUrl) {
+      for (const plugin of this.plugins.values()) {
+        if (plugin.scope === "server" && plugin.state === "running" && plugin.tunnelUrl) {
+          this.reportTunnelUrl(plugin.serverId, plugin.pluginId, plugin.tunnelUrl, "active")
+            .catch((err) => console.error(`[lifecycle] Re-report failed for ${plugin.pluginId}:`, err));
+        }
+      }
+    }
   }
 
   // --- Queries ---

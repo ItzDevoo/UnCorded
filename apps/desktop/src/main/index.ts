@@ -330,8 +330,8 @@ app.on("ready", async () => {
   await sidecar.start();
   startPluginPolling();
 
-  // Forward auth token to sidecar once page loads (cookie is set by then)
-  mainWindow.webContents.on("did-finish-load", () => {
+  // Forward auth token to sidecar as early as possible
+  mainWindow.webContents.on("dom-ready", () => {
     syncAuthToSidecar();
   });
 

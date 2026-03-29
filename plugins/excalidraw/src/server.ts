@@ -40,6 +40,19 @@ function json(data: unknown, status = 200): Response {
   });
 }
 
+const IFRAME_HEADERS: Record<string, string> = {
+  "X-Frame-Options": "ALLOWALL",
+  "Content-Security-Policy": "frame-ancestors *",
+  "Access-Control-Allow-Origin": "*",
+};
+
+function withIframeHeaders(res: Response): Response {
+  for (const [k, v] of Object.entries(IFRAME_HEADERS)) {
+    res.headers.set(k, v);
+  }
+  return res;
+}
+
 const server = Bun.serve<{ boardId: string; clientId: string }>({
   port: PORT,
   hostname: "0.0.0.0",
@@ -50,7 +63,7 @@ const server = Bun.serve<{ boardId: string; clientId: string }>({
 
     // --- Health check ---
     if (pathname === "/health") {
-      return json({ status: "ok" });
+      return withIframeHeaders(json({ status: "ok" }));
     }
 
     // --- WebSocket upgrade ---
@@ -59,12 +72,12 @@ const server = Bun.serve<{ boardId: string; clientId: string }>({
       const boardId = wsMatch[1]!;
       const board = await getBoard(boardId);
       if (!board) {
-        return json({ error: "Board not found" }, 404);
+        return withIframeHeaders(json({ error: "Board not found" }, 404));
       }
       const clientId = crypto.randomUUID();
       const upgraded = server.upgrade(req, { data: { boardId, clientId } });
       if (!upgraded) {
-        return new Response("WebSocket upgrade failed", { status: 400 });
+        return withIframeHeaders(new Response("WebSocket upgrade failed", { status: 400 }));
       }
       return;
     }
@@ -77,7 +90,7 @@ const server = Bun.serve<{ boardId: string; clientId: string }>({
         ...b,
         activeUsers: roomCounts.get(b.id) ?? 0,
       }));
-      return json(withCounts);
+      return withIframeHeaders(json(withCounts));
     }
 
     if (pathname === "/api/boards" && req.method === "POST") {
@@ -85,12 +98,12 @@ const server = Bun.serve<{ boardId: string; clientId: string }>({
         const body = (await req.json()) as { name?: string };
         const name = body.name?.trim();
         if (!name) {
-          return json({ error: "Board name is required" }, 400);
+          return withIframeHeaders(json({ error: "Board name is required" }, 400));
         }
         const board = await createBoard(name);
-        return json(board, 201);
+        return withIframeHeaders(json(board, 201));
       } catch {
-        return json({ error: "Invalid request body" }, 400);
+        return withIframeHeaders(json({ error: "Invalid request body" }, 400));
       }
     }
 
@@ -98,9 +111,9 @@ const server = Bun.serve<{ boardId: string; clientId: string }>({
     if (deleteMatch && req.method === "DELETE") {
       const deleted = await deleteBoard(deleteMatch[1]!);
       if (!deleted) {
-        return json({ error: "Board not found" }, 404);
+        return withIframeHeaders(json({ error: "Board not found" }, 404));
       }
-      return json({ ok: true });
+      return withIframeHeaders(json({ ok: true }));
     }
 
     // --- Board editor page ---
@@ -108,14 +121,14 @@ const server = Bun.serve<{ boardId: string; clientId: string }>({
     if (boardMatch) {
       const board = await getBoard(boardMatch[1]!);
       if (!board) {
-        return json({ error: "Board not found" }, 404);
+        return withIframeHeaders(json({ error: "Board not found" }, 404));
       }
-      return serveStatic(join(PUBLIC_DIR, "board.html"));
+      return withIframeHeaders(await serveStatic(join(PUBLIC_DIR, "board.html")));
     }
 
     // --- Static files ---
     if (pathname === "/" || pathname === "/index.html") {
-      return serveStatic(join(PUBLIC_DIR, "index.html"));
+      return withIframeHeaders(await serveStatic(join(PUBLIC_DIR, "index.html")));
     }
 
     // Serve other static files from public/ with path traversal protection
@@ -123,13 +136,13 @@ const server = Bun.serve<{ boardId: string; clientId: string }>({
     try {
       decoded = decodeURIComponent(pathname);
     } catch {
-      return new Response("Bad Request", { status: 400 });
+      return withIframeHeaders(new Response("Bad Request", { status: 400 }));
     }
     const resolved = resolve(PUBLIC_DIR, normalize(decoded).replace(/^\/+/, ""));
     if (!resolved.startsWith(PUBLIC_DIR)) {
-      return new Response("Forbidden", { status: 403 });
+      return withIframeHeaders(new Response("Forbidden", { status: 403 }));
     }
-    return serveStatic(resolved);
+    return withIframeHeaders(await serveStatic(resolved));
   },
 
   websocket: {

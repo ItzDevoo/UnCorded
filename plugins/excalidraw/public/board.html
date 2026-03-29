@@ -204,12 +204,14 @@
         const wsUrl = `${proto}//${window.location.host}/ws/room/${boardId}`;
         let ws;
         let reconnectTimer;
+        let reconnectDelay = 2000;
 
         function connect() {
           ws = new WebSocket(wsUrl);
           wsRef.current = ws;
 
           ws.onopen = () => {
+            reconnectDelay = 2000;
             setConnected(true);
           };
 
@@ -274,15 +276,18 @@
                   break;
                 }
               }
-            } catch {
-              // Non-JSON message, ignore
+            } catch (err) {
+              if (!(err instanceof SyntaxError)) {
+                console.warn("Error handling WS message:", err);
+              }
             }
           };
 
           ws.onclose = () => {
             setConnected(false);
             wsRef.current = null;
-            reconnectTimer = setTimeout(connect, 2000);
+            reconnectTimer = setTimeout(connect, reconnectDelay);
+            reconnectDelay = Math.min(reconnectDelay * 2, 30000);
           };
 
           ws.onerror = () => {

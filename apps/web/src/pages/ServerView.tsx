@@ -142,7 +142,7 @@ const ServerView = () => {
               breadcrumbs={[{ label: "Servers" }]}
             />
             <div class="flex-1 overflow-hidden">
-              <PluginFrame plugin={plugin()} tunnelUrl={activeServerPlugin()?.tunnelUrl} />
+              <PluginFrame plugin={plugin()} tunnelUrl={activeServerPlugin()?.tunnelUrl ?? null} />
             </div>
           </>
         )}

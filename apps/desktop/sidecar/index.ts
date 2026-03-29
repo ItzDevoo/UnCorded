@@ -3,6 +3,7 @@ import { DockerManager } from "./docker/manager";
 import { GatewayClient } from "./gateway/client";
 import { SeedingEngine } from "./seeding/engine";
 import { PluginLifecycle } from "./plugins/lifecycle";
+import { TunnelManager } from "./tunnel/manager";
 import path from "node:path";
 import fs from "node:fs";
 
@@ -16,7 +17,8 @@ fs.mkdirSync(DATA_DIR, { recursive: true });
 const docker = new DockerManager(DATA_DIR);
 const gateway = new GatewayClient();
 const seeding = new SeedingEngine(DATA_DIR);
-const plugins = new PluginLifecycle(docker, DATA_DIR);
+const tunnelManager = new TunnelManager(DATA_DIR);
+const plugins = new PluginLifecycle(docker, DATA_DIR, tunnelManager);
 
 // --- Start Bridge Server ---
 
@@ -34,6 +36,7 @@ const tokenPath = path.join(DATA_DIR, "gateway-token.txt");
 if (fs.existsSync(tokenPath)) {
   const token = fs.readFileSync(tokenPath, "utf-8").trim();
   if (token) {
+    plugins.setApiToken(token);
     await gateway.connect(token);
   }
 }
@@ -52,6 +55,7 @@ async function shutdown(): Promise<void> {
   console.error("[sidecar] Shutting down...");
 
   await plugins.stopAll();
+  await tunnelManager.destroyAll();
   gateway.destroy();
   await seeding.shutdown();
   await bridge.stop();

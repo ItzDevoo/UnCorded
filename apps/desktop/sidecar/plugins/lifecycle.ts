@@ -7,6 +7,7 @@ import { ResourceEnforcer } from "../docker/resources";
 import { issueToken, revokePluginTokens } from "./tokens";
 import { parseManifest, type PluginManifest } from "./manifest";
 import type { ResolvedScope } from "../bridge/auth";
+import type { TunnelManager } from "../tunnel/manager";
 
 export type PluginState = "installed" | "starting" | "running" | "stopping" | "stopped" | "crashed" | "error";
 
@@ -34,13 +35,19 @@ export class PluginLifecycle {
   private networks: NetworkManager;
   private health: HealthMonitor;
   private resources: ResourceEnforcer;
+  private tunnelManager: TunnelManager | null;
+  private apiBaseUrl: string | null;
+  private apiToken: string | null;
   private dataDir: string;
   private statePath: string;
   private plugins = new Map<string, PluginRecord>();
   private bridgePort = 0;
 
-  constructor(docker: DockerManager, dataDir: string) {
+  constructor(docker: DockerManager, dataDir: string, tunnelManager?: TunnelManager) {
     this.docker = docker;
+    this.tunnelManager = tunnelManager ?? null;
+    this.apiBaseUrl = process.env["UNCORDED_API_URL"] ?? null;
+    this.apiToken = null;
     this.networks = new NetworkManager();
     this.health = new HealthMonitor(docker);
     this.resources = new ResourceEnforcer();
@@ -170,6 +177,19 @@ export class PluginLifecycle {
       );
     }
 
+    // Create tunnel for server-scope plugins
+    if (plugin.scope === "server" && plugin.hostPort && this.tunnelManager) {
+      try {
+        const tunnelUrl = await this.tunnelManager.create(pluginId, plugin.hostPort);
+        plugin.tunnelUrl = tunnelUrl;
+        this.saveState();
+        await this.reportTunnelUrl(plugin.serverId, pluginId, tunnelUrl, "active");
+      } catch (err) {
+        console.error(`[lifecycle] Failed to create tunnel for ${pluginId}:`, err);
+        // Plugin still runs, just no tunnel
+      }
+    }
+
     console.error(`[lifecycle] Started plugin: ${pluginId} on port ${plugin.hostPort}`);
   }
 
@@ -185,6 +205,15 @@ export class PluginLifecycle {
     revokePluginTokens(pluginId);
 
     await this.docker.stopContainer(plugin.containerId);
+
+    // Destroy tunnel for server-scope plugins
+    if (plugin.scope === "server" && this.tunnelManager) {
+      await this.tunnelManager.destroy(pluginId);
+      if (plugin.tunnelUrl) {
+        await this.reportTunnelUrl(plugin.serverId, pluginId, null, "stopped").catch(() => {});
+      }
+      plugin.tunnelUrl = null;
+    }
 
     plugin.state = "stopped";
     plugin.previouslyRunning = false;
@@ -315,6 +344,10 @@ export class PluginLifecycle {
     this.bridgePort = port;
   }
 
+  setApiToken(token: string): void {
+    this.apiToken = token;
+  }
+
   // --- Queries ---
 
   list(): PluginRecord[] {
@@ -323,6 +356,40 @@ export class PluginLifecycle {
 
   get(pluginId: string): PluginRecord | undefined {
     return this.plugins.get(pluginId);
+  }
+
+  // --- Tunnel reporting ---
+
+  private async reportTunnelUrl(
+    serverId: string,
+    pluginId: string,
+    tunnelUrl: string | null,
+    state: string,
+  ): Promise<void> {
+    if (!this.apiBaseUrl || !this.apiToken) {
+      console.error("[lifecycle] Cannot report tunnel URL: API URL or token not configured");
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `${this.apiBaseUrl}/api/servers/${serverId}/plugins/${pluginId}/tunnel`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Cookie: `better-auth.session_token=${this.apiToken}`,
+          },
+          body: JSON.stringify({ tunnelUrl, state }),
+        },
+      );
+
+      if (!res.ok) {
+        console.error(`[lifecycle] Failed to report tunnel URL: ${res.status}`);
+      }
+    } catch (err) {
+      console.error("[lifecycle] Error reporting tunnel URL:", err);
+    }
   }
 
   // --- State persistence ---

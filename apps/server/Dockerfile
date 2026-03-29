@@ -11,7 +11,7 @@ COPY apps/web/package.json apps/web/package.json
 COPY apps/admin/package.json apps/admin/package.json
 
 # Install dependencies
-RUN bun install --frozen-lockfile
+RUN bun install
 
 # Non-root user
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser \

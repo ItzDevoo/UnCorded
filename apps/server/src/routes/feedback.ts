@@ -12,19 +12,19 @@ import { feedback, feedbackVotes, user } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
 import { checkUserRateLimit } from "../helpers/rate-limit.js";
 import { RL } from "../helpers/rate-limit-keys.js";
+import { pageQuerySchema } from "../helpers/pagination.js";
 
-const PAGE_SIZE = 20;
+const feedbackPageQuery = pageQuerySchema(20);
 
 export const feedbackRoutes = new Elysia({ prefix: "/api/feedback" })
   .resolve(authResolve())
 
   // ── List feedback (public) ────────────────────────────────────────────────
   .get("/", async ({ query, user: sessionUser }) => {
-    const page = Math.max(1, Number(query.page) || 1);
+    const { page, pageSize, offset } = feedbackPageQuery.parse(query);
     const rawType = typeof query.type === "string" ? query.type : undefined;
     const type = rawType === "feature" || rawType === "bug" ? rawType : undefined;
     const sort = query.sort === "votes" ? "votes" : "recent";
-    const offset = (page - 1) * PAGE_SIZE;
 
     const conditions = type ? eq(feedback.type, type) : undefined;
     const orderBy = sort === "votes" ? desc(feedback.voteCount) : desc(feedback.createdAt);
@@ -45,7 +45,7 @@ export const feedbackRoutes = new Elysia({ prefix: "/api/feedback" })
       .leftJoin(user, eq(feedback.authorId, user.id))
       .where(conditions)
       .orderBy(orderBy)
-      .limit(PAGE_SIZE)
+      .limit(pageSize)
       .offset(offset);
 
     // Check which items the current user has voted on
@@ -71,7 +71,7 @@ export const feedbackRoutes = new Elysia({ prefix: "/api/feedback" })
     return {
       feedback: rows.map((r) => Object.assign(r, { voted: votedIds.has(r.id) })),
       page,
-      pageSize: PAGE_SIZE,
+      pageSize,
     };
   })
 

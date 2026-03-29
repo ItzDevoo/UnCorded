@@ -8,7 +8,8 @@ import {
   RateLimitError,
   MAX_INVITES_PER_SERVER,
 } from "@uncorded/shared";
-import { Opcode, inviteCode, serverId, userId, channelId } from "@uncorded/protocol";
+import { Opcode, inviteCode, serverId, userId } from "@uncorded/protocol";
+import { brandServer, brandChannel, brandInvite } from "../helpers/brand.js";
 import { NeonDbError } from "@neondatabase/serverless";
 import { db } from "../db/index.js";
 import { invites, servers, members, channels, user } from "../db/schema.js";
@@ -49,14 +50,7 @@ export const serverInviteRoutes = new Elysia({ prefix: "/api/servers/:serverId/i
     });
 
     set.status = 201;
-    return invite
-      ? {
-          ...invite,
-          code: inviteCode(invite.code),
-          serverId: serverId(invite.serverId),
-          creatorId: invite.creatorId ? userId(invite.creatorId) : null,
-        }
-      : invite;
+    return invite ? brandInvite(invite) : invite;
   })
   .get("/", async ({ user: sessionUser, params }) => {
     await requireOwner(sessionUser.id, params.serverId);
@@ -73,13 +67,7 @@ export const serverInviteRoutes = new Elysia({ prefix: "/api/servers/:serverId/i
       )
       .limit(100);
 
-    return activeInvites.map((inv) =>
-      Object.assign(inv, {
-        code: inviteCode(inv.code),
-        serverId: serverId(inv.serverId),
-        creatorId: inv.creatorId ? userId(inv.creatorId) : null,
-      }),
-    );
+    return activeInvites.map((inv) => brandInvite(inv));
   })
   .delete("/:code", async ({ user: sessionUser, params, set }) => {
     await requireOwner(sessionUser.id, params.serverId);
@@ -218,10 +206,10 @@ export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
 
     /* oxlint-disable no-map-spread -- copy-on-write required, DB rows must not be mutated */
     const serverPayload = {
-      server: { ...server, id: serverId(server.id), ownerId: userId(server.ownerId) },
+      server: brandServer(server),
       channels: serverChannels
         .toSorted((a, b) => a.position - b.position)
-        .map((ch) => ({ ...ch, id: channelId(ch.id), serverId: serverId(ch.serverId) })),
+        .map((ch) => brandChannel(ch)),
     };
     /* oxlint-enable no-map-spread */
 

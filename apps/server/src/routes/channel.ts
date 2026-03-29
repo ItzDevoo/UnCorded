@@ -9,6 +9,7 @@ import {
   MAX_CHANNELS_PER_SERVER,
 } from "@uncorded/shared";
 import { Opcode, channelId, serverId } from "@uncorded/protocol";
+import { brandChannel } from "../helpers/brand.js";
 import { db } from "../db/index.js";
 import { channels } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
@@ -60,7 +61,7 @@ const serverChannelRoutes = new Elysia({ prefix: "/api/servers/:serverId/channel
 
     addChannelToCache(channel.id, channel.serverId);
 
-    const branded = { ...channel, id: channelId(channel.id), serverId: serverId(channel.serverId) };
+    const branded = brandChannel(channel);
 
     broadcastToServer(params.serverId, { op: Opcode.CHANNEL_CREATE, d: branded });
 
@@ -76,9 +77,7 @@ const serverChannelRoutes = new Elysia({ prefix: "/api/servers/:serverId/channel
       .where(eq(channels.serverId, params.serverId))
       .orderBy(channels.position);
 
-    return serverChannels.map((ch) =>
-      Object.assign(ch, { id: channelId(ch.id), serverId: serverId(ch.serverId) }),
-    );
+    return serverChannels.map((ch) => brandChannel(ch));
   });
 
 const channelIdRoutes = new Elysia({ prefix: "/api/channels/:channelId" })
@@ -123,7 +122,7 @@ const channelIdRoutes = new Elysia({ prefix: "/api/channels/:channelId" })
       return row;
     });
 
-    const branded = { ...updated, id: channelId(updated.id), serverId: serverId(updated.serverId) };
+    const branded = brandChannel(updated);
 
     broadcastToServer(channel.serverId, { op: Opcode.CHANNEL_UPDATE, d: branded });
 

@@ -448,7 +448,7 @@ export class PluginLifecycle {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Cookie: `better-auth.session_token=${this.apiToken}`,
+            Cookie: `__Secure-uncorded.session_token=${this.apiToken}`,
           },
           body: JSON.stringify({ tunnelUrl, state }),
           signal: controller.signal,

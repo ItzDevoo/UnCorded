@@ -318,7 +318,7 @@ async function syncAuthToSidecar(): Promise<void> {
     console.log("[auth] All cookies:", allCookies.map(c => `${c.name} (${c.domain})`));
 
     const cookies = await session.defaultSession.cookies.get({
-      name: "better-auth.session_token",
+      name: "__Secure-uncorded.session_token",
     });
     console.log("[auth] Session cookies found:", cookies.length);
     const token = cookies[0]?.value;
@@ -365,7 +365,7 @@ app.on("ready", async () => {
 
   // Re-sync when session cookie changes (login/logout)
   session.defaultSession.cookies.on("changed", (_event, cookie, _cause, removed) => {
-    if (cookie.name === "better-auth.session_token") {
+    if (cookie.name === "__Secure-uncorded.session_token") {
       if (removed) {
         console.log("[auth] Session cookie removed (logout)");
         return;

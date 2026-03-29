@@ -189,21 +189,18 @@ interface PluginInfo {
 
 let cachedPlugins: PluginInfo[] = [];
 
-// Hardcoded manifests until we have a proper plugin registry
-const PLUGIN_MANIFESTS: Record<string, object> = {
-  "excalidraw-boards": {
-    id: "excalidraw-boards",
-    name: "Excalidraw Boards",
-    version: "1.0.0",
-    description: "Collaborative whiteboard",
-    author: "UnCorded",
-    scope: "server",
-    runtime: { image: "excalidraw-boards:latest", port: 3000, healthCheck: "/health" },
-    permissions: ["server.read", "members.read"],
-    resources: { cpus: 0.5, memoryMb: 256 },
-    ui: { type: "page" },
-  },
-};
+const API_URL = process.env["UNCORDED_API_URL"]
+  ?? (IS_DEV ? "http://localhost:3000" : "https://uncorded.app");
+
+async function fetchPluginManifest(pluginId: string): Promise<object> {
+  const res = await fetch(`${API_URL}/api/plugins/${pluginId}/manifest`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to fetch manifest for ${pluginId} (${res.status}): ${body}`);
+  }
+  const data = (await res.json()) as { manifest: object };
+  return data.manifest;
+}
 
 function broadcastPluginState(): void {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -242,8 +239,7 @@ function setupPluginIpc(): void {
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       if (body.includes("not found") || body.includes("not installed")) {
-        const manifest = PLUGIN_MANIFESTS[pluginId];
-        if (!manifest) throw new Error(`No manifest for plugin: ${pluginId}`);
+        const manifest = await fetchPluginManifest(pluginId);
 
         const installRes = await fetch(`http://localhost:${port}/plugins/install`, {
           method: "POST",

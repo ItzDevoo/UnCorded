@@ -1,8 +1,9 @@
 import { createSignal, createEffect, Show } from "solid-js";
 import type { ServerId } from "@uncorded/protocol";
-import { api, ApiRequestError } from "../../lib/api.js";
+import { api } from "../../lib/api.js";
 import { updateServer } from "../../lib/gateway-store.js";
 import { showToast } from "../ui/toast.js";
+import { handleApiError } from "../../lib/error-handling.js";
 import { Button } from "../ui/button.js";
 import { useNavigate } from "@solidjs/router";
 
@@ -79,8 +80,7 @@ const ServerOverview = (props: OverviewProps) => {
       updateServer(serverId, { name: result.name, iconUrl: result.iconUrl });
       showToast("Server updated", "info");
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.body.message : "Failed to save";
-      showToast(message, "error");
+      handleApiError(err, "Failed to save");
     } finally {
       setSaving(false);
     }
@@ -95,8 +95,7 @@ const ServerOverview = (props: OverviewProps) => {
       showToast("Server deleted", "info");
       navigate("/home");
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.body.message : "Failed to delete server";
-      showToast(message, "error");
+      handleApiError(err, "Failed to delete server");
     } finally {
       setDeleting(false);
     }

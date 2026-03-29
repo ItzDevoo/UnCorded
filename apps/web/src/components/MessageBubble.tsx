@@ -1,10 +1,11 @@
 import { createSignal, Show, onCleanup } from "solid-js";
 import type { AnyChannelId } from "@uncorded/protocol";
-import { api, ApiRequestError } from "../lib/api.js";
+import { api } from "../lib/api.js";
 import { readyData } from "../lib/gateway-store.js";
 import { currentServer } from "../stores/app-store.js";
 import { messageDensity } from "../stores/theme-store.js";
 import { showToast } from "./ui/toast.js";
+import { handleApiError } from "../lib/error-handling.js";
 import { Button } from "./ui/button.js";
 import {
   Dialog,
@@ -199,8 +200,7 @@ const MessageBubble = (props: MessageBubbleProps) => {
       });
       setEditing(false);
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.body.message : "Failed to edit message";
-      showToast(message, "error");
+      handleApiError(err, "Failed to edit message");
     } finally {
       setSaving(false);
     }
@@ -230,9 +230,7 @@ const MessageBubble = (props: MessageBubbleProps) => {
       });
       setShowDeleteDialog(false);
     } catch (err) {
-      const message =
-        err instanceof ApiRequestError ? err.body.message : "Failed to delete message";
-      showToast(message, "error");
+      handleApiError(err, "Failed to delete message");
     } finally {
       setDeleting(false);
     }

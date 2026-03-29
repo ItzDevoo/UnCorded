@@ -1,7 +1,8 @@
 import { createSignal, createEffect, For, Show } from "solid-js";
 import type { ServerId } from "@uncorded/protocol";
-import { api, ApiRequestError } from "../../lib/api.js";
+import { api } from "../../lib/api.js";
 import { showToast } from "../ui/toast.js";
+import { handleApiError } from "../../lib/error-handling.js";
 import { Button } from "../ui/button.js";
 import InviteModal from "../modals/InviteModal.js";
 
@@ -44,8 +45,7 @@ const InviteManagement = (props: InviteManagementProps) => {
       if (serverId !== props.serverId) return;
       setInvites(result);
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.body.message : "Failed to load invites";
-      showToast(message, "error");
+      handleApiError(err, "Failed to load invites");
     } finally {
       setLoading(false);
     }
@@ -66,8 +66,7 @@ const InviteManagement = (props: InviteManagementProps) => {
       setInvites((prev) => prev.filter((inv) => inv.code !== code));
       showToast("Invite revoked", "info");
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.body.message : "Failed to revoke invite";
-      showToast(message, "error");
+      handleApiError(err, "Failed to revoke invite");
     } finally {
       setRevokingCode(null);
     }

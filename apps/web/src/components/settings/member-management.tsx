@@ -1,8 +1,9 @@
 import { createSignal, createEffect, For, Show } from "solid-js";
 import type { ServerId, UserId } from "@uncorded/protocol";
-import { api, ApiRequestError } from "../../lib/api.js";
+import { api } from "../../lib/api.js";
 import { readyData, updateServer } from "../../lib/gateway-store.js";
 import { showToast } from "../ui/toast.js";
+import { handleApiError } from "../../lib/error-handling.js";
 import { Button } from "../ui/button.js";
 import StatusDot, { type UserStatus } from "../StatusDot.js";
 
@@ -42,8 +43,7 @@ const MemberManagement = (props: MemberManagementProps) => {
       if (serverId !== props.serverId) return;
       setMembers(result.members);
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.body.message : "Failed to load members";
-      showToast(message, "error");
+      handleApiError(err, "Failed to load members");
     } finally {
       setLoading(false);
     }
@@ -74,8 +74,7 @@ const MemberManagement = (props: MemberManagementProps) => {
       setMembers((prev) => prev.filter((m) => m.userId !== userId));
       showToast("Member kicked", "info");
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.body.message : "Failed to kick member";
-      showToast(message, "error");
+      handleApiError(err, "Failed to kick member");
     } finally {
       setKickingId(null);
     }
@@ -99,9 +98,7 @@ const MemberManagement = (props: MemberManagementProps) => {
       setTransferTarget(null);
       setTransferInput("");
     } catch (err) {
-      const message =
-        err instanceof ApiRequestError ? err.body.message : "Failed to transfer ownership";
-      showToast(message, "error");
+      handleApiError(err, "Failed to transfer ownership");
     } finally {
       setTransferring(false);
     }

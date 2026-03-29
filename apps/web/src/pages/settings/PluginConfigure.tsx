@@ -1,8 +1,9 @@
 import { createSignal, createResource, Show, type ParentProps } from "solid-js";
 import { A, useParams, useNavigate } from "@solidjs/router";
 import type { PluginId } from "@uncorded/protocol";
-import { api, ApiRequestError } from "../../lib/api.js";
+import { api } from "../../lib/api.js";
 import { showToast } from "../../components/ui/toast.js";
+import { handleApiError } from "../../lib/error-handling.js";
 import { Button } from "../../components/ui/button.js";
 import {
   Dialog,
@@ -90,8 +91,7 @@ const PluginConfigure = () => {
       showToast("Plugin uninstalled", "info");
       navigate("/settings/plugins");
     } catch (err) {
-      const msg = err instanceof ApiRequestError ? err.body.message : "Failed to uninstall";
-      showToast(msg, "error");
+      handleApiError(err, "Failed to uninstall");
     } finally {
       setUninstalling(false);
       setShowUninstall(false);

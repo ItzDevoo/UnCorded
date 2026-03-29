@@ -1,6 +1,7 @@
 import { createSignal, onMount, For, Show } from "solid-js";
-import { api, ApiRequestError } from "../lib/api.js";
+import { api } from "../lib/api.js";
 import { showToast } from "../components/ui/toast.js";
+import { handleApiError } from "../lib/error-handling.js";
 import { Button } from "../components/ui/button.js";
 import { Badge } from "../components/ui/badge.js";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card.js";
@@ -80,8 +81,7 @@ const Feedback = () => {
         ),
       );
     } catch (err) {
-      const msg = err instanceof ApiRequestError ? err.body.message : "Failed to vote";
-      showToast(msg, "error");
+      handleApiError(err, "Failed to vote");
     }
   }
 

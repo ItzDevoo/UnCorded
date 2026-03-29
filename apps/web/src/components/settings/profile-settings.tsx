@@ -1,8 +1,9 @@
 import { createSignal, createEffect, Show, onCleanup } from "solid-js";
 import { MAX_AVATAR_SIZE_BYTES, ALLOWED_AVATAR_TYPES, DISPLAY_NAME_MAX, USERNAME_REGEX, USERNAME_MIN, USERNAME_MAX } from "@uncorded/shared";
-import { api, apiUpload, ApiRequestError } from "../../lib/api.js";
+import { api, apiUpload } from "../../lib/api.js";
 import { readyData, updateCurrentUser } from "../../lib/gateway-store.js";
 import { showToast } from "../ui/toast.js";
+import { handleApiError } from "../../lib/error-handling.js";
 import { Button } from "../ui/button.js";
 
 const ProfileSettings = () => {
@@ -140,8 +141,7 @@ const ProfileSettings = () => {
 
       showToast("Profile updated", "info");
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.body.message : "Failed to save";
-      showToast(message, "error");
+      handleApiError(err, "Failed to save");
       // Clear local preview so the user doesn't think upload succeeded
       const prev = avatarPreview();
       if (prev) URL.revokeObjectURL(prev);

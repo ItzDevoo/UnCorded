@@ -1,7 +1,8 @@
 import { createSignal, For, onMount } from "solid-js";
-import { api, ApiRequestError } from "../../lib/api.js";
+import { api } from "../../lib/api.js";
 import { authClient, signIn } from "../../lib/auth.js";
 import { showToast } from "../ui/toast.js";
+import { handleApiError } from "../../lib/error-handling.js";
 import { Button } from "../ui/button.js";
 import { GoogleIcon, DiscordIcon } from "../ui/oauth-buttons.js";
 import { showPendingDeletion } from "../../stores/deletion-store.js";
@@ -108,9 +109,7 @@ const AccountSettings = () => {
       setNewPassword("");
       setConfirmPassword("");
     } catch (err) {
-      const message =
-        err instanceof ApiRequestError ? err.body.message : "Failed to change password";
-      showToast(message, "error");
+      handleApiError(err, "Failed to change password");
     } finally {
       setChangingPassword(false);
     }
@@ -177,9 +176,7 @@ const AccountSettings = () => {
       );
       expiresAt = res.expiresAt;
     } catch (err) {
-      const message =
-        err instanceof ApiRequestError ? err.body.message : "Failed to delete account";
-      showToast(message, "error");
+      handleApiError(err, "Failed to delete account");
       setDeleting(false);
       return;
     }

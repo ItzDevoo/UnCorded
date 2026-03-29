@@ -1,5 +1,5 @@
 import { createSignal, createResource, For, Show } from "solid-js";
-import { MAX_AVATAR_SIZE_BYTES, ALLOWED_AVATAR_TYPES } from "@uncorded/shared";
+import { MAX_AVATAR_SIZE_BYTES, ALLOWED_AVATAR_TYPES, BOT_LIMITS } from "@uncorded/shared";
 import { api, apiUpload, ApiRequestError } from "../../lib/api.js";
 import { readyData } from "../../lib/gateway-store.js";
 import { showToast } from "../ui/toast.js";
@@ -26,12 +26,6 @@ interface Bot {
   lastUsedAt: string | null;
   createdAt: string;
 }
-
-const BOT_LIMITS: Record<string, number> = {
-  free: 1,
-  supporter: 3,
-  server_owner: 5,
-};
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

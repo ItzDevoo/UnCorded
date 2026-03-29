@@ -7,6 +7,7 @@ import {
   NotFoundError,
   ValidationError,
   InternalError,
+  DEV_STATE_PATH,
 } from "@uncorded/shared";
 import { db } from "../db/index.js";
 import {
@@ -45,7 +46,6 @@ const devStateSchema = z.object({
 type DevState = z.infer<typeof devStateSchema>;
 
 const DEV_STATE_DEFAULT: DevState = { branch: "dev", switchedAt: null, switchedBy: null, status: "active" };
-const DEV_STATE_PATH = "/app/dev-state/branch.json";
 
 async function loadDevState(): Promise<DevState> {
   const stateFile = Bun.file(DEV_STATE_PATH);

@@ -99,13 +99,13 @@ export class DockerManager {
       },
       Binds: [`${pluginDataDir}:/app/data`],
       RestartPolicy: { Name: "no" },
-      // Resource limits
+      // Resource limits — canonical values in @uncorded/shared DOCKER_DEFAULT_CPUS / DOCKER_DEFAULT_MEMORY_MB
       NanoCpus: config.resources?.cpus
         ? config.resources.cpus * 1e9
-        : 1e9, // Default 1 CPU
+        : 1e9,
       Memory: config.resources?.memoryMb
         ? config.resources.memoryMb * 1024 * 1024
-        : 512 * 1024 * 1024, // Default 512MB
+        : 512 * 1024 * 1024,
       // Allow container to reach host bridge server
       ExtraHosts: ["host.docker.internal:host-gateway"],
       // Security

@@ -174,8 +174,16 @@ export class PluginLifecycle {
       reregisterToken(plugin.bridgeToken, pluginId, plugin.serverId, plugin.manifest.permissions, plugin.scope);
     }
 
-    // Start container
-    await this.docker.startContainer(plugin.containerId);
+    // Start container (304 = already running — treat as success)
+    try {
+      await this.docker.startContainer(plugin.containerId);
+    } catch (err: unknown) {
+      if (err && typeof err === "object" && "statusCode" in err && (err as { statusCode: number }).statusCode === 304) {
+        console.error(`[lifecycle] Container already running for ${pluginId}, attaching`);
+      } else {
+        throw err;
+      }
+    }
 
     // Get assigned port
     const status = await this.docker.getStatus(plugin.containerId);

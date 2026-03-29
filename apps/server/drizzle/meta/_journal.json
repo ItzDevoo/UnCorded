@@ -120,6 +120,13 @@
       "when": 1743264000000,
       "tag": "0016_add_server_plugins",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1743350400000,
+      "tag": "0017_plugin_registry",
+      "breakpoints": true
     }
   ]
 }

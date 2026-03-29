@@ -9,6 +9,7 @@ import {
   index,
   primaryKey,
   unique,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 import { nanoid } from "nanoid";
@@ -443,6 +444,35 @@ export const pollVotes = pgTable(
 );
 
 // ─── Plugin Tables ──────────────────────────────────────────
+
+export const pluginRegistry = pgTable(
+  "plugin_registry",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    description: text("description").notNull(),
+    author: text("author").notNull(),
+    iconUrl: text("icon_url"),
+    category: text("category").notNull().default("other"),
+    scope: text("scope").notNull().default("server"),
+    tags: text("tags").array().default([]),
+    image: text("image").notNull(),
+    version: text("version").notNull().default("1.0.0"),
+    manifest: jsonb("manifest").notNull(),
+    repository: text("repository"),
+    verified: boolean("verified").default(false),
+    featured: boolean("featured").default(false),
+    downloads: integer("downloads").default(0),
+    screenshots: jsonb("screenshots").default([]),
+    published: boolean("published").default(true),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index("plugin_registry_category_idx").on(t.category),
+    index("plugin_registry_scope_idx").on(t.scope),
+  ],
+);
 
 export const serverPluginStateEnum = pgEnum("server_plugin_state", [
   "active",

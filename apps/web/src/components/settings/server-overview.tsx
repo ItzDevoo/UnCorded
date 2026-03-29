@@ -40,6 +40,8 @@ const ServerOverview = (props: OverviewProps) => {
     setNameError("");
     setDeleteInput("");
     setShowDeleteConfirm(false);
+    save.reset();
+    del.reset();
   });
 
   function handleNameInput(val: string) {

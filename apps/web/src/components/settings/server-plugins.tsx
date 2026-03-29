@@ -3,6 +3,7 @@ import type { ServerId, PluginId, UserId } from "@uncorded/protocol";
 import { api, ApiRequestError } from "../../lib/api.js";
 import { showToast } from "../ui/toast.js";
 import { Button } from "../ui/button.js";
+import { PluginCard, type PluginCardData } from "../ui/plugin-card.js";
 import { readyData } from "../../lib/gateway-store.js";
 import { isDesktop } from "../../stores/plugin-store.js";
 
@@ -29,6 +30,10 @@ interface CatalogPlugin {
   category: string;
   scope: "server" | "personal" | "both";
   tags: string[];
+  version: string;
+  verified: boolean;
+  featured: boolean;
+  downloads: number;
   installCount: number;
   installed: boolean;
 }
@@ -37,11 +42,11 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
   const [installing, setInstalling] = createSignal<PluginId | null>(null);
   const [uninstalling, setUninstalling] = createSignal<PluginId | null>(null);
   const [toggling, setToggling] = createSignal<PluginId | null>(null);
+  const [search, setSearch] = createSignal("");
 
   const isServerOwnerTier = () =>
     readyData.data?.user.subscriptionTier === "server_owner";
 
-  // Fetch installed server plugins
   const [installed, { refetch: refetchInstalled, mutate: mutateInstalled }] = createResource(
     () => props.serverId,
     async (serverId) => {
@@ -52,7 +57,6 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
     },
   );
 
-  // Fetch catalog (filtered to server/both scope)
   const [catalog] = createResource(async () => {
     const res = await api<{ plugins: CatalogPlugin[] }>("/api/plugins");
     return res.plugins.filter(
@@ -60,11 +64,65 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
     );
   });
 
+  const catalogMap = () => {
+    const map = new Map<string, CatalogPlugin>();
+    for (const p of catalog() ?? []) map.set(p.id, p);
+    return map;
+  };
+
   const installedPluginIds = () =>
     new Set((installed() ?? []).map((p) => p.pluginId));
 
-  const availablePlugins = () =>
-    (catalog() ?? []).filter((p) => !installedPluginIds().has(p.id));
+  const availablePlugins = () => {
+    let list = (catalog() ?? []).filter((p) => !installedPluginIds().has(p.id));
+    const q = search().toLowerCase();
+    if (q) {
+      list = list.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.description.toLowerCase().includes(q) ||
+          p.tags.some((t) => t.toLowerCase().includes(q)),
+      );
+    }
+    return list.sort((a, b) => (a.featured !== b.featured ? (a.featured ? -1 : 1) : 0));
+  };
+
+  function catalogToCardData(p: CatalogPlugin): PluginCardData {
+    return {
+      id: p.id, name: p.name, description: p.description, author: p.author,
+      icon: p.icon, category: p.category, scope: p.scope as "server" | "personal" | "both",
+      tags: p.tags, version: p.version, verified: p.verified, featured: p.featured,
+      downloads: p.downloads, installCount: p.installCount,
+    };
+  }
+
+  function installedToCardData(sp: ServerPlugin): PluginCardData {
+    const cat = catalogMap().get(sp.pluginId);
+    return {
+      id: sp.pluginId,
+      name: cat?.name ?? sp.pluginId.split(/[-_]/).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
+      description: cat?.description ?? "",
+      author: cat?.author ?? "Unknown",
+      icon: cat?.icon ?? null,
+      category: cat?.category ?? "Other",
+      scope: (cat?.scope ?? "server") as "server" | "personal" | "both",
+      tags: cat?.tags ?? [],
+      version: cat?.version ?? "1.0.0",
+      verified: cat?.verified ?? false,
+      featured: cat?.featured ?? false,
+      downloads: cat?.downloads ?? 0,
+      installCount: cat?.installCount ?? 0,
+    };
+  }
+
+  function stateStatus(state: string): { label: string; color: string } {
+    switch (state) {
+      case "active": return { label: "Running", color: "bg-success" };
+      case "stopped": return { label: "Stopped", color: "bg-muted-foreground" };
+      case "error": return { label: "Error", color: "bg-destructive" };
+      default: return { label: state, color: "bg-muted-foreground" };
+    }
+  }
 
   async function handleInstall(pluginId: PluginId) {
     if (installing()) return;
@@ -77,10 +135,7 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
       showToast("Server plugin installed", "info");
       await refetchInstalled();
     } catch (err) {
-      const msg =
-        err instanceof ApiRequestError
-          ? err.body.message
-          : "Failed to install plugin";
+      const msg = err instanceof ApiRequestError ? err.body.message : "Failed to install plugin";
       showToast(msg, "error");
     } finally {
       setInstalling(null);
@@ -91,25 +146,16 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
     if (uninstalling()) return;
     setUninstalling(pluginId);
     try {
-      // Stop container + remove Docker resources via desktop bridge
       if (isDesktop()) {
-        try {
-          await window.desktopBridge!.plugins.uninstall(pluginId);
-        } catch {
-          // Sidecar may not have this plugin — continue with DB cleanup
-        }
+        try { await window.desktopBridge!.plugins.uninstall(pluginId); } catch { /* continue */ }
       }
-      // Remove DB record
       await api(`/api/servers/${encodeURIComponent(props.serverId)}/plugins/${encodeURIComponent(pluginId)}`, {
         method: "DELETE",
       });
       mutateInstalled((prev) => prev?.filter((p) => p.pluginId !== pluginId));
       showToast("Server plugin uninstalled", "info");
     } catch (err) {
-      const msg =
-        err instanceof ApiRequestError
-          ? err.body.message
-          : "Failed to uninstall plugin";
+      const msg = err instanceof ApiRequestError ? err.body.message : "Failed to uninstall plugin";
       showToast(msg, "error");
     } finally {
       setUninstalling(null);
@@ -124,7 +170,7 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
     }
     setToggling(pluginId);
     try {
-      const isRunning = currentState === "active" || currentState === "running";
+      const isRunning = currentState === "active";
       if (isRunning) {
         await window.desktopBridge!.plugins.stop(pluginId);
         showToast("Plugin stopped", "info");
@@ -141,32 +187,6 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
     }
   }
 
-  const stateLabel = (state: string) => {
-    switch (state) {
-      case "active":
-        return "Running";
-      case "stopped":
-        return "Stopped";
-      case "error":
-        return "Error";
-      default:
-        return state;
-    }
-  };
-
-  const stateColor = (state: string) => {
-    switch (state) {
-      case "active":
-        return "bg-success";
-      case "stopped":
-        return "bg-muted-foreground";
-      case "error":
-        return "bg-destructive";
-      default:
-        return "bg-muted-foreground";
-    }
-  };
-
   return (
     <div class="space-y-6">
       <div>
@@ -175,6 +195,16 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
           Manage plugins that run for all members of this server.
         </p>
       </div>
+
+      {/* Desktop hint — shown first so users understand the constraint */}
+      <Show when={!isDesktop()}>
+        <div class="rounded-lg border border-border bg-muted/50 p-4">
+          <p class="text-sm text-muted-foreground">
+            Server plugins run on the desktop app. Install them here, then start them from
+            the desktop client.
+          </p>
+        </div>
+      </Show>
 
       {/* Tier gate */}
       <Show when={!isServerOwnerTier()}>
@@ -195,96 +225,93 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
             <h3 class="text-sm font-medium text-muted-foreground">Installed</h3>
             <For each={installed()}>
               {(plugin) => (
-                <div class="flex items-center justify-between rounded-lg border border-border bg-card p-4">
-                  <div class="flex items-center gap-3">
-                    <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div class="flex items-center gap-2">
-                        <span class="font-medium text-foreground">{plugin.pluginId}</span>
-                        <span class="flex items-center gap-1 text-xs text-muted-foreground">
-                          <span class={`inline-block h-1.5 w-1.5 rounded-full ${stateColor(plugin.state)}`} />
-                          {stateLabel(plugin.state)}
-                        </span>
+                <PluginCard
+                  plugin={installedToCardData(plugin)}
+                  status={stateStatus(plugin.state)}
+                  actions={
+                    <Show when={isServerOwnerTier()}>
+                      <div class="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleToggle(plugin.pluginId, plugin.state)}
+                          disabled={toggling() === plugin.pluginId || !isDesktop()}
+                          title={!isDesktop() ? "Requires desktop app" : undefined}
+                        >
+                          {toggling() === plugin.pluginId
+                            ? "..."
+                            : plugin.state === "active" ? "Stop" : "Start"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleUninstall(plugin.pluginId)}
+                          disabled={uninstalling() === plugin.pluginId}
+                        >
+                          {uninstalling() === plugin.pluginId ? "Removing..." : "Uninstall"}
+                        </Button>
                       </div>
-                      <Show when={plugin.tunnelUrl}>
-                        <p class="mt-0.5 text-xs text-muted-foreground font-mono truncate max-w-[300px]">
-                          {plugin.tunnelUrl}
-                        </p>
-                      </Show>
-                    </div>
-                  </div>
-                  <Show when={isServerOwnerTier()}>
-                    <div class="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleToggle(plugin.pluginId, plugin.state)}
-                        disabled={toggling() === plugin.pluginId || !isDesktop()}
-                        title={!isDesktop() ? "Requires desktop app" : undefined}
-                      >
-                        {toggling() === plugin.pluginId
-                          ? "..."
-                          : plugin.state === "active"
-                            ? "Stop"
-                            : "Start"}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleUninstall(plugin.pluginId)}
-                        disabled={uninstalling() === plugin.pluginId}
-                      >
-                        {uninstalling() === plugin.pluginId ? "Removing..." : "Uninstall"}
-                      </Button>
-                    </div>
-                  </Show>
-                </div>
+                    </Show>
+                  }
+                />
               )}
             </For>
           </div>
         </Show>
       </Show>
 
-      {/* Available plugins */}
-      <Show when={isServerOwnerTier() && availablePlugins().length > 0}>
-        <div class="space-y-3">
-          <h3 class="text-sm font-medium text-muted-foreground">Available</h3>
-          <For each={availablePlugins()}>
-            {(plugin) => (
-              <div class="flex items-center justify-between rounded-lg border border-border bg-card/50 p-4">
-                <div>
-                  <div class="flex items-center gap-2">
-                    <span class="font-medium text-foreground">{plugin.name}</span>
-                    <span class="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                      {plugin.scope === "both" ? "Server + Personal" : "Server"}
-                    </span>
-                  </div>
-                  <p class="mt-1 text-sm text-muted-foreground">{plugin.description}</p>
-                </div>
-                <Button
-                  size="sm"
-                  onClick={() => handleInstall(plugin.id)}
-                  disabled={installing() === plugin.id}
-                >
-                  {installing() === plugin.id ? "Installing..." : "Install for Server"}
-                </Button>
-              </div>
-            )}
-          </For>
+      {/* Empty state */}
+      <Show when={!installed.loading && (installed() ?? []).length === 0 && availablePlugins().length === 0}>
+        <div class="rounded-lg border border-border p-6 text-center">
+          <p class="text-sm text-muted-foreground">
+            No server plugins available yet. Check back soon!
+          </p>
         </div>
       </Show>
 
-      {/* Desktop hint */}
-      <Show when={!isDesktop() && isServerOwnerTier()}>
-        <div class="rounded-lg border border-border bg-muted/50 p-4">
-          <p class="text-sm text-muted-foreground">
-            Server plugins run on the desktop app. Install them here, then start them from
-            the desktop client.
-          </p>
+      {/* Available plugins */}
+      <Show when={availablePlugins().length > 0}>
+        <div class="space-y-3">
+          <h3 class="text-sm font-medium text-muted-foreground">Available</h3>
+
+          {/* Search */}
+          <div class="relative">
+            <svg
+              class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search plugins..."
+              value={search()}
+              onInput={(e) => setSearch(e.currentTarget.value)}
+              class="w-full rounded-lg border border-border bg-input py-2 pl-10 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground transition-shadow duration-200 focus:ring-2 focus:ring-ring/50"
+            />
+          </div>
+
+          <For each={availablePlugins()}>
+            {(plugin) => (
+              <PluginCard
+                plugin={catalogToCardData(plugin)}
+                actions={
+                  <Button
+                    size="sm"
+                    onClick={() => handleInstall(plugin.id)}
+                    disabled={installing() === plugin.id || !isServerOwnerTier()}
+                    title={!isServerOwnerTier() ? "Server Owner tier required" : undefined}
+                  >
+                    {installing() === plugin.id ? "Installing..." : "Install for Server"}
+                  </Button>
+                }
+              />
+            )}
+          </For>
         </div>
       </Show>
     </div>

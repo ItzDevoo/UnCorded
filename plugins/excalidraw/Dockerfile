@@ -6,19 +6,25 @@ RUN bun install --frozen-lockfile || bun install
 
 COPY tsconfig.json ./
 COPY src/ ./src/
-RUN bun build src/server.ts --outdir dist --target bun
+COPY public/ ./public/
+COPY scripts/ ./scripts/
+RUN bun run build
 
 # --- Production ---
 FROM oven/bun:1-alpine
 
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
 WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
-COPY public/ ./public/
+COPY --from=build /app/public ./public
 
-RUN mkdir -p /app/data/boards
+RUN mkdir -p /app/data/boards && chown -R appuser:appgroup /app
 
 EXPOSE 3000
+
+USER appuser
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -qO- http://localhost:3000/health || exit 1

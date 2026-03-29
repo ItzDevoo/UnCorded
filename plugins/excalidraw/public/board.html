@@ -12,54 +12,60 @@
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; overflow: hidden; }
+    html, body { height: 100%; overflow: hidden; background: #0A0A0A; }
     #root { width: 100%; height: 100vh; }
 
-    .top-bar {
+    .nav-bar {
       position: absolute;
-      top: 12px;
+      bottom: 12px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 10;
       display: flex;
       align-items: center;
-      gap: 12px;
-      background: #1a1a2e;
-      border: 1px solid #2a2a4a;
-      border-radius: 10px;
-      padding: 6px 14px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 13px;
-      color: #e0e0e0;
+      gap: 10px;
+      background: var(--island-bg-color, #232329);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-family: "Assistant", -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 12px;
+      color: #E8E8E8;
       pointer-events: auto;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     }
 
-    .top-bar a {
-      color: #7c5cfc;
+    .nav-bar a {
+      color: #F87171;
       text-decoration: none;
       font-weight: 500;
     }
 
-    .top-bar a:hover { text-decoration: underline; }
+    .nav-bar a:hover { text-decoration: underline; }
 
     .user-count {
       display: flex;
       align-items: center;
-      gap: 5px;
-      color: #4ade80;
-      font-size: 12px;
+      gap: 4px;
+      color: #16A37F;
+      font-size: 11px;
     }
 
     .user-dot {
-      width: 6px;
-      height: 6px;
+      width: 5px;
+      height: 5px;
       border-radius: 50%;
-      background: #4ade80;
+      background: #16A37F;
     }
 
     .status {
-      font-size: 11px;
-      color: #7a7a9a;
+      font-size: 10px;
+      color: #6B6B6B;
+    }
+
+    .separator {
+      width: 1px;
+      height: 14px;
+      background: #2A2A2A;
     }
 
     .loading-overlay {
@@ -68,8 +74,8 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #1a1a2e;
-      color: #e0e0e0;
+      background: #0A0A0A;
+      color: #E8E8E8;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 1rem;
       z-index: 100;
@@ -87,26 +93,104 @@
   </div>
 
   <script type="module">
-    import React, { useState, useCallback, useEffect, useRef } from "https://esm.sh/react@18.3.1";
-    import { createRoot } from "https://esm.sh/react-dom@18.3.1/client";
-    import { Excalidraw } from "https://esm.sh/@excalidraw/excalidraw@0.18.0";
+    import {
+      Excalidraw,
+      React,
+      useState,
+      useCallback,
+      useEffect,
+      useRef,
+      createRoot,
+      reconcileElements,
+      restoreElements,
+      getSceneVersion,
+    } from "/excalidraw-bundle.js";
 
-    // Extract board ID from URL: /board/:id
     const boardId = window.location.pathname.split("/board/")[1];
     if (!boardId) {
       document.getElementById("loading").textContent = "Invalid board URL";
       throw new Error("No board ID");
     }
 
+    // Collaborator colors palette
+    const COLLAB_COLORS = [
+      { background: "#FF6B6B40", stroke: "#FF6B6B" },
+      { background: "#4ECDC440", stroke: "#4ECDC4" },
+      { background: "#45B7D140", stroke: "#45B7D1" },
+      { background: "#96CEB440", stroke: "#96CEB4" },
+      { background: "#FFEAA740", stroke: "#FFEAA7" },
+      { background: "#DDA0DD40", stroke: "#DDA0DD" },
+      { background: "#98D8C840", stroke: "#98D8C8" },
+      { background: "#F7DC6F40", stroke: "#F7DC6F" },
+    ];
+
+    function getColorForClient(clientId, allClientIds) {
+      const idx = allClientIds.indexOf(clientId);
+      return COLLAB_COLORS[idx % COLLAB_COLORS.length];
+    }
+
     function App() {
-      const [excalidrawAPI, setExcalidrawAPI] = useState(null);
       const [userCount, setUserCount] = useState(1);
       const [connected, setConnected] = useState(false);
+      const apiRef = useRef(null);
       const wsRef = useRef(null);
-      const suppressOnChange = useRef(false);
-      const sendTimeoutRef = useRef(null);
+      const myClientIdRef = useRef(null);
+      const collaboratorsRef = useRef(new Map());
+      const roomClientsRef = useRef([]);
+      const lastVersionRef = useRef(0);
+      const lastSentElementsRef = useRef(new Map());  // id → version
+      const throttleRef = useRef({ timer: null, lastSend: 0 });
 
-      // Connect WebSocket
+      // Apply a full remote scene (scene-init) using reconcileElements
+      const applyFullScene = useCallback((remoteRawElements) => {
+        const api = apiRef.current;
+        if (!api) return;
+
+        const remoteElements = restoreElements(remoteRawElements, null, {
+          refreshDimensions: false,
+          repairBindings: false,
+        });
+        const localElements = api.getSceneElementsIncludingDeleted();
+        const appState = api.getAppState();
+        const reconciled = reconcileElements(localElements, remoteElements, appState);
+
+        api.updateScene({ elements: reconciled, captureUpdate: "NEVER" });
+        lastVersionRef.current = getSceneVersion(reconciled);
+      }, []);
+
+      // Apply incremental delta — merge only changed elements by version
+      const applyDelta = useCallback((changedElements) => {
+        const api = apiRef.current;
+        if (!api) return;
+
+        const localElements = api.getSceneElementsIncludingDeleted();
+        const localMap = new Map(localElements.map(el => [el.id, el]));
+        let changed = false;
+
+        for (const remote of changedElements) {
+          const local = localMap.get(remote.id);
+          // Accept remote if: new element, or remote version is higher
+          if (!local || (remote.version || 0) > (local.version || 0)) {
+            localMap.set(remote.id, remote);
+            changed = true;
+          }
+        }
+
+        if (changed) {
+          const merged = Array.from(localMap.values());
+          api.updateScene({ elements: merged, captureUpdate: "NEVER" });
+          lastVersionRef.current = getSceneVersion(merged);
+        }
+      }, []);
+
+      // Update collaborators map and push to Excalidraw
+      const updateCollaborators = useCallback(() => {
+        const api = apiRef.current;
+        if (!api) return;
+        api.updateScene({ collaborators: collaboratorsRef.current });
+      }, []);
+
+      // Connect WebSocket ONCE
       useEffect(() => {
         const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
         const wsUrl = `${proto}//${window.location.host}/ws/room/${boardId}`;
@@ -125,28 +209,62 @@
             try {
               const msg = JSON.parse(event.data);
 
-              if (msg.type === "user-count") {
-                setUserCount(msg.count);
-                return;
-              }
+              switch (msg.type) {
+                case "client-id":
+                  myClientIdRef.current = msg.id;
+                  break;
 
-              if (msg.type === "scene-init" && excalidrawAPI) {
-                suppressOnChange.current = true;
-                excalidrawAPI.updateScene({
-                  elements: msg.elements,
-                  captureUpdate: "NEVER",
-                });
-                setTimeout(() => { suppressOnChange.current = false; }, 100);
-                return;
-              }
+                case "scene-init":
+                  if (msg.elements && apiRef.current) {
+                    applyFullScene(msg.elements);
+                  }
+                  break;
 
-              if (msg.type === "scene-update" && excalidrawAPI) {
-                suppressOnChange.current = true;
-                excalidrawAPI.updateScene({
-                  elements: msg.elements,
-                  captureUpdate: "NEVER",
-                });
-                setTimeout(() => { suppressOnChange.current = false; }, 100);
+                case "scene-update":
+                  if (msg.elements && apiRef.current) {
+                    applyDelta(msg.elements);
+                  }
+                  break;
+
+                case "pointer-update": {
+                  const collabs = collaboratorsRef.current;
+                  const existing = collabs.get(msg.clientId) || {};
+                  collabs.set(msg.clientId, {
+                    ...existing,
+                    pointer: msg.pointer,
+                    button: msg.button,
+                    color: getColorForClient(msg.clientId, roomClientsRef.current.map(c => c.id)),
+                  });
+                  collaboratorsRef.current = new Map(collabs);
+                  updateCollaborators();
+                  break;
+                }
+
+                case "room-users": {
+                  roomClientsRef.current = msg.clients;
+                  const myId = myClientIdRef.current;
+                  setUserCount(msg.clients.length);
+
+                  // Clean up collaborators for clients that left
+                  const activeIds = new Set(msg.clients.map(c => c.id));
+                  const collabs = collaboratorsRef.current;
+                  for (const [id] of collabs) {
+                    if (!activeIds.has(id)) {
+                      collabs.delete(id);
+                    }
+                  }
+                  // Ensure all active clients (except self) are in the map
+                  for (const client of msg.clients) {
+                    if (client.id !== myId && !collabs.has(client.id)) {
+                      collabs.set(client.id, {
+                        color: getColorForClient(client.id, msg.clients.map(c => c.id)),
+                      });
+                    }
+                  }
+                  collaboratorsRef.current = new Map(collabs);
+                  updateCollaborators();
+                  break;
+                }
               }
             } catch {
               // Non-JSON message, ignore
@@ -156,7 +274,6 @@
           ws.onclose = () => {
             setConnected(false);
             wsRef.current = null;
-            // Reconnect after 2s
             reconnectTimer = setTimeout(connect, 2000);
           };
 
@@ -171,27 +288,71 @@
           clearTimeout(reconnectTimer);
           if (ws) ws.close();
         };
-      }, [excalidrawAPI]);
+      }, [applyFullScene, applyDelta, updateCollaborators]);
 
-      // Debounced scene broadcast
-      const handleChange = useCallback((elements, appState, files) => {
-        if (suppressOnChange.current) return;
+      // Send scene updates — throttled, incremental deltas only
+      const handleChange = useCallback((elements) => {
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
 
-        // Debounce: send at most every 100ms
-        if (sendTimeoutRef.current) return;
-        sendTimeoutRef.current = setTimeout(() => {
-          sendTimeoutRef.current = null;
-          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        const allElements = Array.from(elements);
+        const version = getSceneVersion(allElements);
+        if (version === lastVersionRef.current) return;
+        lastVersionRef.current = version;
+
+        function sendDelta() {
+          if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+
+          // Find elements that changed since last send
+          const prevSent = lastSentElementsRef.current;
+          const changed = [];
+          const newSentMap = new Map();
+
+          for (const el of allElements) {
+            newSentMap.set(el.id, el.version || 0);
+            const prevVersion = prevSent.get(el.id);
+            if (prevVersion === undefined || (el.version || 0) !== prevVersion) {
+              changed.push(el);
+            }
+          }
+
+          lastSentElementsRef.current = newSentMap;
+
+          if (changed.length > 0) {
             wsRef.current.send(JSON.stringify({
               type: "scene-update",
-              elements: Array.from(elements),
+              elements: changed,
             }));
           }
-        }, 100);
+        }
+
+        // Throttle: send immediately if enough time passed, otherwise schedule
+        const now = Date.now();
+        const t = throttleRef.current;
+        const THROTTLE_MS = 33; // ~30fps
+
+        if (now - t.lastSend >= THROTTLE_MS) {
+          t.lastSend = now;
+          sendDelta();
+        } else {
+          if (t.timer) clearTimeout(t.timer);
+          t.timer = setTimeout(() => {
+            t.timer = null;
+            t.lastSend = Date.now();
+            sendDelta();
+          }, THROTTLE_MS - (now - t.lastSend));
+        }
       }, []);
 
-      // Remove loading overlay once mounted
+      // Send pointer updates for cursor sharing
+      const handlePointerUpdate = useCallback((payload) => {
+        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+        wsRef.current.send(JSON.stringify({
+          type: "pointer-update",
+          pointer: payload.pointer,
+          button: payload.button,
+        }));
+      }, []);
+
       useEffect(() => {
         const el = document.getElementById("loading");
         if (el) el.remove();
@@ -202,14 +363,16 @@
         null,
         React.createElement(
           "div",
-          { className: "top-bar" },
-          React.createElement("a", { href: "/" }, "All Boards"),
+          { className: "nav-bar" },
+          React.createElement("a", { href: "/" }, "Back to Boards"),
+          React.createElement("span", { className: "separator" }),
           React.createElement(
             "span",
             { className: "user-count" },
             React.createElement("span", { className: "user-dot" }),
             `${userCount} user${userCount !== 1 ? "s" : ""}`
           ),
+          React.createElement("span", { className: "separator" }),
           React.createElement(
             "span",
             { className: "status" },
@@ -217,12 +380,14 @@
           )
         ),
         React.createElement(Excalidraw, {
-          excalidrawAPI: (api) => setExcalidrawAPI(api),
+          excalidrawAPI: (api) => { apiRef.current = api; },
           onChange: handleChange,
+          onPointerUpdate: handlePointerUpdate,
+          isCollaborating: true,
           theme: "dark",
           initialData: {
             appState: {
-              viewBackgroundColor: "#1a1a2e",
+              viewBackgroundColor: "#f8f9fa",
             },
           },
         })

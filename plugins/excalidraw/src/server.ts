@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { join, extname } from "node:path";
+import { join, extname, resolve, normalize } from "node:path";
 import { listBoards, createBoard, deleteBoard, getBoard } from "./boards.js";
 import {
   addClient,
@@ -40,7 +40,7 @@ function json(data: unknown, status = 200): Response {
   });
 }
 
-const server = Bun.serve<{ boardId: string }>({
+const server = Bun.serve<{ boardId: string; clientId: string }>({
   port: PORT,
   hostname: "0.0.0.0",
 
@@ -61,11 +61,12 @@ const server = Bun.serve<{ boardId: string }>({
       if (!board) {
         return json({ error: "Board not found" }, 404);
       }
-      const upgraded = server.upgrade(req, { data: { boardId } });
+      const clientId = crypto.randomUUID();
+      const upgraded = server.upgrade(req, { data: { boardId, clientId } });
       if (!upgraded) {
         return new Response("WebSocket upgrade failed", { status: 400 });
       }
-      return undefined as unknown as Response;
+      return;
     }
 
     // --- API routes ---
@@ -113,9 +114,13 @@ const server = Bun.serve<{ boardId: string }>({
       return serveStatic(join(PUBLIC_DIR, "index.html"));
     }
 
-    // Serve other static files from public/
-    const safePath = pathname.replace(/\.\./g, "");
-    return serveStatic(join(PUBLIC_DIR, safePath));
+    // Serve other static files from public/ with path traversal protection
+    const decoded = decodeURIComponent(pathname);
+    const resolved = resolve(PUBLIC_DIR, normalize(decoded).replace(/^\/+/, ""));
+    if (!resolved.startsWith(PUBLIC_DIR)) {
+      return new Response("Forbidden", { status: 403 });
+    }
+    return serveStatic(resolved);
   },
 
   websocket: {

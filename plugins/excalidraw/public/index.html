@@ -9,8 +9,8 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #1a1a2e;
-      color: #e0e0e0;
+      background: #0A0A0A;
+      color: #E8E8E8;
       min-height: 100vh;
     }
 
@@ -30,11 +30,11 @@
     h1 {
       font-size: 1.5rem;
       font-weight: 600;
-      color: #fff;
+      color: #E8E8E8;
     }
 
     h1 span {
-      color: #7c5cfc;
+      color: #16A37F;
     }
 
     .create-section {
@@ -43,11 +43,11 @@
     }
 
     input[type="text"] {
-      background: #16213e;
-      border: 1px solid #2a2a4a;
-      border-radius: 8px;
+      background: #111111;
+      border: 1px solid #2A2A2A;
+      border-radius: 6px;
       padding: 0.5rem 0.75rem;
-      color: #e0e0e0;
+      color: #E8E8E8;
       font-size: 0.875rem;
       outline: none;
       width: 200px;
@@ -55,18 +55,18 @@
     }
 
     input[type="text"]:focus {
-      border-color: #7c5cfc;
+      border-color: #16A37F;
     }
 
     input[type="text"]::placeholder {
-      color: #5a5a7a;
+      color: #6B6B6B;
     }
 
     button {
-      background: #7c5cfc;
-      color: #fff;
+      background: #16A37F;
+      color: #0A0A0A;
       border: none;
-      border-radius: 8px;
+      border-radius: 6px;
       padding: 0.5rem 1rem;
       font-size: 0.875rem;
       font-weight: 500;
@@ -75,7 +75,7 @@
     }
 
     button:hover {
-      background: #6a4ae8;
+      background: #139169;
     }
 
     button:disabled {
@@ -93,9 +93,9 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: #16213e;
-      border: 1px solid #2a2a4a;
-      border-radius: 10px;
+      background: #111111;
+      border: 1px solid #2A2A2A;
+      border-radius: 6px;
       padding: 1rem 1.25rem;
       cursor: pointer;
       transition: border-color 0.2s, background 0.2s;
@@ -104,8 +104,8 @@
     }
 
     .board-card:hover {
-      border-color: #7c5cfc;
-      background: #1a2744;
+      border-color: #16A37F;
+      background: #181818;
     }
 
     .board-info {
@@ -117,12 +117,12 @@
     .board-name {
       font-weight: 500;
       font-size: 1rem;
-      color: #fff;
+      color: #E8E8E8;
     }
 
     .board-meta {
       font-size: 0.75rem;
-      color: #7a7a9a;
+      color: #6B6B6B;
     }
 
     .board-right {
@@ -136,33 +136,33 @@
       align-items: center;
       gap: 0.35rem;
       font-size: 0.75rem;
-      color: #4ade80;
+      color: #16A37F;
     }
 
     .active-dot {
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: #4ade80;
+      background: #16A37F;
     }
 
     .delete-btn {
       background: transparent;
-      color: #7a7a9a;
+      color: #6B6B6B;
       padding: 0.25rem 0.5rem;
       font-size: 0.75rem;
-      border-radius: 6px;
+      border-radius: 4px;
     }
 
     .delete-btn:hover {
-      background: #3a1a1a;
-      color: #f87171;
+      background: #1a0a0a;
+      color: #F87171;
     }
 
     .empty-state {
       text-align: center;
       padding: 3rem 1rem;
-      color: #5a5a7a;
+      color: #6B6B6B;
     }
 
     .empty-state p {
@@ -222,7 +222,6 @@
           return;
         }
 
-        // Sort by last modified (newest first)
         boards.sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified));
 
         listEl.innerHTML = boards.map(b => `
@@ -268,7 +267,13 @@
           const board = await res.json();
           nameInput.value = '';
           window.location.href = `/board/${board.id}`;
+        } else {
+          const err = await res.json().catch(() => ({ error: 'Failed to create board' }));
+          alert(err.error || 'Failed to create board');
         }
+      } catch (err) {
+        console.error('Create board error:', err);
+        alert('Network error — could not create board');
       } finally {
         createBtn.disabled = false;
       }
@@ -279,8 +284,18 @@
       e.stopPropagation();
       if (!confirm('Delete this board?')) return;
 
-      await fetch(`/api/boards/${id}`, { method: 'DELETE' });
-      loadBoards();
+      try {
+        const res = await fetch(`/api/boards/${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: 'Failed to delete board' }));
+          alert(err.error || 'Failed to delete board');
+          return;
+        }
+        loadBoards();
+      } catch (err) {
+        console.error('Delete board error:', err);
+        alert('Network error — could not delete board');
+      }
     }
 
     createBtn.addEventListener('click', createNewBoard);
@@ -289,7 +304,6 @@
     });
 
     loadBoards();
-    // Refresh board list every 10s for active user counts
     setInterval(loadBoards, 10000);
   </script>
 </body>

@@ -1,9 +1,9 @@
 import type { ServerWebSocket } from "bun";
 import { saveBoard, getBoard } from "./boards.js";
-import type { BoardData } from "./boards.js";
 
 interface Client {
-  ws: ServerWebSocket<{ boardId: string }>;
+  id: string;
+  ws: ServerWebSocket<{ boardId: string; clientId: string }>;
 }
 
 interface Room {
@@ -15,7 +15,7 @@ interface Room {
 
 const rooms = new Map<string, Room>();
 
-const AUTO_SAVE_INTERVAL = 30_000; // 30 seconds
+const AUTO_SAVE_INTERVAL = 30_000;
 
 function getOrCreateRoom(boardId: string): Room {
   let room = rooms.get(boardId);
@@ -33,9 +33,11 @@ function getOrCreateRoom(boardId: string): Room {
 
 function startAutoSave(room: Room): void {
   if (room.saveTimer) return;
-  room.saveTimer = setInterval(async () => {
+  room.saveTimer = setInterval(() => {
     if (room.lastElements) {
-      await saveBoard(room.boardId, { elements: room.lastElements });
+      saveBoard(room.boardId, { elements: room.lastElements }).catch((err) => {
+        console.error(`Auto-save failed for board ${room.boardId}:`, err);
+      });
     }
   }, AUTO_SAVE_INTERVAL);
 }
@@ -47,33 +49,35 @@ function stopAutoSave(room: Room): void {
   }
 }
 
-export function addClient(ws: ServerWebSocket<{ boardId: string }>): void {
-  const { boardId } = ws.data;
+export function addClient(ws: ServerWebSocket<{ boardId: string; clientId: string }>): void {
+  const { boardId, clientId } = ws.data;
   const room = getOrCreateRoom(boardId);
-  const client: Client = { ws };
+  const client: Client = { id: clientId, ws };
   room.clients.add(client);
   startAutoSave(room);
 
-  // Send current board state to the new client
-  getBoard(boardId).then((data) => {
-    if (data && data.elements.length > 0) {
-      try {
-        ws.send(
-          JSON.stringify({ type: "scene-init", elements: data.elements })
-        );
-      } catch {
-        // Client may have disconnected
+  // Tell the new client their assigned ID
+  trySend(ws, JSON.stringify({ type: "client-id", id: clientId }));
+
+  // Send current scene to the new client — prefer in-memory over disk
+  if (room.lastElements && room.lastElements.length > 0) {
+    trySend(ws, JSON.stringify({ type: "scene-init", elements: room.lastElements }));
+    broadcastRoomUsers(room);
+  } else {
+    getBoard(boardId).then((data) => {
+      if (data && data.elements.length > 0) {
+        trySend(ws, JSON.stringify({ type: "scene-init", elements: data.elements }));
       }
-    }
-  });
+      broadcastRoomUsers(room);
+    });
+  }
 }
 
-export function removeClient(ws: ServerWebSocket<{ boardId: string }>): void {
+export function removeClient(ws: ServerWebSocket<{ boardId: string; clientId: string }>): void {
   const { boardId } = ws.data;
   const room = rooms.get(boardId);
   if (!room) return;
 
-  // Find and remove the client
   for (const client of room.clients) {
     if (client.ws === ws) {
       room.clients.delete(client);
@@ -81,67 +85,87 @@ export function removeClient(ws: ServerWebSocket<{ boardId: string }>): void {
     }
   }
 
-  // Broadcast updated user count
-  broadcastUserCount(room);
+  broadcastRoomUsers(room);
 
-  // If room is empty, save and clean up
   if (room.clients.size === 0) {
     stopAutoSave(room);
     if (room.lastElements) {
-      saveBoard(room.boardId, { elements: room.lastElements });
+      saveBoard(room.boardId, { elements: room.lastElements }).catch((err) => {
+        console.error(`Final save failed for board ${room.boardId}:`, err);
+      });
     }
     rooms.delete(boardId);
   }
 }
 
 export function handleMessage(
-  ws: ServerWebSocket<{ boardId: string }>,
+  ws: ServerWebSocket<{ boardId: string; clientId: string }>,
   message: string | Buffer
 ): void {
-  const { boardId } = ws.data;
+  const { boardId, clientId } = ws.data;
   const room = rooms.get(boardId);
   if (!room) return;
 
-  // Try to parse and track elements for auto-save
   if (typeof message === "string") {
     try {
       const parsed = JSON.parse(message);
+
       if (parsed.type === "scene-update" && Array.isArray(parsed.elements)) {
+        // Track for auto-save
         room.lastElements = parsed.elements;
+
+        // Relay to all other clients with sender's clientId
+        const relayMsg = JSON.stringify({
+          type: "scene-update",
+          elements: parsed.elements,
+          clientId,
+        });
+        for (const client of room.clients) {
+          if (client.ws !== ws) {
+            trySend(client.ws, relayMsg);
+          }
+        }
+        return;
+      }
+
+      if (parsed.type === "pointer-update") {
+        // Volatile relay — don't track, just forward with clientId
+        const relayMsg = JSON.stringify({
+          type: "pointer-update",
+          clientId,
+          pointer: parsed.pointer,
+          button: parsed.button,
+        });
+        for (const client of room.clients) {
+          if (client.ws !== ws) {
+            trySend(client.ws, relayMsg);
+          }
+        }
+        return;
       }
     } catch {
-      // Binary or non-JSON message — relay as-is
-    }
-  }
-
-  // Relay to all other clients in the room
-  for (const client of room.clients) {
-    if (client.ws !== ws) {
-      try {
-        client.ws.send(message);
-      } catch {
-        // Client may have disconnected
-      }
+      // Non-JSON or malformed — ignore
     }
   }
 }
 
-function broadcastUserCount(room: Room): void {
+function broadcastRoomUsers(room: Room): void {
+  const clients = Array.from(room.clients).map((c) => ({ id: c.id }));
   const msg = JSON.stringify({
-    type: "user-count",
-    count: room.clients.size,
+    type: "room-users",
+    clients,
   });
   for (const client of room.clients) {
-    try {
-      client.ws.send(msg);
-    } catch {
-      // Ignore
-    }
+    trySend(client.ws, msg);
   }
 }
 
-export function getRoomUserCount(boardId: string): number {
-  return rooms.get(boardId)?.clients.size ?? 0;
+function trySend(ws: ServerWebSocket<unknown>, msg: string): void {
+  try {
+    ws.send(msg);
+  } catch {
+    // Client may have disconnected
+  }
 }
 
 export function getAllRoomCounts(): Map<string, number> {

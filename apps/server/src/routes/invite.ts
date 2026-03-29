@@ -83,17 +83,15 @@ export const serverInviteRoutes = new Elysia({ prefix: "/api/servers/:serverId/i
   });
 
 export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
-  .onBeforeHandle({ as: "local" }, async ({ request }) => {
-    if (request.method !== "GET") return;
+  .get("/", async ({ params, request }) => {
     const ip =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
       request.headers.get("x-real-ip") ??
       "unknown";
-    if (!(await checkIpRateLimit(ip, 10, 60_000))) {
+    if (!(await checkIpRateLimit(ip, 10, 60_000, "invite-lookup"))) {
       throw new RateLimitError("Too many requests, try again later");
     }
-  })
-  .get("/", async ({ params }) => {
+
     const [invite] = await db.select().from(invites).where(eq(invites.code, params.code)).limit(1);
 
     if (!invite) {

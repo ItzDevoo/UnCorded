@@ -975,29 +975,28 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
     }
     const data = parsed.data;
 
-    // Check ID uniqueness
-    const [existing] = await db
-      .select({ id: pluginRegistry.id })
-      .from(pluginRegistry)
-      .where(eq(pluginRegistry.id, data.id))
-      .limit(1);
-    if (existing) throw new ValidationError("Plugin with this ID already exists");
+    // Atomic insert with conflict check
+    const [inserted] = await db
+      .insert(pluginRegistry)
+      .values({
+        id: data.id,
+        name: data.name,
+        description: data.description,
+        author: data.author,
+        iconUrl: data.iconUrl ?? null,
+        category: data.category,
+        scope: data.scope,
+        tags: data.tags ?? [],
+        image: data.image,
+        version: data.version ?? "1.0.0",
+        manifest: data.manifest,
+        repository: data.repository ?? null,
+        screenshots: data.screenshots ?? [],
+      })
+      .onConflictDoNothing()
+      .returning({ id: pluginRegistry.id });
 
-    await db.insert(pluginRegistry).values({
-      id: data.id,
-      name: data.name,
-      description: data.description,
-      author: data.author,
-      iconUrl: data.iconUrl ?? null,
-      category: data.category,
-      scope: data.scope,
-      tags: data.tags ?? [],
-      image: data.image,
-      version: data.version ?? "1.0.0",
-      manifest: data.manifest,
-      repository: data.repository ?? null,
-      screenshots: data.screenshots ?? [],
-    });
+    if (!inserted) throw new ValidationError("Plugin with this ID already exists");
 
     await logAudit(sessionUser.id, "create_plugin", "plugin", data.id);
 

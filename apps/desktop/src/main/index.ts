@@ -209,13 +209,27 @@ class PluginManifestError extends Error {
 }
 
 async function fetchPluginManifest(pluginId: string): Promise<object> {
-  const res = await fetch(`${API_URL}/api/plugins/${pluginId}/manifest`);
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new PluginManifestError(pluginId, res.status, body);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+  try {
+    const res = await fetch(`${API_URL}/api/plugins/${pluginId}/manifest`, {
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new PluginManifestError(pluginId, res.status, body);
+    }
+    const data = (await res.json()) as { manifest: object };
+    return data.manifest;
+  } catch (err) {
+    if (err instanceof PluginManifestError) throw err;
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new PluginManifestError(pluginId, 0, "Request timed out after 10s");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
   }
-  const data = (await res.json()) as { manifest: object };
-  return data.manifest;
 }
 
 function broadcastPluginState(): void {

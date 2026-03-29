@@ -1,0 +1,19 @@
+{
+  "name": "@uncorded/mock-bridge",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "mock-bridge": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "start": "bun run src/index.ts"
+  },
+  "dependencies": {
+    "elysia": "^1"
+  }
+}

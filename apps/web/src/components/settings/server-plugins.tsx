@@ -228,7 +228,7 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
                       >
                         {toggling() === plugin.pluginId
                           ? "..."
-                          : plugin.state === "active" || plugin.state === "running"
+                          : plugin.state === "active"
                             ? "Stop"
                             : "Start"}
                       </Button>

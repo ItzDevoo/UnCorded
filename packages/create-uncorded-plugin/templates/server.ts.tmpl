@@ -1,0 +1,29 @@
+import { UnCordedBridge } from "@uncorded/plugin-server";
+
+const bridge = new UnCordedBridge();
+
+const server = Bun.serve({
+  port: {{port}},
+  async fetch(req) {
+    const url = new URL(req.url);
+
+    if (url.pathname === "/health") {
+      return new Response("ok");
+    }
+
+    // Serve the UI
+    if (url.pathname === "/" || url.pathname === "/index.html") {
+      return new Response(Bun.file("src/index.html"));
+    }
+
+    // Example: fetch server info from the bridge
+    if (url.pathname === "/api/server") {
+      const info = await bridge.getServer();
+      return Response.json(info);
+    }
+
+    return new Response("Not Found", { status: 404 });
+  },
+});
+
+console.log(`{{name}} running on http://localhost:${server.port}`);

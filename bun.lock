@@ -106,6 +106,39 @@
         "vite-plugin-solid": "^2",
       },
     },
+    "packages/create-uncorded-plugin": {
+      "name": "create-uncorded-plugin",
+      "version": "0.0.0",
+      "bin": {
+        "create-uncorded-plugin": "./src/index.ts",
+      },
+    },
+    "packages/mock-bridge": {
+      "name": "@uncorded/mock-bridge",
+      "version": "0.0.0",
+      "bin": {
+        "mock-bridge": "./src/index.ts",
+      },
+      "dependencies": {
+        "elysia": "^1",
+      },
+    },
+    "packages/plugin-client": {
+      "name": "@uncorded/plugin-client",
+      "version": "0.0.0",
+      "dependencies": {
+        "@uncorded/protocol": "*",
+        "@uncorded/shared": "*",
+      },
+    },
+    "packages/plugin-server": {
+      "name": "@uncorded/plugin-server",
+      "version": "0.0.0",
+      "dependencies": {
+        "@uncorded/protocol": "*",
+        "@uncorded/shared": "*",
+      },
+    },
     "packages/protocol": {
       "name": "@uncorded/protocol",
       "version": "0.0.0",
@@ -959,6 +992,12 @@
 
     "@uncorded/desktop": ["@uncorded/desktop@workspace:apps/desktop"],
 
+    "@uncorded/mock-bridge": ["@uncorded/mock-bridge@workspace:packages/mock-bridge"],
+
+    "@uncorded/plugin-client": ["@uncorded/plugin-client@workspace:packages/plugin-client"],
+
+    "@uncorded/plugin-server": ["@uncorded/plugin-server@workspace:packages/plugin-server"],
+
     "@uncorded/protocol": ["@uncorded/protocol@workspace:packages/protocol"],
 
     "@uncorded/server": ["@uncorded/server@workspace:apps/server"],
@@ -1284,6 +1323,8 @@
     "create-require": ["create-require@1.1.1", "", {}, "sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ=="],
 
     "create-torrent": ["create-torrent@6.1.0", "", { "dependencies": { "bencode": "^4.0.0", "block-iterator": "^1.1.1", "fast-readable-async-iterator": "^2.0.0", "is-file": "^1.0.0", "join-async-iterator": "^1.1.1", "junk": "^4.0.1", "minimist": "^1.2.8", "once": "^1.4.0", "piece-length": "^2.0.1", "queue-microtask": "^1.2.3", "run-parallel": "^1.2.0", "uint8-util": "^2.2.5" }, "bin": { "create-torrent": "bin/cmd.js" } }, "sha512-War593HCsg4TotHgMGWTJqnDHN0pmEU2RM13xUzzSZ78TpRNOC2bbcsC5yMO3pqIkedHEWFzYNqH1yhwuuBYTg=="],
+
+    "create-uncorded-plugin": ["create-uncorded-plugin@workspace:packages/create-uncorded-plugin"],
 
     "cross-fetch-ponyfill": ["cross-fetch-ponyfill@1.0.3", "", { "dependencies": { "abort-controller": "^3.0.0", "node-fetch": "^3.3.0" } }, "sha512-uOBkDhUAGAbx/FEzNKkOfx3w57H8xReBBXoZvUnOKTI0FW0Xvrj3GrYv2iZXUqlffC1LMGfQzhmBM/ke+6eTDA=="],
 

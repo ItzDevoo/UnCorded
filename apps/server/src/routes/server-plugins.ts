@@ -1,11 +1,33 @@
 import { Elysia } from "elysia";
 import { eq, and } from "drizzle-orm";
-import { ForbiddenError, NotFoundError } from "@uncorded/shared";
+import { ForbiddenError, NotFoundError, ValidationError, RateLimitError } from "@uncorded/shared";
 import { db } from "../db/index.js";
 import { serverPlugins } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
 import { requireMember, requireOwner } from "../helpers/permissions.js";
 import { computeEffectiveTier } from "../helpers/resolve-tier.js";
+import { checkIpRateLimit } from "../middleware/ip-rate-limit.js";
+
+// ── Constants ──────────────────────────────────────────────────────────────────
+
+const VALID_STATES = new Set(["active", "stopped", "error"]);
+
+function getClientIp(request: Request): string {
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    request.headers.get("x-real-ip") ??
+    "unknown"
+  );
+}
+
+function safeJsonParse(value: string | null): Record<string, unknown> {
+  if (!value) return {};
+  try {
+    return JSON.parse(value) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
 
 // ── Routes ──────────────────────────────────────────────────────────────────
 
@@ -29,13 +51,18 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
         tunnelUrl: r.tunnelUrl,
         installedBy: r.installedBy,
         installedAt: r.installedAt.toISOString(),
-        config: r.config ? JSON.parse(r.config) : {},
+        config: safeJsonParse(r.config),
       })),
     };
   })
 
   // ── POST / — install server plugin (owner only, server_owner tier) ──────
-  .post("/", async ({ user: sessionUser, params, body }) => {
+  .post("/", async ({ user: sessionUser, params, body, request }) => {
+    const ip = getClientIp(request);
+    if (!(await checkIpRateLimit(ip, 10, 60_000, "server-plugin-install"))) {
+      throw new RateLimitError("Too many requests, try again later");
+    }
+
     await requireOwner(sessionUser.id, params.serverId);
 
     const tier = await computeEffectiveTier(sessionUser.id);
@@ -79,7 +106,12 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
   })
 
   // ── DELETE /:pluginId — uninstall server plugin (owner only) ────────────
-  .delete("/:pluginId", async ({ user: sessionUser, params }) => {
+  .delete("/:pluginId", async ({ user: sessionUser, params, request }) => {
+    const ip = getClientIp(request);
+    if (!(await checkIpRateLimit(ip, 10, 60_000, "server-plugin-uninstall"))) {
+      throw new RateLimitError("Too many requests, try again later");
+    }
+
     await requireOwner(sessionUser.id, params.serverId);
 
     const deleted = await db
@@ -110,6 +142,9 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
       setValues.config = JSON.stringify(updates.config);
     }
     if (updates.state !== undefined) {
+      if (!VALID_STATES.has(updates.state)) {
+        throw new ValidationError(`Invalid state: must be one of ${[...VALID_STATES].join(", ")}`);
+      }
       setValues.state = updates.state;
     }
 
@@ -164,6 +199,9 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
 
     const setValues: Record<string, unknown> = { tunnelUrl };
     if (state !== undefined) {
+      if (!VALID_STATES.has(state)) {
+        throw new ValidationError(`Invalid state: must be one of ${[...VALID_STATES].join(", ")}`);
+      }
       setValues.state = state;
     }
 

@@ -34,7 +34,7 @@ function badRequestError(message: string) {
 }
 
 /**
- * Check if a plugin is in personal scope (serverId starts with "personal:").
+ * Check if a plugin is in personal scope (plugin.scope === "personal").
  */
 function isPersonalScope(plugin: PluginContext): boolean {
   return plugin.scope === "personal";

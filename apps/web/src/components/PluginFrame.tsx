@@ -1,4 +1,4 @@
-import { createSignal, createEffect, on, Show, onMount } from "solid-js";
+import { createSignal, createEffect, Show, onCleanup } from "solid-js";
 import type { PluginInfo } from "../stores/plugin-store.js";
 import { isDesktop } from "../stores/plugin-store.js";
 import { Empty } from "./ui/empty.js";
@@ -12,12 +12,6 @@ interface PluginFrameProps {
 const PluginFrame = (props: PluginFrameProps) => {
   const [loading, setLoading] = createSignal(true);
   const [error, setError] = createSignal(false);
-
-  // Reset state when switching to a different plugin
-  createEffect(on(() => props.plugin.id, () => {
-    setLoading(true);
-    setError(false);
-  }, { defer: true }));
 
   const isCrashed = () =>
     props.plugin.status === "crashed" || props.plugin.status === "stopped";
@@ -58,16 +52,21 @@ const PluginFrame = (props: PluginFrameProps) => {
   const timeoutMs = () =>
     (props.tunnelUrl || props.plugin.tunnelUrl) ? 20_000 : 15_000;
 
-  onMount(() => {
-    // Fallback timeout — if iframe doesn't fire load in time, show error
+  // Reactive timeout — restarts when plugin ID or timeout duration changes
+  createEffect(() => {
+    void props.plugin.id; // track plugin switches (SolidJS reactivity)
+    const ms = timeoutMs();
+    setLoading(true);
+    setError(false);
+
     const timeout = setTimeout(() => {
       if (loading()) {
         setLoading(false);
         setError(true);
       }
-    }, timeoutMs());
+    }, ms);
 
-    return () => clearTimeout(timeout);
+    onCleanup(() => clearTimeout(timeout));
   });
 
   return (

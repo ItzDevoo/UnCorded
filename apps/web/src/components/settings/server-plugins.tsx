@@ -35,7 +35,7 @@ interface CatalogPlugin {
 
 const ServerPluginsTab = (props: ServerPluginsProps) => {
   const [installing, setInstalling] = createSignal<PluginId | null>(null);
-  const [uninstalling, setUninstalling] = createSignal<string | null>(null);
+  const [uninstalling, setUninstalling] = createSignal<PluginId | null>(null);
 
   const isServerOwnerTier = () =>
     readyData.data?.user.subscriptionTier === "server_owner";
@@ -86,7 +86,7 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
     }
   }
 
-  async function handleUninstall(pluginId: string) {
+  async function handleUninstall(pluginId: PluginId) {
     if (uninstalling()) return;
     setUninstalling(pluginId);
     try {

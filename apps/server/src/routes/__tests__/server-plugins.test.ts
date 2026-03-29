@@ -76,6 +76,9 @@ vi.mock("../../helpers/resolve-tier.js", () => ({
 vi.mock("../../middleware/auth.js", () => ({
   authResolve: () => () => ({ user: { id: "user1" }, session: {} }),
 }));
+vi.mock("../../middleware/ip-rate-limit.js", () => ({
+  checkIpRateLimit: vi.fn().mockResolvedValue(true),
+}));
 
 // ── Import the Elysia instance (after mocks) ──────────────────────────────
 
@@ -212,6 +215,57 @@ describe("server plugin routes", () => {
       deletedRows.push([]);
 
       const res = await makeRequest("DELETE", "/api/servers/server1/plugins/nonexistent");
+      expect(res.ok).toBe(false);
+    });
+  });
+
+  // ── PATCH /api/servers/:serverId/plugins/:pluginId ───────────────────────
+
+  describe("PATCH /api/servers/:serverId/plugins/:pluginId", () => {
+    it("updates config successfully", async () => {
+      selectResults.push([
+        { id: "sp1", pluginId: "claude-code", state: "stopped", config: '{"key":"val"}' },
+      ]);
+
+      const res = await makeRequest("PATCH", "/api/servers/server1/plugins/claude-code", {
+        config: { key: "new-val" },
+      });
+      expect(res.status).toBe(200);
+
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(mockRequireOwner).toHaveBeenCalledWith("user1", "server1");
+    });
+
+    it("updates state successfully", async () => {
+      selectResults.push([
+        { id: "sp1", pluginId: "claude-code", state: "active" },
+      ]);
+
+      const res = await makeRequest("PATCH", "/api/servers/server1/plugins/claude-code", {
+        state: "stopped",
+      });
+      expect(res.status).toBe(200);
+    });
+
+    it("rejects empty update", async () => {
+      const res = await makeRequest("PATCH", "/api/servers/server1/plugins/claude-code", {});
+      expect(res.ok).toBe(false);
+    });
+
+    it("returns error when plugin not found", async () => {
+      selectResults.push([]);
+
+      const res = await makeRequest("PATCH", "/api/servers/server1/plugins/nonexistent", {
+        state: "stopped",
+      });
+      expect(res.ok).toBe(false);
+    });
+
+    it("rejects invalid state value", async () => {
+      const res = await makeRequest("PATCH", "/api/servers/server1/plugins/claude-code", {
+        state: "invalid-state",
+      });
       expect(res.ok).toBe(false);
     });
   });

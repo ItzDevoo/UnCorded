@@ -57,7 +57,21 @@ export async function ensureCloudflared(dataDir: string): Promise<string> {
   console.error(`[tunnel] Downloading cloudflared from ${url}...`);
   fs.mkdirSync(binDir, { recursive: true });
 
-  const response = await fetch(url, { redirect: "follow" });
+  const controller = new AbortController();
+  const downloadTimeout = setTimeout(() => controller.abort(), 120_000); // 2 min timeout
+
+  let response: Response;
+  try {
+    response = await fetch(url, { redirect: "follow", signal: controller.signal });
+  } catch (err) {
+    clearTimeout(downloadTimeout);
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new Error("Cloudflared download timed out after 120s");
+    }
+    throw err;
+  }
+  clearTimeout(downloadTimeout);
+
   if (!response.ok) {
     throw new Error(`Failed to download cloudflared: ${response.status} ${response.statusText}`);
   }

@@ -91,14 +91,34 @@ export class TunnelManager {
     });
   }
 
+  private static readonly DESTROY_TIMEOUT_MS = 5_000;
+
   /**
-   * Destroy the tunnel for a plugin.
+   * Destroy the tunnel for a plugin, waiting for the process to exit.
    */
   async destroy(pluginId: string): Promise<void> {
     const tunnel = this.tunnels.get(pluginId);
     if (!tunnel) return;
 
     tunnel.process.kill();
+
+    // Wait for the process to actually exit (with timeout)
+    await new Promise<void>((resolve) => {
+      const timeout = setTimeout(() => {
+        resolve();
+      }, TunnelManager.DESTROY_TIMEOUT_MS);
+
+      tunnel.process.on("exit", () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+
+      tunnel.process.on("error", () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+    });
+
     this.tunnels.delete(pluginId);
     console.error(`[tunnel] Destroyed tunnel for ${pluginId}`);
   }

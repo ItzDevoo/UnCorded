@@ -80,10 +80,49 @@ describe("TunnelManager", () => {
     it("returns null for unknown plugin", () => {
       expect(manager.getUrl("nonexistent")).toBeNull();
     });
+
+    it("rejects on startup timeout", async () => {
+      const createPromise = manager.create("test-plugin", 3000);
+
+      // Advance past the 30s timeout
+      await vi.advanceTimersByTimeAsync(31_000);
+
+      await expect(createPromise).rejects.toThrow("Tunnel startup timed out");
+      expect(mockProcess.kill).toHaveBeenCalled();
+      expect(manager.getUrl("test-plugin")).toBeNull();
+    });
+
+    it("rejects on premature process exit", async () => {
+      const createPromise = manager.create("test-plugin", 3000);
+
+      // Simulate process exit before URL is found
+      const exitCallback = mockProcess.on.mock.calls.find(
+        (c: unknown[]) => c[0] === "exit",
+      )?.[1];
+      expect(exitCallback).toBeDefined();
+      exitCallback(1);
+
+      await expect(createPromise).rejects.toThrow("cloudflared exited with code 1");
+      expect(manager.getUrl("test-plugin")).toBeNull();
+    });
+
+    it("rejects on spawn error", async () => {
+      const createPromise = manager.create("test-plugin", 3000);
+
+      // Simulate spawn error
+      const errorCallback = mockProcess.on.mock.calls.find(
+        (c: unknown[]) => c[0] === "error",
+      )?.[1];
+      expect(errorCallback).toBeDefined();
+      errorCallback(new Error("ENOENT: cloudflared not found"));
+
+      await expect(createPromise).rejects.toThrow("ENOENT: cloudflared not found");
+      expect(manager.getUrl("test-plugin")).toBeNull();
+    });
   });
 
   describe("destroy", () => {
-    it("kills the tunnel process", async () => {
+    it("kills the tunnel process and waits for exit", async () => {
       // Set up a tunnel first
       const createPromise = manager.create("test-plugin", 3000);
       const stderrCallback = mockProcess.stderr.on.mock.calls.find(
@@ -92,7 +131,13 @@ describe("TunnelManager", () => {
       stderrCallback(Buffer.from("https://abc.trycloudflare.com"));
       await createPromise;
 
-      await manager.destroy("test-plugin");
+      // destroy calls kill() then waits for exit (or timeout)
+      const destroyPromise = manager.destroy("test-plugin");
+
+      // Advance past DESTROY_TIMEOUT_MS to let the wait resolve
+      await vi.advanceTimersByTimeAsync(6_000);
+
+      await destroyPromise;
       expect(mockProcess.kill).toHaveBeenCalled();
       expect(manager.getUrl("test-plugin")).toBeNull();
     });
@@ -129,7 +174,11 @@ describe("TunnelManager", () => {
       stderrCb(Buffer.from("https://b.trycloudflare.com"));
       await p2;
 
-      await manager.destroyAll();
+      const destroyPromise = manager.destroyAll();
+      // Let destroy timeouts elapse
+      await vi.advanceTimersByTimeAsync(6_000);
+      await destroyPromise;
+
       expect(manager.getUrl("plugin-1")).toBeNull();
       expect(manager.getUrl("plugin-2")).toBeNull();
     });

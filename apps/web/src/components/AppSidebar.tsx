@@ -456,10 +456,16 @@ const AppSidebar = () => {
               <For each={visibleServerPlugins()}>
                 {(plugin) => {
                   const isActive = () => activeServerPluginId() === plugin.pluginId;
+                  // Format pluginId as display name: "claude-code" → "Claude Code"
+                  const displayName = () =>
+                    plugin.pluginId
+                      .split(/[-_]/)
+                      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                      .join(" ");
                   return (
                     <SidebarMenuItem>
                       <SidebarMenuButton
-                        tooltip={plugin.pluginId}
+                        tooltip={displayName()}
                         active={isActive()}
                         onClick={() => {
                           setActiveServerPluginId(plugin.pluginId);
@@ -475,7 +481,7 @@ const AppSidebar = () => {
                           </svg>
                           <span class="absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-success" aria-hidden="true" />
                         </span>
-                        <span class="truncate">{plugin.pluginId}</span>
+                        <span class="truncate">{displayName()}</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );

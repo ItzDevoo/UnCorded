@@ -46,6 +46,13 @@ interface PluginsResponse {
 const CATEGORY_OPTIONS = ["AI", "Collaboration", "Developer Tools", "Automation", "Appearance", "Moderation", "Other"] as const;
 const SCOPE_OPTIONS = ["server", "personal", "both"] as const;
 
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 // ── Component ──────────────────────────────────────────────────────────────
 
 const AdminPlugins = () => {
@@ -102,13 +109,6 @@ const AdminPlugins = () => {
   function handleSearch(query: string) {
     searchQuery = query;
     fetchPlugins(1);
-  }
-
-  function slugify(name: string): string {
-    return name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
   }
 
   function openAddForm() {

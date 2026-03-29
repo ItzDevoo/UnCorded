@@ -57,7 +57,8 @@ export const MAX_AVATAR_SIZE_BYTES = 4 * 1024 * 1024; // 4 MB
 export const ALLOWED_AVATAR_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"] as const;
 
 // ── Bot limits ──────────────────────────────────────────────────────────────
-export const BOT_LIMITS: Record<string, number> = {
+export type BotTier = "free" | "supporter" | "server_owner";
+export const BOT_LIMITS: Record<BotTier, number> = {
   free: 1,
   supporter: 3,
   server_owner: 5,

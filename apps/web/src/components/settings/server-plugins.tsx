@@ -179,8 +179,7 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
       }
       await refetchInstalled();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Action failed";
-      showToast(msg, "error");
+      handleApiError(err, "Failed to toggle plugin");
     } finally {
       setToggling(null);
     }

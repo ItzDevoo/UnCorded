@@ -11,6 +11,7 @@ import {
   MAX_AVATAR_SIZE_BYTES,
   ALLOWED_AVATAR_TYPES,
   BOT_LIMITS,
+  type BotTier,
   BOT_TOKEN_BYTE_LENGTH,
   BOT_TOKEN_PREFIX_LENGTH,
 } from "@uncorded/shared";
@@ -95,7 +96,7 @@ export const botRoutes = new Elysia({ prefix: "/api/bots" })
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
     }
 
-    const tierKey = String(sessionUser.subscriptionTier);
+    const tierKey = sessionUser.subscriptionTier as BotTier;
     const limit = BOT_LIMITS[tierKey] ?? 1;
 
     const token = generateToken();

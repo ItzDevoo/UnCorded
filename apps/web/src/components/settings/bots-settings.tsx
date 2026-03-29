@@ -1,5 +1,5 @@
 import { createSignal, createResource, For, Show } from "solid-js";
-import { MAX_AVATAR_SIZE_BYTES, ALLOWED_AVATAR_TYPES, BOT_LIMITS } from "@uncorded/shared";
+import { MAX_AVATAR_SIZE_BYTES, ALLOWED_AVATAR_TYPES, BOT_LIMITS, type BotTier } from "@uncorded/shared";
 import { api, apiUpload } from "../../lib/api.js";
 import { readyData } from "../../lib/gateway-store.js";
 import { showToast } from "../ui/toast.js";
@@ -45,7 +45,7 @@ function formatRelativeTime(iso: string | null): string {
 // ── Component ────────────────────────────────────────────────────────────────
 
 const BotsSettings = () => {
-  const tier = () => readyData.data?.user.subscriptionTier ?? "free";
+  const tier = () => (readyData.data?.user.subscriptionTier ?? "free") as BotTier;
   const limit = () => BOT_LIMITS[tier()] ?? 1;
 
   // Bot list resource

@@ -48,6 +48,7 @@ const ServerOverview = (props: OverviewProps) => {
   }
 
   async function handleSave() {
+    if (del.loading()) return;
     const validationErr = validateName(name());
     if (validationErr) {
       setNameError(validationErr);
@@ -80,6 +81,7 @@ const ServerOverview = (props: OverviewProps) => {
   }
 
   async function handleDelete() {
+    if (save.loading()) return;
     const serverId = props.serverId;
     await del.run(async () => {
       await api(`/api/servers/${serverId}`, { method: "DELETE" });
@@ -149,7 +151,7 @@ const ServerOverview = (props: OverviewProps) => {
       </div>
 
       {/* Save */}
-      <Button onClick={handleSave} disabled={save.loading() || !!nameError()}>
+      <Button onClick={handleSave} disabled={save.loading() || del.loading() || !!nameError()}>
         {save.loading() ? "Saving..." : "Save Changes"}
       </Button>
 
@@ -184,7 +186,7 @@ const ServerOverview = (props: OverviewProps) => {
               <Button
                 variant="destructive"
                 onClick={handleDelete}
-                disabled={deleteInput() !== props.serverName || del.loading()}
+                disabled={deleteInput() !== props.serverName || del.loading() || save.loading()}
               >
                 {del.loading() ? "Deleting..." : "Confirm Delete"}
               </Button>

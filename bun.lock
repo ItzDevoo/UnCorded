@@ -38,6 +38,7 @@
       "name": "@uncorded/desktop",
       "version": "0.1.0",
       "dependencies": {
+        "@uncorded/shared": "workspace:*",
         "dockerode": "^4.0.4",
         "electron-updater": "^6.3.9",
         "elysia": "^1.2.25",

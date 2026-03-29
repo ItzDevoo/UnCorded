@@ -1,13 +1,9 @@
-/** Base error for all bridge HTTP errors. */
-export class BridgeError extends Error {
-  readonly statusCode: number;
-  readonly code: string;
+import { AppError } from "@uncorded/shared";
 
+/** Base error for all bridge HTTP errors. */
+export class BridgeError extends AppError {
   constructor(statusCode: number, code: string, message: string, options?: { cause?: unknown }) {
-    super(message, options);
-    this.name = "BridgeError";
-    this.statusCode = statusCode;
-    this.code = code;
+    super("BridgeError", statusCode, code, message, options);
   }
 }
 
@@ -15,7 +11,6 @@ export class BridgeError extends Error {
 export class BridgeConfigError extends BridgeError {
   constructor(message: string) {
     super(0, "CONFIG_ERROR", message);
-    this.name = "BridgeConfigError";
   }
 }
 
@@ -27,7 +22,6 @@ export class BridgeHttpError extends BridgeError {
 
   constructor(httpMethod: string, path: string, statusCode: number, body: string) {
     super(statusCode, "BRIDGE_HTTP_ERROR", `Bridge ${httpMethod} ${path} failed (${statusCode}): ${body}`);
-    this.name = "BridgeHttpError";
     this.path = path;
     this.method = httpMethod;
     this.body = body;
@@ -36,9 +30,11 @@ export class BridgeHttpError extends BridgeError {
 
 /** Thrown when the bridge returns 404. */
 export class BridgeNotFoundError extends BridgeError {
+  readonly path: string;
+
   constructor(path: string) {
     super(404, "NOT_FOUND", `Bridge resource not found: ${path}`);
-    this.name = "BridgeNotFoundError";
+    this.path = path;
   }
 }
 
@@ -46,6 +42,5 @@ export class BridgeNotFoundError extends BridgeError {
 export class BridgeNetworkError extends BridgeError {
   constructor(message: string, options?: { cause?: unknown }) {
     super(0, "NETWORK_ERROR", message, options);
-    this.name = "BridgeNetworkError";
   }
 }

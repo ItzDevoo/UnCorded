@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@uncorded/protocol": "*"
+    "@uncorded/protocol": "*",
+    "@uncorded/shared": "*"
   }
 }

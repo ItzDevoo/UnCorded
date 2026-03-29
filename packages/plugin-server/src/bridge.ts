@@ -1,5 +1,5 @@
 import type { ChannelId, UserId } from "@uncorded/protocol";
-import { BridgeConfigError, BridgeHttpError, BridgeNetworkError } from "./errors.js";
+import { BridgeConfigError, BridgeHttpError, BridgeNetworkError, BridgeNotFoundError } from "./errors.js";
 import { BridgeStorage } from "./storage.js";
 import type {
   BridgeOptions,
@@ -39,7 +39,11 @@ export class UnCordedBridge {
 
     this.#baseUrl = baseUrl.replace(/\/+$/, "");
     this.#token = token;
-    this.#timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    const rawTimeout = options?.timeoutMs;
+    this.#timeoutMs =
+      rawTimeout !== undefined && Number.isFinite(rawTimeout) && rawTimeout > 0
+        ? rawTimeout
+        : DEFAULT_TIMEOUT_MS;
     this.storage = new BridgeStorage((path, init) => this.#fetch(path, init));
   }
 
@@ -73,6 +77,7 @@ export class UnCordedBridge {
   async #get<T>(path: string): Promise<T> {
     const res = await this.#fetch(path);
     if (!res.ok) {
+      if (res.status === 404) throw new BridgeNotFoundError(path);
       const text = await res.text();
       throw new BridgeHttpError("GET", path, res.status, text);
     }
@@ -86,6 +91,7 @@ export class UnCordedBridge {
       body: body !== undefined ? JSON.stringify(body) : null,
     });
     if (!res.ok) {
+      if (res.status === 404) throw new BridgeNotFoundError(path);
       const text = await res.text();
       throw new BridgeHttpError("POST", path, res.status, text);
     }

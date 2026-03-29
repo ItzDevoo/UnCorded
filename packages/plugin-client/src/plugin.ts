@@ -131,14 +131,14 @@ export class UnCordedPlugin {
 
   // ── Data Methods ─────────────────────────────────────────
 
-  /** Get the current user. */
-  async getUser(): Promise<User> {
-    return this.#request<User>("getUser");
+  /** Get the current user. Returns `null` if user data is not yet available. */
+  async getUser(): Promise<User | null> {
+    return this.#request<User | null>("getUser");
   }
 
-  /** Get the current server. */
-  async getServer(): Promise<Server> {
-    return this.#request<Server>("getServer");
+  /** Get the current server. Returns `null` if no server is selected. */
+  async getServer(): Promise<Server | null> {
+    return this.#request<Server | null>("getServer");
   }
 
   /** Get channels in the server. */

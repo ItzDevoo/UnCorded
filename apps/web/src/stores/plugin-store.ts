@@ -11,6 +11,8 @@ export interface PluginInfo {
   rightPanel: boolean;
   status: "running" | "stopped" | "crashed" | "starting";
   port: number;
+  scope: "server" | "personal";
+  tunnelUrl: string | null;
   permissions: string[];
 }
 

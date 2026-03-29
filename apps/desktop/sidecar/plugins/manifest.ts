@@ -1,11 +1,14 @@
 import type { ResourceLimits } from "../docker/manager";
 
+export type PluginScope = "server" | "personal" | "both";
+
 export interface PluginManifest {
   id: string;
   name: string;
   version: string;
   description: string;
   author: string;
+  scope: PluginScope;
   icon?: string | undefined;
   repository?: string | undefined;
   license?: string | undefined;
@@ -30,6 +33,8 @@ export interface PluginManifest {
     panelWidth?: number | undefined;
   } | undefined;
 }
+
+const VALID_SCOPES = new Set<PluginScope>(["server", "personal", "both"]);
 
 const KNOWN_PERMISSIONS = new Set([
   "server.read",
@@ -95,6 +100,11 @@ export function parseManifest(raw: unknown): { manifest: PluginManifest; errors:
   if (typeof data["description"] !== "string") errors.push("Missing required field: description");
   if (typeof data["author"] !== "string") errors.push("Missing required field: author");
 
+  // Validate scope
+  if (typeof data["scope"] !== "string" || !VALID_SCOPES.has(data["scope"] as PluginScope)) {
+    errors.push("scope must be 'server', 'personal', or 'both'");
+  }
+
   // Validate version is semver
   if (typeof data["version"] === "string" && !SEMVER_REGEX.test(data["version"])) {
     errors.push(`Invalid version format: ${data["version"]} (must be semver)`);
@@ -137,6 +147,7 @@ export function parseManifest(raw: unknown): { manifest: PluginManifest; errors:
     version: String(data["version"] ?? "0.0.0"),
     description: String(data["description"] ?? ""),
     author: String(data["author"] ?? ""),
+    scope: VALID_SCOPES.has(data["scope"] as PluginScope) ? (data["scope"] as PluginScope) : "personal",
     icon: typeof data["icon"] === "string" ? data["icon"] : undefined,
     repository: typeof data["repository"] === "string" ? data["repository"] : undefined,
     license: typeof data["license"] === "string" ? data["license"] : undefined,

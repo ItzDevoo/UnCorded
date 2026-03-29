@@ -39,6 +39,8 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
         rightPanel: false,
         status: p.state === "installed" ? "stopped" : p.state,
         port: p.hostPort ?? 0,
+        scope: p.scope,
+        tunnelUrl: p.tunnelUrl,
         permissions: p.manifest.permissions,
       }));
     })
@@ -52,7 +54,8 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
         });
       }
       const serverId = typeof parsed.serverId === "string" ? parsed.serverId : "local";
-      const result = await options.plugins.install(parsed.manifest, serverId);
+      const scope = parsed.scope === "server" ? "server" as const : "personal" as const;
+      const result = await options.plugins.install(parsed.manifest, serverId, scope);
       if (result.errors && result.errors.length > 0) {
         throw new Response(JSON.stringify({ error: result.errors.join(", ") }), {
           status: 400,

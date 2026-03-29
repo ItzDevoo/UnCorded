@@ -6,17 +6,20 @@ import { HealthMonitor } from "../docker/health";
 import { ResourceEnforcer } from "../docker/resources";
 import { issueToken, revokePluginTokens } from "./tokens";
 import { parseManifest, type PluginManifest } from "./manifest";
+import type { ResolvedScope } from "../bridge/auth";
 
 export type PluginState = "installed" | "starting" | "running" | "stopping" | "stopped" | "crashed" | "error";
 
 interface PluginRecord {
   pluginId: string;
   serverId: string;
+  scope: ResolvedScope;
   manifest: PluginManifest;
   containerId: string | null;
   state: PluginState;
   hostPort: number | null;
   bridgeToken: string | null;
+  tunnelUrl: string | null;
   previouslyRunning: boolean;
   installedAt: string;
   error?: string | undefined;
@@ -62,7 +65,7 @@ export class PluginLifecycle {
 
   // --- Public API ---
 
-  async install(manifestRaw: unknown, serverId: string): Promise<{ pluginId: string; errors?: string[] }> {
+  async install(manifestRaw: unknown, serverId: string, scope: ResolvedScope = "personal"): Promise<{ pluginId: string; errors?: string[] }> {
     const { manifest, errors } = parseManifest(manifestRaw);
     if (errors.length > 0) {
       return { pluginId: "", errors };
@@ -89,7 +92,7 @@ export class PluginLifecycle {
       await this.networks.createPluginNetwork(manifest.id);
 
       // Issue bridge token
-      const bridgeToken = issueToken(manifest.id, serverId, manifest.permissions);
+      const bridgeToken = issueToken(manifest.id, serverId, manifest.permissions, scope);
 
       // Create container
       const containerId = await this.docker.createContainer({
@@ -109,11 +112,13 @@ export class PluginLifecycle {
       const record: PluginRecord = {
         pluginId: manifest.id,
         serverId,
+        scope,
         manifest,
         containerId,
         state: "installed",
         hostPort: null,
         bridgeToken,
+        tunnelUrl: null,
         previouslyRunning: false,
         installedAt: new Date().toISOString(),
       };
@@ -142,7 +147,7 @@ export class PluginLifecycle {
     // Token is baked into the container env at create time — register it in
     // the auth store so the bridge can validate it (needed after sidecar restart)
     if (plugin.bridgeToken) {
-      issueToken(pluginId, plugin.serverId, plugin.manifest.permissions);
+      issueToken(pluginId, plugin.serverId, plugin.manifest.permissions, plugin.scope);
     }
 
     // Start container
@@ -241,7 +246,7 @@ export class PluginLifecycle {
     await this.docker.pullImage(newManifest.runtime.image, undefined, { skipIfExists: false });
 
     // Create new container FIRST, then remove old one (rollback-safe)
-    const bridgeToken = issueToken(pluginId, plugin.serverId, newManifest.permissions);
+    const bridgeToken = issueToken(pluginId, plugin.serverId, newManifest.permissions, plugin.scope);
     const newContainerId = await this.docker.createContainer({
       image: newManifest.runtime.image,
       pluginId,
@@ -328,6 +333,9 @@ export class PluginLifecycle {
         const raw = fs.readFileSync(this.statePath, "utf-8");
         const state = JSON.parse(raw) as StateFile;
         for (const [id, record] of Object.entries(state.plugins)) {
+          // Backwards compat: default missing scope/tunnelUrl for pre-scope installs
+          if (!record.scope) record.scope = "personal";
+          if (record.tunnelUrl === undefined) record.tunnelUrl = null;
           this.plugins.set(id, record);
         }
         console.error(`[lifecycle] Loaded ${this.plugins.size} plugins from state`);

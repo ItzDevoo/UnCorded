@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join, extname, resolve, normalize } from "node:path";
-import { listBoards, createBoard, deleteBoard, getBoard } from "./boards.js";
+import { listBoards, createBoard, deleteBoard, getBoard, saveImage, getImages, getImage } from "./boards.js";
 import {
   addClient,
   removeClient,
@@ -114,6 +114,36 @@ const server = Bun.serve<{ boardId: string; clientId: string }>({
         return withIframeHeaders(json({ error: "Board not found" }, 404));
       }
       return withIframeHeaders(json({ ok: true }));
+    }
+
+    // --- Image API ---
+    const imagePostMatch = pathname.match(/^\/api\/boards\/([a-f0-9-]+)\/images$/);
+    if (imagePostMatch && req.method === "POST") {
+      try {
+        const body = (await req.json()) as { id?: string; dataURL?: string; mimeType?: string };
+        if (!body.id || !body.dataURL) {
+          return withIframeHeaders(json({ error: "id and dataURL required" }, 400));
+        }
+        await saveImage(imagePostMatch[1]!, body.id, {
+          dataURL: body.dataURL,
+          mimeType: body.mimeType ?? "image/png",
+        });
+        return withIframeHeaders(json({ ok: true }, 201));
+      } catch {
+        return withIframeHeaders(json({ error: "Invalid request" }, 400));
+      }
+    }
+
+    if (imagePostMatch && req.method === "GET") {
+      const images = await getImages(imagePostMatch[1]!);
+      return withIframeHeaders(json(images));
+    }
+
+    const imageSingleMatch = pathname.match(/^\/api\/boards\/([a-f0-9-]+)\/images\/([a-zA-Z0-9_-]+)$/);
+    if (imageSingleMatch && req.method === "GET") {
+      const img = await getImage(imageSingleMatch[1]!, imageSingleMatch[2]!);
+      if (!img) return withIframeHeaders(json({ error: "Image not found" }, 404));
+      return withIframeHeaders(json(img));
     }
 
     // --- Board editor page ---

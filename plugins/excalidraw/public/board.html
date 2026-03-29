@@ -148,6 +148,7 @@
       const lastVersionRef = useRef(0);
       const lastSentElementsRef = useRef(new Map());  // id → version
       const throttleRef = useRef({ timer: null, lastSend: 0 });
+      const knownFileIdsRef = useRef(new Set());
 
       // Apply a full remote scene (scene-init) using reconcileElements
       const applyFullScene = useCallback((remoteRawElements) => {
@@ -250,6 +251,31 @@
                   break;
                 }
 
+                case "request-scene": {
+                  // Another client (or server) is requesting our full scene
+                  const api = apiRef.current;
+                  if (api && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                    const elements = api.getSceneElementsIncludingDeleted();
+                    wsRef.current.send(JSON.stringify({ type: "scene-init", elements }));
+                  }
+                  break;
+                }
+
+                case "image-init":
+                case "image-add": {
+                  const api = apiRef.current;
+                  if (api && msg.id && msg.dataURL) {
+                    knownFileIdsRef.current.add(msg.id);
+                    api.addFiles([{
+                      id: msg.id,
+                      dataURL: msg.dataURL,
+                      mimeType: msg.mimeType || "image/png",
+                      created: Date.now(),
+                    }]);
+                  }
+                  break;
+                }
+
                 case "room-users": {
                   roomClientsRef.current = msg.clients;
                   const myId = myClientIdRef.current;
@@ -304,7 +330,23 @@
       }, [applyFullScene, applyDelta, updateCollaborators]);
 
       // Send scene updates — throttled, incremental deltas only
-      const handleChange = useCallback((elements) => {
+      const handleChange = useCallback((elements, _appState, files) => {
+        // Detect and send new images
+        if (files && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          const known = knownFileIdsRef.current;
+          for (const [fileId, fileData] of Object.entries(files)) {
+            if (!known.has(fileId) && fileData && fileData.dataURL) {
+              known.add(fileId);
+              wsRef.current.send(JSON.stringify({
+                type: "image-add",
+                id: fileId,
+                dataURL: fileData.dataURL,
+                mimeType: fileData.mimeType || "image/png",
+              }));
+            }
+          }
+        }
+
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
 
         const allElements = Array.from(elements);

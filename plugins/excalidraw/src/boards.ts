@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir, unlink, rename } from "node:fs/promises";
+import { readFile, writeFile, mkdir, unlink, rename, readdir } from "node:fs/promises";
 import { join } from "node:path";
 
 const DATA_DIR = process.env.DATA_DIR ?? "/app/data";
@@ -13,7 +13,14 @@ export interface BoardMeta {
 
 export interface BoardData {
   elements: unknown[];
+  version?: number;
   appState?: Record<string, unknown>;
+}
+
+export interface ImageData {
+  id: string;
+  dataURL: string;
+  mimeType: string;
 }
 
 // Simple async mutex to serialize index read-modify-write
@@ -38,6 +45,10 @@ function indexPath(): string {
 
 function boardPath(id: string): string {
   return join(BOARDS_DIR, `${id}.json`);
+}
+
+function imagesDir(boardId: string): string {
+  return join(BOARDS_DIR, boardId, "images");
 }
 
 async function readIndex(): Promise<BoardMeta[]> {
@@ -69,8 +80,7 @@ export async function createBoard(name: string): Promise<BoardMeta> {
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
 
-    // Write board file first, then publish to index
-    const data: BoardData = { elements: [] };
+    const data: BoardData = { elements: [], version: 0 };
     await writeFile(boardPath(id), JSON.stringify(data));
 
     const meta: BoardMeta = { id, name, createdAt: now, lastModified: now };
@@ -97,9 +107,15 @@ export async function getBoard(id: string): Promise<BoardData | null> {
 export async function saveBoard(id: string, data: BoardData): Promise<void> {
   return withLock(async () => {
     await ensureDir();
+
+    // Only overwrite if incoming version >= stored version
+    const existing = await getBoard(id);
+    if (existing && (existing.version ?? 0) > (data.version ?? 0)) {
+      return; // Stale write — skip
+    }
+
     await writeFile(boardPath(id), JSON.stringify(data));
 
-    // Update lastModified in index
     const boards = await readIndex();
     const entry = boards.find((b) => b.id === id);
     if (entry) {
@@ -126,4 +142,46 @@ export async function deleteBoard(id: string): Promise<boolean> {
 
     return true;
   });
+}
+
+// ── Image storage ──────────────────────────────────────────────────────────
+
+export async function saveImage(
+  boardId: string,
+  imageId: string,
+  data: { dataURL: string; mimeType: string },
+): Promise<void> {
+  const dir = imagesDir(boardId);
+  await mkdir(dir, { recursive: true });
+  await writeFile(join(dir, `${imageId}.json`), JSON.stringify(data));
+}
+
+export async function getImage(
+  boardId: string,
+  imageId: string,
+): Promise<ImageData | null> {
+  try {
+    const raw = await readFile(join(imagesDir(boardId), `${imageId}.json`), "utf-8");
+    const data = JSON.parse(raw) as { dataURL: string; mimeType: string };
+    return { id: imageId, ...data };
+  } catch {
+    return null;
+  }
+}
+
+export async function getImages(boardId: string): Promise<ImageData[]> {
+  const dir = imagesDir(boardId);
+  try {
+    const files = await readdir(dir);
+    const images: ImageData[] = [];
+    for (const file of files) {
+      if (!file.endsWith(".json")) continue;
+      const id = file.replace(".json", "");
+      const img = await getImage(boardId, id);
+      if (img) images.push(img);
+    }
+    return images;
+  } catch {
+    return [];
+  }
 }

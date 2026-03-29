@@ -70,7 +70,7 @@ const PluginFrame = (props: PluginFrameProps) => {
   });
 
   return (
-    <div class="relative flex h-full w-full flex-col">
+    <div class="relative flex h-full w-full flex-col bg-background">
       {/* Error / crashed state */}
       <Show when={isCrashed() || error()}>
         <Empty

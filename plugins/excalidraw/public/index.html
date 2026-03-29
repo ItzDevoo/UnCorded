@@ -97,9 +97,7 @@
       border: 1px solid #2A2A2A;
       border-radius: 6px;
       padding: 1rem 1.25rem;
-      cursor: pointer;
       transition: border-color 0.2s, background 0.2s;
-      text-decoration: none;
       color: inherit;
     }
 
@@ -108,10 +106,14 @@
       background: #181818;
     }
 
-    .board-info {
+    .board-link {
       display: flex;
       flex-direction: column;
       gap: 0.25rem;
+      text-decoration: none;
+      color: inherit;
+      flex: 1;
+      min-width: 0;
     }
 
     .board-name {
@@ -225,11 +227,11 @@
         boards.sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified));
 
         listEl.innerHTML = boards.map(b => `
-          <a class="board-card" href="/board/${b.id}" data-id="${b.id}">
-            <div class="board-info">
+          <div class="board-card" data-id="${b.id}">
+            <a class="board-link" href="/board/${b.id}">
               <span class="board-name">${escapeHtml(b.name)}</span>
               <span class="board-meta">Modified ${timeAgo(b.lastModified)}</span>
-            </div>
+            </a>
             <div class="board-right">
               ${b.activeUsers > 0 ? `
                 <span class="active-badge">
@@ -239,7 +241,7 @@
               ` : ''}
               <button class="delete-btn" onclick="deleteBoard(event, '${b.id}')">Delete</button>
             </div>
-          </a>
+          </div>
         `).join('');
       } catch (err) {
         listEl.innerHTML = `<div class="empty-state"><p>Failed to load boards</p></div>`;
@@ -252,11 +254,14 @@
       return div.innerHTML;
     }
 
+    let creating = false;
     async function createNewBoard() {
       const name = nameInput.value.trim();
-      if (!name) return;
+      if (!name || creating) return;
 
+      creating = true;
       createBtn.disabled = true;
+      nameInput.disabled = true;
       try {
         const res = await fetch('/api/boards', {
           method: 'POST',
@@ -275,7 +280,9 @@
         console.error('Create board error:', err);
         alert('Network error — could not create board');
       } finally {
+        creating = false;
         createBtn.disabled = false;
+        nameInput.disabled = false;
       }
     }
 

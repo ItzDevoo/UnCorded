@@ -125,7 +125,15 @@
     ];
 
     function getColorForClient(clientId, allClientIds) {
-      const idx = allClientIds.indexOf(clientId);
+      let idx = allClientIds.indexOf(clientId);
+      if (idx === -1) {
+        // Pointer arrived before room-users — use hash-based fallback
+        let hash = 0;
+        for (let i = 0; i < clientId.length; i++) {
+          hash = (hash * 31 + clientId.charCodeAt(i)) | 0;
+        }
+        idx = Math.abs(hash);
+      }
       return COLLAB_COLORS[idx % COLLAB_COLORS.length];
     }
 

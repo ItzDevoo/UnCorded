@@ -106,6 +106,10 @@ const server = Bun.serve<{ boardId: string; clientId: string }>({
     // --- Board editor page ---
     const boardMatch = pathname.match(/^\/board\/([a-f0-9-]+)$/);
     if (boardMatch) {
+      const board = await getBoard(boardMatch[1]!);
+      if (!board) {
+        return json({ error: "Board not found" }, 404);
+      }
       return serveStatic(join(PUBLIC_DIR, "board.html"));
     }
 
@@ -115,7 +119,12 @@ const server = Bun.serve<{ boardId: string; clientId: string }>({
     }
 
     // Serve other static files from public/ with path traversal protection
-    const decoded = decodeURIComponent(pathname);
+    let decoded;
+    try {
+      decoded = decodeURIComponent(pathname);
+    } catch {
+      return new Response("Bad Request", { status: 400 });
+    }
     const resolved = resolve(PUBLIC_DIR, normalize(decoded).replace(/^\/+/, ""));
     if (!resolved.startsWith(PUBLIC_DIR)) {
       return new Response("Forbidden", { status: 403 });

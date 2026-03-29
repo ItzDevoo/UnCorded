@@ -14,6 +14,7 @@ interface Plugin {
   author: string;
   icon: string | null;
   category: string;
+  scope: "server" | "personal" | "both";
   tags: string[];
   installCount: number;
   installed: boolean;
@@ -54,10 +55,14 @@ const PluginsSettings = () => {
     return res.plugins;
   });
 
+  // Only show personal/both scope plugins in user settings
+  const personalPlugins = () =>
+    (plugins() ?? []).filter((p) => p.scope === "personal" || p.scope === "both");
+
   const filteredPlugins = () => {
     const q = search().toLowerCase();
-    if (!q) return plugins() ?? [];
-    return (plugins() ?? []).filter(
+    if (!q) return personalPlugins();
+    return personalPlugins().filter(
       (p) =>
         p.name.toLowerCase().includes(q) ||
         p.description.toLowerCase().includes(q),
@@ -256,7 +261,7 @@ function PluginCard(props: {
                 }}
                 disabled={props.installing}
               >
-                {props.installing ? "Installing..." : "Install"}
+                {props.installing ? "Installing..." : "Install for Me"}
               </Button>
             }
           >

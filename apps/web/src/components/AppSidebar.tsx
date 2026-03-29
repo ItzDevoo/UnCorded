@@ -42,6 +42,11 @@ import {
   activePluginId,
   setActivePluginId,
   clearActivePlugin,
+  visibleServerPlugins,
+  activeServerPluginId,
+  setActiveServerPluginId,
+  fetchServerPlugins,
+  clearServerPlugins,
 } from "../stores/plugin-store.js";
 import SupportSheet from "./SupportSheet.js";
 import { showToast } from "./ui/toast.js";
@@ -99,6 +104,16 @@ const AppSidebar = () => {
   const isPaidUser = () =>
     readyData.data?.user.subscriptionTier !== undefined &&
     readyData.data?.user.subscriptionTier !== "free";
+
+  // Fetch server plugins when switching servers
+  createEffect(() => {
+    const sId = selectedServerId();
+    if (sId) {
+      fetchServerPlugins(sId);
+    } else {
+      clearServerPlugins();
+    }
+  });
 
   const handleLogout = async () => {
     await signOut();
@@ -434,9 +449,45 @@ const AppSidebar = () => {
           </Show>
         </SidebarGroup>
 
-        {/* Plugins — desktop only */}
+        {/* Server Plugins — shown when viewing a server, available to all users */}
+        <Show when={selectedServerId() && visibleServerPlugins().length > 0}>
+          <SidebarGroup label="Server Plugins" collapsible defaultOpen>
+            <SidebarMenu classList={{ hidden: sidebarState() === "collapsed" }}>
+              <For each={visibleServerPlugins()}>
+                {(plugin) => {
+                  const isActive = () => activeServerPluginId() === plugin.pluginId;
+                  return (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        tooltip={plugin.pluginId}
+                        active={isActive()}
+                        onClick={() => {
+                          setActiveServerPluginId(plugin.pluginId);
+                          clearActivePlugin();
+                          const sId = selectedServerId();
+                          if (sId) navigate(`/servers/${sId}`);
+                          closeMobile();
+                        }}
+                      >
+                        <span class="relative flex h-4 w-4 shrink-0 items-center justify-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
+                          </svg>
+                          <span class="absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-success" aria-hidden="true" />
+                        </span>
+                        <span class="truncate">{plugin.pluginId}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                }}
+              </For>
+            </SidebarMenu>
+          </SidebarGroup>
+        </Show>
+
+        {/* My Plugins — desktop only, shown when in DMs/home or always for personal plugins */}
         <Show when={isDesktop() && visiblePlugins().length > 0}>
-          <SidebarGroup label="Plugins" collapsible defaultOpen>
+          <SidebarGroup label={selectedServerId() ? "My Plugins" : "Plugins"} collapsible defaultOpen>
             <SidebarMenu classList={{ hidden: sidebarState() === "collapsed" }}>
               <For each={visiblePlugins()}>
                 {(plugin) => {
@@ -456,6 +507,7 @@ const AppSidebar = () => {
                         active={isPluginActive()}
                         onClick={() => {
                           setActivePluginId(plugin.id);
+                          setActiveServerPluginId(null);
                           const sId = selectedServerId();
                           if (sId) navigate(`/servers/${sId}`);
                           closeMobile();

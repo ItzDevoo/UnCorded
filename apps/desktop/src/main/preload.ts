@@ -62,8 +62,8 @@ const desktopBridge = {
       return () => ipcRenderer.removeListener("plugins:state-change", handler);
     },
 
-    start: (pluginId: string): Promise<void> =>
-      ipcRenderer.invoke("plugins:start", pluginId),
+    start: (pluginId: string, serverId?: string): Promise<void> =>
+      ipcRenderer.invoke("plugins:start", pluginId, serverId),
 
     stop: (pluginId: string): Promise<void> =>
       ipcRenderer.invoke("plugins:stop", pluginId),

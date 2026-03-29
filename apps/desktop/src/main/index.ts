@@ -189,6 +189,22 @@ interface PluginInfo {
 
 let cachedPlugins: PluginInfo[] = [];
 
+// Hardcoded manifests until we have a proper plugin registry
+const PLUGIN_MANIFESTS: Record<string, object> = {
+  "excalidraw-boards": {
+    id: "excalidraw-boards",
+    name: "Excalidraw Boards",
+    version: "1.0.0",
+    description: "Collaborative whiteboard",
+    author: "UnCorded",
+    scope: "server",
+    runtime: { image: "excalidraw-boards:latest", port: 3000, healthCheck: "/health" },
+    permissions: ["server.read", "members.read"],
+    resources: { cpus: 0.5, memoryMb: 256 },
+    ui: { type: "page" },
+  },
+};
+
 function broadcastPluginState(): void {
   for (const win of BrowserWindow.getAllWindows()) {
     if (!win.isDestroyed()) {
@@ -215,14 +231,41 @@ function setupPluginIpc(): void {
     return cachedPlugins;
   });
 
-  ipcMain.handle("plugins:start", async (_event, pluginId: string) => {
+  ipcMain.handle("plugins:start", async (_event, pluginId: string, serverId?: string) => {
     const port = sidecar.getPort();
     if (!port) throw new Error("Sidecar not running");
-    const res = await fetch(`http://localhost:${port}/plugins/${pluginId}/start`, { method: "POST" });
+
+    // Try starting directly
+    let res = await fetch(`http://localhost:${port}/plugins/${pluginId}/start`, { method: "POST" });
+
+    // If not installed on sidecar, auto-install then start
     if (!res.ok) {
       const body = await res.text().catch(() => "");
-      throw new Error(`Plugin start failed (${res.status}): ${body}`);
+      if (body.includes("not found") || body.includes("not installed")) {
+        const manifest = PLUGIN_MANIFESTS[pluginId];
+        if (!manifest) throw new Error(`No manifest for plugin: ${pluginId}`);
+
+        const installRes = await fetch(`http://localhost:${port}/plugins/install`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ manifest, serverId: serverId ?? "default", scope: "server" }),
+        });
+        if (!installRes.ok) {
+          const installBody = await installRes.text().catch(() => "");
+          throw new Error(`Plugin install failed (${installRes.status}): ${installBody}`);
+        }
+
+        // Now start
+        res = await fetch(`http://localhost:${port}/plugins/${pluginId}/start`, { method: "POST" });
+        if (!res.ok) {
+          const startBody = await res.text().catch(() => "");
+          throw new Error(`Plugin start failed after install (${res.status}): ${startBody}`);
+        }
+      } else {
+        throw new Error(`Plugin start failed (${res.status}): ${body}`);
+      }
     }
+
     cachedPlugins = await fetchPluginsFromSidecar();
     broadcastPluginState();
   });

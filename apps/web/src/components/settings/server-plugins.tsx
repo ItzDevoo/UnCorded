@@ -129,7 +129,7 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
         await window.desktopBridge!.plugins.stop(pluginId);
         showToast("Plugin stopped", "info");
       } else {
-        await window.desktopBridge!.plugins.start(pluginId);
+        await window.desktopBridge!.plugins.start(pluginId, props.serverId);
         showToast("Plugin started", "info");
       }
       await refetchInstalled();

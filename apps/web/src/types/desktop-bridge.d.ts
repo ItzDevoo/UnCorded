@@ -3,7 +3,7 @@ import type { PluginInfo } from "../stores/plugin-store.js";
 interface DesktopBridgePlugins {
   getAll(): Promise<PluginInfo[]>;
   onStateChange(listener: (plugins: PluginInfo[]) => void): () => void;
-  start(pluginId: string): Promise<void>;
+  start(pluginId: string, serverId?: string): Promise<void>;
   stop(pluginId: string): Promise<void>;
   restart(pluginId: string): Promise<void>;
   getPermissions(pluginId: string): Promise<string[]>;

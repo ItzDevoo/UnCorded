@@ -13,14 +13,12 @@ import { authResolve } from "../middleware/auth.js";
 import { checkUserRateLimit } from "../helpers/rate-limit.js";
 import { RL } from "../helpers/rate-limit-keys.js";
 import { resolveChannelMembership } from "../helpers/resolve-channel.js";
+import { validateInput } from "../helpers/validation.js";
 
 export const reportRoutes = new Elysia({ prefix: "/api/reports" })
   .resolve(authResolve())
   .post("/", async ({ user: sessionUser, body, set }) => {
-    const parsed = createReportSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
-    }
+    const data = validateInput(createReportSchema, body);
 
     await checkUserRateLimit(
       sessionUser.id,
@@ -28,8 +26,6 @@ export const reportRoutes = new Elysia({ prefix: "/api/reports" })
       RATE_LIMIT_REPORT_CREATE.limit,
       RATE_LIMIT_REPORT_CREATE.windowMs,
     );
-
-    const data = parsed.data;
 
     // Per-type validation
     if (data.type === "message") {

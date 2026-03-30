@@ -5,15 +5,8 @@ import { db } from "../db/index.js";
 import { pluginRegistry, pluginInstalls, bots, user } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
 import { checkIpRateLimit } from "../middleware/ip-rate-limit.js";
+import { getClientIp } from "../helpers/request.js";
 import { RL } from "../helpers/rate-limit-keys.js";
-
-function getClientIp(request: Request): string {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    request.headers.get("x-real-ip") ??
-    "unknown"
-  );
-}
 
 // ── Public routes (no auth) ─────────────────────────────────────────────────
 

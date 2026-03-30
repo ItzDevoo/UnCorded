@@ -17,6 +17,7 @@ import { db } from "../db/index.js";
 import { servers, channels, members } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
 import { requireMember, requireOwner } from "../helpers/permissions.js";
+import { validateInput } from "../helpers/validation.js";
 import { addServerMember, removeServer } from "../ws/server-members.js";
 import { broadcastToServer } from "../ws/connections.js";
 import { Opcode } from "@uncorded/protocol";
@@ -28,10 +29,7 @@ export const serverRoutes = new Elysia({ prefix: "/api/servers" })
       throw new ForbiddenError("Bots cannot create servers");
     }
 
-    const parsed = createServerSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
-    }
+    const parsed = validateInput(createServerSchema, body);
 
     const newServerId = createId();
     const newChannelId = createId();
@@ -49,8 +47,8 @@ export const serverRoutes = new Elysia({ prefix: "/api/servers" })
         .insert(servers)
         .values({
           id: newServerId,
-          name: parsed.data.name,
-          iconUrl: parsed.data.iconUrl ?? null,
+          name: parsed.name,
+          iconUrl: parsed.iconUrl ?? null,
           ownerId: sessionUser.id,
         })
         .returning();
@@ -127,15 +125,12 @@ export const serverRoutes = new Elysia({ prefix: "/api/servers" })
   .patch("/:serverId", async ({ user: sessionUser, params, body }) => {
     await requireOwner(sessionUser.id, params.serverId);
 
-    const parsed = updateServerSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
-    }
+    const parsed = validateInput(updateServerSchema, body);
 
     const updates: Partial<typeof servers.$inferInsert> = {};
 
-    if (parsed.data.name !== undefined) updates.name = parsed.data.name;
-    if (parsed.data.iconUrl !== undefined) updates.iconUrl = parsed.data.iconUrl ?? null;
+    if (parsed.name !== undefined) updates.name = parsed.name;
+    if (parsed.iconUrl !== undefined) updates.iconUrl = parsed.iconUrl ?? null;
 
     if (Object.keys(updates).length === 0) {
       throw new ValidationError("No fields to update");
@@ -159,20 +154,17 @@ export const serverRoutes = new Elysia({ prefix: "/api/servers" })
   .patch("/:serverId/owner", async ({ user: sessionUser, params, body }) => {
     await requireOwner(sessionUser.id, params.serverId);
 
-    const parsed = transferOwnershipSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
-    }
+    const parsed = validateInput(transferOwnershipSchema, body);
 
-    if (parsed.data.newOwnerId === sessionUser.id) {
+    if (parsed.newOwnerId === sessionUser.id) {
       throw new ValidationError("Cannot transfer ownership to yourself");
     }
 
-    await requireMember(parsed.data.newOwnerId, params.serverId);
+    await requireMember(parsed.newOwnerId, params.serverId);
 
     const [updated] = await db
       .update(servers)
-      .set({ ownerId: parsed.data.newOwnerId })
+      .set({ ownerId: parsed.newOwnerId })
       .where(eq(servers.id, params.serverId))
       .returning();
 

@@ -7,6 +7,7 @@ import { subscriptions, giftedSubscriptions } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
 import { getStripe } from "../lib/stripe.js";
 import { env } from "../env.js";
+import { validateInput } from "../helpers/validation.js";
 
 const PRICE_IDS: Record<string, string | undefined> = {
   supporter: undefined,
@@ -30,13 +31,10 @@ export const stripeRoutes = new Elysia({ prefix: "/api/stripe" })
 
   // ── POST /api/stripe/checkout ────────────────────────────────────────
   .post("/checkout", async ({ user: sessionUser, body }) => {
-    const parsed = checkoutRequestSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
-    }
+    const parsed = validateInput(checkoutRequestSchema, body);
 
     const stripe = getStripe();
-    const priceId = getPriceId(parsed.data.tier);
+    const priceId = getPriceId(parsed.tier);
 
     // Find existing Stripe customer from subscriptions table
     const [existing] = await db
@@ -63,7 +61,7 @@ export const stripeRoutes = new Elysia({ prefix: "/api/stripe" })
       line_items: [{ price: priceId, quantity: 1 }],
       return_url: `${env.CORS_ORIGIN ?? env.APP_URL}/home?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       subscription_data: {
-        metadata: { userId: sessionUser.id, tier: parsed.data.tier },
+        metadata: { userId: sessionUser.id, tier: parsed.tier },
       },
       allow_promotion_codes: true,
     });
@@ -189,10 +187,7 @@ export const stripeRoutes = new Elysia({ prefix: "/api/stripe" })
 
   // ── POST /api/stripe/subscription/change-plan ────────────────────────
   .post("/subscription/change-plan", async ({ user: sessionUser, body }) => {
-    const parsed = checkoutRequestSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
-    }
+    const parsed = validateInput(checkoutRequestSchema, body);
 
     const [sub] = await db
       .select({ stripeSubscriptionId: subscriptions.stripeSubscriptionId })
@@ -205,7 +200,7 @@ export const stripeRoutes = new Elysia({ prefix: "/api/stripe" })
     }
 
     const stripe = getStripe();
-    const newPriceId = getPriceId(parsed.data.tier);
+    const newPriceId = getPriceId(parsed.tier);
     const stripeSub = await stripe.subscriptions.retrieve(sub.stripeSubscriptionId);
     const itemId = stripeSub.items.data[0]?.id;
 
@@ -218,7 +213,7 @@ export const stripeRoutes = new Elysia({ prefix: "/api/stripe" })
       proration_behavior: "create_prorations",
     });
 
-    return { tier: parsed.data.tier };
+    return { tier: parsed.tier };
   })
 
   // ── POST /api/stripe/subscription/setup-intent ───────────────────────
@@ -244,10 +239,7 @@ export const stripeRoutes = new Elysia({ prefix: "/api/stripe" })
 
   // ── POST /api/stripe/subscription/update-payment-method ──────────────
   .post("/subscription/update-payment-method", async ({ user: sessionUser, body }) => {
-    const parsed = z.object({ paymentMethodId: z.string().min(1) }).safeParse(body);
-    if (!parsed.success) {
-      throw new ValidationError("paymentMethodId is required");
-    }
+    const parsed = validateInput(z.object({ paymentMethodId: z.string().min(1) }), body);
 
     const [sub] = await db
       .select({
@@ -266,12 +258,12 @@ export const stripeRoutes = new Elysia({ prefix: "/api/stripe" })
 
     // Set as default payment method on customer
     await stripe.customers.update(sub.stripeCustomerId, {
-      invoice_settings: { default_payment_method: parsed.data.paymentMethodId },
+      invoice_settings: { default_payment_method: parsed.paymentMethodId },
     });
 
     // Also set on the subscription itself
     await stripe.subscriptions.update(sub.stripeSubscriptionId, {
-      default_payment_method: parsed.data.paymentMethodId,
+      default_payment_method: parsed.paymentMethodId,
     });
 
     return { success: true };

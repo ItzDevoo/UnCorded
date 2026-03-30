@@ -23,6 +23,7 @@ import { auth } from "../auth/index.js";
 import { isR2Configured, uploadAvatar, deleteAvatar } from "../lib/r2.js";
 import { AppError } from "@uncorded/shared";
 import { checkIpRateLimit } from "../middleware/ip-rate-limit.js";
+import { getClientIp } from "../helpers/request.js";
 import { checkUserRateLimit } from "../helpers/rate-limit.js";
 import { RL } from "../helpers/rate-limit-keys.js";
 import { sendToUser, disconnectUser } from "../ws/connections.js";
@@ -65,14 +66,6 @@ function executeDeletion(targetUserId: string, avatarUrl: string | null) {
         d: null,
       });
     });
-}
-
-function getClientIp(request: Request): string {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    request.headers.get("x-real-ip") ??
-    "unknown"
-  );
 }
 
 function serializeUser(dbUser: typeof user.$inferSelect) {

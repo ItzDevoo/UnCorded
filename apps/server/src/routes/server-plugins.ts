@@ -7,19 +7,12 @@ import { authResolve } from "../middleware/auth.js";
 import { requireMember, requireOwner } from "../helpers/permissions.js";
 import { computeEffectiveTier } from "../helpers/resolve-tier.js";
 import { checkIpRateLimit } from "../middleware/ip-rate-limit.js";
+import { getClientIp } from "../helpers/request.js";
 import { RL } from "../helpers/rate-limit-keys.js";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 const VALID_STATES = new Set(["active", "stopped", "error"]);
-
-function getClientIp(request: Request): string {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    request.headers.get("x-real-ip") ??
-    "unknown"
-  );
-}
 
 function safeJsonParse(value: string | null): Record<string, unknown> {
   if (!value) return {};

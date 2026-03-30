@@ -30,6 +30,8 @@ import {
 
 import { readdir } from "node:fs/promises";
 import { adminResolve } from "../middleware/admin.js";
+import { validateInput } from "../helpers/validation.js";
+import { findOrThrow } from "../helpers/query.js";
 import { disconnectUser, sendToUser } from "../ws/connections.js";
 import { Opcode } from "@uncorded/protocol";
 import { computeEffectiveTier } from "../helpers/resolve-tier.js";
@@ -177,12 +179,10 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
   .post("/users/:id/ban", async ({ params, user: sessionUser, adminLevel }) => {
     if (params.id === sessionUser.id) throw new ValidationError("Cannot ban yourself");
 
-    const [target] = await db
-      .select({ id: user.id, banned: user.banned })
-      .from(user)
-      .where(eq(user.id, params.id))
-      .limit(1);
-    if (!target) throw new NotFoundError("User");
+    await findOrThrow(
+      db.select({ id: user.id, banned: user.banned }).from(user).where(eq(user.id, params.id)).limit(1),
+      "User",
+    );
 
     // Prevent banning fellow admins/owners unless you're the owner
     const [targetAdmin] = await db
@@ -204,12 +204,10 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
   })
 
   .post("/users/:id/unban", async ({ params, user: sessionUser, adminLevel }) => {
-    const [target] = await db
-      .select({ id: user.id })
-      .from(user)
-      .where(eq(user.id, params.id))
-      .limit(1);
-    if (!target) throw new NotFoundError("User");
+    await findOrThrow(
+      db.select({ id: user.id }).from(user).where(eq(user.id, params.id)).limit(1),
+      "User",
+    );
 
     // Same privilege check as ban — non-owners can't unban admins
     const [targetAdmin] = await db
@@ -233,18 +231,12 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       days: z.number().int().min(1).max(365),
       reason: z.string().max(500).optional(),
     });
-    const parsed = giftTierSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
-    }
-    const { tier, days, reason } = parsed.data;
+    const { tier, days, reason } = validateInput(giftTierSchema, body);
 
-    const [target] = await db
-      .select({ id: user.id })
-      .from(user)
-      .where(eq(user.id, params.id))
-      .limit(1);
-    if (!target) throw new NotFoundError("User");
+    await findOrThrow(
+      db.select({ id: user.id }).from(user).where(eq(user.id, params.id)).limit(1),
+      "User",
+    );
 
     const expiresAt = new Date(Date.now() + days * 86400000);
 
@@ -282,12 +274,10 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
   })
 
   .post("/users/:id/revoke-gift", async ({ params, user: sessionUser }) => {
-    const [target] = await db
-      .select({ id: user.id })
-      .from(user)
-      .where(eq(user.id, params.id))
-      .limit(1);
-    if (!target) throw new NotFoundError("User");
+    await findOrThrow(
+      db.select({ id: user.id }).from(user).where(eq(user.id, params.id)).limit(1),
+      "User",
+    );
 
     const result = await db
       .delete(giftedSubscriptions)
@@ -307,12 +297,10 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
   .delete("/users/:id", async ({ params, user: sessionUser, adminLevel }) => {
     if (adminLevel !== "owner") throw new ForbiddenError("Owner access required");
 
-    const [target] = await db
-      .select({ id: user.id })
-      .from(user)
-      .where(eq(user.id, params.id))
-      .limit(1);
-    if (!target) throw new NotFoundError("User");
+    await findOrThrow(
+      db.select({ id: user.id }).from(user).where(eq(user.id, params.id)).limit(1),
+      "User",
+    );
 
     if (params.id === sessionUser.id) {
       throw new ValidationError("Cannot delete your own account via admin panel");
@@ -338,12 +326,10 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
   .get("/users/:id/bots", async ({ params, query }) => {
     const { page, pageSize, offset } = botsPageQuery.parse(query);
 
-    const [target] = await db
-      .select({ id: user.id })
-      .from(user)
-      .where(eq(user.id, params.id))
-      .limit(1);
-    if (!target) throw new NotFoundError("User");
+    await findOrThrow(
+      db.select({ id: user.id }).from(user).where(eq(user.id, params.id)).limit(1),
+      "User",
+    );
 
     const condition = eq(bots.ownerId, params.id);
 
@@ -441,12 +427,10 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
   })
 
   .post("/reports/:id/resolve", async ({ params, user: sessionUser }) => {
-    const [report] = await db
-      .select({ id: reports.id })
-      .from(reports)
-      .where(eq(reports.id, params.id))
-      .limit(1);
-    if (!report) throw new NotFoundError("Report");
+    await findOrThrow(
+      db.select({ id: reports.id }).from(reports).where(eq(reports.id, params.id)).limit(1),
+      "Report",
+    );
 
     await db.update(reports).set({ resolved: true }).where(eq(reports.id, params.id));
     await logAudit(sessionUser.id, "resolve_report", "report", params.id);
@@ -455,12 +439,10 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
   })
 
   .delete("/reports/:id", async ({ params, user: sessionUser }) => {
-    const [report] = await db
-      .select({ id: reports.id })
-      .from(reports)
-      .where(eq(reports.id, params.id))
-      .limit(1);
-    if (!report) throw new NotFoundError("Report");
+    await findOrThrow(
+      db.select({ id: reports.id }).from(reports).where(eq(reports.id, params.id)).limit(1),
+      "Report",
+    );
 
     await db.delete(reports).where(eq(reports.id, params.id));
     await logAudit(sessionUser.id, "delete_report", "report", params.id);
@@ -503,21 +485,16 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       status: z.enum(["open", "in_progress", "completed", "rejected"]).optional(),
       adminNote: z.string().max(1000).optional(),
     });
-    const parsed = updateFeedbackSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
-    }
+    const parsed = validateInput(updateFeedbackSchema, body);
 
-    const [item] = await db
-      .select({ id: feedback.id })
-      .from(feedback)
-      .where(eq(feedback.id, params.id))
-      .limit(1);
-    if (!item) throw new NotFoundError("Feedback");
+    await findOrThrow(
+      db.select({ id: feedback.id }).from(feedback).where(eq(feedback.id, params.id)).limit(1),
+      "Feedback",
+    );
 
     const updates: Record<string, unknown> = {};
-    if (parsed.data.status !== undefined) updates.status = parsed.data.status;
-    if (parsed.data.adminNote !== undefined) updates.adminNote = parsed.data.adminNote;
+    if (parsed.status !== undefined) updates.status = parsed.status;
+    if (parsed.adminNote !== undefined) updates.adminNote = parsed.adminNote;
 
     if (Object.keys(updates).length > 0) {
       await db.update(feedback).set(updates).where(eq(feedback.id, params.id));
@@ -528,19 +505,17 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       "update_feedback",
       "feedback",
       params.id,
-      JSON.stringify(parsed.data),
+      JSON.stringify(parsed),
     );
 
     return { success: true };
   })
 
   .delete("/feedback/:id", async ({ params, user: sessionUser }) => {
-    const [item] = await db
-      .select({ id: feedback.id })
-      .from(feedback)
-      .where(eq(feedback.id, params.id))
-      .limit(1);
-    if (!item) throw new NotFoundError("Feedback");
+    await findOrThrow(
+      db.select({ id: feedback.id }).from(feedback).where(eq(feedback.id, params.id)).limit(1),
+      "Feedback",
+    );
 
     await db.delete(feedback).where(eq(feedback.id, params.id));
     await logAudit(sessionUser.id, "delete_feedback", "feedback", params.id);
@@ -573,12 +548,10 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
     if (!parsed.success) throw new ValidationError("userId is required");
     const { userId } = parsed.data;
 
-    const [target] = await db
-      .select({ id: user.id })
-      .from(user)
-      .where(eq(user.id, userId))
-      .limit(1);
-    if (!target) throw new NotFoundError("User");
+    await findOrThrow(
+      db.select({ id: user.id }).from(user).where(eq(user.id, userId)).limit(1),
+      "User",
+    );
 
     const [existing] = await db
       .select({ id: admins.id })
@@ -601,12 +574,10 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
   .delete("/admins/:id", async ({ params, user: sessionUser, adminLevel }) => {
     if (adminLevel !== "owner") throw new ForbiddenError("Owner access required");
 
-    const [adminRecord] = await db
-      .select({ id: admins.id, userId: admins.userId, level: admins.level })
-      .from(admins)
-      .where(eq(admins.id, params.id))
-      .limit(1);
-    if (!adminRecord) throw new NotFoundError("Admin");
+    const adminRecord = await findOrThrow(
+      db.select({ id: admins.id, userId: admins.userId, level: admins.level }).from(admins).where(eq(admins.id, params.id)).limit(1),
+      "Admin",
+    );
 
     if (adminRecord.userId === sessionUser.id) {
       throw new ValidationError("Cannot remove yourself as admin");
@@ -757,12 +728,10 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
   .post("/polls/:id/close", async ({ params, user: sessionUser }) => {
     await db.transaction(async (tx) => {
       // Re-read inside transaction to ensure poll is still open
-      const [poll] = await tx
-        .select({ id: polls.id, closedAt: polls.closedAt })
-        .from(polls)
-        .where(eq(polls.id, params.id))
-        .limit(1);
-      if (!poll) throw new NotFoundError("Poll");
+      const poll = await findOrThrow(
+        tx.select({ id: polls.id, closedAt: polls.closedAt }).from(polls).where(eq(polls.id, params.id)).limit(1),
+        "Poll",
+      );
       if (poll.closedAt) throw new ValidationError("Poll is already closed");
 
       // Count votes per entry + fetch feedback.voteCount in a single join query
@@ -825,11 +794,7 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
 
   .post("/switch-dev", async ({ body, user: sessionUser }) => {
     const switchSchema = z.object({ branch: z.string().min(1) });
-    const parsed = switchSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
-    }
-    const { branch } = parsed.data;
+    const { branch } = validateInput(switchSchema, body);
 
     // Reject switching to the already-active branch
     const currentState = await loadDevState();
@@ -963,11 +928,7 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       screenshots: z.array(z.string().max(500)).max(10).optional(),
     });
 
-    const parsed = pluginSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
-    }
-    const data = parsed.data;
+    const data = validateInput(pluginSchema, body);
 
     // Atomic insert with conflict check
     const [inserted] = await db
@@ -1013,20 +974,14 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       screenshots: z.array(z.string().max(500)).max(10).optional(),
     });
 
-    const parsed = pluginUpdateSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
-    }
+    const data = validateInput(pluginUpdateSchema, body);
 
-    const [plugin] = await db
-      .select({ id: pluginRegistry.id })
-      .from(pluginRegistry)
-      .where(eq(pluginRegistry.id, params.pluginId))
-      .limit(1);
-    if (!plugin) throw new NotFoundError("Plugin");
+    await findOrThrow(
+      db.select({ id: pluginRegistry.id }).from(pluginRegistry).where(eq(pluginRegistry.id, params.pluginId)).limit(1),
+      "Plugin",
+    );
 
     const updates: Record<string, unknown> = {};
-    const data = parsed.data;
     if (data.name !== undefined) updates.name = data.name;
     if (data.description !== undefined) updates.description = data.description;
     if (data.author !== undefined) updates.author = data.author;
@@ -1053,12 +1008,10 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
     if (adminLevel !== "owner") throw new ForbiddenError("Owner access required");
 
     await db.transaction(async (tx) => {
-      const [plugin] = await tx
-        .select({ id: pluginRegistry.id })
-        .from(pluginRegistry)
-        .where(eq(pluginRegistry.id, params.pluginId))
-        .limit(1);
-      if (!plugin) throw new NotFoundError("Plugin");
+      await findOrThrow(
+        tx.select({ id: pluginRegistry.id }).from(pluginRegistry).where(eq(pluginRegistry.id, params.pluginId)).limit(1),
+        "Plugin",
+      );
 
       // Cascade: remove from server_plugins and plugin_installs first
       await tx.delete(serverPlugins).where(eq(serverPlugins.pluginId, params.pluginId));
@@ -1072,12 +1025,10 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
   })
 
   .patch("/plugins/:pluginId/publish", async ({ params, user: sessionUser }) => {
-    const [plugin] = await db
-      .select({ id: pluginRegistry.id, published: pluginRegistry.published })
-      .from(pluginRegistry)
-      .where(eq(pluginRegistry.id, params.pluginId))
-      .limit(1);
-    if (!plugin) throw new NotFoundError("Plugin");
+    const plugin = await findOrThrow(
+      db.select({ id: pluginRegistry.id, published: pluginRegistry.published }).from(pluginRegistry).where(eq(pluginRegistry.id, params.pluginId)).limit(1),
+      "Plugin",
+    );
 
     const newValue = !plugin.published;
     await db
@@ -1091,12 +1042,10 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
   })
 
   .patch("/plugins/:pluginId/verify", async ({ params, user: sessionUser }) => {
-    const [plugin] = await db
-      .select({ id: pluginRegistry.id, verified: pluginRegistry.verified })
-      .from(pluginRegistry)
-      .where(eq(pluginRegistry.id, params.pluginId))
-      .limit(1);
-    if (!plugin) throw new NotFoundError("Plugin");
+    const plugin = await findOrThrow(
+      db.select({ id: pluginRegistry.id, verified: pluginRegistry.verified }).from(pluginRegistry).where(eq(pluginRegistry.id, params.pluginId)).limit(1),
+      "Plugin",
+    );
 
     const newValue = !plugin.verified;
     await db
@@ -1110,12 +1059,10 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
   })
 
   .patch("/plugins/:pluginId/feature", async ({ params, user: sessionUser }) => {
-    const [plugin] = await db
-      .select({ id: pluginRegistry.id, featured: pluginRegistry.featured })
-      .from(pluginRegistry)
-      .where(eq(pluginRegistry.id, params.pluginId))
-      .limit(1);
-    if (!plugin) throw new NotFoundError("Plugin");
+    const plugin = await findOrThrow(
+      db.select({ id: pluginRegistry.id, featured: pluginRegistry.featured }).from(pluginRegistry).where(eq(pluginRegistry.id, params.pluginId)).limit(1),
+      "Plugin",
+    );
 
     const newValue = !plugin.featured;
     await db

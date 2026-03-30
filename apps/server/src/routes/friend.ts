@@ -7,8 +7,9 @@ import {
   ValidationError,
   NotFoundError,
   ForbiddenError,
-  createId,
 } from "@uncorded/shared";
+import { validateInput } from "../helpers/validation.js";
+import { userPublicFields } from "../helpers/query.js";
 import { paginationQuerySchema } from "../helpers/pagination.js";
 import {
   Opcode,
@@ -17,89 +18,12 @@ import {
   dmChannelId as brandDmChannelId,
 } from "@uncorded/protocol";
 import { db } from "../db/index.js";
-import { friendships, user, dmChannels, dmMembers, bots } from "../db/schema.js";
+import { friendships, user, bots } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
 import { sendToUser } from "../ws/connections.js";
 import { checkUserRateLimit } from "../helpers/rate-limit.js";
 import { RL } from "../helpers/rate-limit-keys.js";
-import { addDmChannelToCache } from "../ws/channel-cache.js";
-
-/**
- * Create a DM channel between two users if one doesn't already exist.
- * Both params are raw user ID strings (not branded) since they come from
- * session/DB. Broadcasts DM_CHANNEL_CREATE to both users on creation.
- *
- * @returns The raw DM channel ID string if a new channel was created
- *          (creation + broadcast performed), or `null` if the DM channel
- *          already existed (no action taken).
- */
-async function ensureDmChannel(userIdA: string, userIdB: string): Promise<string | null> {
-  // Check for existing DM via intersection query
-  const myChannels = db
-    .select({ channelId: dmMembers.channelId })
-    .from(dmMembers)
-    .where(eq(dmMembers.userId, userIdA));
-
-  const [existingDm] = await db
-    .select({ channelId: dmMembers.channelId })
-    .from(dmMembers)
-    .where(and(eq(dmMembers.userId, userIdB), inArray(dmMembers.channelId, myChannels)))
-    .limit(1);
-
-  if (existingDm) return null; // DM already exists
-
-  const dmId = createId();
-  await db.transaction(async (tx) => {
-    await tx.insert(dmChannels).values({ id: dmId });
-    await tx.insert(dmMembers).values([
-      { channelId: dmId, userId: userIdA },
-      { channelId: dmId, userId: userIdB },
-    ]);
-  });
-
-  addDmChannelToCache(dmId, [userIdA, userIdB]);
-
-  const [userA] = await db
-    .select({
-      id: user.id,
-      username: user.username,
-      displayName: user.displayName,
-      avatarUrl: user.avatarUrl,
-      status: user.status,
-    })
-    .from(user)
-    .where(eq(user.id, userIdA))
-    .limit(1);
-
-  const [userB] = await db
-    .select({
-      id: user.id,
-      username: user.username,
-      displayName: user.displayName,
-      avatarUrl: user.avatarUrl,
-      status: user.status,
-    })
-    .from(user)
-    .where(eq(user.id, userIdB))
-    .limit(1);
-
-  sendToUser(userIdA, {
-    op: Opcode.DM_CHANNEL_CREATE,
-    d: {
-      id: brandDmChannelId(dmId),
-      otherUser: userB ? { ...userB, id: brandUserId(userB.id) } : null,
-    },
-  });
-  sendToUser(userIdB, {
-    op: Opcode.DM_CHANNEL_CREATE,
-    d: {
-      id: brandDmChannelId(dmId),
-      otherUser: userA ? { ...userA, id: brandUserId(userA.id) } : null,
-    },
-  });
-
-  return dmId;
-}
+import { ensureDmChannel } from "../helpers/dm.js";
 
 const userIdParamSchema = z.object({ userId: z.string().min(1) });
 
@@ -119,23 +43,13 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
       RATE_LIMIT_FRIEND_REQUEST.windowMs,
     );
 
-    const parsed = friendRequestSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
-    }
+    const parsed = validateInput(friendRequestSchema, body);
 
     // Look up target user by username (include profile fields for response)
     const [target] = await db
-      .select({
-        id: user.id,
-        username: user.username,
-        displayName: user.displayName,
-        avatarUrl: user.avatarUrl,
-        status: user.status,
-        isBot: user.isBot,
-      })
+      .select({ ...userPublicFields, isBot: user.isBot })
       .from(user)
-      .where(eq(user.username, parsed.data.username))
+      .where(eq(user.username, parsed.username))
       .limit(1);
     if (!target) {
       // Return same shape as success to prevent username enumeration.
@@ -565,13 +479,7 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
     if (peerIds.length === 0) return { friends: [], hasMore: false };
 
     const users = await db
-      .select({
-        id: user.id,
-        username: user.username,
-        displayName: user.displayName,
-        avatarUrl: user.avatarUrl,
-        status: user.status,
-      })
+      .select(userPublicFields)
       .from(user)
       .where(inArray(user.id, peerIds));
 
@@ -608,13 +516,7 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
     const requesterIds = page.map((r) => r.requesterId);
 
     const users = await db
-      .select({
-        id: user.id,
-        username: user.username,
-        displayName: user.displayName,
-        avatarUrl: user.avatarUrl,
-        status: user.status,
-      })
+      .select(userPublicFields)
       .from(user)
       .where(inArray(user.id, requesterIds));
 

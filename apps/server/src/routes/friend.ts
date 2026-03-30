@@ -21,6 +21,7 @@ import { friendships, user, dmChannels, dmMembers, bots } from "../db/schema.js"
 import { authResolve } from "../middleware/auth.js";
 import { sendToUser } from "../ws/connections.js";
 import { checkUserRateLimit } from "../helpers/rate-limit.js";
+import { RL } from "../helpers/rate-limit-keys.js";
 import { addDmChannelToCache } from "../ws/channel-cache.js";
 
 /**
@@ -113,7 +114,7 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
 
     await checkUserRateLimit(
       sessionUser.id,
-      "friends:request",
+      RL.FRIEND_REQUEST,
       RATE_LIMIT_FRIEND_REQUEST.limit,
       RATE_LIMIT_FRIEND_REQUEST.windowMs,
     );

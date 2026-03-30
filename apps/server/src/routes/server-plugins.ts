@@ -7,6 +7,7 @@ import { authResolve } from "../middleware/auth.js";
 import { requireMember, requireOwner } from "../helpers/permissions.js";
 import { computeEffectiveTier } from "../helpers/resolve-tier.js";
 import { checkIpRateLimit } from "../middleware/ip-rate-limit.js";
+import { RL } from "../helpers/rate-limit-keys.js";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -59,7 +60,7 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
   // ── POST / — install server plugin (owner only, server_owner tier) ──────
   .post("/", async ({ user: sessionUser, params, body, request }) => {
     const ip = getClientIp(request);
-    if (!(await checkIpRateLimit(ip, 10, 60_000, "server-plugin-install"))) {
+    if (!(await checkIpRateLimit(ip, 10, 60_000, RL.SERVER_PLUGIN_INSTALL))) {
       throw new RateLimitError("Too many requests, try again later");
     }
 
@@ -116,7 +117,7 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
   // ── DELETE /:pluginId — uninstall server plugin (owner only) ────────────
   .delete("/:pluginId", async ({ user: sessionUser, params, request }) => {
     const ip = getClientIp(request);
-    if (!(await checkIpRateLimit(ip, 10, 60_000, "server-plugin-uninstall"))) {
+    if (!(await checkIpRateLimit(ip, 10, 60_000, RL.SERVER_PLUGIN_UNINSTALL))) {
       throw new RateLimitError("Too many requests, try again later");
     }
 

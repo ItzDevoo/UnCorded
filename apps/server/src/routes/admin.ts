@@ -33,8 +33,10 @@ import { adminResolve } from "../middleware/admin.js";
 import { disconnectUser, sendToUser } from "../ws/connections.js";
 import { Opcode } from "@uncorded/protocol";
 import { computeEffectiveTier } from "../helpers/resolve-tier.js";
+import { pageQuerySchema, flexPageQuerySchema } from "../helpers/pagination.js";
 
-const PAGE_SIZE = 50;
+const adminPageQuery = pageQuerySchema(50);
+const botsPageQuery = flexPageQuerySchema({ pageSize: 25, maxPageSize: 50 });
 
 const devStateSchema = z.object({
   branch: z.string(),
@@ -112,9 +114,8 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
 
   // ── User Management ───────────────────────────────────────────────────────
   .get("/users", async ({ query }) => {
-    const page = Math.max(1, Number(query.page) || 1);
+    const { page, pageSize, offset } = adminPageQuery.parse(query);
     const search = typeof query.search === "string" ? query.search.trim() : "";
-    const offset = (page - 1) * PAGE_SIZE;
 
     const escaped = search.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
     const searchFilter = search
@@ -151,7 +152,7 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
         )
         .where(conditions)
         .orderBy(desc(user.createdAt))
-        .limit(PAGE_SIZE)
+        .limit(pageSize)
         .offset(offset),
       db.select({ value: count() }).from(user).where(conditions),
     ]);
@@ -170,7 +171,7 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       botCount: r.botCount,
     }));
 
-    return { users, total: total?.value ?? 0, page, pageSize: PAGE_SIZE };
+    return { users, total: total?.value ?? 0, page, pageSize };
   })
 
   .post("/users/:id/ban", async ({ params, user: sessionUser, adminLevel }) => {
@@ -335,9 +336,7 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
 
   // ── User Bots ────────────────────────────────────────────────────────────
   .get("/users/:id/bots", async ({ params, query }) => {
-    const page = Math.max(1, Number(query.page) || 1);
-    const pageSize = Math.min(50, Math.max(1, Number(query.pageSize) || 25));
-    const offset = (page - 1) * pageSize;
+    const { page, pageSize, offset } = botsPageQuery.parse(query);
 
     const [target] = await db
       .select({ id: user.id })
@@ -386,10 +385,9 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
 
   // ── Report Management ─────────────────────────────────────────────────────
   .get("/reports", async ({ query }) => {
-    const page = Math.max(1, Number(query.page) || 1);
+    const { page, pageSize, offset } = adminPageQuery.parse(query);
     const filter = query.filter as string | undefined;
     const typeFilter = query.type as string | undefined;
-    const offset = (page - 1) * PAGE_SIZE;
 
     const targetUser = alias(user, "target_user");
     const reportServer = alias(servers, "report_server");
@@ -434,12 +432,12 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
         .leftJoin(reportServer, eq(reports.serverId, reportServer.id))
         .where(whereClause)
         .orderBy(desc(reports.createdAt))
-        .limit(PAGE_SIZE)
+        .limit(pageSize)
         .offset(offset),
       db.select({ value: count() }).from(reports).where(whereClause),
     ]);
 
-    return { reports: rows, total: total?.value ?? 0, page, pageSize: PAGE_SIZE };
+    return { reports: rows, total: total?.value ?? 0, page, pageSize };
   })
 
   .post("/reports/:id/resolve", async ({ params, user: sessionUser }) => {
@@ -472,8 +470,7 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
 
   // ── Feedback Management ───────────────────────────────────────────────────
   .get("/feedback", async ({ query }) => {
-    const page = Math.max(1, Number(query.page) || 1);
-    const offset = (page - 1) * PAGE_SIZE;
+    const { page, pageSize, offset } = adminPageQuery.parse(query);
 
     const [rows, [total]] = await Promise.all([
       db
@@ -493,12 +490,12 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
         .from(feedback)
         .leftJoin(user, eq(feedback.authorId, user.id))
         .orderBy(desc(feedback.createdAt))
-        .limit(PAGE_SIZE)
+        .limit(pageSize)
         .offset(offset),
       db.select({ value: count() }).from(feedback),
     ]);
 
-    return { feedback: rows, total: total?.value ?? 0, page, pageSize: PAGE_SIZE };
+    return { feedback: rows, total: total?.value ?? 0, page, pageSize };
   })
 
   .patch("/feedback/:id", async ({ params, body, user: sessionUser }) => {
@@ -626,8 +623,7 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
 
   // ── Poll Management ──────────────────────────────────────────────────────
   .get("/polls", async ({ query }) => {
-    const page = Math.max(1, Number(query.page) || 1);
-    const offset = (page - 1) * PAGE_SIZE;
+    const { page, pageSize, offset } = adminPageQuery.parse(query);
 
     const [rows, [total]] = await Promise.all([
       db
@@ -639,7 +635,7 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
         })
         .from(polls)
         .orderBy(desc(polls.createdAt))
-        .limit(PAGE_SIZE)
+        .limit(pageSize)
         .offset(offset),
       db.select({ value: count() }).from(polls),
     ]);
@@ -704,7 +700,7 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       };
     });
 
-    return { polls: pollsWithEntries, total: total?.value ?? 0, page, pageSize: PAGE_SIZE };
+    return { polls: pollsWithEntries, total: total?.value ?? 0, page, pageSize };
   })
 
   .post("/polls", async ({ user: sessionUser }) => {
@@ -877,8 +873,7 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
 
   // ── Audit Log ─────────────────────────────────────────────────────────────
   .get("/audit-log", async ({ query }) => {
-    const page = Math.max(1, Number(query.page) || 1);
-    const offset = (page - 1) * PAGE_SIZE;
+    const { page, pageSize, offset } = adminPageQuery.parse(query);
 
     const [rows, [total]] = await Promise.all([
       db
@@ -895,19 +890,18 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
         .from(adminAuditLog)
         .leftJoin(user, eq(adminAuditLog.adminId, user.id))
         .orderBy(desc(adminAuditLog.createdAt))
-        .limit(PAGE_SIZE)
+        .limit(pageSize)
         .offset(offset),
       db.select({ value: count() }).from(adminAuditLog),
     ]);
 
-    return { entries: rows, total: total?.value ?? 0, page, pageSize: PAGE_SIZE };
+    return { entries: rows, total: total?.value ?? 0, page, pageSize };
   })
 
   // ── Plugin Management ────────────────────────────────────────────────────
   .get("/plugins", async ({ query }) => {
-    const page = Math.max(1, Number(query.page) || 1);
+    const { page, pageSize, offset } = adminPageQuery.parse(query);
     const search = typeof query.search === "string" ? query.search.trim() : "";
-    const offset = (page - 1) * PAGE_SIZE;
 
     const escaped = search.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
     const searchFilter = search
@@ -924,7 +918,7 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
         .from(pluginRegistry)
         .where(searchFilter)
         .orderBy(desc(pluginRegistry.createdAt))
-        .limit(PAGE_SIZE)
+        .limit(pageSize)
         .offset(offset),
       db.select({ value: count() }).from(pluginRegistry).where(searchFilter),
     ]);
@@ -949,7 +943,7 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       updatedAt: r.updatedAt.toISOString(),
     }));
 
-    return { plugins, total: total?.value ?? 0, page, pageSize: PAGE_SIZE };
+    return { plugins, total: total?.value ?? 0, page, pageSize };
   })
 
   .post("/plugins", async ({ body, user: sessionUser }) => {

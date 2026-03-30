@@ -11,7 +11,8 @@ import {
   createId,
   MAX_SERVERS_PER_USER,
 } from "@uncorded/shared";
-import { serverId, userId, channelId } from "@uncorded/protocol";
+import { serverId, userId } from "@uncorded/protocol";
+import { brandServer, brandChannel } from "../helpers/brand.js";
 import { db } from "../db/index.js";
 import { servers, channels, members } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
@@ -81,14 +82,8 @@ export const serverRoutes = new Elysia({ prefix: "/api/servers" })
 
     set.status = 201;
     return {
-      ...server,
-      id: serverId(server.id),
-      ownerId: userId(server.ownerId),
-      channels: [
-        channel
-          ? { ...channel, id: channelId(channel.id), serverId: serverId(channel.serverId) }
-          : channel,
-      ],
+      ...brandServer(server),
+      channels: [channel ? brandChannel(channel) : channel],
     };
   })
   .get("/", async ({ user: sessionUser }) => {
@@ -112,9 +107,7 @@ export const serverRoutes = new Elysia({ prefix: "/api/servers" })
         and(eq(members.serverId, servers.id), eq(members.userId, sessionUser.id)),
       );
 
-    return userServers.map((s) =>
-      Object.assign(s, { id: serverId(s.id), ownerId: userId(s.ownerId) }),
-    );
+    return userServers.map((s) => brandServer(s));
   })
   .get("/:serverId", async ({ user: sessionUser, params }) => {
     await requireMember(sessionUser.id, params.serverId);
@@ -129,7 +122,7 @@ export const serverRoutes = new Elysia({ prefix: "/api/servers" })
       throw new NotFoundError("Server");
     }
 
-    return { ...server, id: serverId(server.id), ownerId: userId(server.ownerId) };
+    return brandServer(server);
   })
   .patch("/:serverId", async ({ user: sessionUser, params, body }) => {
     await requireOwner(sessionUser.id, params.serverId);
@@ -161,9 +154,7 @@ export const serverRoutes = new Elysia({ prefix: "/api/servers" })
       });
     }
 
-    return updated
-      ? { ...updated, id: serverId(updated.id), ownerId: userId(updated.ownerId) }
-      : updated;
+    return updated ? brandServer(updated) : updated;
   })
   .patch("/:serverId/owner", async ({ user: sessionUser, params, body }) => {
     await requireOwner(sessionUser.id, params.serverId);
@@ -192,7 +183,7 @@ export const serverRoutes = new Elysia({ prefix: "/api/servers" })
       d: { id: serverId(params.serverId), ownerId: userId(updated.ownerId) },
     });
 
-    return { ...updated, id: serverId(updated.id), ownerId: userId(updated.ownerId) };
+    return brandServer(updated);
   })
   .delete("/:serverId", async ({ user: sessionUser, params, set }) => {
     // Atomic ownership check + delete in one query to prevent TOCTOU race

@@ -11,6 +11,7 @@ import { db } from "../db/index.js";
 import { polls, pollEntries, pollVotes, feedback } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
 import { checkUserRateLimit } from "../helpers/rate-limit.js";
+import { RL } from "../helpers/rate-limit-keys.js";
 
 export const pollRoutes = new Elysia({ prefix: "/api/polls" })
   .resolve(authResolve())
@@ -19,7 +20,7 @@ export const pollRoutes = new Elysia({ prefix: "/api/polls" })
   .get("/active", async ({ user: sessionUser }) => {
     await checkUserRateLimit(
       sessionUser.id,
-      "poll:active",
+      RL.POLL_ACTIVE,
       RATE_LIMIT_POLL_ACTIVE.limit,
       RATE_LIMIT_POLL_ACTIVE.windowMs,
     );
@@ -92,7 +93,7 @@ export const pollRoutes = new Elysia({ prefix: "/api/polls" })
   .post("/:id/vote", async ({ params, body, user: sessionUser }) => {
     await checkUserRateLimit(
       sessionUser.id,
-      "poll:vote",
+      RL.POLL_VOTE,
       RATE_LIMIT_POLL_VOTE.limit,
       RATE_LIMIT_POLL_VOTE.windowMs,
     );

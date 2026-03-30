@@ -5,6 +5,7 @@ import { db } from "../db/index.js";
 import { pluginRegistry, pluginInstalls, bots, user } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
 import { checkIpRateLimit } from "../middleware/ip-rate-limit.js";
+import { RL } from "../helpers/rate-limit-keys.js";
 
 function getClientIp(request: Request): string {
   return (
@@ -21,7 +22,7 @@ export const pluginPublicRoutes = new Elysia({ prefix: "/api/plugins" })
   // ── GET /api/plugins/:pluginId/manifest — public manifest endpoint ────
   .get("/:pluginId/manifest", async ({ params, request }) => {
     const ip = getClientIp(request);
-    if (!(await checkIpRateLimit(ip, 30, 60_000, "plugin-manifest"))) {
+    if (!(await checkIpRateLimit(ip, 30, 60_000, RL.PLUGIN_MANIFEST))) {
       throw new RateLimitError("Too many requests, try again later");
     }
 
@@ -183,7 +184,7 @@ export const pluginRoutes = new Elysia({ prefix: "/api/plugins" })
   // ── POST /api/plugins/:pluginId/install — install for current user ────
   .post("/:pluginId/install", async ({ user: sessionUser, params, request }) => {
     const ip = getClientIp(request);
-    if (!(await checkIpRateLimit(ip, 10, 60_000, "plugin-install"))) {
+    if (!(await checkIpRateLimit(ip, 10, 60_000, RL.PLUGIN_INSTALL))) {
       throw new RateLimitError("Too many requests, try again later");
     }
 
@@ -224,7 +225,7 @@ export const pluginRoutes = new Elysia({ prefix: "/api/plugins" })
   // ── DELETE /api/plugins/:pluginId/install — uninstall ─────────────────
   .delete("/:pluginId/install", async ({ user: sessionUser, params, request }) => {
     const ip = getClientIp(request);
-    if (!(await checkIpRateLimit(ip, 10, 60_000, "plugin-install"))) {
+    if (!(await checkIpRateLimit(ip, 10, 60_000, RL.PLUGIN_INSTALL))) {
       throw new RateLimitError("Too many requests, try again later");
     }
 

@@ -1,26 +1,23 @@
 import { Elysia } from "elysia";
 import { eq, and, or, ne, inArray } from "drizzle-orm";
 import { createDmSchema, ValidationError, ForbiddenError } from "@uncorded/shared";
-import { Opcode, dmChannelId as brandDmChannelId, userId as brandUserId } from "@uncorded/protocol";
-import { createId } from "@uncorded/shared";
+import { dmChannelId as brandDmChannelId, userId as brandUserId } from "@uncorded/protocol";
+import { validateInput } from "../helpers/validation.js";
+import { userPublicFields } from "../helpers/query.js";
 import { db } from "../db/index.js";
-import { friendships, dmChannels, dmMembers, user } from "../db/schema.js";
+import { friendships, dmMembers, user } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
-import { sendToUser } from "../ws/connections.js";
-import { addDmChannelToCache } from "../ws/channel-cache.js";
 import { paginationQuerySchema } from "../helpers/pagination.js";
+import { ensureDmChannel } from "../helpers/dm.js";
 
 export const dmRoutes = new Elysia({ prefix: "/api/dms" })
   .resolve(authResolve())
 
   // POST / — Create or get DM
   .post("/", async ({ user: sessionUser, body, set }) => {
-    const parsed = createDmSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
-    }
+    const parsed = validateInput(createDmSchema, body);
 
-    const targetId = parsed.data.userId;
+    const targetId = parsed.userId;
 
     if (targetId === sessionUser.id) {
       throw new ValidationError("Cannot create a DM with yourself");
@@ -60,13 +57,7 @@ export const dmRoutes = new Elysia({ prefix: "/api/dms" })
     if (existingDm) {
       // Load other user info
       const [otherUser] = await db
-        .select({
-          id: user.id,
-          username: user.username,
-          displayName: user.displayName,
-          avatarUrl: user.avatarUrl,
-          status: user.status,
-        })
+        .select(userPublicFields)
         .from(user)
         .where(eq(user.id, targetId))
         .limit(1);
@@ -77,62 +68,40 @@ export const dmRoutes = new Elysia({ prefix: "/api/dms" })
       };
     }
 
-    // Create new DM channel
-    const dmId = createId();
-    await db.transaction(async (tx) => {
-      await tx.insert(dmChannels).values({ id: dmId });
-      await tx.insert(dmMembers).values([
-        { channelId: dmId, userId: sessionUser.id },
-        { channelId: dmId, userId: targetId },
-      ]);
-    });
+    // Create new DM channel (broadcasts to both users)
+    const dmId = await ensureDmChannel(sessionUser.id, targetId);
 
-    addDmChannelToCache(dmId, [sessionUser.id, targetId]);
+    if (!dmId) {
+      // Race condition: DM was created between our check and ensureDmChannel's check
+      // Re-query to find it
+      const [raceChannel] = await db
+        .select({ channelId: dmMembers.channelId })
+        .from(dmMembers)
+        .where(and(eq(dmMembers.userId, targetId), inArray(dmMembers.channelId,
+          db.select({ channelId: dmMembers.channelId }).from(dmMembers).where(eq(dmMembers.userId, sessionUser.id))
+        )))
+        .limit(1);
 
+      const [otherUser] = await db.select(userPublicFields).from(user).where(eq(user.id, targetId)).limit(1);
+
+      return {
+        id: brandDmChannelId(raceChannel!.channelId),
+        otherUser: otherUser ? { ...otherUser, id: brandUserId(otherUser.id) } : null,
+      };
+    }
+
+    // Fetch other user info for HTTP response
     const [otherUser] = await db
-      .select({
-        id: user.id,
-        username: user.username,
-        displayName: user.displayName,
-        avatarUrl: user.avatarUrl,
-        status: user.status,
-      })
+      .select(userPublicFields)
       .from(user)
       .where(eq(user.id, targetId))
       .limit(1);
 
-    const [meUser] = await db
-      .select({
-        id: user.id,
-        username: user.username,
-        displayName: user.displayName,
-        avatarUrl: user.avatarUrl,
-        status: user.status,
-      })
-      .from(user)
-      .where(eq(user.id, sessionUser.id))
-      .limit(1);
-
-    const dmPayload = {
+    set.status = 201;
+    return {
       id: brandDmChannelId(dmId),
       otherUser: otherUser ? { ...otherUser, id: brandUserId(otherUser.id) } : null,
     };
-
-    // Broadcast to both users
-    sendToUser(sessionUser.id, {
-      op: Opcode.DM_CHANNEL_CREATE,
-      d: dmPayload,
-    });
-    sendToUser(targetId, {
-      op: Opcode.DM_CHANNEL_CREATE,
-      d: {
-        id: brandDmChannelId(dmId),
-        otherUser: meUser ? { ...meUser, id: brandUserId(meUser.id) } : null,
-      },
-    });
-
-    set.status = 201;
-    return dmPayload;
   })
 
   // GET / — List user's DMs
@@ -169,13 +138,7 @@ export const dmRoutes = new Elysia({ prefix: "/api/dms" })
     // Get user info for other members
     const otherUserIds = otherMembers.map((m) => m.userId);
     const users = await db
-      .select({
-        id: user.id,
-        username: user.username,
-        displayName: user.displayName,
-        avatarUrl: user.avatarUrl,
-        status: user.status,
-      })
+      .select(userPublicFields)
       .from(user)
       .where(or(...otherUserIds.map((uid) => eq(user.id, uid))));
 

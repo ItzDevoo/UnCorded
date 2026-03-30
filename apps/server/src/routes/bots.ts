@@ -3,7 +3,6 @@ import { eq, and, count } from "drizzle-orm";
 import { z } from "zod";
 import {
   ValidationError,
-  NotFoundError,
   ForbiddenError,
   InternalError,
   AppError,
@@ -15,6 +14,8 @@ import {
   BOT_TOKEN_BYTE_LENGTH,
   BOT_TOKEN_PREFIX_LENGTH,
 } from "@uncorded/shared";
+import { validateInput } from "../helpers/validation.js";
+import { findOrThrow } from "../helpers/query.js";
 import { isR2Configured, uploadAvatar, deleteAvatar } from "../lib/r2.js";
 import { db } from "../db/index.js";
 import { bots, user, members } from "../db/schema.js";
@@ -91,10 +92,7 @@ export const botRoutes = new Elysia({ prefix: "/api/bots" })
       throw new ForbiddenError("Verify your email to create bots");
     }
 
-    const parsed = createBotSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
-    }
+    const parsed = validateInput(createBotSchema, body);
 
     const tierKey = sessionUser.subscriptionTier as BotTier;
     const limit = BOT_LIMITS[tierKey] ?? 1;
@@ -106,7 +104,7 @@ export const botRoutes = new Elysia({ prefix: "/api/bots" })
     const botId = createId();
     const botUserId = createId();
     const shortId = botId.slice(0, 4);
-    const username = `bot_${sanitizeUsername(parsed.data.name)}_${shortId}`;
+    const username = `bot_${sanitizeUsername(parsed.name)}_${shortId}`;
 
     const result = await db.transaction(async (tx) => {
       // Lock owner row to serialize concurrent bot creates per-owner
@@ -132,8 +130,8 @@ export const botRoutes = new Elysia({ prefix: "/api/bots" })
         .insert(user)
         .values({
           id: botUserId,
-          name: parsed.data.name,
-          displayName: parsed.data.name,
+          name: parsed.name,
+          displayName: parsed.name,
           username,
           displayUsername: username,
           email: `bot-${botId}@bots.uncorded.internal`,
@@ -152,8 +150,8 @@ export const botRoutes = new Elysia({ prefix: "/api/bots" })
           id: botId,
           ownerId: sessionUser.id,
           userId: botUserId,
-          name: parsed.data.name,
-          description: parsed.data.description ?? null,
+          name: parsed.name,
+          description: parsed.description ?? null,
           tokenHash: tokenH,
           tokenPrefix: tokenPfx,
         })
@@ -185,13 +183,14 @@ export const botRoutes = new Elysia({ prefix: "/api/bots" })
       throw new ForbiddenError("Bots cannot delete bots");
     }
 
-    const [bot] = await db
-      .select()
-      .from(bots)
-      .where(and(eq(bots.id, params.id), eq(bots.ownerId, sessionUser.id)))
-      .limit(1);
-
-    if (!bot) throw new NotFoundError("Bot");
+    const bot = await findOrThrow(
+      db
+        .select()
+        .from(bots)
+        .where(and(eq(bots.id, params.id), eq(bots.ownerId, sessionUser.id)))
+        .limit(1),
+      "Bot",
+    );
 
     // Clean up server memberships so clients get MEMBER_REMOVE broadcasts
     const botMemberships = await db
@@ -231,13 +230,14 @@ export const botRoutes = new Elysia({ prefix: "/api/bots" })
     const tokenPfx = token.slice(0, BOT_TOKEN_PREFIX_LENGTH);
 
     // Atomic update — no separate read needed
-    const [updated] = await db
-      .update(bots)
-      .set({ tokenHash: tokenH, tokenPrefix: tokenPfx })
-      .where(and(eq(bots.id, params.id), eq(bots.ownerId, sessionUser.id)))
-      .returning({ userId: bots.userId });
-
-    if (!updated) throw new NotFoundError("Bot");
+    const updated = await findOrThrow(
+      db
+        .update(bots)
+        .set({ tokenHash: tokenH, tokenPrefix: tokenPfx })
+        .where(and(eq(bots.id, params.id), eq(bots.ownerId, sessionUser.id)))
+        .returning({ userId: bots.userId }),
+      "Bot",
+    );
 
     // Disconnect bot — old token is now invalid
     disconnectUser(updated.userId, CloseCode.INVALID_SESSION, "Token regenerated");
@@ -268,12 +268,14 @@ export const botAvatarRoutes = new Elysia({ prefix: "/api/bots" })
       );
     }
 
-    const [bot] = await db
-      .select({ id: bots.id, userId: bots.userId })
-      .from(bots)
-      .where(and(eq(bots.id, params.id), eq(bots.ownerId, sessionUser.id)))
-      .limit(1);
-    if (!bot) throw new NotFoundError("Bot");
+    const bot = await findOrThrow(
+      db
+        .select({ id: bots.id, userId: bots.userId })
+        .from(bots)
+        .where(and(eq(bots.id, params.id), eq(bots.ownerId, sessionUser.id)))
+        .limit(1),
+      "Bot",
+    );
 
     const formData = rawBody as FormData;
     const file = formData.get("avatar");
@@ -315,12 +317,14 @@ export const botAvatarRoutes = new Elysia({ prefix: "/api/bots" })
       throw new ForbiddenError("Bots cannot manage avatars");
     }
 
-    const [bot] = await db
-      .select({ id: bots.id, userId: bots.userId })
-      .from(bots)
-      .where(and(eq(bots.id, params.id), eq(bots.ownerId, sessionUser.id)))
-      .limit(1);
-    if (!bot) throw new NotFoundError("Bot");
+    const bot = await findOrThrow(
+      db
+        .select({ id: bots.id, userId: bots.userId })
+        .from(bots)
+        .where(and(eq(bots.id, params.id), eq(bots.ownerId, sessionUser.id)))
+        .limit(1),
+      "Bot",
+    );
 
     const [current] = await db
       .select({ avatarUrl: user.avatarUrl })

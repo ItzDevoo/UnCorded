@@ -12,6 +12,7 @@ import { polls, pollEntries, pollVotes, feedback } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
 import { checkUserRateLimit } from "../helpers/rate-limit.js";
 import { RL } from "../helpers/rate-limit-keys.js";
+import { validateInput } from "../helpers/validation.js";
 
 export const pollRoutes = new Elysia({ prefix: "/api/polls" })
   .resolve(authResolve())
@@ -98,11 +99,7 @@ export const pollRoutes = new Elysia({ prefix: "/api/polls" })
       RATE_LIMIT_POLL_VOTE.windowMs,
     );
 
-    const parsed = pollVoteRequestSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
-    }
-    const { feedbackId: voteFeedbackId } = parsed.data;
+    const { feedbackId: voteFeedbackId } = validateInput(pollVoteRequestSchema, body);
 
     // Validate poll, entry, and existing vote inside a single transaction
     await db.transaction(async (tx) => {

@@ -20,6 +20,7 @@ import { resolveChannelMembership } from "../helpers/resolve-channel.js";
 import { broadcastToServer, broadcastToDm, sendToUser } from "../ws/connections.js";
 import { checkUserRateLimit } from "../helpers/rate-limit.js";
 import { RL } from "../helpers/rate-limit-keys.js";
+import { validateInput } from "../helpers/validation.js";
 
 const DEFAULT_LIMIT = MESSAGE_PAGE_LIMIT;
 
@@ -95,16 +96,13 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
 
     const resolution = await resolveChannel(params.channelId, sessionUser.id);
 
-    const parsed = createMessageSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
-    }
+    const parsed = validateInput(createMessageSchema, body);
 
-    if (!parsed.data.content) {
+    if (!parsed.content) {
       throw new ValidationError("Message content is required");
     }
 
-    const content = sanitizeContent(parsed.data.content);
+    const content = sanitizeContent(parsed.content);
 
     const [inserted] = await db
       .insert(messages)
@@ -138,9 +136,7 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
   .get("/", async ({ user: sessionUser, params, query }) => {
     await resolveChannel(params.channelId, sessionUser.id);
 
-    const parsed = listQuerySchema.safeParse(query);
-    if (!parsed.success) throw new ValidationError("Invalid query parameters");
-    const { before, after, limit: rawLimit } = parsed.data;
+    const { before, after, limit: rawLimit } = validateInput(listQuerySchema, query);
     const limit = rawLimit ?? DEFAULT_LIMIT;
 
     const conditions = [eq(messages.channelId, params.channelId)];
@@ -238,10 +234,7 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
   .patch("/:messageId", async ({ user: sessionUser, params, body }) => {
     const resolution = await resolveChannel(params.channelId, sessionUser.id);
 
-    const parsed = updateMessageSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
-    }
+    const parsed = validateInput(updateMessageSchema, body);
 
     // Fetch message and verify ownership
     const [existing] = await db
@@ -258,7 +251,7 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
       throw new ForbiddenError("Only the author can edit this message");
     }
 
-    const sanitizedContent = sanitizeContent(parsed.data.content);
+    const sanitizedContent = sanitizeContent(parsed.content);
     const editedAt = new Date();
     await db
       .update(messages)

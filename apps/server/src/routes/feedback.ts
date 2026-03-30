@@ -2,11 +2,11 @@ import { Elysia } from "elysia";
 import { eq, desc, and, sql } from "drizzle-orm";
 import {
   createFeedbackSchema,
-  ValidationError,
-  NotFoundError,
   RATE_LIMIT_FEEDBACK_CREATE,
   RATE_LIMIT_FEEDBACK_VOTE,
 } from "@uncorded/shared";
+import { validateInput } from "../helpers/validation.js";
+import { findOrThrow } from "../helpers/query.js";
 import { db } from "../db/index.js";
 import { feedback, feedbackVotes, user } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
@@ -77,10 +77,7 @@ export const feedbackRoutes = new Elysia({ prefix: "/api/feedback" })
 
   // ── Submit feedback ───────────────────────────────────────────────────────
   .post("/", async ({ body, user: sessionUser, set }) => {
-    const parsed = createFeedbackSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
-    }
+    const parsed = validateInput(createFeedbackSchema, body);
 
     await checkUserRateLimit(
       sessionUser.id,
@@ -93,9 +90,9 @@ export const feedbackRoutes = new Elysia({ prefix: "/api/feedback" })
       .insert(feedback)
       .values({
         authorId: sessionUser.id,
-        type: parsed.data.type,
-        title: parsed.data.title,
-        description: parsed.data.description,
+        type: parsed.type,
+        title: parsed.title,
+        description: parsed.description,
       })
       .returning({ id: feedback.id });
 
@@ -112,12 +109,14 @@ export const feedbackRoutes = new Elysia({ prefix: "/api/feedback" })
       RATE_LIMIT_FEEDBACK_VOTE.windowMs,
     );
 
-    const [item] = await db
-      .select({ id: feedback.id })
-      .from(feedback)
-      .where(eq(feedback.id, params.id))
-      .limit(1);
-    if (!item) throw new NotFoundError("Feedback");
+    await findOrThrow(
+      db
+        .select({ id: feedback.id })
+        .from(feedback)
+        .where(eq(feedback.id, params.id))
+        .limit(1),
+      "Feedback",
+    );
 
     // Check if already voted
     const [existingVote] = await db

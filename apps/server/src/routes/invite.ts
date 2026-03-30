@@ -10,6 +10,7 @@ import {
 } from "@uncorded/shared";
 import { Opcode, inviteCode, serverId, userId } from "@uncorded/protocol";
 import { brandServer, brandChannel, brandInvite } from "../helpers/brand.js";
+import { validateInput } from "../helpers/validation.js";
 import { NeonDbError } from "@neondatabase/serverless";
 import { db } from "../db/index.js";
 import { invites, servers, members, channels, user } from "../db/schema.js";
@@ -17,6 +18,7 @@ import { authResolve } from "../middleware/auth.js";
 import { checkIpRateLimit } from "../middleware/ip-rate-limit.js";
 import { RL } from "../helpers/rate-limit-keys.js";
 import { requireMember, requireOwner } from "../helpers/permissions.js";
+import { getClientIp } from "../helpers/request.js";
 import { addServerMember } from "../ws/server-members.js";
 import { sendToUser, broadcastToServer } from "../ws/connections.js";
 
@@ -25,10 +27,7 @@ export const serverInviteRoutes = new Elysia({ prefix: "/api/servers/:serverId/i
   .post("/", async ({ user: sessionUser, params, body, set }) => {
     await requireMember(sessionUser.id, params.serverId);
 
-    const parsed = createInviteSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
-    }
+    const parsed = validateInput(createInviteSchema, body);
 
     const [invite] = await db.transaction(async (tx) => {
       const [row] = await tx
@@ -44,8 +43,8 @@ export const serverInviteRoutes = new Elysia({ prefix: "/api/servers/:serverId/i
         .values({
           serverId: params.serverId,
           creatorId: sessionUser.id,
-          maxUses: parsed.data.maxUses ?? null,
-          expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null,
+          maxUses: parsed.maxUses ?? null,
+          expiresAt: parsed.expiresAt ? new Date(parsed.expiresAt) : null,
         })
         .returning();
     });
@@ -85,10 +84,7 @@ export const serverInviteRoutes = new Elysia({ prefix: "/api/servers/:serverId/i
 
 export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
   .get("/", async ({ params, request }) => {
-    const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-      request.headers.get("x-real-ip") ??
-      "unknown";
+    const ip = getClientIp(request);
     if (!(await checkIpRateLimit(ip, 10, 60_000, RL.INVITE_LOOKUP))) {
       throw new RateLimitError("Too many requests, try again later");
     }

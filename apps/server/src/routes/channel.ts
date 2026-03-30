@@ -4,11 +4,12 @@ import {
   createChannelSchema,
   updateChannelSchema,
   ValidationError,
-  NotFoundError,
   InternalError,
   MAX_CHANNELS_PER_SERVER,
 } from "@uncorded/shared";
 import { Opcode, channelId, serverId } from "@uncorded/protocol";
+import { validateInput } from "../helpers/validation.js";
+import { findOrThrow } from "../helpers/query.js";
 import { brandChannel } from "../helpers/brand.js";
 import { db } from "../db/index.js";
 import { channels } from "../db/schema.js";
@@ -22,10 +23,7 @@ const serverChannelRoutes = new Elysia({ prefix: "/api/servers/:serverId/channel
   .post("/", async ({ user: sessionUser, params, body, set }) => {
     await requireOwner(sessionUser.id, params.serverId);
 
-    const parsed = createChannelSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
-    }
+    const parsed = validateInput(createChannelSchema, body);
 
     const channel = await db.transaction(async (tx) => {
       const [row] = await tx
@@ -47,10 +45,10 @@ const serverChannelRoutes = new Elysia({ prefix: "/api/servers/:serverId/channel
         .insert(channels)
         .values({
           serverId: params.serverId,
-          name: parsed.data.name,
-          type: parsed.data.type ?? "text",
-          fileSharingEnabled: parsed.data.fileSharingEnabled ?? true,
-          topic: parsed.data.topic ?? null,
+          name: parsed.name,
+          type: parsed.type ?? "text",
+          fileSharingEnabled: parsed.fileSharingEnabled ?? true,
+          topic: parsed.topic ?? null,
           position: nextPosition,
         })
         .returning();
@@ -83,44 +81,41 @@ const serverChannelRoutes = new Elysia({ prefix: "/api/servers/:serverId/channel
 const channelIdRoutes = new Elysia({ prefix: "/api/channels/:channelId" })
   .resolve(authResolve())
   .patch("/", async ({ user: sessionUser, params, body }) => {
-    const [channel] = await db
-      .select({ id: channels.id, serverId: channels.serverId })
-      .from(channels)
-      .where(eq(channels.id, params.channelId))
-      .limit(1);
-
-    if (!channel) {
-      throw new NotFoundError("Channel");
-    }
+    const channel = await findOrThrow(
+      db
+        .select({ id: channels.id, serverId: channels.serverId })
+        .from(channels)
+        .where(eq(channels.id, params.channelId))
+        .limit(1),
+      "Channel",
+    );
 
     await requireOwner(sessionUser.id, channel.serverId);
 
-    const parsed = updateChannelSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
-    }
+    const parsed = validateInput(updateChannelSchema, body);
 
     const updates: Partial<typeof channels.$inferInsert> = {};
 
-    if (parsed.data.name !== undefined) updates.name = parsed.data.name;
-    if (parsed.data.topic !== undefined) updates.topic = parsed.data.topic ?? null;
-    if (parsed.data.fileSharingEnabled !== undefined)
-      updates.fileSharingEnabled = parsed.data.fileSharingEnabled;
-    if (parsed.data.position !== undefined) updates.position = parsed.data.position;
+    if (parsed.name !== undefined) updates.name = parsed.name;
+    if (parsed.topic !== undefined) updates.topic = parsed.topic ?? null;
+    if (parsed.fileSharingEnabled !== undefined)
+      updates.fileSharingEnabled = parsed.fileSharingEnabled;
+    if (parsed.position !== undefined) updates.position = parsed.position;
 
     if (Object.keys(updates).length === 0) {
       throw new ValidationError("No fields to update");
     }
 
-    const updated = await db.transaction(async (tx) => {
-      const [row] = await tx
-        .update(channels)
-        .set(updates)
-        .where(eq(channels.id, params.channelId))
-        .returning();
-      if (!row) throw new NotFoundError("Channel");
-      return row;
-    });
+    const updated = await db.transaction(async (tx) =>
+      findOrThrow(
+        tx
+          .update(channels)
+          .set(updates)
+          .where(eq(channels.id, params.channelId))
+          .returning(),
+        "Channel",
+      ),
+    );
 
     const branded = brandChannel(updated);
 
@@ -129,15 +124,14 @@ const channelIdRoutes = new Elysia({ prefix: "/api/channels/:channelId" })
     return branded;
   })
   .delete("/", async ({ user: sessionUser, params, set }) => {
-    const [channel] = await db
-      .select({ id: channels.id, serverId: channels.serverId })
-      .from(channels)
-      .where(eq(channels.id, params.channelId))
-      .limit(1);
-
-    if (!channel) {
-      throw new NotFoundError("Channel");
-    }
+    const channel = await findOrThrow(
+      db
+        .select({ id: channels.id, serverId: channels.serverId })
+        .from(channels)
+        .where(eq(channels.id, params.channelId))
+        .limit(1),
+      "Channel",
+    );
 
     await requireOwner(sessionUser.id, channel.serverId);
 

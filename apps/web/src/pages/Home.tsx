@@ -2,8 +2,9 @@ import { createSignal, onMount, Show, For } from "solid-js";
 import { useSearchParams } from "@solidjs/router";
 import type { ActivePoll, ActivePollEntry } from "@uncorded/shared";
 import { readyData } from "../lib/gateway-store.js";
-import { api, ApiRequestError } from "../lib/api.js";
+import { api } from "../lib/api.js";
 import { showToast } from "../components/ui/toast.js";
+import { handleApiError } from "../lib/error-handling.js";
 import ContentHeader from "../components/ContentHeader.js";
 import {
   Dialog,
@@ -84,8 +85,7 @@ const Home = () => {
     } catch (err) {
       // Revert optimistic update, then refetch authoritative state
       setPoll(previousPoll);
-      const msg = err instanceof ApiRequestError ? err.body.message : "Vote failed";
-      showToast(msg, "error");
+      handleApiError(err, "Vote failed");
       fetchActivePoll().catch(() => {});
     } finally {
       setVoting(false);

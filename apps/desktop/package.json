@@ -14,6 +14,7 @@
     "dist": "electron-builder"
   },
   "dependencies": {
+    "@uncorded/shared": "workspace:*",
     "electron-updater": "^6.3.9",
     "elysia": "^1.2.25",
     "dockerode": "^4.0.4",

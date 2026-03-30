@@ -2,8 +2,9 @@ import { createSignal, createEffect, onCleanup, Show } from "solid-js";
 import { deletionState, dismissDeletion } from "../../stores/deletion-store.js";
 import { lastCloseCode } from "../../lib/gateway-store.js";
 import { CloseCode } from "@uncorded/protocol";
-import { api, ApiRequestError } from "../../lib/api.js";
+import { api } from "../../lib/api.js";
 import { showToast } from "../ui/toast.js";
+import { handleApiError } from "../../lib/error-handling.js";
 import { Button } from "../ui/button.js";
 import {
   Dialog,
@@ -83,9 +84,7 @@ const DeletionCountdown = () => {
       dismissDeletion();
       showToast("Account deletion cancelled", "info");
     } catch (err) {
-      const msg =
-        err instanceof ApiRequestError ? err.body.message : "Failed to cancel deletion";
-      showToast(msg, "error");
+      handleApiError(err, "Failed to cancel deletion");
     } finally {
       setCancelling(false);
     }

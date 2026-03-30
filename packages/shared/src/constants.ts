@@ -55,3 +55,22 @@ export const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 // ── Avatar limits ───────────────────────────────────────────────────────────
 export const MAX_AVATAR_SIZE_BYTES = 4 * 1024 * 1024; // 4 MB
 export const ALLOWED_AVATAR_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"] as const;
+
+// ── Bot limits ──────────────────────────────────────────────────────────────
+export type BotTier = "free" | "supporter" | "server_owner";
+export const BOT_LIMITS: Record<BotTier, number> = {
+  free: 1,
+  supporter: 3,
+  server_owner: 5,
+};
+
+// ── Bot token generation ────────────────────────────────────────────────────
+export const BOT_TOKEN_BYTE_LENGTH = 24;
+export const BOT_TOKEN_PREFIX_LENGTH = 14; // "uncrd_" + 8 chars
+
+// ── Docker plugin defaults ──────────────────────────────────────────────────
+export const DOCKER_DEFAULT_CPUS = 1;
+export const DOCKER_DEFAULT_MEMORY_MB = 512;
+
+// ── Dev environment ─────────────────────────────────────────────────────────
+export const DEV_STATE_PATH = "/app/dev-state/branch.json";

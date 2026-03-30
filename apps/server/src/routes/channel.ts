@@ -85,7 +85,7 @@ const channelIdRoutes = new Elysia({ prefix: "/api/channels/:channelId" })
   .resolve(authResolve())
   .patch("/", async ({ user: sessionUser, params, body }) => {
     const [channel] = await db
-      .select()
+      .select({ id: channels.id, serverId: channels.serverId })
       .from(channels)
       .where(eq(channels.id, params.channelId))
       .limit(1);
@@ -131,7 +131,7 @@ const channelIdRoutes = new Elysia({ prefix: "/api/channels/:channelId" })
   })
   .delete("/", async ({ user: sessionUser, params, set }) => {
     const [channel] = await db
-      .select()
+      .select({ id: channels.id, serverId: channels.serverId })
       .from(channels)
       .where(eq(channels.id, params.channelId))
       .limit(1);

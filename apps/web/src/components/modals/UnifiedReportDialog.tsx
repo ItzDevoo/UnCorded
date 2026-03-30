@@ -1,9 +1,10 @@
 import { createSignal, createEffect, onCleanup, For, Show } from "solid-js";
 import type { ReportCategory } from "@uncorded/shared";
-import { api, ApiRequestError } from "../../lib/api.js";
+import { api } from "../../lib/api.js";
 import { readyData } from "../../lib/gateway-store.js";
 import { selectedServerId } from "../../stores/app-store.js";
 import { showToast } from "../ui/toast.js";
+import { handleApiError } from "../../lib/error-handling.js";
 import { Button } from "../ui/button.js";
 import { Input } from "../ui/input.js";
 import {
@@ -155,8 +156,7 @@ const UnifiedReportDialog = (props: Props) => {
         showToast("Bug report submitted", "info");
         handleClose();
       } catch (err) {
-        const msg = err instanceof ApiRequestError ? err.body.message : "Failed to submit report";
-        showToast(msg, "error");
+        handleApiError(err, "Failed to submit report");
       } finally {
         setSubmitting(false);
       }
@@ -180,8 +180,7 @@ const UnifiedReportDialog = (props: Props) => {
         showToast("Player report submitted", "info");
         handleClose();
       } catch (err) {
-        const msg = err instanceof ApiRequestError ? err.body.message : "Failed to submit report";
-        showToast(msg, "error");
+        handleApiError(err, "Failed to submit report");
       } finally {
         setSubmitting(false);
       }
@@ -205,8 +204,7 @@ const UnifiedReportDialog = (props: Props) => {
         showToast("Server report submitted", "info");
         handleClose();
       } catch (err) {
-        const msg = err instanceof ApiRequestError ? err.body.message : "Failed to submit report";
-        showToast(msg, "error");
+        handleApiError(err, "Failed to submit report");
       } finally {
         setSubmitting(false);
       }

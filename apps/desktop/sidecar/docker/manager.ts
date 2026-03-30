@@ -1,5 +1,6 @@
 import Dockerode from "dockerode";
 import path from "node:path";
+import { DOCKER_DEFAULT_CPUS, DOCKER_DEFAULT_MEMORY_MB } from "@uncorded/shared";
 import { createDockerClient } from "./docker-host";
 
 export interface ContainerConfig {
@@ -102,10 +103,10 @@ export class DockerManager {
       // Resource limits
       NanoCpus: config.resources?.cpus
         ? config.resources.cpus * 1e9
-        : 1e9, // Default 1 CPU
+        : DOCKER_DEFAULT_CPUS * 1e9,
       Memory: config.resources?.memoryMb
         ? config.resources.memoryMb * 1024 * 1024
-        : 512 * 1024 * 1024, // Default 512MB
+        : DOCKER_DEFAULT_MEMORY_MB * 1024 * 1024,
       // Allow container to reach host bridge server
       ExtraHosts: ["host.docker.internal:host-gateway"],
       // Security

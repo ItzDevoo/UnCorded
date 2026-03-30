@@ -1,6 +1,7 @@
 import { createSignal, For } from "solid-js";
-import { api, ApiRequestError } from "../lib/api.js";
+import { api } from "../lib/api.js";
 import { showToast } from "./ui/toast.js";
+import { handleApiError } from "../lib/error-handling.js";
 import { Button } from "./ui/button.js";
 import {
   Dialog,
@@ -58,8 +59,7 @@ const ReportDialog = (props: ReportDialogProps) => {
       showToast("Report submitted", "info");
       handleClose();
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.body.message : "Failed to submit report";
-      showToast(message, "error");
+      handleApiError(err, "Failed to submit report");
     } finally {
       setSubmitting(false);
     }

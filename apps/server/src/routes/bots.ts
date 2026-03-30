@@ -10,6 +10,10 @@ import {
   createId,
   MAX_AVATAR_SIZE_BYTES,
   ALLOWED_AVATAR_TYPES,
+  BOT_LIMITS,
+  type BotTier,
+  BOT_TOKEN_BYTE_LENGTH,
+  BOT_TOKEN_PREFIX_LENGTH,
 } from "@uncorded/shared";
 import { isR2Configured, uploadAvatar, deleteAvatar } from "../lib/r2.js";
 import { db } from "../db/index.js";
@@ -28,14 +32,8 @@ const createBotSchema = z.object({
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const BOT_LIMITS: Record<string, number> = {
-  free: 1,
-  supporter: 3,
-  server_owner: 5,
-};
-
 function generateToken(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  const bytes = crypto.getRandomValues(new Uint8Array(BOT_TOKEN_BYTE_LENGTH));
   const chars = Array.from(bytes, (b) => b.toString(36).padStart(2, "0")).join("").slice(0, 32);
   return `uncrd_${chars}`;
 }
@@ -98,12 +96,12 @@ export const botRoutes = new Elysia({ prefix: "/api/bots" })
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
     }
 
-    const tierKey = String(sessionUser.subscriptionTier);
+    const tierKey = sessionUser.subscriptionTier as BotTier;
     const limit = BOT_LIMITS[tierKey] ?? 1;
 
     const token = generateToken();
     const tokenH = hashToken(token);
-    const tokenPfx = token.slice(0, 14); // "uncrd_" + 8 chars
+    const tokenPfx = token.slice(0, BOT_TOKEN_PREFIX_LENGTH); // "uncrd_" + 8 chars
 
     const botId = createId();
     const botUserId = createId();
@@ -230,7 +228,7 @@ export const botRoutes = new Elysia({ prefix: "/api/bots" })
 
     const token = generateToken();
     const tokenH = hashToken(token);
-    const tokenPfx = token.slice(0, 14);
+    const tokenPfx = token.slice(0, BOT_TOKEN_PREFIX_LENGTH);
 
     // Atomic update — no separate read needed
     const [updated] = await db

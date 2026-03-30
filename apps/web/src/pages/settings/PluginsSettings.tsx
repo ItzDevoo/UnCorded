@@ -1,8 +1,9 @@
 import { createSignal, createResource, For, Show } from "solid-js";
 import { A } from "@solidjs/router";
 import type { PluginId } from "@uncorded/protocol";
-import { api, ApiRequestError } from "../../lib/api.js";
+import { api } from "../../lib/api.js";
 import { showToast } from "../../components/ui/toast.js";
+import { handleApiError } from "../../lib/error-handling.js";
 import { Button } from "../../components/ui/button.js";
 import { PluginCard, type PluginCardData } from "../../components/ui/plugin-card.js";
 
@@ -98,8 +99,7 @@ const PluginsSettings = () => {
       );
       showToast("Plugin installed", "info");
     } catch (err) {
-      const msg = err instanceof ApiRequestError ? err.body.message : "Failed to install plugin";
-      showToast(msg, "error");
+      handleApiError(err, "Failed to install plugin");
     } finally {
       setInstalling(null);
     }

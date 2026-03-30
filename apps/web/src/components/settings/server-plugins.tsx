@@ -1,7 +1,8 @@
 import { createSignal, createResource, For, Show } from "solid-js";
 import type { ServerId, PluginId, UserId } from "@uncorded/protocol";
-import { api, ApiRequestError } from "../../lib/api.js";
+import { api } from "../../lib/api.js";
 import { showToast } from "../ui/toast.js";
+import { handleApiError } from "../../lib/error-handling.js";
 import { Button } from "../ui/button.js";
 import { PluginCard, type PluginCardData } from "../ui/plugin-card.js";
 import { readyData } from "../../lib/gateway-store.js";
@@ -135,8 +136,7 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
       showToast("Server plugin installed", "info");
       await refetchInstalled();
     } catch (err) {
-      const msg = err instanceof ApiRequestError ? err.body.message : "Failed to install plugin";
-      showToast(msg, "error");
+      handleApiError(err, "Failed to install plugin");
     } finally {
       setInstalling(null);
     }
@@ -155,8 +155,7 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
       mutateInstalled((prev) => prev?.filter((p) => p.pluginId !== pluginId));
       showToast("Server plugin uninstalled", "info");
     } catch (err) {
-      const msg = err instanceof ApiRequestError ? err.body.message : "Failed to uninstall plugin";
-      showToast(msg, "error");
+      handleApiError(err, "Failed to uninstall plugin");
     } finally {
       setUninstalling(null);
     }
@@ -180,8 +179,7 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
       }
       await refetchInstalled();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Action failed";
-      showToast(msg, "error");
+      handleApiError(err, "Failed to toggle plugin");
     } finally {
       setToggling(null);
     }

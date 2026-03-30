@@ -87,7 +87,7 @@ export const memberRoutes = new Elysia({ prefix: "/api/servers/:serverId/members
     }
 
     const [member] = await db
-      .select()
+      .select({ userId: members.userId })
       .from(members)
       .where(and(eq(members.userId, params.userId), eq(members.serverId, params.serverId)))
       .limit(1);

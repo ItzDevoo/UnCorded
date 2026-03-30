@@ -1,8 +1,9 @@
 import { createSignal, createResource, For, Show } from "solid-js";
-import { MAX_AVATAR_SIZE_BYTES, ALLOWED_AVATAR_TYPES } from "@uncorded/shared";
-import { api, apiUpload, ApiRequestError } from "../../lib/api.js";
+import { MAX_AVATAR_SIZE_BYTES, ALLOWED_AVATAR_TYPES, BOT_LIMITS, type BotTier } from "@uncorded/shared";
+import { api, apiUpload } from "../../lib/api.js";
 import { readyData } from "../../lib/gateway-store.js";
 import { showToast } from "../ui/toast.js";
+import { handleApiError } from "../../lib/error-handling.js";
 import { Button } from "../ui/button.js";
 import {
   Dialog,
@@ -27,12 +28,6 @@ interface Bot {
   createdAt: string;
 }
 
-const BOT_LIMITS: Record<string, number> = {
-  free: 1,
-  supporter: 3,
-  server_owner: 5,
-};
-
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatRelativeTime(iso: string | null): string {
@@ -50,7 +45,7 @@ function formatRelativeTime(iso: string | null): string {
 // ── Component ────────────────────────────────────────────────────────────────
 
 const BotsSettings = () => {
-  const tier = () => readyData.data?.user.subscriptionTier ?? "free";
+  const tier = () => (readyData.data?.user.subscriptionTier ?? "free") as BotTier;
   const limit = () => BOT_LIMITS[tier()] ?? 1;
 
   // Bot list resource
@@ -97,8 +92,7 @@ const BotsSettings = () => {
       setRevealedToken(res.token);
       refetch();
     } catch (err) {
-      const msg = err instanceof ApiRequestError ? err.body.message : "Failed to create bot";
-      showToast(msg, "error");
+      handleApiError(err, "Failed to create bot");
     } finally {
       setCreating(false);
     }
@@ -115,8 +109,7 @@ const BotsSettings = () => {
       showToast("Bot deleted", "info");
       refetch();
     } catch (err) {
-      const msg = err instanceof ApiRequestError ? err.body.message : "Failed to delete bot";
-      showToast(msg, "error");
+      handleApiError(err, "Failed to delete bot");
     } finally {
       setDeleting(false);
     }
@@ -136,8 +129,7 @@ const BotsSettings = () => {
       setRevealedToken(res.token);
       refetch();
     } catch (err) {
-      const msg = err instanceof ApiRequestError ? err.body.message : "Failed to regenerate token";
-      showToast(msg, "error");
+      handleApiError(err, "Failed to regenerate token");
     } finally {
       setRegenerating(false);
     }
@@ -159,8 +151,7 @@ const BotsSettings = () => {
       showToast("Bot avatar updated", "info");
       refetch();
     } catch (err) {
-      const msg = err instanceof ApiRequestError ? err.body.message : "Failed to upload avatar";
-      showToast(msg, "error");
+      handleApiError(err, "Failed to upload avatar");
     }
   }
 

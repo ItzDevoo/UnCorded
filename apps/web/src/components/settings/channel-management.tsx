@@ -1,9 +1,10 @@
 import { createSignal, For, Show } from "solid-js";
 import type { ServerId, ChannelId } from "@uncorded/protocol";
-import { api, ApiRequestError } from "../../lib/api.js";
+import { api } from "../../lib/api.js";
 import { currentChannels } from "../../stores/app-store.js";
 import { setChannelsForServer, type ReadyChannel } from "../../lib/gateway-store.js";
 import { showToast } from "../ui/toast.js";
+import { handleApiError } from "../../lib/error-handling.js";
 import { Button } from "../ui/button.js";
 import CreateChannelModal from "../modals/CreateChannelModal.js";
 
@@ -40,8 +41,7 @@ const ChannelManagement = (props: ChannelManagementProps) => {
       setChannelsForServer(props.serverId, channels);
       showToast("Channel updated", "info");
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.body.message : "Failed to update";
-      showToast(message, "error");
+      handleApiError(err, "Failed to update");
     } finally {
       setEditingId(null);
     }
@@ -57,8 +57,7 @@ const ChannelManagement = (props: ChannelManagementProps) => {
       const channels = await api<ReadyChannel[]>(`/api/servers/${props.serverId}/channels`);
       setChannelsForServer(props.serverId, channels);
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.body.message : "Failed to update";
-      showToast(message, "error");
+      handleApiError(err, "Failed to update");
     }
   }
 
@@ -70,8 +69,7 @@ const ChannelManagement = (props: ChannelManagementProps) => {
       setChannelsForServer(props.serverId, channels);
       showToast("Channel deleted", "info");
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.body.message : "Failed to delete";
-      showToast(message, "error");
+      handleApiError(err, "Failed to delete");
     } finally {
       setDeletingId(null);
     }

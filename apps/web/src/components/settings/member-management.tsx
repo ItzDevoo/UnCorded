@@ -1,8 +1,10 @@
 import { createSignal, createEffect, For, Show } from "solid-js";
 import type { ServerId, UserId } from "@uncorded/protocol";
-import { api, ApiRequestError } from "../../lib/api.js";
+import { api } from "../../lib/api.js";
 import { readyData, updateServer } from "../../lib/gateway-store.js";
 import { showToast } from "../ui/toast.js";
+import { handleApiError } from "../../lib/error-handling.js";
+import { useAsyncAction } from "../../lib/use-async-action.js";
 import { Button } from "../ui/button.js";
 import StatusDot, { type UserStatus } from "../StatusDot.js";
 
@@ -29,7 +31,7 @@ const MemberManagement = (props: MemberManagementProps) => {
   // Transfer ownership
   const [transferTarget, setTransferTarget] = createSignal<MemberEntry | null>(null);
   const [transferInput, setTransferInput] = createSignal("");
-  const [transferring, setTransferring] = createSignal(false);
+  const transfer = useAsyncAction();
 
   const currentUserId = () => readyData.data?.user.id;
 
@@ -42,8 +44,7 @@ const MemberManagement = (props: MemberManagementProps) => {
       if (serverId !== props.serverId) return;
       setMembers(result.members);
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.body.message : "Failed to load members";
-      showToast(message, "error");
+      handleApiError(err, "Failed to load members");
     } finally {
       setLoading(false);
     }
@@ -54,7 +55,6 @@ const MemberManagement = (props: MemberManagementProps) => {
     setKickingId(null);
     setTransferTarget(null);
     setTransferInput("");
-    setTransferring(false);
     void fetchMembers(id);
   });
 
@@ -74,8 +74,7 @@ const MemberManagement = (props: MemberManagementProps) => {
       setMembers((prev) => prev.filter((m) => m.userId !== userId));
       showToast("Member kicked", "info");
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.body.message : "Failed to kick member";
-      showToast(message, "error");
+      handleApiError(err, "Failed to kick member");
     } finally {
       setKickingId(null);
     }
@@ -83,11 +82,10 @@ const MemberManagement = (props: MemberManagementProps) => {
 
   async function handleTransfer() {
     const target = transferTarget();
-    if (!target || transferring()) return;
+    if (!target) return;
 
     const serverId = props.serverId;
-    setTransferring(true);
-    try {
+    await transfer.run(async () => {
       await api(`/api/servers/${serverId}/owner`, {
         method: "PATCH",
         body: JSON.stringify({ newOwnerId: target.userId }),
@@ -98,13 +96,7 @@ const MemberManagement = (props: MemberManagementProps) => {
       showToast("Ownership transferred", "info");
       setTransferTarget(null);
       setTransferInput("");
-    } catch (err) {
-      const message =
-        err instanceof ApiRequestError ? err.body.message : "Failed to transfer ownership";
-      showToast(message, "error");
-    } finally {
-      setTransferring(false);
-    }
+    }, "Failed to transfer ownership");
   }
 
   return (
@@ -260,9 +252,9 @@ const MemberManagement = (props: MemberManagementProps) => {
                   variant="destructive"
                   size="sm"
                   onClick={handleTransfer}
-                  disabled={transferInput() !== targetName() || transferring()}
+                  disabled={transferInput() !== targetName() || transfer.loading()}
                 >
-                  {transferring() ? "Transferring..." : "Confirm Transfer"}
+                  {transfer.loading() ? "Transferring..." : "Confirm Transfer"}
                 </Button>
                 <Button
                   variant="outline"

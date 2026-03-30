@@ -50,6 +50,7 @@ import {
 } from "../stores/plugin-store.js";
 import SupportSheet from "./SupportSheet.js";
 import { showToast } from "./ui/toast.js";
+import { UpdatePill } from "./ui/update-pill.js";
 
 const AppSidebar = () => {
   const { setOpenMobile, state: sidebarState } = useSidebar();
@@ -232,9 +233,10 @@ const AppSidebar = () => {
 
   return (
     <Sidebar variant="inset" collapsible="icon">
-      {/* ── Header: UNCORDED Logo ───────────────────────────────────── */}
-      <SidebarHeader>
-        <SidebarMenu>
+      {/* ── Header: Update Pill + UNCORDED Logo ───────────────────── */}
+      <SidebarHeader class="flex items-center gap-2">
+        <UpdatePill />
+        <SidebarMenu class="flex-1">
           <SidebarMenuItem>
             <SidebarMenuButton
               size="lg"

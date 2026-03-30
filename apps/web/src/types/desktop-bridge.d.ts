@@ -1,5 +1,24 @@
 import type { PluginInfo } from "../stores/plugin-store.js";
 
+interface UpdateState {
+  enabled: boolean;
+  status: string;
+  currentVersion: string;
+  availableVersion: string | null;
+  downloadedVersion: string | null;
+  downloadPercent: number | null;
+  checkedAt: string | null;
+  message: string | null;
+  errorContext: string | null;
+  canRetry: boolean;
+}
+
+interface UpdateResult {
+  accepted: boolean;
+  completed: boolean;
+  state: UpdateState;
+}
+
 interface DesktopBridgePlugins {
   getAll(): Promise<PluginInfo[]>;
   onStateChange(listener: (plugins: PluginInfo[]) => void): () => void;
@@ -15,11 +34,11 @@ interface DesktopBridge {
   getSidecarPort(): Promise<number | null>;
   getDockerStatus(): Promise<{ available: boolean; bridgePort?: number }>;
   plugins: DesktopBridgePlugins;
-  getUpdateState(): Promise<unknown>;
-  checkForUpdates(): Promise<unknown>;
-  downloadUpdate(): Promise<unknown>;
-  installUpdate(): Promise<unknown>;
-  onUpdateState(listener: (state: unknown) => void): () => void;
+  getUpdateState(): Promise<UpdateState>;
+  checkForUpdates(): Promise<UpdateState>;
+  downloadUpdate(): Promise<UpdateResult>;
+  installUpdate(): Promise<UpdateResult>;
+  onUpdateState(listener: (state: UpdateState) => void): () => void;
   onSidecarReady(listener: (port: number) => void): () => void;
   onSidecarError(listener: (error: string) => void): () => void;
 }

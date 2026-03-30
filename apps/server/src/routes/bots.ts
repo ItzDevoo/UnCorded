@@ -185,7 +185,7 @@ export const botRoutes = new Elysia({ prefix: "/api/bots" })
 
     const bot = await findOrThrow(
       db
-        .select()
+        .select({ id: bots.id, userId: bots.userId })
         .from(bots)
         .where(and(eq(bots.id, params.id), eq(bots.ownerId, sessionUser.id)))
         .limit(1),

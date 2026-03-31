@@ -8,10 +8,11 @@
     "dev": "bun run scripts/dev.ts",
     "build:main": "tsdown src/main/index.ts --out-dir dist-electron/main --format cjs --external electron && tsdown src/main/preload.ts --out-dir dist-electron/main --format cjs --external electron",
     "build:sidecar": "bun build sidecar/index.ts --outdir dist-electron/sidecar --target bun",
+    "build:sidecar:compile": "bun build --compile sidecar/index.ts --outfile dist-electron/sidecar/sidecar",
     "build": "bun run build:main && bun run build:sidecar",
     "typecheck": "tsc --noEmit",
-    "pack": "electron-builder --dir",
-    "dist": "electron-builder"
+    "pack": "bun run build && bun run build:sidecar:compile && electron-builder --dir",
+    "dist": "bun run build && bun run build:sidecar:compile && electron-builder"
   },
   "dependencies": {
     "@uncorded/shared": "workspace:*",
@@ -26,7 +27,7 @@
     "@types/dockerode": "^3.3.34",
     "@types/ws": "^8.5.14",
     "@types/webtorrent": "^0.109.8",
-    "electron": "^33.3.1",
+    "electron": "33.4.11",
     "electron-builder": "^25.1.8",
     "tsdown": "^0.9.2",
     "typescript": "^5.7.0"

@@ -16,7 +16,10 @@
     "lint": "oxlint",
     "test": "turbo test",
     "fmt": "oxfmt .",
-    "db:migrate": "bun run --filter @uncorded/server db:migrate"
+    "db:migrate": "bun run --filter @uncorded/server db:migrate",
+    "build:desktop": "bun run --filter @uncorded/desktop build",
+    "pack:desktop": "bun run --filter @uncorded/desktop pack",
+    "dist:desktop": "bun run --filter @uncorded/desktop dist"
   },
   "devDependencies": {
     "oxfmt": "^0.36.0",

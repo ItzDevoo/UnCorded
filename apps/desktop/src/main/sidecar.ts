@@ -32,9 +32,11 @@ export class SidecarManager {
     if (this.process || this.starting) return;
     this.starting = true;
     this.intentionalStop = false;
+    this.restartCount = 0;
     this.stdoutBuffer = "";
 
     const sidecarPath = this.getSidecarPath();
+    console.log(`[sidecar] Entry path: ${sidecarPath} (packaged=${app.isPackaged})`);
 
     try {
       const spawnArgs = app.isPackaged
@@ -123,8 +125,12 @@ export class SidecarManager {
         resolve();
       });
 
-      // Send SIGTERM for graceful shutdown
-      this.process!.kill("SIGTERM");
+      // Windows doesn't support SIGTERM — use taskkill for graceful shutdown
+      if (process.platform === "win32") {
+        spawn("taskkill", ["/pid", String(this.process!.pid), "/t"]);
+      } else {
+        this.process!.kill("SIGTERM");
+      }
     });
   }
 

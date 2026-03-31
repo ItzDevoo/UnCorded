@@ -427,6 +427,7 @@ app.on("ready", async () => {
   setupAutoUpdateIpc(() => sidecar.stop());
 
   // Spawn sidecar
+  console.log("[main] Starting sidecar...");
   await sidecar.start();
   startPluginPolling();
 

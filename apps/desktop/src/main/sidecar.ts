@@ -34,10 +34,14 @@ export class SidecarManager {
     this.intentionalStop = false;
     this.stdoutBuffer = "";
 
-    const sidecarEntry = this.getSidecarEntryPath();
+    const sidecarPath = this.getSidecarPath();
 
     try {
-      this.process = spawn("bun", ["run", sidecarEntry], {
+      const spawnArgs = app.isPackaged
+        ? { command: sidecarPath, args: [] as string[] }
+        : { command: "bun", args: ["run", sidecarPath] };
+
+      this.process = spawn(spawnArgs.command, spawnArgs.args, {
         stdio: ["pipe", "pipe", "pipe"],
         env: {
           ...process.env,
@@ -178,12 +182,12 @@ export class SidecarManager {
     }
   }
 
-  private getSidecarEntryPath(): string {
+  private getSidecarPath(): string {
     if (app.isPackaged) {
-      // In packaged app, use the compiled sidecar artifact
-      return path.join(process.resourcesPath, "sidecar", "index.js");
+      const ext = process.platform === "win32" ? ".exe" : "";
+      return path.join(process.resourcesPath, "sidecar", `sidecar${ext}`);
     }
-    // Dev: run directly from source
+    // Dev: run directly from source via bun
     return path.join(__dirname, "..", "..", "sidecar", "index.ts");
   }
 

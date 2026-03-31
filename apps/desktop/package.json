@@ -8,6 +8,7 @@
     "dev": "bun run scripts/dev.ts",
     "build:main": "tsdown src/main/index.ts --out-dir dist-electron/main --format cjs --external electron && tsdown src/main/preload.ts --out-dir dist-electron/main --format cjs --external electron",
     "build:sidecar": "bun build sidecar/index.ts --outdir dist-electron/sidecar --target bun",
+    "build:sidecar:compile": "bun build --compile sidecar/index.ts --outfile dist-electron/sidecar/sidecar",
     "build": "bun run build:main && bun run build:sidecar",
     "typecheck": "tsc --noEmit",
     "pack": "electron-builder --dir",

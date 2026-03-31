@@ -182,9 +182,13 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
       const msg = err instanceof Error ? err.message : String(err);
       if (/ECONNREFUSED|no such container|docker/i.test(msg)) {
         showToast(
-          "Docker Desktop is required to run plugins. Please install and start Docker Desktop, then try again.",
+          "Docker Desktop is required to run plugins.",
           "error",
-          { durationMs: 10_000 },
+          {
+            durationMs: 10_000,
+            subtitle: "Click to download Docker Desktop",
+            onClick: () => window.open("https://www.docker.com/products/docker-desktop/", "_blank"),
+          },
         );
       } else {
         handleApiError(err, "Failed to toggle plugin");

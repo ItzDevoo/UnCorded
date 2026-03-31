@@ -7,7 +7,7 @@ import {
   type ParentComponent,
 } from "solid-js";
 import { useSession } from "../lib/auth.js";
-import { connectGateway, disconnectGateway } from "../lib/gateway.js";
+import { connectGateway, disconnectGateway, cancelReconnect } from "../lib/gateway.js";
 import { gatewayStatus } from "../lib/gateway-store.js";
 import { setupShortcuts, cleanupShortcuts } from "../stores/shortcut-store.js";
 import "../lib/gateway-errors.js";
@@ -159,7 +159,10 @@ const AppLayout: ParentComponent = (props) => {
                       <button
                         type="button"
                         class="ml-2 rounded-md bg-warning-foreground/20 px-2 py-0.5 text-xs font-semibold transition-colors hover:bg-warning-foreground/30"
-                        onClick={() => connectGateway()}
+                        onClick={() => {
+                          cancelReconnect();
+                          connectGateway();
+                        }}
                       >
                         Retry
                       </button>

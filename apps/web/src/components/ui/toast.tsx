@@ -149,10 +149,12 @@ const ToastItem = (props: ToastItemProps) => {
     <div
       data-slot="toast"
       role="alert"
-      class={cn(toastVariants({ variant: local.variant }), local.class)}
+      class={cn(toastVariants({ variant: local.variant }), local.onClick && "cursor-pointer", local.class)}
       onClick={() => {
-        if (!isError()) {
-          local.onClick?.();
+        if (local.onClick) {
+          local.onClick();
+          dismissToast(local.id);
+        } else if (!isError()) {
           dismissToast(local.id);
         }
       }}
@@ -160,7 +162,7 @@ const ToastItem = (props: ToastItemProps) => {
     >
       <p>{local.message}</p>
       <Show when={local.subtitle}>
-        <p class="mt-0.5 text-xs text-muted-foreground">{local.subtitle}</p>
+        <p class={`mt-0.5 text-xs text-muted-foreground ${local.onClick ? "underline" : ""}`}>{local.subtitle}</p>
       </Show>
       <Show when={isError()}>
         <div class="mt-1.5 flex items-center justify-end gap-1">

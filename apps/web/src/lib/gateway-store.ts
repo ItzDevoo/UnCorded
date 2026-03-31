@@ -89,7 +89,9 @@ function setChannelsForServer(sId: ServerId, chs: ReadyChannel[]) {
 }
 
 function addChannel(sId: ServerId, channel: ReadyChannel) {
-  setChannelCache(sId, (prev) => (prev ? [...prev, channel] : [channel]));
+  setChannelCache(sId, (prev) =>
+    prev ? (prev.some((c) => c.id === channel.id) ? prev : [...prev, channel]) : [channel],
+  );
 }
 
 function removeChannel(sId: ServerId, chId: ChannelId) {

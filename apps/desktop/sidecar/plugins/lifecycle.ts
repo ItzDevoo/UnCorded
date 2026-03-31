@@ -110,7 +110,7 @@ export class PluginLifecycle {
       console.error(`[lifecycle] Pulling image: ${manifest.runtime.image}`);
       await this.docker.pullImage(manifest.runtime.image, (event) => {
         console.error(`[lifecycle] Pull: ${event.status} ${event.progress ?? ""}`);
-      }, { skipIfExists: true });
+      });
 
       // Create network
       await this.networks.createPluginNetwork(manifest.id);

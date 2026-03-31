@@ -97,30 +97,6 @@ const desktopBridge = {
     return () => ipcRenderer.removeListener("desktop:update-state", handler);
   },
 
-  // --- Window controls ---
-  minimize: (): Promise<void> => ipcRenderer.invoke("window:minimize"),
-  maximize: (): Promise<void> => ipcRenderer.invoke("window:maximize"),
-  close: (): Promise<void> => ipcRenderer.invoke("window:close"),
-  isMaximized: (): Promise<boolean> => ipcRenderer.invoke("window:is-maximized"),
-  onMaximizeChange: (listener: (maximized: boolean) => void): (() => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, maximized: boolean) => listener(maximized);
-    ipcRenderer.on("window:maximize-change", handler);
-    return () => ipcRenderer.removeListener("window:maximize-change", handler);
-  },
-
-  // --- Menu actions ---
-  menu: {
-    reload: (): Promise<void> => ipcRenderer.invoke("menu:reload"),
-    forceReload: (): Promise<void> => ipcRenderer.invoke("menu:force-reload"),
-    toggleDevTools: (): Promise<void> => ipcRenderer.invoke("menu:toggle-devtools"),
-    zoomIn: (): Promise<void> => ipcRenderer.invoke("menu:zoom-in"),
-    zoomOut: (): Promise<void> => ipcRenderer.invoke("menu:zoom-out"),
-    resetZoom: (): Promise<void> => ipcRenderer.invoke("menu:reset-zoom"),
-    toggleFullscreen: (): Promise<void> => ipcRenderer.invoke("menu:toggle-fullscreen"),
-    checkUpdates: (): Promise<void> => ipcRenderer.invoke("menu:check-updates"),
-    getVersion: (): Promise<string> => ipcRenderer.invoke("menu:get-version"),
-  },
-
   // --- Sidecar events ---
   onSidecarReady: (listener: (port: number) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, port: number) => listener(port);

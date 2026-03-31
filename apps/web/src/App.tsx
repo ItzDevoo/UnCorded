@@ -1,8 +1,6 @@
-import { lazy, Show } from "solid-js";
+import { lazy } from "solid-js";
 import { Router, Route } from "@solidjs/router";
 import AppLayout from "./components/AppLayout.js";
-import TitleBar from "./components/TitleBar.js";
-import { isDesktop } from "./stores/plugin-store.js";
 import "./stores/theme-store.js"; // Initialize theme on app load
 
 // Public pages
@@ -55,11 +53,6 @@ const NotFound = lazy(async () => {
 
 const App = () => {
   return (
-    <div class="flex h-screen flex-col">
-      <Show when={isDesktop()}>
-        <TitleBar />
-      </Show>
-      <div class="min-h-0 flex-1">
     <Router>
       {/* Public */}
       <Route path="/" component={Landing} />
@@ -99,8 +92,6 @@ const App = () => {
       {/* 404 */}
       <Route path="/*" component={NotFound} />
     </Router>
-      </div>
-    </div>
   );
 };
 

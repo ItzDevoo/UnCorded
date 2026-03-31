@@ -203,6 +203,18 @@ body::after {
   height: 0;
 }
 
+/* ── Drag region — makes sidebar header draggable in desktop app ──── */
+.drag-region {
+  -webkit-app-region: drag;
+}
+
+.drag-region button,
+.drag-region input,
+.drag-region a,
+.drag-region select {
+  -webkit-app-region: no-drag;
+}
+
 .typing-dots {
   display: inline-flex;
   gap: 2px;

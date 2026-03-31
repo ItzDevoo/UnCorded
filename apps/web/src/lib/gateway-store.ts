@@ -79,7 +79,9 @@ function clearReadyPayload() {
 }
 
 function addServer(server: ReadyServer) {
-  setReadyData("data", "servers", (prev) => [...prev, server]);
+  setReadyData("data", "servers", (prev) =>
+    prev.some((s) => s.id === server.id) ? prev : [...prev, server],
+  );
 }
 
 function setChannelsForServer(sId: ServerId, chs: ReadyChannel[]) {

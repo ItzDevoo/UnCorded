@@ -176,7 +176,7 @@ export function setupAutoUpdater(): void {
   // Configure
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = false;
-  autoUpdater.allowPrerelease = false;
+  autoUpdater.allowPrerelease = true;
   autoUpdater.allowDowngrade = false;
   autoUpdater.setFeedURL({
     provider: "github",

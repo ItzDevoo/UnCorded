@@ -57,10 +57,11 @@ export function setupServerStore(): void {
     const d = parsed.data;
 
     // Dedup: skip if server already exists in readyData
-    if (readyData.data?.servers.some((s) => s.id === d.server.id)) return;
+    const brandedId = serverId(d.server.id);
+    if (readyData.data?.servers.some((s) => s.id === brandedId)) return;
 
     addServer({
-      id: serverId(d.server.id),
+      id: brandedId,
       name: d.server.name,
       iconUrl: d.server.iconUrl,
       ownerId: userId(d.server.ownerId),

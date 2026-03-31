@@ -162,7 +162,7 @@ const FileMessage = (props: { receipt: FileReceipt; isOwn: boolean }) => {
       })
       .catch((err) => {
         if (seederCount() === 0) {
-          setDownloadError("File unavailable \u2014 the sender is offline. Ask them to come back online so you can download it.");
+          setDownloadError("File unavailable \u2014 no seeders online");
         } else if (err instanceof TorrentTimeoutError) {
           setDownloadError(
             isFreeUser()

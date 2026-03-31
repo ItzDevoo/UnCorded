@@ -149,7 +149,12 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
   })
 
   // ── PATCH /:pluginId — update config/state (owner only) ────────────────
-  .patch("/:pluginId", async ({ user: sessionUser, params, body }) => {
+  .patch("/:pluginId", async ({ user: sessionUser, params, body, request }) => {
+    const ip = getClientIp(request);
+    if (!(await checkIpRateLimit(ip, 10, 60_000, RL.SERVER_PLUGIN_UPDATE))) {
+      throw new RateLimitError("Too many requests, try again later");
+    }
+
     await requireOwner(sessionUser.id, params.serverId);
 
     const updates = validateInput(updatePluginSchema, body);
@@ -205,7 +210,12 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
   })
 
   // ── PUT /:pluginId/tunnel — update tunnel URL (owner, called by sidecar)
-  .put("/:pluginId/tunnel", async ({ user: sessionUser, params, body }) => {
+  .put("/:pluginId/tunnel", async ({ user: sessionUser, params, body, request }) => {
+    const ip = getClientIp(request);
+    if (!(await checkIpRateLimit(ip, 10, 60_000, RL.SERVER_PLUGIN_UPDATE))) {
+      throw new RateLimitError("Too many requests, try again later");
+    }
+
     await requireOwner(sessionUser.id, params.serverId);
 
     const { tunnelUrl, state } = validateInput(updateTunnelSchema, body);

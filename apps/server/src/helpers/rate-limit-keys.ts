@@ -10,6 +10,7 @@ export const RL = {
   PLUGIN_INSTALL: "plugin-install",
   SERVER_PLUGIN_INSTALL: "server-plugin-install",
   SERVER_PLUGIN_UNINSTALL: "server-plugin-uninstall",
+  SERVER_PLUGIN_UPDATE: "server-plugin-update",
   INVITE_LOOKUP: "invite-lookup",
 
   // User-based (used with checkUserRateLimit)

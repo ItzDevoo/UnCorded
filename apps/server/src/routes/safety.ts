@@ -1,9 +1,15 @@
 import { Elysia } from "elysia";
-import { ValidationError, RATE_LIMIT_MESSAGE_CREATE } from "@uncorded/shared";
+import { z } from "zod";
+import { RATE_LIMIT_MESSAGE_CREATE } from "@uncorded/shared";
+import { validateInput } from "../helpers/validation.js";
 import { authResolve } from "../middleware/auth.js";
 import { checkUserRateLimit } from "../helpers/rate-limit.js";
 import { RL } from "../helpers/rate-limit-keys.js";
 import { env } from "../env.js";
+
+const checkHashSchema = z.object({
+  hash: z.string().min(1, "hash must be a non-empty string"),
+});
 
 export const safetyRoutes = new Elysia({ prefix: "/api/safety" })
   .resolve(authResolve())
@@ -14,16 +20,7 @@ export const safetyRoutes = new Elysia({ prefix: "/api/safety" })
       RATE_LIMIT_MESSAGE_CREATE.limit,
       RATE_LIMIT_MESSAGE_CREATE.windowMs,
     );
-    const parsed =
-      typeof body === "object" && body !== null && "hash" in body
-        ? (body as { hash: unknown })
-        : null;
-
-    if (!parsed || typeof parsed.hash !== "string" || parsed.hash.length === 0) {
-      throw new ValidationError("hash must be a non-empty string");
-    }
-
-    const hash = parsed.hash;
+    const { hash } = validateInput(checkHashSchema, body);
 
     if (env.THORN_API_KEY) {
       // TODO: Integrate with Thorn Safer API
@@ -34,5 +31,6 @@ export const safetyRoutes = new Elysia({ prefix: "/api/safety" })
       }
     }
 
-    return { blocked: false };
+    console.warn("[safety] Content moderation not configured — bypassing check");
+    return { blocked: false, checked: false, reason: "content_moderation_not_configured" };
   });

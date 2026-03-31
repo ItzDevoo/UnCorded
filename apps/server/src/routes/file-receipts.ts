@@ -64,8 +64,8 @@ export const fileReceiptRoutes = new Elysia({ prefix: "/api/file-receipts" })
       .orderBy(desc(fileReceipts.createdAt))
       .limit(RECEIPT_PAGE_SIZE + 1);
 
-    const hasMore = rows.length > RECEIPT_PAGE_SIZE;
-    const receipts = rows.slice(0, RECEIPT_PAGE_SIZE).map((r) => ({
+    const page = rows.slice(0, RECEIPT_PAGE_SIZE);
+    const receipts = page.map((r) => ({
       id: r.id,
       fileName: r.fileName,
       fileSize: r.fileSize,
@@ -77,5 +77,9 @@ export const fileReceiptRoutes = new Elysia({ prefix: "/api/file-receipts" })
       createdAt: r.createdAt?.toISOString() ?? null,
     }));
 
-    return { receipts, hasMore };
+    const lastItem = page[page.length - 1];
+    const nextCursor = lastItem?.createdAt?.toISOString() ?? null;
+    const hasMore = rows.length > RECEIPT_PAGE_SIZE && nextCursor !== null;
+
+    return { receipts, hasMore, nextCursor };
   });

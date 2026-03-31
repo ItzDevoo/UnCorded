@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { ForbiddenError } from "@uncorded/shared";
+import { ForbiddenError, ServiceUnavailableError, BadGatewayError } from "@uncorded/shared";
 import { authResolve } from "../middleware/auth.js";
 import { env } from "../env.js";
 
@@ -17,14 +17,13 @@ export const turnRoutes = new Elysia({ prefix: "/api/turn" })
   .resolve(authResolve())
 
   // ── GET /api/turn/credentials ──────────────────────────────────────
-  .get("/credentials", async ({ user, set }) => {
+  .get("/credentials", async ({ user }) => {
     if (user.subscriptionTier === "free") {
       throw new ForbiddenError("TURN relay requires a paid subscription");
     }
 
     if (!env.TURN_KEY_ID || !env.TURN_KEY_API_TOKEN) {
-      set.status = 503;
-      return { code: "SERVICE_UNAVAILABLE", message: "TURN server not configured" };
+      throw new ServiceUnavailableError("TURN server not configured");
     }
 
     const controller = new AbortController();
@@ -44,22 +43,15 @@ export const turnRoutes = new Elysia({ prefix: "/api/turn" })
       );
 
       if (!res.ok) {
-        set.status = 502;
-        return {
-          code: "BAD_GATEWAY",
-          message: "Failed to fetch TURN credentials from Cloudflare",
-        };
+        throw new BadGatewayError("Failed to fetch TURN credentials from Cloudflare");
       }
 
       const data = (await res.json()) as CloudflareIceServers;
 
       return { iceServers: data.iceServers };
-    } catch {
-      set.status = 502;
-      return {
-        code: "BAD_GATEWAY",
-        message: "Failed to fetch TURN credentials from Cloudflare",
-      };
+    } catch (err) {
+      if (err instanceof BadGatewayError) throw err;
+      throw new BadGatewayError("Failed to fetch TURN credentials from Cloudflare", { cause: err });
     } finally {
       clearTimeout(timer);
     }

@@ -201,11 +201,15 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
       .leftJoin(fileReceipts, eq(fileReceipts.messageId, messages.id))
       .where(and(...conditions))
       .orderBy(desc(messages.createdAt), desc(messages.id))
-      .limit(limit);
+      .limit(limit + 1);
+
+    const hasMore = rows.length > limit;
+    const page = rows.slice(0, limit);
 
     // Reverse for oldest-first display order
     return {
-      messages: rows.toReversed().map((row) => {
+      hasMore,
+      messages: page.toReversed().map((row) => {
         const author = row.author?.id
           ? Object.assign(row.author, { id: userId(row.author.id) })
           : DELETED_AUTHOR;

@@ -1,6 +1,8 @@
 import { Elysia } from "elysia";
 import { eq, and } from "drizzle-orm";
+import { z } from "zod";
 import { ForbiddenError, NotFoundError, ValidationError, RateLimitError } from "@uncorded/shared";
+import { validateInput } from "../helpers/validation.js";
 import { db } from "../db/index.js";
 import { serverPlugins, pluginRegistry } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
@@ -10,9 +12,25 @@ import { checkIpRateLimit } from "../middleware/ip-rate-limit.js";
 import { getClientIp } from "../helpers/request.js";
 import { RL } from "../helpers/rate-limit-keys.js";
 
-// ── Constants ──────────────────────────────────────────────────────────────────
+// ── Schemas ────────────────────────────────────────────────────────────────────
 
 const VALID_STATES = new Set(["active", "stopped", "error"]);
+
+const installPluginSchema = z.object({
+  pluginId: z.string().min(1, "pluginId is required"),
+});
+
+const updatePluginSchema = z.object({
+  config: z.record(z.unknown()).optional(),
+  state: z.string().optional(),
+}).refine((d) => d.config !== undefined || d.state !== undefined, {
+  message: "No fields to update",
+});
+
+const updateTunnelSchema = z.object({
+  tunnelUrl: z.string().nullable(),
+  state: z.string().optional(),
+});
 
 function safeJsonParse(value: string | null): Record<string, unknown> {
   if (!value) return {};
@@ -64,10 +82,7 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
       throw new ForbiddenError("Server Owner subscription required to install server plugins");
     }
 
-    const { pluginId } = body as { pluginId: string };
-    if (!pluginId || typeof pluginId !== "string") {
-      throw new ForbiddenError("pluginId is required");
-    }
+    const { pluginId } = validateInput(installPluginSchema, body);
 
     // Validate plugin exists in registry
     const [registryPlugin] = await db
@@ -134,10 +149,15 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
   })
 
   // ── PATCH /:pluginId — update config/state (owner only) ────────────────
-  .patch("/:pluginId", async ({ user: sessionUser, params, body }) => {
+  .patch("/:pluginId", async ({ user: sessionUser, params, body, request }) => {
+    const ip = getClientIp(request);
+    if (!(await checkIpRateLimit(ip, 10, 60_000, RL.SERVER_PLUGIN_UPDATE))) {
+      throw new RateLimitError("Too many requests, try again later");
+    }
+
     await requireOwner(sessionUser.id, params.serverId);
 
-    const updates = body as { config?: Record<string, unknown>; state?: string };
+    const updates = validateInput(updatePluginSchema, body);
     const setValues: Record<string, unknown> = {};
 
     if (updates.config !== undefined) {
@@ -148,10 +168,6 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
         throw new ValidationError(`Invalid state: must be one of ${[...VALID_STATES].join(", ")}`);
       }
       setValues.state = updates.state;
-    }
-
-    if (Object.keys(setValues).length === 0) {
-      throw new ForbiddenError("No fields to update");
     }
 
     const [updated] = await db
@@ -194,10 +210,15 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
   })
 
   // ── PUT /:pluginId/tunnel — update tunnel URL (owner, called by sidecar)
-  .put("/:pluginId/tunnel", async ({ user: sessionUser, params, body }) => {
+  .put("/:pluginId/tunnel", async ({ user: sessionUser, params, body, request }) => {
+    const ip = getClientIp(request);
+    if (!(await checkIpRateLimit(ip, 10, 60_000, RL.SERVER_PLUGIN_UPDATE))) {
+      throw new RateLimitError("Too many requests, try again later");
+    }
+
     await requireOwner(sessionUser.id, params.serverId);
 
-    const { tunnelUrl, state } = body as { tunnelUrl: string | null; state?: string };
+    const { tunnelUrl, state } = validateInput(updateTunnelSchema, body);
 
     const setValues: Record<string, unknown> = { tunnelUrl };
     if (state !== undefined) {

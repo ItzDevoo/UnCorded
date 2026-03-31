@@ -45,11 +45,14 @@ export const feedbackRoutes = new Elysia({ prefix: "/api/feedback" })
       .leftJoin(user, eq(feedback.authorId, user.id))
       .where(conditions)
       .orderBy(orderBy)
-      .limit(pageSize)
+      .limit(pageSize + 1)
       .offset(offset);
 
+    const hasMore = rows.length > pageSize;
+    const pageRows = rows.slice(0, pageSize);
+
     // Check which items the current user has voted on
-    const feedbackIds = rows.map((r) => r.id);
+    const feedbackIds = pageRows.map((r) => r.id);
     let votedIds: Set<string> = new Set();
 
     if (feedbackIds.length > 0) {
@@ -69,9 +72,10 @@ export const feedbackRoutes = new Elysia({ prefix: "/api/feedback" })
     }
 
     return {
-      feedback: rows.map((r) => Object.assign(r, { voted: votedIds.has(r.id) })),
+      feedback: pageRows.map((r) => Object.assign(r, { voted: votedIds.has(r.id) })),
       page,
       pageSize,
+      hasMore,
     };
   })
 

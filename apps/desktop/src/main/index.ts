@@ -31,6 +31,9 @@ function createWindow(): BrowserWindow {
     minHeight: 600,
     title: "UnCorded",
     icon: path.join(RESOURCES_PATH, "icon.png"),
+    frame: false,
+    titleBarStyle: "hidden",
+    titleBarOverlay: false,
     show: false,
     webPreferences: {
       preload: PRELOAD_PATH,
@@ -101,56 +104,39 @@ function createTray(): Tray {
   return t;
 }
 
-function createAppMenu(): void {
-  const template: Electron.MenuItemConstructorOptions[] = [
-    {
-      label: "File",
-      submenu: [
-        { role: "quit" },
-      ],
-    },
-    {
-      label: "Edit",
-      submenu: [
-        { role: "undo" },
-        { role: "redo" },
-        { type: "separator" },
-        { role: "cut" },
-        { role: "copy" },
-        { role: "paste" },
-        { role: "selectAll" },
-      ],
-    },
-    {
-      label: "View",
-      submenu: [
-        { role: "reload" },
-        { role: "forceReload" },
-        { role: "toggleDevTools" },
-        { type: "separator" },
-        { role: "resetZoom" },
-        { role: "zoomIn" },
-        { role: "zoomOut" },
-        { type: "separator" },
-        { role: "togglefullscreen" },
-      ],
-    },
-    {
-      label: "Help",
-      submenu: [
-        {
-          label: "Check for Updates...",
-          click: () => checkForUpdates(),
-        },
-        {
-          label: `About UnCorded v${app.getVersion()}`,
-          enabled: false,
-        },
-      ],
-    },
-  ];
+// --- IPC: Window controls ---
 
-  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+function setupWindowIpc(win: BrowserWindow): void {
+  ipcMain.handle("window:minimize", () => win.minimize());
+  ipcMain.handle("window:maximize", () => {
+    win.isMaximized() ? win.unmaximize() : win.maximize();
+  });
+  ipcMain.handle("window:close", () => win.close());
+  ipcMain.handle("window:is-maximized", () => win.isMaximized());
+
+  win.on("maximize", () => {
+    win.webContents.send("window:maximize-change", true);
+  });
+  win.on("unmaximize", () => {
+    win.webContents.send("window:maximize-change", false);
+  });
+
+  // --- Menu actions (triggered from renderer custom title bar) ---
+  ipcMain.handle("menu:reload", () => win.webContents.reload());
+  ipcMain.handle("menu:force-reload", () => win.webContents.reloadIgnoringCache());
+  ipcMain.handle("menu:toggle-devtools", () => win.webContents.toggleDevTools());
+  ipcMain.handle("menu:zoom-in", () => {
+    const level = win.webContents.getZoomLevel();
+    win.webContents.setZoomLevel(level + 0.5);
+  });
+  ipcMain.handle("menu:zoom-out", () => {
+    const level = win.webContents.getZoomLevel();
+    win.webContents.setZoomLevel(level - 0.5);
+  });
+  ipcMain.handle("menu:reset-zoom", () => win.webContents.setZoomLevel(0));
+  ipcMain.handle("menu:toggle-fullscreen", () => win.setFullScreen(!win.isFullScreen()));
+  ipcMain.handle("menu:check-updates", () => checkForUpdates());
+  ipcMain.handle("menu:get-version", () => app.getVersion());
 }
 
 // --- IPC: Sidecar ---
@@ -414,8 +400,9 @@ async function syncAuthToSidecar(): Promise<void> {
 // --- App lifecycle ---
 
 app.on("ready", async () => {
-  createAppMenu();
+  Menu.setApplicationMenu(null);
   mainWindow = createWindow();
+  setupWindowIpc(mainWindow);
   tray = createTray();
 
   setupSidecarIpc();

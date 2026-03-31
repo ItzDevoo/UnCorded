@@ -30,6 +30,7 @@ import {
   activeReceiverSessionId,
 } from "../stores/share-session-store.js";
 import { isDesktop, plugins } from "../stores/plugin-store.js";
+import TitleBar from "./TitleBar.js";
 import {
   setupPluginBridge,
   teardownPluginBridge,
@@ -133,7 +134,11 @@ const AppLayout: ParentComponent = (props) => {
       <Show when={activeReceiverSessionId()}>
         <FileReceiveModal />
       </Show>
-      <SidebarProvider class="h-screen !min-h-0">
+      <div class="flex h-screen flex-col">
+        <Show when={isDesktop()}>
+          <TitleBar />
+        </Show>
+        <SidebarProvider class="min-h-0 flex-1">
         <AppSidebar />
         <SidebarInset>
           <VerificationBanner />
@@ -177,6 +182,7 @@ const AppLayout: ParentComponent = (props) => {
           </Show>
         </SidebarInset>
       </SidebarProvider>
+      </div>
     </AuthGuard>
   );
 };

@@ -42,7 +42,10 @@ const Onboarding = () => {
       });
 
       // Refetch the session so the updated username is available, then SPA-navigate
-      await authClient.getSession({ fetchOptions: { throw: false } });
+      const refreshed = await authClient.getSession({ fetchOptions: { throw: false } });
+      if (!refreshed.data) {
+        if (import.meta.env.DEV) console.error("[Onboarding] Session refetch failed after profile setup");
+      }
       navigate("/home", { replace: true });
     } catch (err) {
       const message =

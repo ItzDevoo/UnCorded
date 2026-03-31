@@ -162,12 +162,12 @@ const FileMessage = (props: { receipt: FileReceipt; isOwn: boolean }) => {
       })
       .catch((err) => {
         if (seederCount() === 0) {
-          setDownloadError("File unavailable \u2014 no seeders online");
+          setDownloadError("File unavailable \u2014 the sender is offline. Ask them to come back online so you can download it.");
         } else if (err instanceof TorrentTimeoutError) {
           setDownloadError(
             isFreeUser()
-              ? "Download timed out \u2014 peer may be behind a restrictive NAT. Upgrade to Supporter for relay-assisted transfers."
-              : "Download timed out \u2014 peer may be behind a restrictive NAT",
+              ? "Could not connect to the sender. Upgrade to Supporter for more reliable file transfers, or ask them to share via DM instead."
+              : "Could not connect to the sender. They may be on a restricted network \u2014 try again shortly.",
           );
         } else {
           setDownloadError("Download failed. Please try again.");

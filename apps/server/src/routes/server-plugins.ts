@@ -66,7 +66,7 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
 
     const { pluginId } = body as { pluginId: string };
     if (!pluginId || typeof pluginId !== "string") {
-      throw new ForbiddenError("pluginId is required");
+      throw new ValidationError("pluginId is required");
     }
 
     // Validate plugin exists in registry
@@ -151,7 +151,7 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
     }
 
     if (Object.keys(setValues).length === 0) {
-      throw new ForbiddenError("No fields to update");
+      throw new ValidationError("No fields to update");
     }
 
     const [updated] = await db

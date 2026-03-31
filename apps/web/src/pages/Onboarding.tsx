@@ -1,12 +1,15 @@
 import { createSignal, Show } from "solid-js";
+import { useNavigate } from "@solidjs/router";
 import { USERNAME_MIN, USERNAME_MAX, USERNAME_REGEX, DISPLAY_NAME_MAX } from "@uncorded/shared";
 import { api, ApiRequestError } from "../lib/api.js";
+import { authClient } from "../lib/auth.js";
 import AuthLayout from "../components/AuthLayout.js";
 import AuthGuard from "../components/AuthGuard.js";
 import { Input } from "../components/ui/input.js";
 import { Button } from "../components/ui/button.js";
 
 const Onboarding = () => {
+  const navigate = useNavigate();
   const [username, setUsername] = createSignal("");
   const [displayName, setDisplayName] = createSignal("");
   const [error, setError] = createSignal("");
@@ -38,8 +41,9 @@ const Onboarding = () => {
         body: JSON.stringify(body),
       });
 
-      // Full page reload ensures the session cookie is re-read with the updated username
-      window.location.href = "/home";
+      // Refetch the session so the updated username is available, then SPA-navigate
+      await authClient.getSession({ fetchOptions: { throw: false } });
+      navigate("/home", { replace: true });
     } catch (err) {
       const message =
         err instanceof ApiRequestError ? err.body.message ?? "Something went wrong" : "Something went wrong";

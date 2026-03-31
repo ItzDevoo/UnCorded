@@ -11,8 +11,8 @@
     "build:sidecar:compile": "bun build --compile sidecar/index.ts --outfile dist-electron/sidecar/sidecar",
     "build": "bun run build:main && bun run build:sidecar",
     "typecheck": "tsc --noEmit",
-    "pack": "electron-builder --dir",
-    "dist": "electron-builder"
+    "pack": "bun run build && bun run build:sidecar:compile && electron-builder --dir",
+    "dist": "bun run build && bun run build:sidecar:compile && electron-builder"
   },
   "dependencies": {
     "@uncorded/shared": "workspace:*",

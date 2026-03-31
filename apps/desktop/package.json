@@ -27,7 +27,7 @@
     "@types/dockerode": "^3.3.34",
     "@types/ws": "^8.5.14",
     "@types/webtorrent": "^0.109.8",
-    "electron": "^33.3.1",
+    "electron": "33.4.11",
     "electron-builder": "^25.1.8",
     "tsdown": "^0.9.2",
     "typescript": "^5.7.0"

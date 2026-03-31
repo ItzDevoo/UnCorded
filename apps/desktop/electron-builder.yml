@@ -2,6 +2,8 @@ appId: com.uncorded.app
 productName: UnCorded
 artifactName: "UnCorded-${version}-${os}-${arch}.${ext}"
 
+npmRebuild: false
+
 directories:
   output: release
   buildResources: resources

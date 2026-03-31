@@ -179,7 +179,16 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
       }
       await refetchInstalled();
     } catch (err) {
-      handleApiError(err, "Failed to toggle plugin");
+      const msg = err instanceof Error ? err.message : String(err);
+      if (/ECONNREFUSED|no such container|docker/i.test(msg)) {
+        showToast(
+          "Docker Desktop is required to run plugins. Please install and start Docker Desktop, then try again.",
+          "error",
+          { durationMs: 10_000 },
+        );
+      } else {
+        handleApiError(err, "Failed to toggle plugin");
+      }
     } finally {
       setToggling(null);
     }

@@ -238,11 +238,13 @@ const MessageBubble = (props: MessageBubbleProps) => {
 
   // ── Toolbar ──────────────────────────────────────────────────────────────
 
+  const [mobileMenuOpen, setMobileMenuOpen] = createSignal(false);
+
   const toolbarBtnClass =
     "rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors";
 
-  const Toolbar = () => (
-    <div class="ml-auto flex shrink-0 items-center gap-0.5 rounded-lg border border-border bg-card px-0.5 shadow-sm opacity-0 transition-opacity group-hover:opacity-100">
+  const ToolbarButtons = () => (
+    <>
       <button
         type="button"
         class={toolbarBtnClass}
@@ -287,6 +289,35 @@ const MessageBubble = (props: MessageBubbleProps) => {
           <TrashIcon />
         </button>
       </Show>
+    </>
+  );
+
+  const Toolbar = () => (
+    <div class="ml-auto flex shrink-0 items-center">
+      {/* Desktop: hover-revealed toolbar */}
+      <div class="hidden items-center gap-0.5 rounded-lg border border-border bg-card px-0.5 shadow-sm opacity-0 transition-opacity group-hover:opacity-100 md:flex">
+        <ToolbarButtons />
+      </div>
+      {/* Mobile: "..." toggle button + dropdown */}
+      <div class="relative md:hidden">
+        <button
+          type="button"
+          class="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          aria-label="Message actions"
+          onClick={() => setMobileMenuOpen((prev) => !prev)}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="5" cy="12" r="2" />
+            <circle cx="12" cy="12" r="2" />
+            <circle cx="19" cy="12" r="2" />
+          </svg>
+        </button>
+        <Show when={mobileMenuOpen()}>
+          <div class="absolute right-0 top-full z-10 mt-1 flex items-center gap-0.5 rounded-lg border border-border bg-card px-0.5 py-0.5 shadow-md">
+            <ToolbarButtons />
+          </div>
+        </Show>
+      </div>
     </div>
   );
 

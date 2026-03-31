@@ -19,6 +19,10 @@ const WEB_URL = process.env["UNCORDED_WEB_URL"]
   ?? (IS_DEV ? "http://localhost:5173" : "https://uncorded.app");
 const PRELOAD_PATH = path.join(__dirname, "preload.cjs");
 
+const RESOURCES_PATH = app.isPackaged
+  ? path.join(process.resourcesPath, "resources")
+  : path.join(__dirname, "..", "..", "resources");
+
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 1280,
@@ -26,6 +30,7 @@ function createWindow(): BrowserWindow {
     minWidth: 800,
     minHeight: 600,
     title: "UnCorded",
+    icon: path.join(RESOURCES_PATH, "icon.png"),
     show: false,
     webPreferences: {
       preload: PRELOAD_PATH,
@@ -57,10 +62,8 @@ function createWindow(): BrowserWindow {
 }
 
 function createTray(): Tray {
-  // Placeholder icon — real icons go in resources/ before packaging
-  const icon = nativeImage.createFromDataURL(
-    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAADklEQVQ4jWNgGAWDEwAAAhAAARqjGFoAAAAASUVORK5CYII=",
-  );
+  const trayIconPath = path.join(RESOURCES_PATH, "tray-icon.png");
+  const icon = nativeImage.createFromPath(trayIconPath);
   const t = new Tray(icon);
 
   const contextMenu = Menu.buildFromTemplate([

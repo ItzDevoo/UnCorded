@@ -34,5 +34,6 @@ export const safetyRoutes = new Elysia({ prefix: "/api/safety" })
       }
     }
 
-    return { blocked: false };
+    console.warn("[safety] Content moderation not configured — bypassing check");
+    return { blocked: false, checked: false, reason: "content_moderation_not_configured" };
   });

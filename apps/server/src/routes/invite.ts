@@ -11,7 +11,7 @@ import {
 import { Opcode, inviteCode, serverId, userId } from "@uncorded/protocol";
 import { brandServer, brandChannel, brandInvite } from "../helpers/brand.js";
 import { validateInput } from "../helpers/validation.js";
-import { NeonDbError } from "@neondatabase/serverless";
+import { DatabaseError } from "@neondatabase/serverless";
 import { db } from "../db/index.js";
 import { invites, servers, members, channels, user } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
@@ -158,7 +158,7 @@ export const inviteCodeRoutes = new Elysia({ prefix: "/api/invites/:code" })
           serverId: inv.serverId,
         });
       } catch (err) {
-        if (err instanceof NeonDbError && err.code === "23505") {
+        if (err instanceof DatabaseError && err.code === "23505") {
           throw new ConflictError("ALREADY_MEMBER", "Already a member of this server");
         }
         throw err;

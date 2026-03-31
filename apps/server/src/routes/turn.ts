@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { ForbiddenError, InternalError } from "@uncorded/shared";
+import { ForbiddenError, ServiceUnavailableError, BadGatewayError } from "@uncorded/shared";
 import { authResolve } from "../middleware/auth.js";
 import { env } from "../env.js";
 
@@ -23,7 +23,7 @@ export const turnRoutes = new Elysia({ prefix: "/api/turn" })
     }
 
     if (!env.TURN_KEY_ID || !env.TURN_KEY_API_TOKEN) {
-      throw new InternalError("TURN server not configured");
+      throw new ServiceUnavailableError("TURN server not configured");
     }
 
     const controller = new AbortController();
@@ -43,15 +43,15 @@ export const turnRoutes = new Elysia({ prefix: "/api/turn" })
       );
 
       if (!res.ok) {
-        throw new InternalError("Failed to fetch TURN credentials from Cloudflare");
+        throw new BadGatewayError("Failed to fetch TURN credentials from Cloudflare");
       }
 
       const data = (await res.json()) as CloudflareIceServers;
 
       return { iceServers: data.iceServers };
     } catch (err) {
-      if (err instanceof InternalError) throw err;
-      throw new InternalError("Failed to fetch TURN credentials from Cloudflare", { cause: err });
+      if (err instanceof BadGatewayError) throw err;
+      throw new BadGatewayError("Failed to fetch TURN credentials from Cloudflare", { cause: err });
     } finally {
       clearTimeout(timer);
     }

@@ -178,7 +178,7 @@ const AppSidebar = () => {
         setShowAddFriendModal(true);
         break;
       case "feature-requests":
-        navigate("/settings/feature-requests");
+        navigate("/settings/feedback");
         break;
       case "support":
         setShowSupportSheet(true);

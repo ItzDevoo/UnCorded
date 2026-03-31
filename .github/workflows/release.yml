@@ -50,7 +50,7 @@ jobs:
           - os: macos-14
             platform: mac-arm64
             artifact: "*.dmg"
-          - os: macos-13
+          - os: macos-15
             platform: mac-x64
             artifact: "*.dmg"
           - os: ubuntu-latest
@@ -60,20 +60,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
-      - run: bun install
+      - run: bun install --frozen-lockfile
       - name: Set version
         run: |
           cd apps/desktop
           bun -e "const pkg = require('./package.json'); pkg.version = '${{ needs.preflight.outputs.version }}'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
-      - name: Build desktop app
+      - name: Build and package
         run: |
           cd apps/desktop
-          bun run build
-          bun run build:sidecar:compile
-      - name: Package with electron-builder
-        run: |
-          cd apps/desktop
-          npx electron-builder --publish never
+          bun run dist -- --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload artifacts

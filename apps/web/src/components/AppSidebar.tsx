@@ -368,6 +368,29 @@ const AppSidebar = () => {
             />
           </div>
 
+          {/* Empty state — no servers yet */}
+          <Show when={sidebarState() === "expanded" && (!readyData.data?.servers || readyData.data.servers.length === 0) && !selectedServerId()}>
+            <div class="px-3 py-3 text-center">
+              <p class="text-xs text-muted-foreground">No servers yet</p>
+              <div class="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  class="flex-1 rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                  onClick={() => setModal("create")}
+                >
+                  Create Server
+                </button>
+                <button
+                  type="button"
+                  class="flex-1 rounded-md border border-border px-2 py-1 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+                  onClick={() => setModal("join")}
+                >
+                  Join Server
+                </button>
+              </div>
+            </div>
+          </Show>
+
           {/* Channel list — shown when a server is selected */}
           <Show when={selectedServerId()}>
             <Show

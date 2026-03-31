@@ -175,12 +175,19 @@ export class PluginLifecycle {
       reregisterToken(plugin.bridgeToken, pluginId, plugin.serverId, plugin.manifest.permissions, plugin.scope);
     }
 
-    // Start container (304 = already running — treat as success)
+    // Start container (304 = already running, 404 = stale container removed externally)
     try {
       await this.docker.startContainer(plugin.containerId);
     } catch (err: unknown) {
-      if (err && typeof err === "object" && "statusCode" in err && (err as { statusCode: number }).statusCode === 304) {
+      const statusCode = err && typeof err === "object" && "statusCode" in err
+        ? (err as { statusCode: number }).statusCode
+        : 0;
+
+      if (statusCode === 304) {
         console.error(`[lifecycle] Container already running for ${pluginId}, attaching`);
+      } else if (statusCode === 404) {
+        console.error(`[lifecycle] Container gone for ${pluginId}, recreating...`);
+        plugin.containerId = await this.recreateContainer(plugin);
       } else {
         throw err;
       }
@@ -226,6 +233,36 @@ export class PluginLifecycle {
     }
 
     console.error(`[lifecycle] Started plugin: ${pluginId} on port ${plugin.hostPort}`);
+  }
+
+  /**
+   * Recreate a container from the plugin's manifest when the original was removed externally.
+   * Issues a new bridge token since the old container (with the baked-in token) is gone.
+   */
+  private async recreateContainer(plugin: PluginRecord): Promise<string> {
+    const m = plugin.manifest;
+
+    await this.networks.createPluginNetwork(m.id).catch(() => {});
+
+    const bridgeToken = issueToken(m.id, plugin.serverId, m.permissions, plugin.scope);
+    plugin.bridgeToken = bridgeToken;
+
+    const containerId = await this.docker.createContainer({
+      image: m.runtime.image,
+      pluginId: m.id,
+      serverId: plugin.serverId,
+      bridgeUrl: `http://host.docker.internal:${this.getBridgePort()}`,
+      bridgeToken,
+      resources: m.resources,
+      healthCheckPath: m.runtime.healthCheck,
+      containerPort: m.runtime.port,
+    });
+
+    await this.networks.connectContainer(m.id, containerId);
+    await this.docker.startContainer(containerId);
+
+    this.saveState();
+    return containerId;
   }
 
   async stop(pluginId: string): Promise<void> {

@@ -235,7 +235,6 @@ const AppSidebar = () => {
     <Sidebar variant="inset" collapsible="icon">
       {/* ── Header: Update Pill + UNCORDED Logo ───────────────────── */}
       <SidebarHeader class="drag-region flex items-center gap-2">
-        <UpdatePill />
         <SidebarMenu class="flex-1">
           <SidebarMenuItem>
             <SidebarMenuButton
@@ -254,6 +253,7 @@ const AppSidebar = () => {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        <UpdatePill />
       </SidebarHeader>
 
       {/* ── Content ─────────────────────────────────────────────────── */}

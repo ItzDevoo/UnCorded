@@ -104,7 +104,7 @@ const ServerSwitcher = (props: ServerSwitcherProps) => {
         </Show>
 
         <Show when={!collapsed()}>
-          <span class="min-w-0 flex-1 truncate text-left text-foreground">{label()}</span>
+          <span class="min-w-0 flex-1 truncate text-left text-foreground" title={label()}>{label()}</span>
         </Show>
 
         {/* Chevron */}
@@ -159,7 +159,7 @@ const ServerSwitcher = (props: ServerSwitcherProps) => {
                       />
                     )}
                   </Show>
-                  <span class="truncate">{server.name}</span>
+                  <span class="truncate" title={server.name}>{server.name}</span>
                 </button>
               )}
             </For>

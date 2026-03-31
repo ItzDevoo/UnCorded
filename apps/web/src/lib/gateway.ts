@@ -187,10 +187,19 @@ function connect() {
   });
 }
 
+/** Cancel any scheduled auto-reconnect so a manual retry doesn't race. */
+export function cancelReconnect(): void {
+  if (reconnectTimer !== null) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+}
+
 export function connectGateway(): void {
   if (import.meta.env.PROD && !WS_URL.startsWith("wss://")) {
     throw new Error("WebSocket must use wss:// in production");
   }
+  cancelReconnect();
   reconnectAttempts = 0;
   intentionalClose = false;
   connect();

@@ -177,7 +177,7 @@ const ToastItem = (props: ToastItemProps) => {
 export const ToastContainer = () => {
   return (
     <Portal mount={document.body}>
-      <div class="fixed bottom-4 right-4 z-70 flex flex-col-reverse gap-2">
+      <div class="fixed right-4 top-4 z-70 flex flex-col gap-2 md:bottom-4 md:top-auto md:flex-col-reverse">
         <For each={toasts}>{(toast) => <ToastItem {...toast} />}</For>
       </div>
     </Portal>

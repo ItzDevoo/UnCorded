@@ -1,4 +1,4 @@
-import { createSignal, Show, onCleanup } from "solid-js";
+import { createSignal, createEffect, Show, onCleanup } from "solid-js";
 import type { AnyChannelId } from "@uncorded/protocol";
 import { api } from "../lib/api.js";
 import { readyData } from "../lib/gateway-store.js";
@@ -238,55 +238,111 @@ const MessageBubble = (props: MessageBubbleProps) => {
 
   // ── Toolbar ──────────────────────────────────────────────────────────────
 
+  const [mobileMenuOpen, setMobileMenuOpen] = createSignal(false);
+
   const toolbarBtnClass =
     "rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors";
 
-  const Toolbar = () => (
-    <div class="ml-auto flex shrink-0 items-center gap-0.5 rounded-lg border border-border bg-card px-0.5 shadow-sm opacity-0 transition-opacity group-hover:opacity-100">
-      <button
-        type="button"
-        class={toolbarBtnClass}
-        title="Copy"
-        aria-label="Copy"
-        onClick={handleCopy}
-      >
-        <Show when={copied()} fallback={<CopyIcon />}>
-          <CheckIcon />
+  const ToolbarButtons = (tbProps: { onClose?: () => void }) => {
+    const wrap = (fn: () => void) => () => { fn(); tbProps.onClose?.(); };
+    return (
+      <>
+        <button
+          type="button"
+          class={toolbarBtnClass}
+          title="Copy"
+          aria-label="Copy"
+          onClick={wrap(handleCopy)}
+        >
+          <Show when={copied()} fallback={<CopyIcon />}>
+            <CheckIcon />
+          </Show>
+        </button>
+        <Show when={!props.isOwn}>
+          <button
+            type="button"
+            class={toolbarBtnClass}
+            title="Report"
+            aria-label="Report"
+            onClick={wrap(() => setShowReportDialog(true))}
+          >
+            <FlagIcon />
+          </button>
         </Show>
-      </button>
-      <Show when={!props.isOwn}>
+        <Show when={props.isOwn}>
+          <button
+            type="button"
+            class={toolbarBtnClass}
+            title="Edit"
+            aria-label="Edit"
+            onClick={wrap(startEdit)}
+          >
+            <PencilIcon />
+          </button>
+        </Show>
+        <Show when={canDelete()}>
+          <button
+            type="button"
+            class={toolbarBtnClass}
+            title="Delete"
+            aria-label="Delete"
+            onClick={wrap(() => setShowDeleteDialog(true))}
+          >
+            <TrashIcon />
+          </button>
+        </Show>
+      </>
+    );
+  };
+
+  // Close mobile menu on outside click or Escape
+  let mobileMenuRef!: HTMLDivElement;
+  createEffect(() => {
+    if (!mobileMenuOpen()) return;
+
+    const handleClick = (e: MouseEvent) => {
+      if (mobileMenuRef && !mobileMenuRef.contains(e.target as Node)) {
+        setMobileMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileMenuOpen(false);
+    };
+
+    document.addEventListener("click", handleClick, true);
+    document.addEventListener("keydown", handleKeyDown);
+    onCleanup(() => {
+      document.removeEventListener("click", handleClick, true);
+      document.removeEventListener("keydown", handleKeyDown);
+    });
+  });
+
+  const Toolbar = () => (
+    <div class="ml-auto flex shrink-0 items-center">
+      {/* Desktop: hover-revealed toolbar */}
+      <div class="hidden items-center gap-0.5 rounded-lg border border-border bg-card px-0.5 shadow-sm opacity-0 transition-opacity group-hover:opacity-100 md:flex">
+        <ToolbarButtons />
+      </div>
+      {/* Mobile: "..." toggle button + dropdown */}
+      <div class="relative md:hidden" ref={mobileMenuRef}>
         <button
           type="button"
-          class={toolbarBtnClass}
-          title="Report"
-          aria-label="Report"
-          onClick={() => setShowReportDialog(true)}
+          class="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          aria-label="Message actions"
+          onClick={() => setMobileMenuOpen((prev) => !prev)}
         >
-          <FlagIcon />
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="5" cy="12" r="2" />
+            <circle cx="12" cy="12" r="2" />
+            <circle cx="19" cy="12" r="2" />
+          </svg>
         </button>
-      </Show>
-      <Show when={props.isOwn}>
-        <button
-          type="button"
-          class={toolbarBtnClass}
-          title="Edit"
-          aria-label="Edit"
-          onClick={startEdit}
-        >
-          <PencilIcon />
-        </button>
-      </Show>
-      <Show when={canDelete()}>
-        <button
-          type="button"
-          class={toolbarBtnClass}
-          title="Delete"
-          aria-label="Delete"
-          onClick={() => setShowDeleteDialog(true)}
-        >
-          <TrashIcon />
-        </button>
-      </Show>
+        <Show when={mobileMenuOpen()}>
+          <div class="absolute right-0 top-full z-10 mt-1 flex items-center gap-0.5 rounded-lg border border-border bg-card px-0.5 py-0.5 shadow-md">
+            <ToolbarButtons onClose={() => setMobileMenuOpen(false)} />
+          </div>
+        </Show>
+      </div>
     </div>
   );
 

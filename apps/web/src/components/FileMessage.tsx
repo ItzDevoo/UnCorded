@@ -166,8 +166,8 @@ const FileMessage = (props: { receipt: FileReceipt; isOwn: boolean }) => {
         } else if (err instanceof TorrentTimeoutError) {
           setDownloadError(
             isFreeUser()
-              ? "Download timed out \u2014 peer may be behind a restrictive NAT. Upgrade to Supporter for relay-assisted transfers."
-              : "Download timed out \u2014 peer may be behind a restrictive NAT",
+              ? "Could not connect to the sender. Upgrade to Supporter for more reliable file transfers, or ask them to share via DM instead."
+              : "Could not connect to the sender. They may be on a restricted network \u2014 try again shortly.",
           );
         } else {
           setDownloadError("Download failed. Please try again.");

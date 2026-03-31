@@ -7,7 +7,7 @@ import {
   type ParentComponent,
 } from "solid-js";
 import { useSession } from "../lib/auth.js";
-import { connectGateway, disconnectGateway } from "../lib/gateway.js";
+import { connectGateway, disconnectGateway, cancelReconnect } from "../lib/gateway.js";
 import { gatewayStatus } from "../lib/gateway-store.js";
 import { setupShortcuts, cleanupShortcuts } from "../stores/shortcut-store.js";
 import "../lib/gateway-errors.js";
@@ -16,7 +16,6 @@ import AuthGuard from "./AuthGuard.js";
 import AppSidebar from "./AppSidebar.js";
 import ShortcutsDialog from "./ShortcutsDialog.js";
 import { ToastContainer, showToast } from "./ui/toast.js";
-import { Empty } from "./ui/empty.js";
 import { SidebarProvider, SidebarInset } from "./ui/sidebar.js";
 import P2PNoticeDialog from "./P2PNoticeDialog.js";
 import GiftNotification from "./modals/GiftNotification.js";
@@ -137,44 +136,45 @@ const AppLayout: ParentComponent = (props) => {
         <AppSidebar />
         <SidebarInset>
           <VerificationBanner />
-          <Show
-            when={gatewayStatus() === "connected"}
-            fallback={
-              <div class="flex flex-1 items-center justify-center">
+          <div class="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+            {/* Always render children so chat content persists during disconnects */}
+            <div
+              class="flex min-h-0 flex-1 flex-col overflow-hidden transition-opacity"
+              classList={{ "opacity-40 pointer-events-none": gatewayStatus() !== "connected" }}
+            >
+              {props.children}
+            </div>
+
+            {/* Overlay banners for connecting / disconnected states */}
+            <Show when={gatewayStatus() !== "connected"}>
+              <div class="absolute inset-x-0 top-0 z-10 flex items-center justify-center gap-2 bg-warning/90 px-3 py-2 text-sm font-medium text-warning-foreground">
                 <Show
                   when={gatewayStatus() === "connecting"}
                   fallback={
-                    <Empty
-                      title="Connection lost"
-                      description="Trying to reconnect..."
-                      icon={
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          stroke-width="1.5"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
-                          />
-                        </svg>
-                      }
-                    />
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                      </svg>
+                      <span>Connection lost — trying to reconnect...</span>
+                      <button
+                        type="button"
+                        class="ml-2 rounded-md bg-warning-foreground/20 px-2 py-0.5 text-xs font-semibold transition-colors hover:bg-warning-foreground/30"
+                        onClick={() => {
+                          cancelReconnect();
+                          connectGateway();
+                        }}
+                      >
+                        Retry
+                      </button>
+                    </>
                   }
                 >
-                  <div class="flex animate-fade-in flex-col items-center gap-3">
-                    <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    <p class="text-muted-foreground">Connecting to UnCorded...</p>
-                  </div>
+                  <div class="h-4 w-4 animate-spin rounded-full border-2 border-warning-foreground border-t-transparent" />
+                  <span>Connecting to UnCorded...</span>
                 </Show>
               </div>
-            }
-          >
-            <div class="flex min-h-0 flex-1 flex-col overflow-hidden">{props.children}</div>
-          </Show>
+            </Show>
+          </div>
         </SidebarInset>
       </SidebarProvider>
     </AuthGuard>

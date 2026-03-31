@@ -161,6 +161,7 @@ export const auth = betterAuth({
     defaultCookieAttributes: {
       sameSite: env.NODE_ENV === "production" ? "none" : "lax",
       secure: env.NODE_ENV === "production",
+      maxAge: 30 * 24 * 60 * 60, // 30 days — persists across Electron restarts
     },
     ...(env.AUTH_COOKIE_DOMAIN
       ? {

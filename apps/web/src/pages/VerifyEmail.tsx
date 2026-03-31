@@ -55,19 +55,14 @@ const VerifyEmail = () => {
           Click it to verify your account.
         </p>
 
-        <div class="flex w-full gap-3">
-          <Button
-            variant="outline"
-            class="flex-1"
-            disabled={resending()}
-            onClick={handleResend}
-          >
-            {resending() ? "Sending..." : resent() ? "Sent!" : error() ? "Retry" : "Resend Email"}
-          </Button>
-          <Button class="flex-1" onClick={() => navigate("/home", { replace: true })}>
-            Continue Anyway
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          class="w-full"
+          disabled={resending()}
+          onClick={handleResend}
+        >
+          {resending() ? "Sending..." : resent() ? "Sent!" : error() ? "Retry" : "Resend Email"}
+        </Button>
 
         <Show when={error()}>
           <p class="mt-3 text-sm text-destructive">{error()}</p>
@@ -75,6 +70,17 @@ const VerifyEmail = () => {
 
         <p class="mt-4 text-xs text-muted-foreground">
           Didn't receive it? Check your spam folder.
+        </p>
+
+        <button
+          type="button"
+          class="mt-3 text-xs text-muted-foreground underline transition-colors hover:text-foreground"
+          onClick={() => navigate("/home", { replace: true })}
+        >
+          Skip for now
+        </button>
+        <p class="mt-1 text-[11px] text-muted-foreground">
+          You can verify later in Settings. Some features may be limited.
         </p>
       </div>
     </AuthLayout>

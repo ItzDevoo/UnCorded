@@ -419,7 +419,7 @@ const AppSidebar = () => {
                           }}
                         >
                           <span class="font-mono text-muted-foreground">#</span>
-                          <span class="truncate">{channel.name}</span>
+                          <span class="truncate" title={channel.name}>{channel.name}</span>
                           <Show
                             when={
                               (!active() && getUnreadCount(channel.id) > 0) ||
@@ -487,7 +487,7 @@ const AppSidebar = () => {
                           </svg>
                           <span class="absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-success" aria-hidden="true" />
                         </span>
-                        <span class="truncate">{displayName()}</span>
+                        <span class="truncate" title={displayName()}>{displayName()}</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );
@@ -579,7 +579,7 @@ const AppSidebar = () => {
                             />
                             <span class="sr-only">Status: {plugin.status}</span>
                           </span>
-                          <span class="truncate">{plugin.name}</span>
+                          <span class="truncate" title={plugin.name}>{plugin.name}</span>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     );
@@ -622,8 +622,8 @@ const AppSidebar = () => {
                   )}
                 </Show>
                 <div class="grid min-w-0 flex-1 text-left text-sm leading-tight">
-                  <span class="truncate font-medium">{resolvedDisplayName()}</span>
-                  <span class="truncate text-xs text-muted-foreground">@{resolvedUsername()}</span>
+                  <span class="truncate font-medium" title={resolvedDisplayName()}>{resolvedDisplayName()}</span>
+                  <span class="truncate text-xs text-muted-foreground" title={`@${resolvedUsername()}`}>@{resolvedUsername()}</span>
                 </div>
                 {/* ChevronsUpDown icon */}
                 <svg xmlns="http://www.w3.org/2000/svg" class="ml-auto h-4 w-4 shrink-0 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

@@ -31,7 +31,6 @@ const TEXT_TYPES = new Set([
   "text/plain",
   "text/markdown",
   "text/csv",
-  "text/html",
   "application/json",
   "application/xml",
 ]);

@@ -10,7 +10,7 @@ This must be implemented early in the Electron desktop app phase — not bolted 
 
 - **Library**: electron-updater (^6.x)
 - **Feed**: GitHub Releases (electron-updater reads the release atom feed automatically)
-- **User Control**: Auto-download enabled — updates download silently in the background. User only confirms the restart to install.
+- **User Control**: No auto-download, no auto-install — user explicitly triggers both
 - **State**: Reducer-based state machine, broadcasted to renderer via IPC
 - **Signing**: Platform-specific (macOS: Apple notarization, Windows: Azure Trusted Signing, Linux: none)
 
@@ -150,8 +150,8 @@ Result: UI sees updates at 0%, 10%, 20%, ..., 90%, 100% — not every 0.1%.
 import { autoUpdater } from "electron-updater";
 
 function configureAutoUpdater() {
-  autoUpdater.autoDownload = true; // Download silently in background
-  autoUpdater.autoInstallOnAppQuit = true; // Install on next app quit
+  autoUpdater.autoDownload = false; // User triggers download
+  autoUpdater.autoInstallOnAppQuit = false; // User triggers install
   autoUpdater.channel = "latest"; // Stable only
   autoUpdater.allowPrerelease = false;
   autoUpdater.allowDowngrade = false;
@@ -217,8 +217,8 @@ autoUpdater.on("error", (error) => {
 | Manual check     | User clicks "Check for Updates" in menu |
 
 ```typescript
-const AUTO_UPDATE_STARTUP_DELAY_MS = 5_000; // Check quickly after launch
-const AUTO_UPDATE_POLL_INTERVAL_MS = 1 * 60 * 60 * 1000; // Check every hour
+const AUTO_UPDATE_STARTUP_DELAY_MS = 15_000; // 15 seconds after app launch
+const AUTO_UPDATE_POLL_INTERVAL_MS = 4 * 60 * 60 * 1000; // Every 4 hours
 
 // On app ready:
 setTimeout(() => checkForUpdates("startup"), AUTO_UPDATE_STARTUP_DELAY_MS);
@@ -301,7 +301,7 @@ async function installUpdate() {
   isQuitting = true;
 
   try {
-    await stopSidecar(5000); // SIGTERM, 5s grace, then SIGKILL
+    await stopSidecar(); // Uses GRACEFUL_SHUTDOWN_TIMEOUT_MS internally
     autoUpdater.quitAndInstall();
   } catch (error) {
     isQuitting = false;

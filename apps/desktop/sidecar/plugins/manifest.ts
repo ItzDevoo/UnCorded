@@ -72,12 +72,22 @@ function parseResources(value: unknown): ResourceLimits | undefined {
   return result;
 }
 
+const RESERVED_ENV_PREFIX = /^UNCORDED_/i;
+
 function parseEnv(value: unknown): Record<string, string> | undefined {
   if (typeof value !== "object" || value === null) return undefined;
   const obj = value as Record<string, unknown>;
   const result: Record<string, string> = {};
   for (const [k, v] of Object.entries(obj)) {
-    if (typeof v === "string") result[k] = v;
+    if (RESERVED_ENV_PREFIX.test(k)) {
+      console.error(`[manifest] Rejected reserved env key: ${k}`);
+      continue;
+    }
+    if (typeof v !== "string") {
+      console.error(`[manifest] Skipped non-string env value for key: ${k}`);
+      continue;
+    }
+    result[k] = v;
   }
   return Object.keys(result).length > 0 ? result : undefined;
 }

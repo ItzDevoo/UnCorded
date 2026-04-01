@@ -88,11 +88,12 @@ export const pluginPublicRoutes = new Elysia({ prefix: "/api/plugins" })
 
     if (!row || !row.published) throw new NotFoundError("Plugin");
 
-    // Merge top-level plugin fields with the manifest so the sidecar
-    // receives a complete PluginManifest (id, name, version, etc.)
+    // Spread stored manifest first, then override with authoritative
+    // registry fields so the sidecar always gets correct top-level values
     const stored = row.manifest as Record<string, unknown>;
     return {
       manifest: {
+        ...stored,
         id: row.id,
         name: row.name,
         version: row.version,
@@ -101,7 +102,6 @@ export const pluginPublicRoutes = new Elysia({ prefix: "/api/plugins" })
         scope: row.scope,
         icon: row.iconUrl ?? undefined,
         repository: row.repository ?? undefined,
-        ...stored,
       },
     };
   });

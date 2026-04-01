@@ -22,7 +22,6 @@
     "dist:desktop": "bun run --filter @uncorded/desktop dist"
   },
   "devDependencies": {
-    "lucide-solid": "^1.7.0",
     "oxfmt": "^0.36.0",
     "oxlint": "^1.51.0",
     "sharp": "^0.34.5",

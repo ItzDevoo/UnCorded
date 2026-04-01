@@ -3,6 +3,7 @@ import { validateToken } from "./auth";
 import { checkPermission } from "./permissions";
 import { PluginStorage } from "./storage";
 import { createRoutes } from "./routes";
+import { notificationQueue } from "./notifications";
 import type { DockerManager } from "../docker/manager";
 import type { GatewayClient } from "../gateway/client";
 import type { PluginLifecycle } from "../plugins/lifecycle";
@@ -137,6 +138,11 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
       console.error("[bridge] Auth token received");
       options.plugins.setApiToken(token);
       return { success: true };
+    })
+
+    // --- Notifications (called by Electron main process, no auth) ---
+    .get("/notifications/pending", () => {
+      return notificationQueue.drain();
     })
 
     .post("/plugins/:id/uninstall", async ({ params }) => {

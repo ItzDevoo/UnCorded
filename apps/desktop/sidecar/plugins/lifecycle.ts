@@ -66,6 +66,18 @@ export class PluginLifecycle {
         plugin.previouslyRunning = false;
         revokePluginTokens(pluginId);
         this.resources.release(plugin.manifest.resources ?? {});
+
+        // Clean up tunnel for server-scoped plugins (mirror stop() behavior)
+        if (plugin.scope === "server") {
+          if (this.tunnelManager) {
+            this.tunnelManager.destroy(pluginId).catch((err) => {
+              console.error(`[lifecycle] Tunnel destroy failed for crashed ${pluginId}:`, err);
+            });
+          }
+          this.reportTunnelUrl(plugin.serverId, pluginId, null, "crashed").catch(() => {});
+          plugin.tunnelUrl = null;
+        }
+
         this.saveState();
       }
     });
@@ -259,13 +271,14 @@ export class PluginLifecycle {
     const bridgeToken = issueToken(m.id, plugin.serverId, m.permissions, plugin.scope);
     plugin.bridgeToken = bridgeToken;
 
+    // Don't forward persisted tunnelUrl — it may be stale.
+    // start() will create a fresh tunnel after the container is running.
     const containerId = await this.docker.createContainer({
       image: m.runtime.image,
       pluginId: m.id,
       serverId: plugin.serverId,
       bridgeUrl: `http://host.docker.internal:${this.getBridgePort()}`,
       bridgeToken,
-      tunnelUrl: plugin.tunnelUrl ?? undefined,
       env: m.env,
       resources: m.resources,
       healthCheckPath: m.runtime.healthCheck,

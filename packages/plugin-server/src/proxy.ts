@@ -201,9 +201,26 @@ export function proxy(
         }
       }
 
-      // Iframe-safe headers
-      resHeaders.set("content-security-policy", "frame-ancestors *");
-      resHeaders.set("access-control-allow-origin", "*");
+      // Iframe-safe: merge frame-ancestors into existing CSP instead of overwriting
+      const existingCsp = resHeaders.get("content-security-policy");
+      if (existingCsp) {
+        if (/frame-ancestors\s/i.test(existingCsp)) {
+          resHeaders.set(
+            "content-security-policy",
+            existingCsp.replace(/frame-ancestors\s+[^;]*/i, "frame-ancestors *"),
+          );
+        } else {
+          resHeaders.set("content-security-policy", `${existingCsp}; frame-ancestors *`);
+        }
+      } else {
+        resHeaders.set("content-security-policy", "frame-ancestors *");
+      }
+
+      // Echo request origin instead of wildcard — compatible with credentials
+      const requestOrigin = req.headers.get("origin");
+      if (requestOrigin) {
+        resHeaders.set("access-control-allow-origin", requestOrigin);
+      }
 
       return new Response(upstreamRes.body, {
         status: upstreamRes.status,
@@ -332,6 +349,11 @@ export function createBundledService(config: BundledServiceConfig): BundledServi
   // Readiness state
   let isReady = false;
 
+  // Reset readiness when the child exits (crash, SIGTERM, etc.)
+  proc.exited
+    .then(() => { isReady = false; })
+    .catch(() => { isReady = false; });
+
   // Build proxy handler
   const target = `http://localhost:${port}`;
   const handler = rewriteUrls
@@ -344,7 +366,7 @@ export function createBundledService(config: BundledServiceConfig): BundledServi
   const readyPromise = (async () => {
     const deadline = Date.now() + readyTimeout;
     let interval = READY_POLL_INITIAL_MS;
-    while (Date.now() < deadline) {
+    while (Date.now() < deadline && proc.exitCode === null) {
       try {
         const res = await fetch(readyUrl, {
           signal: AbortSignal.timeout(2_000),
@@ -359,9 +381,13 @@ export function createBundledService(config: BundledServiceConfig): BundledServi
       await Bun.sleep(interval);
       interval = Math.min(interval * 2, READY_POLL_MAX_MS);
     }
-    console.error(
-      `[${serviceName}] readiness check timed out after ${readyTimeout}ms`,
-    );
+    if (proc.exitCode !== null) {
+      console.error(`[${serviceName}] child process exited before becoming ready`);
+    } else {
+      console.error(
+        `[${serviceName}] readiness check timed out after ${readyTimeout}ms`,
+      );
+    }
   })();
 
   // Prevent unhandled rejection if the caller never awaits readyPromise

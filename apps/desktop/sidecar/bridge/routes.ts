@@ -67,7 +67,11 @@ export function createRoutes(deps: RouteDeps) {
     .get("/tunnel", (ctx) => {
       const plugin = (ctx as unknown as { plugin: PluginContext }).plugin;
       const record = deps.plugins.get(plugin.pluginId);
-      return { tunnelUrl: record?.tunnelUrl ?? null };
+      // Verify serverId matches to avoid returning wrong tunnel for multi-server installs
+      if (!record || record.serverId !== plugin.serverId) {
+        return { tunnelUrl: null };
+      }
+      return { tunnelUrl: record.tunnelUrl };
     })
 
     // --- Server info ---

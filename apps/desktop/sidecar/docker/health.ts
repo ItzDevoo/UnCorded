@@ -40,6 +40,11 @@ export class HealthMonitor {
     this.onReadyChange = handler;
   }
 
+  /** Check whether `state` is still the active session for its pluginId. */
+  private isActive(state: HealthState): boolean {
+    return this.states.get(state.pluginId) === state;
+  }
+
   startMonitoring(
     pluginId: string,
     containerId: string,
@@ -66,14 +71,15 @@ export class HealthMonitor {
   }
 
   private pollReadiness(state: HealthState, interval: number, startedAt: number): void {
-    if (!this.states.has(state.pluginId)) return;
+    if (!this.isActive(state)) return;
 
     state.timer = setTimeout(async () => {
-      if (!this.states.has(state.pluginId)) return;
+      if (!this.isActive(state)) return;
 
       const elapsed = Date.now() - startedAt;
       if (elapsed >= READINESS_TIMEOUT_MS) {
         console.error(`[health] Plugin ${state.pluginId} readiness timed out after ${READINESS_TIMEOUT_MS}ms — marking ready anyway`);
+        if (!this.isActive(state)) return;
         this.onReadyChange?.(state.pluginId, true);
         this.startHealthChecks(state);
         return;
@@ -87,6 +93,9 @@ export class HealthMonitor {
         try {
           const response = await fetch(url, { signal: controller.signal });
           clearTimeout(timeout);
+
+          // Verify session still active after await
+          if (!this.isActive(state)) return;
 
           if (response.ok) {
             // 200 — plugin is ready
@@ -114,6 +123,7 @@ export class HealthMonitor {
         // Outer catch for unexpected errors — keep polling
       }
 
+      if (!this.isActive(state)) return;
       const nextInterval = Math.min(interval * 2, READINESS_MAX_INTERVAL_MS);
       this.pollReadiness(state, nextInterval, startedAt);
     }, interval);
@@ -121,10 +131,11 @@ export class HealthMonitor {
 
   private startHealthChecks(state: HealthState): void {
     const scheduleNext = () => {
-      if (!this.states.has(state.pluginId)) return;
+      if (!this.isActive(state)) return;
       state.timer = setTimeout(async () => {
-        await this.check(state);
-        scheduleNext();
+        if (!this.isActive(state)) return;
+        const continueChecks = await this.check(state);
+        if (continueChecks) scheduleNext();
       }, HEALTH_CHECK_INTERVAL_MS);
     };
 
@@ -146,10 +157,14 @@ export class HealthMonitor {
     }
   }
 
-  private async check(state: HealthState): Promise<void> {
+  /**
+   * Perform a single health check. Returns true if the health check cycle
+   * should continue, false if readiness re-polling has taken over.
+   */
+  private async check(state: HealthState): Promise<boolean> {
     // Guard against concurrent checks
-    if (state.isChecking) return;
-    if (!this.states.has(state.pluginId)) return;
+    if (state.isChecking) return true;
+    if (!this.isActive(state)) return false;
     state.isChecking = true;
 
     try {
@@ -161,18 +176,22 @@ export class HealthMonitor {
         const response = await fetch(url, { signal: controller.signal });
         clearTimeout(timeout);
 
+        if (!this.isActive(state)) return false;
+
         if (response.ok) {
           if (state.consecutiveFailures > 0) {
             state.consecutiveFailures = 0;
             this.onStatusChange?.(state.pluginId, "healthy");
           }
-          return;
+          return true;
         }
         state.consecutiveFailures++;
       } catch {
         clearTimeout(timeout);
         state.consecutiveFailures++;
       }
+
+      if (!this.isActive(state)) return false;
 
       if (state.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
         if (state.autoRestarts < MAX_AUTO_RESTARTS) {
@@ -185,21 +204,32 @@ export class HealthMonitor {
             await this.docker.stopContainer(state.containerId);
             await this.docker.startContainer(state.containerId);
 
+            if (!this.isActive(state)) return false;
+
             const status = await this.docker.getStatus(state.containerId);
             if (status.hostPort) {
               state.hostPort = status.hostPort;
             }
+
+            // Re-enter readiness phase after restart
+            this.onReadyChange?.(state.pluginId, false);
+            this.pollReadiness(state, READINESS_INITIAL_INTERVAL_MS, Date.now());
+            return false; // stop health check cycle — readiness will restart it
           } catch (err) {
             console.error(`[health] Failed to restart plugin ${state.pluginId}:`, err);
             this.onStatusChange?.(state.pluginId, "crashed");
             this.stopMonitoring(state.pluginId);
+            return false;
           }
         } else {
           console.error(`[health] Plugin ${state.pluginId} exceeded max restarts, marking crashed`);
           this.onStatusChange?.(state.pluginId, "crashed");
           this.stopMonitoring(state.pluginId);
+          return false;
         }
       }
+
+      return true;
     } finally {
       state.isChecking = false;
     }

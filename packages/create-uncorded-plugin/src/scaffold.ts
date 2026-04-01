@@ -68,6 +68,16 @@ export function scaffold(targetDir: string, answers: PluginAnswers): void {
 
   // Dockerfile
   const isBundled = answers.pluginType === "bundled";
+  if (isBundled) {
+    if (answers.internalPort === undefined) {
+      throw new Error("Bundled plugins require an internalPort");
+    }
+    if (answers.internalPort === answers.port) {
+      throw new Error(
+        `internalPort (${answers.internalPort}) must differ from the container port (${answers.port})`,
+      );
+    }
+  }
   const dockerfileTemplate = isBundled ? "bundled/Dockerfile.tmpl" : "Dockerfile.tmpl";
   const dockerfile = readTemplate(dockerfileTemplate);
   writeFileSync(join(targetDir, "Dockerfile"), replaceVars(dockerfile, vars));

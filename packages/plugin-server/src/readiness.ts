@@ -7,7 +7,15 @@ export function createReadinessCheck(
 ): () => Promise<Response> {
   return async () => {
     for (const check of checks) {
-      if (!(await check())) {
+      try {
+        if (!(await check())) {
+          return new Response(JSON.stringify({ ready: false }), {
+            status: 503,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+      } catch (err) {
+        console.error("[readiness] Check threw:", err);
         return new Response(JSON.stringify({ ready: false }), {
           status: 503,
           headers: { "Content-Type": "application/json" },

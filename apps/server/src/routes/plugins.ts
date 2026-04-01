@@ -9,10 +9,17 @@ import { getClientIp } from "../helpers/request.js";
 import { RL } from "../helpers/rate-limit-keys.js";
 
 function compareSemver(a: string, b: string): number {
-  const [coreA, preA] = a.split("-", 2);
-  const [coreB, preB] = b.split("-", 2);
-  const pa = (coreA ?? "").replace(/\+.*$/, "").split(".").map((s) => Number(s) || 0);
-  const pb = (coreB ?? "").replace(/\+.*$/, "").split(".").map((s) => Number(s) || 0);
+  // Strip build metadata first, then split core from prerelease at first hyphen
+  const cleanA = a.split("+")[0] ?? a;
+  const cleanB = b.split("+")[0] ?? b;
+  const dashA = cleanA.indexOf("-");
+  const dashB = cleanB.indexOf("-");
+  const coreA = dashA === -1 ? cleanA : cleanA.slice(0, dashA);
+  const preA = dashA === -1 ? undefined : cleanA.slice(dashA + 1);
+  const coreB = dashB === -1 ? cleanB : cleanB.slice(0, dashB);
+  const preB = dashB === -1 ? undefined : cleanB.slice(dashB + 1);
+  const pa = coreA.split(".").map((s) => Number(s) || 0);
+  const pb = coreB.split(".").map((s) => Number(s) || 0);
   for (let i = 0; i < 3; i++) {
     const diff = (pa[i] ?? 0) - (pb[i] ?? 0);
     if (diff !== 0) return diff;
@@ -294,13 +301,26 @@ export const pluginRoutes = new Elysia({ prefix: "/api/plugins" })
       throw new RateLimitError("Too many requests, try again later");
     }
 
-    const parsed = body as { plugins?: { id: string; version: string }[] } | null;
+    const parsed = body as { plugins?: unknown[] } | null;
     if (!parsed?.plugins || !Array.isArray(parsed.plugins) || parsed.plugins.length === 0) {
       return { updates: [] };
     }
 
-    // Cap input to 50 plugins per request
-    const input = parsed.plugins.slice(0, 50);
+    // Validate and filter entries — only keep objects with string id and version
+    const validEntries: { id: string; version: string }[] = [];
+    for (const entry of parsed.plugins.slice(0, 50)) {
+      if (
+        entry && typeof entry === "object" &&
+        "id" in entry && typeof (entry as Record<string, unknown>).id === "string" &&
+        "version" in entry && typeof (entry as Record<string, unknown>).version === "string"
+      ) {
+        validEntries.push(entry as { id: string; version: string });
+      }
+    }
+
+    if (validEntries.length === 0) return { updates: [] };
+
+    const input = validEntries;
     const ids = input.map((p) => p.id);
 
     const rows = await db

@@ -373,6 +373,7 @@ function setupPluginIpc(): void {
 // Poll sidecar for plugin state changes (until we have a push mechanism)
 let pluginPollTimer: ReturnType<typeof setInterval> | null = null;
 let updatePollCounter = 0;
+let lastUpdatePayload = "";
 
 function startPluginPolling(): void {
   if (pluginPollTimer) return;
@@ -399,7 +400,9 @@ function startPluginPolling(): void {
           const updateRes = await fetch(`http://localhost:${port}/plugins/updates`);
           if (updateRes.ok) {
             const { updates } = (await updateRes.json()) as { updates: PluginUpdateInfo[] };
-            if (updates.length > 0) {
+            const payload = JSON.stringify(updates);
+            if (payload !== lastUpdatePayload) {
+              lastUpdatePayload = payload;
               for (const win of BrowserWindow.getAllWindows()) {
                 if (!win.isDestroyed()) {
                   win.webContents.send("plugins:updates-available", updates);

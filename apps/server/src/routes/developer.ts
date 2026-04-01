@@ -243,6 +243,7 @@ export const developerRoutes = new Elysia({ prefix: "/api/developer" })
         id: pluginRegistry.id,
         authorUserId: pluginRegistry.authorUserId,
         published: pluginRegistry.published,
+        version: pluginRegistry.version,
       })
       .from(pluginRegistry)
       .where(eq(pluginRegistry.id, params.pluginId))
@@ -251,6 +252,18 @@ export const developerRoutes = new Elysia({ prefix: "/api/developer" })
     if (!plugin) throw new NotFoundError("Plugin");
     if (plugin.authorUserId !== sessionUser.id) throw new ForbiddenError("Not your plugin");
     if (!plugin.published) throw new ForbiddenError("Cannot push versions to unpublished plugins");
+
+    // Prevent same-version or downgrade pushes
+    const newParts = data.version.split(".").map(Number);
+    const curParts = plugin.version.split(".").map(Number);
+    let isNewer = false;
+    for (let i = 0; i < 3; i++) {
+      if ((newParts[i] ?? 0) > (curParts[i] ?? 0)) { isNewer = true; break; }
+      if ((newParts[i] ?? 0) < (curParts[i] ?? 0)) break;
+    }
+    if (!isNewer) {
+      throw new ValidationError(`Version ${data.version} must be greater than current version ${plugin.version}`);
+    }
 
     const updates: Record<string, unknown> = {
       version: data.version,

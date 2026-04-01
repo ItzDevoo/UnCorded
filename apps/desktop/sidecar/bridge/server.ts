@@ -137,6 +137,10 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
       }
       console.error("[bridge] Auth token received");
       options.plugins.setApiToken(token);
+
+      // Trigger plugin update check now that auth is available
+      import("../index").then((m) => m.runUpdateCheck()).catch(() => {});
+
       return { success: true };
     })
 
@@ -163,9 +167,19 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
         });
       }
 
-      const result = await options.plugins.update(params.id, update.manifest);
+      let result: { errors?: string[] };
+      try {
+        result = await options.plugins.update(params.id, update.manifest);
+      } catch (err) {
+        reinsertPendingUpdate(update);
+        const message = err instanceof Error ? err.message : "Unknown error";
+        throw new Response(JSON.stringify({ error: message }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
       if (result.errors && result.errors.length > 0) {
-        // Re-insert so the user can retry
         reinsertPendingUpdate(update);
         throw new Response(JSON.stringify({ error: result.errors.join(", ") }), {
           status: 500,

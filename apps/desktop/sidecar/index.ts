@@ -67,31 +67,43 @@ export function reinsertPendingUpdate(update: UpdateInfo): void {
   }
 }
 
-const apiBaseUrl = plugins.getApiBaseUrl();
-const apiToken = plugins.getApiToken();
-if (apiBaseUrl && apiToken) {
-  checkForUpdates(plugins, apiBaseUrl, apiToken)
-    .then(async (updates) => {
-      const autoUpdates = updates.filter((u) => u.updateType !== "major");
-      const majorUpdates = updates.filter((u) => u.updateType === "major");
+let updateCheckRunning = false;
 
-      if (autoUpdates.length > 0) {
-        const result = await applyAutoUpdates(plugins, autoUpdates);
-        if (result.applied.length > 0) {
-          console.error(`[update-checker] Auto-updated: ${result.applied.join(", ")}`);
-        }
-        if (result.skipped.length > 0) {
-          console.error(`[update-checker] Skipped: ${result.skipped.join(", ")}`);
-        }
-      }
+export async function runUpdateCheck(): Promise<void> {
+  const apiBaseUrl = plugins.getApiBaseUrl();
+  const apiToken = plugins.getApiToken();
+  if (!apiBaseUrl || !apiToken) return;
+  if (updateCheckRunning) return;
+  updateCheckRunning = true;
 
-      pendingMajorUpdates = majorUpdates;
-      if (majorUpdates.length > 0) {
-        console.error(`[update-checker] Major updates available: ${majorUpdates.map((u) => `${u.pluginId}@${u.availableVersion}`).join(", ")}`);
+  try {
+    const updates = await checkForUpdates(plugins, apiBaseUrl, apiToken);
+    const autoUpdates = updates.filter((u) => u.updateType !== "major");
+    const majorUpdates = updates.filter((u) => u.updateType === "major");
+
+    if (autoUpdates.length > 0) {
+      const result = await applyAutoUpdates(plugins, autoUpdates);
+      if (result.applied.length > 0) {
+        console.error(`[update-checker] Auto-updated: ${result.applied.join(", ")}`);
       }
-    })
-    .catch((err) => console.error("[update-checker] Update check failed:", err));
+      if (result.skipped.length > 0) {
+        console.error(`[update-checker] Skipped: ${result.skipped.join(", ")}`);
+      }
+    }
+
+    pendingMajorUpdates = majorUpdates;
+    if (majorUpdates.length > 0) {
+      console.error(`[update-checker] Major updates available: ${majorUpdates.map((u) => `${u.pluginId}@${u.availableVersion}`).join(", ")}`);
+    }
+  } catch (err) {
+    console.error("[update-checker] Update check failed:", err);
+  } finally {
+    updateCheckRunning = false;
+  }
 }
+
+// Run immediately if token is already available (e.g. from gateway-token.txt)
+runUpdateCheck();
 
 // --- Graceful shutdown ---
 

@@ -74,6 +74,7 @@ const ServerView = () => {
       port: 0,
       scope: "server",
       tunnelUrl: sp.tunnelUrl,
+      ready: sp.state === "active",
       permissions: [],
     };
   };

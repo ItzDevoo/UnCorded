@@ -46,6 +46,11 @@ export function updateAllowedOrigins(list: PluginInfo[]): void {
   for (const p of list) {
     if (p.status === "running") {
       allowedOrigins.set(`http://localhost:${p.port}`, p.id);
+      if (p.tunnelUrl) {
+        try {
+          allowedOrigins.set(new URL(p.tunnelUrl).origin, p.id);
+        } catch { /* invalid tunnel URL — skip */ }
+      }
     }
   }
 }
@@ -265,7 +270,15 @@ export function broadcastToPlugins(eventName: string, data: unknown, requiredPer
 
     if (requiredPermission && !plugin.permissions.includes(requiredPermission)) continue;
 
-    const origin = `http://localhost:${plugin.port}`;
+    // Derive origin from the iframe's actual src (handles both localhost and tunnel URLs).
+    // Guard against race where src hasn't been set yet on initial render.
+    const src = iframe.getAttribute("src");
+    if (!src) continue;
+    let origin: string;
+    try {
+      origin = new URL(src).origin;
+    } catch { continue; }
+
     const msg: PluginEvent = { type: "uncorded:event", event: eventName, data };
     iframe.contentWindow?.postMessage(msg, origin);
   }

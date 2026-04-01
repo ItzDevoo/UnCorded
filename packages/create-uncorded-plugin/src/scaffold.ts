@@ -67,11 +67,17 @@ export function scaffold(targetDir: string, answers: PluginAnswers): void {
   writeFileSync(join(targetDir, "tsconfig.json"), tsconfig);
 
   // Dockerfile
-  const dockerfile = readTemplate("Dockerfile.tmpl");
+  const isBundled = answers.pluginType === "bundled";
+  const dockerfileTemplate = isBundled ? "bundled/Dockerfile.tmpl" : "Dockerfile.tmpl";
+  const dockerfile = readTemplate(dockerfileTemplate);
   writeFileSync(join(targetDir, "Dockerfile"), replaceVars(dockerfile, vars));
 
   // src/server.ts
-  const serverTs = readTemplate("server.ts.tmpl");
+  const serverTemplate = isBundled ? "bundled/server.ts.tmpl" : "server.ts.tmpl";
+  if (isBundled && answers.internalPort !== undefined) {
+    vars.internalPort = String(answers.internalPort);
+  }
+  const serverTs = readTemplate(serverTemplate);
   writeFileSync(join(targetDir, "src/server.ts"), replaceVars(serverTs, vars));
 
   // src/index.html (if UI)

@@ -4,6 +4,10 @@ const HEALTH_CHECK_INTERVAL_MS = 10_000;
 const MAX_CONSECUTIVE_FAILURES = 3;
 const MAX_AUTO_RESTARTS = 3;
 
+const READINESS_INITIAL_INTERVAL_MS = 500;
+const READINESS_MAX_INTERVAL_MS = 4_000;
+const READINESS_TIMEOUT_MS = 60_000;
+
 interface HealthState {
   containerId: string;
   pluginId: string;
@@ -16,11 +20,13 @@ interface HealthState {
 }
 
 type StatusChangeHandler = (pluginId: string, status: "healthy" | "unhealthy" | "crashed") => void;
+type ReadyChangeHandler = (pluginId: string, ready: boolean) => void;
 
 export class HealthMonitor {
   private states = new Map<string, HealthState>();
   private docker: DockerManager;
   private onStatusChange: StatusChangeHandler | null = null;
+  private onReadyChange: ReadyChangeHandler | null = null;
 
   constructor(docker: DockerManager) {
     this.docker = docker;
@@ -28,6 +34,10 @@ export class HealthMonitor {
 
   setStatusChangeHandler(handler: StatusChangeHandler): void {
     this.onStatusChange = handler;
+  }
+
+  setReadyChangeHandler(handler: ReadyChangeHandler): void {
+    this.onReadyChange = handler;
   }
 
   startMonitoring(
@@ -49,16 +59,75 @@ export class HealthMonitor {
       timer: null,
     };
 
-    // Use recursive setTimeout to prevent overlapping checks
+    this.states.set(pluginId, state);
+
+    // Phase 1: readiness polling with exponential backoff, then phase 2: health checks
+    this.pollReadiness(state, READINESS_INITIAL_INTERVAL_MS, Date.now());
+  }
+
+  private pollReadiness(state: HealthState, interval: number, startedAt: number): void {
+    if (!this.states.has(state.pluginId)) return;
+
+    state.timer = setTimeout(async () => {
+      if (!this.states.has(state.pluginId)) return;
+
+      const elapsed = Date.now() - startedAt;
+      if (elapsed >= READINESS_TIMEOUT_MS) {
+        console.error(`[health] Plugin ${state.pluginId} readiness timed out after ${READINESS_TIMEOUT_MS}ms — marking ready anyway`);
+        this.onReadyChange?.(state.pluginId, true);
+        this.startHealthChecks(state);
+        return;
+      }
+
+      try {
+        const url = `http://127.0.0.1:${state.hostPort}/ready`;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5_000);
+
+        try {
+          const response = await fetch(url, { signal: controller.signal });
+          clearTimeout(timeout);
+
+          if (response.ok) {
+            // 200 — plugin is ready
+            this.onReadyChange?.(state.pluginId, true);
+            this.startHealthChecks(state);
+            return;
+          }
+
+          if (response.status === 404) {
+            // No /ready endpoint — backward compat, treat as ready
+            console.error(
+              `[health] Plugin ${state.pluginId} has no /ready endpoint — treating as ready. This fallback will be required in SDK v2.`,
+            );
+            this.onReadyChange?.(state.pluginId, true);
+            this.startHealthChecks(state);
+            return;
+          }
+
+          // 503 or other — keep polling
+        } catch {
+          clearTimeout(timeout);
+          // Network error (container still booting) — keep polling
+        }
+      } catch {
+        // Outer catch for unexpected errors — keep polling
+      }
+
+      const nextInterval = Math.min(interval * 2, READINESS_MAX_INTERVAL_MS);
+      this.pollReadiness(state, nextInterval, startedAt);
+    }, interval);
+  }
+
+  private startHealthChecks(state: HealthState): void {
     const scheduleNext = () => {
-      if (!this.states.has(pluginId)) return;
+      if (!this.states.has(state.pluginId)) return;
       state.timer = setTimeout(async () => {
         await this.check(state);
         scheduleNext();
       }, HEALTH_CHECK_INTERVAL_MS);
     };
 
-    this.states.set(pluginId, state);
     scheduleNext();
   }
 

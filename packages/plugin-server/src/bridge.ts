@@ -22,6 +22,9 @@ export class UnCordedBridge {
   /** KV storage API. */
   readonly storage: BridgeStorage;
 
+  /** Tunnel URL injected at container creation (synchronous access). */
+  readonly tunnelUrl: string | null = process.env["UNCORDED_TUNNEL_URL"] ?? null;
+
   constructor(options?: BridgeOptions) {
     const baseUrl = options?.baseUrl ?? process.env["UNCORDED_BRIDGE_URL"];
     const token = options?.token ?? process.env["UNCORDED_BRIDGE_TOKEN"];
@@ -165,5 +168,11 @@ export class UnCordedBridge {
   async getConfig(): Promise<Record<string, unknown>> {
     const body = await this.#get<{ config: Record<string, unknown> }>("/bridge/config");
     return body.config;
+  }
+
+  /** Fetch this plugin's tunnel URL from the sidecar bridge (runtime query). */
+  async getTunnelUrl(): Promise<string | null> {
+    const body = await this.#get<{ tunnelUrl: string | null }>("/bridge/tunnel");
+    return body.tunnelUrl;
   }
 }

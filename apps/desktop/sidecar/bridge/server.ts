@@ -40,6 +40,7 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
         header: false,
         rightPanel: false,
         status: p.state === "installed" ? "stopped" : p.state,
+        ready: p.ready,
         port: p.hostPort ?? 0,
         scope: p.scope,
         tunnelUrl: p.tunnelUrl,

@@ -22,6 +22,8 @@ export interface PluginAnswers {
   permissions: string[];
   port: number;
   uiType: "panel" | "page" | "both" | "none";
+  pluginType: "standard" | "bundled";
+  internalPort?: number;
 }
 
 function ask(rl: readline.Interface, question: string): Promise<string> {
@@ -100,6 +102,28 @@ function askPort(rl: readline.Interface): Promise<number> {
   });
 }
 
+function askInternalPort(rl: readline.Interface): Promise<number> {
+  return new Promise((resolve) => {
+    const prompt = (): void => {
+      rl.question("Internal service port (default 3001): ", (answer) => {
+        const trimmed = answer.trim();
+        if (trimmed === "") {
+          resolve(3001);
+          return;
+        }
+        const parsed = parseInt(trimmed, 10);
+        if (Number.isInteger(parsed) && parsed >= 1 && parsed <= 65535) {
+          resolve(parsed);
+        } else {
+          console.log("Invalid port. Enter a number between 1 and 65535.");
+          prompt();
+        }
+      });
+    };
+    prompt();
+  });
+}
+
 export async function runPrompts(defaultName?: string): Promise<PluginAnswers> {
   const rl = readline.createInterface({
     input: process.stdin,
@@ -114,8 +138,17 @@ export async function runPrompts(defaultName?: string): Promise<PluginAnswers> {
     const permissions = await askMultiChoice(rl, "Permissions:", [...KNOWN_PERMISSIONS]);
     const port = await askPort(rl);
     const uiType = (await askChoice(rl, "UI type:", ["panel", "page", "both", "none"])) as PluginAnswers["uiType"];
+    const pluginType = (await askChoice(rl, "Plugin type:", ["standard", "bundled"])) as PluginAnswers["pluginType"];
 
-    return { name, description, author, scope, permissions, port, uiType };
+    let internalPort: number | undefined;
+    if (pluginType === "bundled") {
+      internalPort = await askInternalPort(rl);
+    }
+
+    return {
+      name, description, author, scope, permissions, port, uiType, pluginType,
+      ...(internalPort !== undefined ? { internalPort } : {}),
+    };
   } finally {
     rl.close();
   }

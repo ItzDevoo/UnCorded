@@ -18,6 +18,12 @@ const PluginFrame = (props: PluginFrameProps) => {
 
   const isStarting = () => props.plugin.status === "starting";
 
+  // Plugin is running but its service isn't ready yet (readiness polling in progress)
+  const isWaitingForReady = () =>
+    props.plugin.status === "running" &&
+    props.plugin.ready !== undefined &&
+    props.plugin.ready === false;
+
   const handleLoad = () => {
     setLoading(false);
     setError(false);
@@ -103,8 +109,18 @@ const PluginFrame = (props: PluginFrameProps) => {
         </div>
       </Show>
 
+      {/* Readiness state — running but service not ready yet */}
+      <Show when={isWaitingForReady() && !error()}>
+        <div class="flex flex-1 items-center justify-center">
+          <div class="flex animate-fade-in flex-col items-center gap-3">
+            <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <p class="text-muted-foreground">Starting up {props.plugin.name}...</p>
+          </div>
+        </div>
+      </Show>
+
       {/* Loading overlay */}
-      <Show when={loading() && props.plugin.status === "running"}>
+      <Show when={loading() && props.plugin.status === "running" && !isWaitingForReady()}>
         <div class="absolute inset-0 z-10 flex items-center justify-center bg-background">
           <div class="flex animate-fade-in flex-col items-center gap-3">
             <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -121,8 +137,8 @@ const PluginFrame = (props: PluginFrameProps) => {
         />
       </Show>
 
-      {/* iframe — only render when plugin is running and URL is available */}
-      <Show when={(props.plugin.status === "running" || props.tunnelUrl) && !error() && !isOffline()}>
+      {/* iframe — only render when plugin is running, ready, and URL is available */}
+      <Show when={(props.plugin.status === "running" || props.tunnelUrl) && !error() && !isOffline() && (props.plugin.ready === undefined || props.plugin.ready)}>
         <iframe
           src={iframeUrl()!}
           sandbox="allow-scripts allow-forms allow-popups"

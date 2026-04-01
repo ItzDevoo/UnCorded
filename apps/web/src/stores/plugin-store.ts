@@ -11,6 +11,7 @@ export interface PluginInfo {
   header: boolean;
   rightPanel: boolean;
   status: "running" | "stopped" | "crashed" | "starting";
+  ready: boolean;
   port: number;
   scope: "server" | "personal";
   tunnelUrl: string | null;
@@ -125,6 +126,18 @@ if (import.meta.hot) {
   import.meta.hot.dispose(() => teardown());
 }
 
+// ── Asset URL resolution ──────────────────────────────────────────────────
+
+/**
+ * Resolve a plugin-relative path to a full URL.
+ * Central contract — all renderers use this instead of reimplementing URL logic.
+ */
+function resolvePluginAssetUrl(plugin: PluginInfo, path: string): string {
+  const base = (plugin.tunnelUrl ?? `http://localhost:${plugin.port}`).replace(/\/+$/, "");
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return `${base}${normalized}`;
+}
+
 // ── Exports ────────────────────────────────────────────────────────────────
 
 export {
@@ -144,4 +157,5 @@ export {
   serverPluginsLoading,
   fetchServerPlugins,
   clearServerPlugins,
+  resolvePluginAssetUrl,
 };

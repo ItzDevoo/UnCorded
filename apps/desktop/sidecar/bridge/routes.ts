@@ -63,6 +63,13 @@ export function createRoutes(deps: RouteDeps) {
 
   return new Elysia({ prefix: "/bridge" })
 
+    // --- Tunnel URL ---
+    .get("/tunnel", (ctx) => {
+      const plugin = (ctx as unknown as { plugin: PluginContext }).plugin;
+      const record = deps.plugins.get(plugin.pluginId);
+      return { tunnelUrl: record?.tunnelUrl ?? null };
+    })
+
     // --- Server info ---
     .get("/server", (ctx) => {
       const plugin = (ctx as unknown as { plugin: PluginContext }).plugin;

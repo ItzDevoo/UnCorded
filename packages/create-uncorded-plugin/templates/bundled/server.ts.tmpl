@@ -1,0 +1,48 @@
+import { createBundledService, createReadinessCheck } from "@uncorded/plugin-server";
+import { UnCordedBridge } from "@uncorded/plugin-server";
+
+const bridge = new UnCordedBridge();
+
+// Start the bundled service process.
+// Replace the command with your actual service binary/script.
+const service = createBundledService({
+  command: ["echo", "Replace with your service command"],
+  port: {{internalPort}},
+  proxyPath: "/service",
+  rewriteUrls: true,
+});
+
+const readiness = createReadinessCheck([() => service.ready()]);
+
+const server = Bun.serve({
+  port: {{port}},
+  async fetch(req) {
+    const url = new URL(req.url);
+
+    // Liveness — confirms the plugin process is running
+    if (url.pathname === "/health") {
+      return new Response("ok");
+    }
+
+    // Readiness — confirms the bundled service is accepting connections
+    if (url.pathname === "/ready") {
+      return readiness();
+    }
+
+    // Proxy all /service/* requests to the bundled service
+    if (url.pathname.startsWith("/service")) {
+      const proxied = await service.handler(req);
+      if (proxied) return proxied;
+    }
+
+    // Example: fetch server info from the bridge
+    if (url.pathname === "/api/server") {
+      const info = await bridge.getServer();
+      return Response.json(info);
+    }
+
+    return new Response("Not Found", { status: 404 });
+  },
+});
+
+console.log(`{{name}} running on http://localhost:${server.port}`);

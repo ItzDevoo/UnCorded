@@ -20,6 +20,7 @@ interface PluginRecord {
   state: PluginState;
   hostPort: number | null;
   bridgeToken: string | null;
+  ready: boolean;
   tunnelUrl: string | null;
   previouslyRunning: boolean;
   installedAt: string;
@@ -61,11 +62,19 @@ export class PluginLifecycle {
 
       if (status === "crashed") {
         plugin.state = "crashed";
+        plugin.ready = false;
         plugin.previouslyRunning = false;
         revokePluginTokens(pluginId);
         this.resources.release(plugin.manifest.resources ?? {});
         this.saveState();
       }
+    });
+
+    this.health.setReadyChangeHandler((pluginId, ready) => {
+      const plugin = this.plugins.get(pluginId);
+      if (!plugin) return;
+      plugin.ready = ready;
+      this.saveState();
     });
 
     this.loadState();
@@ -143,6 +152,7 @@ export class PluginLifecycle {
         state: "installed",
         hostPort: null,
         bridgeToken,
+        ready: false,
         tunnelUrl: null,
         previouslyRunning: false,
         installedAt: new Date().toISOString(),
@@ -167,6 +177,7 @@ export class PluginLifecycle {
     }
 
     plugin.state = "starting";
+    plugin.ready = false;
     this.saveState();
 
     // Token is baked into the container env at create time — re-register it in
@@ -254,6 +265,7 @@ export class PluginLifecycle {
       serverId: plugin.serverId,
       bridgeUrl: `http://host.docker.internal:${this.getBridgePort()}`,
       bridgeToken,
+      tunnelUrl: plugin.tunnelUrl ?? undefined,
       env: m.env,
       resources: m.resources,
       healthCheckPath: m.runtime.healthCheck,
@@ -295,6 +307,7 @@ export class PluginLifecycle {
     }
 
     plugin.state = "stopped";
+    plugin.ready = false;
     plugin.previouslyRunning = false;
     plugin.hostPort = null;
     this.saveState();
@@ -535,6 +548,8 @@ export class PluginLifecycle {
           // Backwards compat: default missing scope/tunnelUrl for pre-scope installs
           if (!record.scope) record.scope = "personal";
           if (record.tunnelUrl === undefined) record.tunnelUrl = null;
+          // ready is runtime state, always start as false
+          record.ready = false;
           this.plugins.set(id, record);
         }
         console.error(`[lifecycle] Loaded ${this.plugins.size} plugins from state`);

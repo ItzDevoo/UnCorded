@@ -1,0 +1,22 @@
+FROM oven/bun:1-alpine AS build
+WORKDIR /app
+COPY package.json bun.lock* ./
+RUN bun install --frozen-lockfile || bun install
+COPY . .
+
+# --- Install your bundled service here ---
+# Example: RUN apk add --no-cache hedgedoc
+# Or copy a pre-built binary:
+# COPY --from=service-builder /app/bin /usr/local/bin/
+
+FROM oven/bun:1-alpine
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+WORKDIR /app
+COPY --from=build /app .
+# --- Copy your service binaries here if needed ---
+RUN mkdir -p /app/data && chown -R appuser:appgroup /app
+EXPOSE {{port}}
+USER appuser
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD wget -qO- http://localhost:{{port}}/health || exit 1
+CMD ["bun", "run", "src/server.ts"]

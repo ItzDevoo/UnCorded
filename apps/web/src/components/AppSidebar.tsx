@@ -47,6 +47,7 @@ import {
   setActiveServerPluginId,
   fetchServerPlugins,
   clearServerPlugins,
+  resolvePluginAssetUrl,
 } from "../stores/plugin-store.js";
 import SupportSheet from "./SupportSheet.js";
 import { showToast } from "./ui/toast.js";
@@ -540,7 +541,20 @@ const AppSidebar = () => {
                                 </svg>
                               }
                             >
-                              <span class="text-sm">{plugin.icon}</span>
+                              <Show
+                                when={plugin.icon!.startsWith("/")}
+                                fallback={<span class="text-sm">{plugin.icon}</span>}
+                              >
+                                <img
+                                  src={resolvePluginAssetUrl(plugin, plugin.icon!)}
+                                  alt=""
+                                  class="h-4 w-4"
+                                  onError={(e) => {
+                                    // Fallback to generic icon on load failure
+                                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                                  }}
+                                />
+                              </Show>
                             </Show>
                             <span
                               class={`absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 rounded-full ${statusColor()}`}

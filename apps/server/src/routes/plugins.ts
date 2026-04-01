@@ -1,6 +1,8 @@
 import { Elysia } from "elysia";
 import { eq, and, sql, desc, inArray } from "drizzle-orm";
 import { NotFoundError, RateLimitError } from "@uncorded/shared";
+import { z } from "zod";
+import { validateInput } from "../helpers/validation.js";
 import { db } from "../db/index.js";
 import { pluginRegistry, pluginInstalls, bots, user } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
@@ -301,26 +303,19 @@ export const pluginRoutes = new Elysia({ prefix: "/api/plugins" })
       throw new RateLimitError("Too many requests, try again later");
     }
 
-    const parsed = body as { plugins?: unknown[] } | null;
-    if (!parsed?.plugins || !Array.isArray(parsed.plugins) || parsed.plugins.length === 0) {
-      return { updates: [] };
-    }
+    const checkUpdatesSchema = z.object({
+      plugins: z.array(
+        z.object({
+          id: z.string().min(1),
+          version: z.string().min(1),
+        }),
+      ).max(50),
+    });
 
-    // Validate and filter entries — only keep objects with string id and version
-    const validEntries: { id: string; version: string }[] = [];
-    for (const entry of parsed.plugins.slice(0, 50)) {
-      if (
-        entry && typeof entry === "object" &&
-        "id" in entry && typeof (entry as Record<string, unknown>).id === "string" &&
-        "version" in entry && typeof (entry as Record<string, unknown>).version === "string"
-      ) {
-        validEntries.push(entry as { id: string; version: string });
-      }
-    }
+    const { plugins } = validateInput(checkUpdatesSchema, body);
+    if (plugins.length === 0) return { updates: [] };
 
-    if (validEntries.length === 0) return { updates: [] };
-
-    const input = validEntries;
+    const input = plugins;
     const ids = input.map((p) => p.id);
 
     const rows = await db

@@ -37,6 +37,11 @@ interface PendingDeletion {
   status: DeletionStatus;
 }
 
+/**
+ * In-memory pending deletions. Trade-off: if the server restarts during the
+ * 10-second countdown, the deletion is silently cancelled. Acceptable for
+ * single-server deployment. For multi-instance, move to Redis with TTL.
+ */
 const pendingDeletions = new Map<string, PendingDeletion>();
 
 function executeDeletion(targetUserId: string, avatarUrl: string | null) {

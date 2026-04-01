@@ -188,11 +188,11 @@ async function handleSubscriptionUpdated(sub: Stripe.Subscription) {
 
   await db.transaction(async (tx) => {
     await tx.update(subscriptions).set(updateData).where(eq(subscriptions.id, existing.id));
-  });
 
-  // Compute effective tier considering gifted subscriptions
-  const userTier = status === "active" && tier ? tier : await computeEffectiveTier(existing.userId);
-  await db.update(user).set({ subscriptionTier: userTier }).where(eq(user.id, existing.userId));
+    // Compute effective tier considering gifted subscriptions
+    const userTier = status === "active" && tier ? tier : await computeEffectiveTier(existing.userId);
+    await tx.update(user).set({ subscriptionTier: userTier }).where(eq(user.id, existing.userId));
+  });
 
   disconnectUser(existing.userId);
 }

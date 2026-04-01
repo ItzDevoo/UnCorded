@@ -28,6 +28,15 @@ export interface ContainerStatus {
   startedAt: string | null;
 }
 
+const DOCKER_NOT_RUNNING = "Docker is not running. Please start Docker Desktop and try again.";
+
+function isConnectionError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const msg = err.message.toLowerCase();
+  return msg.includes("econnrefused") || msg.includes("enoent") || msg.includes("epipe")
+    || msg.includes("typo in the url") || msg.includes("connect econnreset");
+}
+
 export class DockerManager {
   private docker: Dockerode;
   private dataDir: string;
@@ -68,7 +77,13 @@ export class DockerManager {
       return;
     }
 
-    const stream = await this.docker.pull(image);
+    let stream: NodeJS.ReadableStream;
+    try {
+      stream = await this.docker.pull(image);
+    } catch (err) {
+      if (isConnectionError(err)) throw new Error(DOCKER_NOT_RUNNING);
+      throw err;
+    }
     return new Promise((resolve, reject) => {
       this.docker.modem.followProgress(
         stream,
@@ -117,26 +132,37 @@ export class DockerManager {
       SecurityOpt: ["no-new-privileges"],
     };
 
-    const container = await this.docker.createContainer({
-      Image: config.image,
-      Env: envArray,
-      Labels: {
-        "uncorded.plugin.id": config.pluginId,
-        "uncorded.plugin.server": config.serverId,
-        "uncorded.managed": "true",
-      },
-      ExposedPorts: {
-        [`${config.containerPort}/tcp`]: {},
-      },
-      HostConfig: hostConfig,
-    });
+    let container: Dockerode.Container;
+    try {
+      container = await this.docker.createContainer({
+        Image: config.image,
+        Env: envArray,
+        Labels: {
+          "uncorded.plugin.id": config.pluginId,
+          "uncorded.plugin.server": config.serverId,
+          "uncorded.managed": "true",
+        },
+        ExposedPorts: {
+          [`${config.containerPort}/tcp`]: {},
+        },
+        HostConfig: hostConfig,
+      });
+    } catch (err) {
+      if (isConnectionError(err)) throw new Error(DOCKER_NOT_RUNNING);
+      throw err;
+    }
 
     return container.id;
   }
 
   async startContainer(containerId: string): Promise<void> {
     const container = this.docker.getContainer(containerId);
-    await container.start();
+    try {
+      await container.start();
+    } catch (err) {
+      if (isConnectionError(err)) throw new Error(DOCKER_NOT_RUNNING);
+      throw err;
+    }
   }
 
   async stopContainer(containerId: string, timeoutSeconds = 10): Promise<void> {

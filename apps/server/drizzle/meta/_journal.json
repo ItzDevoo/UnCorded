@@ -134,6 +134,13 @@
       "when": 1743436800000,
       "tag": "0018_plugin_submissions",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1743523200000,
+      "tag": "0019_tunnel_url_https_constraint",
+      "breakpoints": true
     }
   ]
 }

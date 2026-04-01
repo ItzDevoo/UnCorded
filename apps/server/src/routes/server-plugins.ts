@@ -36,6 +36,11 @@ const updateTunnelSchema = z.object({
   state: z.string().optional(),
 });
 
+function normalizeTunnelUrl(url: string | null): string | null {
+  if (!url) return null;
+  return url.startsWith("https://") ? url : null;
+}
+
 function safeJsonParse(value: string | null): Record<string, unknown> {
   if (!value) return {};
   try {
@@ -210,7 +215,7 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
       throw new NotFoundError("Server plugin");
     }
 
-    return { tunnelUrl: row.tunnelUrl, state: row.state };
+    return { tunnelUrl: normalizeTunnelUrl(row.tunnelUrl), state: row.state };
   })
 
   // ── PUT /:pluginId/tunnel — update tunnel URL (owner, called by sidecar)

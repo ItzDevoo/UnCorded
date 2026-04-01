@@ -2,6 +2,14 @@ import { Lexer, type Token, type Tokens } from "marked";
 import { For, Show } from "solid-js";
 import type { JSX } from "solid-js";
 
+function sanitizeUrl(url: string): string {
+  try {
+    const parsed = new URL(url, "https://placeholder.invalid");
+    if (["http:", "https:", "mailto:"].includes(parsed.protocol)) return url;
+  } catch { /* invalid URL */ }
+  return "#";
+}
+
 function renderInlineTokens(tokens: Token[]): JSX.Element {
   return <For each={tokens}>{(t) => renderToken(t)}</For>;
 }
@@ -29,7 +37,7 @@ function renderToken(token: Token): JSX.Element {
     case "link":
       return (
         <a
-          href={(token as Tokens.Link).href}
+          href={sanitizeUrl((token as Tokens.Link).href)}
           target="_blank"
           rel="noopener noreferrer"
           class="text-primary underline underline-offset-2 hover:text-primary/80"

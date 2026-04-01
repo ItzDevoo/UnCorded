@@ -28,9 +28,23 @@ const updatePluginSchema = z.object({
 });
 
 const updateTunnelSchema = z.object({
-  tunnelUrl: z.string().nullable(),
+  tunnelUrl: z
+    .string()
+    .url()
+    .refine((u) => u.startsWith("https://"), { message: "tunnelUrl must use https://" })
+    .nullable(),
   state: z.string().optional(),
 });
+
+function normalizeTunnelUrl(url: string | null): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" ? url : null;
+  } catch {
+    return null;
+  }
+}
 
 function safeJsonParse(value: string | null): Record<string, unknown> {
   if (!value) return {};
@@ -189,7 +203,12 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
   })
 
   // ── GET /:pluginId/tunnel — get tunnel URL (any member) ────────────────
-  .get("/:pluginId/tunnel", async ({ user: sessionUser, params }) => {
+  .get("/:pluginId/tunnel", async ({ user: sessionUser, params, request }) => {
+    const ip = getClientIp(request);
+    if (!(await checkIpRateLimit(ip, 30, 60_000, RL.SERVER_PLUGIN_TUNNEL_READ))) {
+      throw new RateLimitError("Too many requests, try again later");
+    }
+
     await requireMember(sessionUser.id, params.serverId);
 
     const [row] = await db
@@ -206,7 +225,7 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
       throw new NotFoundError("Server plugin");
     }
 
-    return { tunnelUrl: row.tunnelUrl, state: row.state };
+    return { tunnelUrl: normalizeTunnelUrl(row.tunnelUrl), state: row.state };
   })
 
   // ── PUT /:pluginId/tunnel — update tunnel URL (owner, called by sidecar)

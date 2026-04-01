@@ -28,13 +28,17 @@ export function createApiClient(
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
 
+    const headers: Record<string, string> = {
+      Cookie: `__Secure-uncorded.session_token=${token}`,
+    };
+    if (body !== undefined) {
+      headers["Content-Type"] = "application/json";
+    }
+
     try {
       const res = await fetch(`${baseUrl}${path}`, {
         method,
-        headers: {
-          "Content-Type": "application/json",
-          Cookie: `__Secure-uncorded.session_token=${token}`,
-        },
+        headers,
         body: body !== undefined ? JSON.stringify(body) : null,
         signal: controller.signal,
       });

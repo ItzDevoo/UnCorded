@@ -14,12 +14,26 @@ import { lookupDmChannel, addDmChannelToCache } from "./channel-cache.js";
 /** userId → set of active WebSocket connections (supports multiple tabs) */
 export const clients = new Map<string, Set<AnyServerWebSocket>>();
 
+const MAX_CONNECTIONS_PER_USER = 10;
+
 export function addConnection(userId: string, ws: AnyServerWebSocket): void {
   let set = clients.get(userId);
   if (!set) {
     set = new Set();
     clients.set(userId, set);
   }
+
+  // Enforce per-user connection cap — close oldest if at limit
+  if (set.size >= MAX_CONNECTIONS_PER_USER) {
+    const oldest = set.values().next().value;
+    if (oldest) {
+      try {
+        oldest.close(4008, "Too many connections");
+      } catch { /* already closed */ }
+      set.delete(oldest);
+    }
+  }
+
   set.add(ws);
 }
 

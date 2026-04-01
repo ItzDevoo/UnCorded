@@ -34,6 +34,26 @@ interface FileSession {
 
 const activeSessions = new Map<string, FileSession>();
 
+const FILE_SESSION_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+// Periodic sweep for stale file sessions
+const sweepTimer = setInterval(() => {
+  const now = Date.now();
+  for (const [id, session] of activeSessions) {
+    if (now - session.createdAt.getTime() > FILE_SESSION_TTL_MS) {
+      // Notify participants before cleanup
+      for (const participantId of session.participants) {
+        sendToUser(participantId, {
+          op: Opcode.FILE_SESSION_CLOSE,
+          d: { sessionId: id },
+        });
+      }
+      activeSessions.delete(id);
+    }
+  }
+}, 5 * 60 * 1000); // Sweep every 5 minutes
+sweepTimer.unref();
+
 // ── Handlers ────────────────────────────────────────────────────────────────
 
 export async function handleFileSessionCreate(

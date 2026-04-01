@@ -277,7 +277,7 @@ export const presenceUpdateEventSchema = z.object({
 
 /** Client → Server: create a share session */
 export const fileSessionCreateRequestSchema = z.object({
-  sessionId: z.string().min(1),
+  sessionId: z.string().min(1).max(36),
   fileName: z.string().min(1).max(MAX_FILE_NAME_LENGTH),
   fileSize: z.number().int().positive().max(MAX_FILE_SIZE_BYTES),
   contentType: z.string().min(1).max(MAX_CONTENT_TYPE_LENGTH),
@@ -288,29 +288,29 @@ export const fileSessionCreateRequestSchema = z.object({
 
 /** Client → Server: join a session */
 export const fileSessionJoinRequestSchema = z.object({
-  sessionId: z.string().min(1),
+  sessionId: z.string().min(1).max(36),
 });
 
 /** Client → Server: report download progress */
 export const fileSessionProgressRequestSchema = z.object({
-  sessionId: z.string().min(1),
+  sessionId: z.string().min(1).max(36),
   progress: z.number().min(0).max(1),
   speed: z.number().nonnegative(),
 });
 
 /** Client → Server: report download complete */
 export const fileSessionCompleteRequestSchema = z.object({
-  sessionId: z.string().min(1),
+  sessionId: z.string().min(1).max(36),
 });
 
 /** Client → Server: close session */
 export const fileSessionCloseRequestSchema = z.object({
-  sessionId: z.string().min(1),
+  sessionId: z.string().min(1).max(36),
 });
 
 /** Client → Server: leave session */
 export const fileSessionLeaveRequestSchema = z.object({
-  sessionId: z.string().min(1),
+  sessionId: z.string().min(1).max(36),
 });
 
 /** Server → Client: session invite */

@@ -393,12 +393,12 @@ function startPluginPolling(): void {
     // Check for plugin updates every ~60s (every 20th poll)
     updatePollCounter++;
     if (updatePollCounter >= 20) {
-      updatePollCounter = 0;
       try {
         const port = sidecar.getPort();
         if (port) {
           const updateRes = await fetch(`http://localhost:${port}/plugins/updates`);
           if (updateRes.ok) {
+            updatePollCounter = 0;
             const { updates } = (await updateRes.json()) as { updates: PluginUpdateInfo[] };
             const payload = JSON.stringify(updates);
             if (payload !== lastUpdatePayload) {
@@ -411,7 +411,7 @@ function startPluginPolling(): void {
             }
           }
         }
-      } catch { /* silently ignore update check failures */ }
+      } catch { /* silently ignore — counter stays high so next poll retries sooner */ }
     }
   }, 3000);
 }

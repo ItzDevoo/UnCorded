@@ -91,7 +91,15 @@ export async function runUpdateCheck(): Promise<void> {
       }
     }
 
-    pendingMajorUpdates = majorUpdates;
+    // Merge new major updates into pending list, preserving user-queued items
+    for (const update of majorUpdates) {
+      const existing = pendingMajorUpdates.findIndex((u) => u.pluginId === update.pluginId);
+      if (existing === -1) {
+        pendingMajorUpdates.push(update);
+      } else if (pendingMajorUpdates[existing]!.availableVersion !== update.availableVersion) {
+        pendingMajorUpdates[existing] = update;
+      }
+    }
     if (majorUpdates.length > 0) {
       console.error(`[update-checker] Major updates available: ${majorUpdates.map((u) => `${u.pluginId}@${u.availableVersion}`).join(", ")}`);
     }

@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { z } from "zod";
 import { NotFoundError, ForbiddenError, ValidationError } from "@uncorded/shared";
 import { db } from "../db/index.js";
@@ -253,26 +253,34 @@ export const developerRoutes = new Elysia({ prefix: "/api/developer" })
     if (plugin.authorUserId !== sessionUser.id) throw new ForbiddenError("Not your plugin");
     if (!plugin.published) throw new ForbiddenError("Cannot push versions to unpublished plugins");
 
-    // Prevent same-version or downgrade pushes
-    const newParts = data.version.split(".").map(Number);
-    const curParts = plugin.version.split(".").map(Number);
-    let isNewer = false;
-    for (let i = 0; i < 3; i++) {
-      if ((newParts[i] ?? 0) > (curParts[i] ?? 0)) { isNewer = true; break; }
-      if ((newParts[i] ?? 0) < (curParts[i] ?? 0)) break;
-    }
-    if (!isNewer) {
-      throw new ValidationError(`Version ${data.version} must be greater than current version ${plugin.version}`);
-    }
-
     const updates: Record<string, unknown> = {
       version: data.version,
-      updatedAt: new Date(),
     };
     if (data.image !== undefined) updates.image = data.image;
     if (data.manifest !== undefined) updates.manifest = data.manifest;
 
-    await db.update(pluginRegistry).set(updates).where(eq(pluginRegistry.id, params.pluginId));
+    // Atomic conditional update — only succeeds if new version > current version
+    // Compares semver parts numerically using SQL to avoid TOCTOU races
+    const [major, minor, patch] = data.version.split(".").map(Number);
+    const result = await db
+      .update(pluginRegistry)
+      .set(updates)
+      .where(and(
+        eq(pluginRegistry.id, params.pluginId),
+        sql`(
+          split_part(${pluginRegistry.version}, '.', 1)::int < ${major!}
+          OR (split_part(${pluginRegistry.version}, '.', 1)::int = ${major!}
+              AND split_part(${pluginRegistry.version}, '.', 2)::int < ${minor!})
+          OR (split_part(${pluginRegistry.version}, '.', 1)::int = ${major!}
+              AND split_part(${pluginRegistry.version}, '.', 2)::int = ${minor!}
+              AND split_part(${pluginRegistry.version}, '.', 3)::int < ${patch!})
+        )`,
+      ))
+      .returning({ id: pluginRegistry.id });
+
+    if (result.length === 0) {
+      throw new ValidationError(`Version ${data.version} must be greater than the current version`);
+    }
 
     return { success: true, version: data.version };
   })

@@ -152,7 +152,7 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
     // --- Plugin updates (called by Electron main process, no auth) ---
     .get("/plugins/updates", async () => {
       const { pendingMajorUpdates } = await import("../index");
-      return { updates: pendingMajorUpdates };
+      return { updates: [...pendingMajorUpdates] };
     })
 
     .post("/plugins/:id/update", async ({ params }) => {

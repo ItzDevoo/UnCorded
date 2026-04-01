@@ -265,6 +265,9 @@ export const gateway = new Elysia().ws("/gateway", {
           if (!parsed.success) break;
           const d = parsed.data;
 
+          // Sanitize file metadata
+          const sanitizedFileName = d.fileName.replace(/[/\\<>:"|?*\x00-\x1F]/g, "_");
+
           const resolution = await resolveChannelMembership(ctx.userId, d.channelId);
           if (!resolution) break;
 
@@ -324,7 +327,7 @@ export const gateway = new Elysia().ws("/gateway", {
             id: receiptId,
             channelId: d.channelId,
             senderId: ctx.userId,
-            fileName: d.fileName,
+            fileName: sanitizedFileName,
             fileSize: d.fileSize,
             contentType: d.contentType,
             magnetUri: d.magnetUri,
@@ -359,7 +362,7 @@ export const gateway = new Elysia().ws("/gateway", {
                 : { id: ctx.userId, username: null, displayName: null, avatarUrl: null, isBot: false },
               fileReceipt: {
                 id: receiptId,
-                fileName: d.fileName,
+                fileName: sanitizedFileName,
                 fileSize: d.fileSize,
                 contentType: d.contentType,
                 magnetUri: d.magnetUri,
@@ -375,7 +378,7 @@ export const gateway = new Elysia().ws("/gateway", {
               fileReceiptId: receiptId,
               channelId: d.channelId,
               senderId: ctx.userId,
-              fileName: d.fileName,
+              fileName: sanitizedFileName,
               fileSize: d.fileSize,
               contentType: d.contentType,
               magnetUri: d.magnetUri,

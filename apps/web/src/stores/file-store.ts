@@ -23,6 +23,7 @@ import { api, ApiRequestError } from "../lib/api.js";
 import { showToast } from "../components/ui/toast.js";
 
 const MAX_PREVIEW_CACHE = 10;
+const MAX_PREVIEW_CACHE_BYTES = 500 * 1024 * 1024; // 500MB
 const P2P_ACK_KEY = "uncorded:p2p-ip-acknowledged";
 
 // ── P2P IP disclosure dialog state ──────────────────────────────────────────
@@ -148,6 +149,17 @@ function updateSeeders(frId: FileReceiptId, uId: UserId, available: boolean): vo
   );
 }
 
+function getPreviewCacheTotalBytes(): number {
+  let total = 0;
+  for (const key of store.previewOrder) {
+    const files = store.previews[key];
+    if (files) {
+      for (const f of files) total += f.size;
+    }
+  }
+  return total;
+}
+
 function touchPreviewLru(infoHash: string): void {
   setStore(
     "previewOrder",
@@ -155,7 +167,13 @@ function touchPreviewLru(infoHash: string): void {
       const idx = order.indexOf(infoHash);
       if (idx !== -1) order.splice(idx, 1);
       order.push(infoHash);
+      // Evict by count
       while (order.length > MAX_PREVIEW_CACHE) {
+        const evicted = order.shift()!;
+        setStore("previews", evicted, undefined!);
+      }
+      // Evict by total size
+      while (order.length > 1 && getPreviewCacheTotalBytes() > MAX_PREVIEW_CACHE_BYTES) {
         const evicted = order.shift()!;
         setStore("previews", evicted, undefined!);
       }

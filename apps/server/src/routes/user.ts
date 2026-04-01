@@ -28,6 +28,31 @@ import { checkUserRateLimit } from "../helpers/rate-limit.js";
 import { RL } from "../helpers/rate-limit-keys.js";
 import { sendToUser, disconnectUser } from "../ws/connections.js";
 
+/** Validate file content matches claimed MIME type by checking magic bytes. */
+function validateImageMagicBytes(buffer: ArrayBuffer, claimedType: string): boolean {
+  const bytes = new Uint8Array(buffer);
+  if (bytes.length < 4) return false;
+
+  switch (claimedType) {
+    case "image/png":
+      // PNG: 89 50 4E 47
+      return bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47;
+    case "image/jpeg":
+      // JPEG: FF D8 FF
+      return bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF;
+    case "image/gif":
+      // GIF: 47 49 46 38
+      return bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38;
+    case "image/webp":
+      // WebP: 52 49 46 46 ... 57 45 42 50
+      return bytes.length >= 12 &&
+        bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+        bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50;
+    default:
+      return false;
+  }
+}
+
 // ── Pending deletion state (in-memory, single-server) ──────────
 type DeletionStatus = "reserved" | "pending" | "executing";
 
@@ -134,6 +159,9 @@ const avatarRoutes = new Elysia({ prefix: "/api/users" })
 
     // Upload new avatar first — don't delete old until DB is updated
     const buffer = await file.arrayBuffer();
+    if (!validateImageMagicBytes(buffer, file.type)) {
+      throw new ValidationError("File content does not match declared type");
+    }
     const avatarUrl = await uploadAvatar(sessionUser.id, buffer, file.type);
 
     const [updated] = await db

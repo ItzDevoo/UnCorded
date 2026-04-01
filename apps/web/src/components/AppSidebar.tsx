@@ -75,8 +75,11 @@ const AppSidebar = () => {
   const [dropdownPos, setDropdownPos] = createSignal({ bottom: 0, left: 0 });
 
   let copiedUsernameTimer: ReturnType<typeof setTimeout> | undefined;
+  // oxlint-disable-next-line no-unassigned-vars -- SolidJS ref assigned via JSX
   let footerRef!: HTMLDivElement;
+  // oxlint-disable-next-line no-unassigned-vars -- SolidJS ref assigned via JSX
   let triggerRef!: HTMLButtonElement;
+  // oxlint-disable-next-line no-unassigned-vars -- SolidJS ref assigned via JSX
   let menuRef!: HTMLDivElement;
   onCleanup(() => clearTimeout(copiedUsernameTimer));
 
@@ -467,7 +470,7 @@ const AppSidebar = () => {
             <SidebarMenu classList={{ hidden: sidebarState() === "collapsed" }}>
               <For each={visibleServerPlugins()}>
                 {(plugin) => {
-                  const isActive = () => activeServerPluginId() === plugin.pluginId;
+                  const isPluginActive = () => activeServerPluginId() === plugin.pluginId;
                   // Format pluginId as display name: "claude-code" → "Claude Code"
                   const displayName = () =>
                     plugin.pluginId
@@ -478,7 +481,7 @@ const AppSidebar = () => {
                     <SidebarMenuItem>
                       <SidebarMenuButton
                         tooltip={displayName()}
-                        active={isActive()}
+                        active={isPluginActive()}
                         onClick={() => {
                           setActiveServerPluginId(plugin.pluginId);
                           clearActivePlugin();

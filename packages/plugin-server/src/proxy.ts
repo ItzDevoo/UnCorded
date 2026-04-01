@@ -399,6 +399,7 @@ export function createBundledService(config: BundledServiceConfig): BundledServi
     let interval = READY_POLL_INITIAL_MS;
     while (Date.now() < deadline && proc.exitCode === null) {
       try {
+        // eslint-disable-next-line no-await-in-loop
         const res = await fetch(readyUrl, {
           signal: AbortSignal.timeout(2_000),
         });
@@ -409,6 +410,7 @@ export function createBundledService(config: BundledServiceConfig): BundledServi
       } catch {
         // Expected during startup — suppress until deadline
       }
+      // eslint-disable-next-line no-await-in-loop
       await Bun.sleep(interval);
       interval = Math.min(interval * 2, READY_POLL_MAX_MS);
     }

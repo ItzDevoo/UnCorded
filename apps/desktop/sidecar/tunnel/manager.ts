@@ -129,6 +129,7 @@ export class TunnelManager {
   async destroyAll(): Promise<void> {
     const ids = [...this.tunnels.keys()];
     for (const id of ids) {
+      // eslint-disable-next-line no-await-in-loop
       await this.destroy(id);
     }
   }

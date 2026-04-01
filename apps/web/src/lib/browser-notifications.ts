@@ -26,10 +26,10 @@ export function showBrowserNotification(title: string, body: string): void {
     tag: "uncorded-message",
   });
 
-  notification.onclick = () => {
+  notification.addEventListener("click", () => {
     window.focus();
     notification.close();
-  };
+  });
 }
 
 function registerServiceWorker(): void {

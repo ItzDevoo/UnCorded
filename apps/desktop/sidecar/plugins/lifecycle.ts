@@ -435,6 +435,7 @@ export class PluginLifecycle {
 
     for (const plugin of toResume) {
       try {
+        // eslint-disable-next-line no-await-in-loop
         await this.start(plugin.pluginId);
       } catch (err) {
         console.error(`[lifecycle] Failed to resume ${plugin.pluginId}:`, err);
@@ -451,6 +452,7 @@ export class PluginLifecycle {
     for (const plugin of this.plugins.values()) {
       if (plugin.state === "running" && plugin.containerId) {
         try {
+          // eslint-disable-next-line no-await-in-loop
           await this.docker.stopContainer(plugin.containerId);
         } catch (err) {
           console.error(`[lifecycle] Error stopping ${plugin.pluginId}:`, err);

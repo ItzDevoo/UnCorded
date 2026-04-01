@@ -8,6 +8,7 @@ export function createReadinessCheck(
   return async () => {
     for (const check of checks) {
       try {
+        // eslint-disable-next-line no-await-in-loop
         if (!(await check())) {
           return new Response(JSON.stringify({ ready: false }), {
             status: 503,

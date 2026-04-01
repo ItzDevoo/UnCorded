@@ -57,7 +57,7 @@ const server = Bun.serve<{ boardId: string; clientId: string }>({
   port: PORT,
   hostname: "0.0.0.0",
 
-  async fetch(req, server) {
+  async fetch(req, srv) {
     const url = new URL(req.url);
     const { pathname } = url;
 
@@ -75,7 +75,7 @@ const server = Bun.serve<{ boardId: string; clientId: string }>({
         return withIframeHeaders(json({ error: "Board not found" }, 404));
       }
       const clientId = crypto.randomUUID();
-      const upgraded = server.upgrade(req, { data: { boardId, clientId } });
+      const upgraded = srv.upgrade(req, { data: { boardId, clientId } });
       if (!upgraded) {
         return withIframeHeaders(new Response("WebSocket upgrade failed", { status: 400 }));
       }
@@ -86,10 +86,10 @@ const server = Bun.serve<{ boardId: string; clientId: string }>({
     if (pathname === "/api/boards" && req.method === "GET") {
       const boards = await listBoards();
       const roomCounts = getAllRoomCounts();
-      const withCounts = boards.map((b) => ({
-        ...b,
-        activeUsers: roomCounts.get(b.id) ?? 0,
-      }));
+      const withCounts = [];
+      for (const b of boards) {
+        withCounts.push(Object.assign({}, b, { activeUsers: roomCounts.get(b.id) ?? 0 }));
+      }
       return withIframeHeaders(json(withCounts));
     }
 

@@ -59,7 +59,7 @@ async function readIndex(): Promise<BoardMeta[]> {
     if (err && typeof err === "object" && "code" in err && err.code === "ENOENT") {
       return [];
     }
-    throw new Error(`Failed to read board index: ${err}`);
+    throw new Error("Failed to read board index", { cause: err });
   }
 }
 
@@ -100,7 +100,7 @@ export async function getBoard(id: string): Promise<BoardData | null> {
     if (err && typeof err === "object" && "code" in err && err.code === "ENOENT") {
       return null;
     }
-    throw new Error(`Failed to read board ${id}: ${err}`);
+    throw new Error(`Failed to read board ${id}`, { cause: err });
   }
 }
 
@@ -177,6 +177,7 @@ export async function getImages(boardId: string): Promise<ImageData[]> {
     for (const file of files) {
       if (!file.endsWith(".json")) continue;
       const id = file.replace(".json", "");
+      // eslint-disable-next-line no-await-in-loop
       const img = await getImage(boardId, id);
       if (img) images.push(img);
     }

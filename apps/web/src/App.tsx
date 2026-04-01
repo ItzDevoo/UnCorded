@@ -40,16 +40,17 @@ const Billing = lazy(() => import("./pages/Billing.js"));
 
 // 404 page (passes different props to FallbackPage)
 const NotFound = lazy(async () => {
-  const mod = await import("./pages/FallbackPage.js");
-  const Comp = () => (
-    <mod.default
-      title="Not Found"
-      description="We couldn't find that page."
-      ctaLabel="Go home"
-      ctaTarget="/"
-    />
-  );
-  return { default: Comp };
+  const { default: FallbackPage } = await import("./pages/FallbackPage.js");
+  return {
+    default: () => (
+      <FallbackPage
+        title="Not Found"
+        description="We couldn't find that page."
+        ctaLabel="Go home"
+        ctaTarget="/"
+      />
+    ),
+  };
 });
 
 const App = () => {

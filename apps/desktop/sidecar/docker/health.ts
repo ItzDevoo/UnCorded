@@ -155,7 +155,7 @@ export class HealthMonitor {
   }
 
   stopAll(): void {
-    for (const pluginId of [...this.states.keys()]) {
+    for (const pluginId of this.states.keys()) {
       this.stopMonitoring(pluginId);
     }
   }

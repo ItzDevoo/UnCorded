@@ -218,10 +218,10 @@ const BotsSettings = () => {
                         const input = document.createElement("input");
                         input.type = "file";
                         input.accept = "image/png,image/jpeg,image/gif,image/webp";
-                        input.onchange = () => {
+                        input.addEventListener("change", () => {
                           const file = input.files?.[0];
                           if (file) handleAvatarUpload(bot, file);
-                        };
+                        });
                         input.click();
                       }}
                       title="Change bot avatar"

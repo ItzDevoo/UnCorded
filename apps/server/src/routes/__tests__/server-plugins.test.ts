@@ -18,6 +18,7 @@ const { mockRequireMember, mockRequireOwner, mockComputeEffectiveTier, selectRes
       const resolve = () => selectResults.shift() ?? [];
       return {
         limit: vi.fn().mockImplementation(() => Promise.resolve(resolve())),
+        // eslint-disable-next-line no-thenable
         then: (onFulfilled: (v: unknown[]) => unknown, onRejected?: (e: unknown) => unknown) =>
           Promise.resolve(resolve()).then(onFulfilled, onRejected),
       };

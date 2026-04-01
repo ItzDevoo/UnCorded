@@ -82,7 +82,7 @@ export class DockerManager {
     try {
       stream = await this.docker.pull(image);
     } catch (err) {
-      if (isConnectionError(err)) throw new Error(DOCKER_NOT_RUNNING);
+      if (isConnectionError(err)) throw new Error(DOCKER_NOT_RUNNING, { cause: err });
       throw err;
     }
     return new Promise((resolve, reject) => {
@@ -165,7 +165,7 @@ export class DockerManager {
         HostConfig: hostConfig,
       });
     } catch (err) {
-      if (isConnectionError(err)) throw new Error(DOCKER_NOT_RUNNING);
+      if (isConnectionError(err)) throw new Error(DOCKER_NOT_RUNNING, { cause: err });
       throw err;
     }
 
@@ -177,7 +177,7 @@ export class DockerManager {
     try {
       await container.start();
     } catch (err) {
-      if (isConnectionError(err)) throw new Error(DOCKER_NOT_RUNNING);
+      if (isConnectionError(err)) throw new Error(DOCKER_NOT_RUNNING, { cause: err });
       throw err;
     }
   }
@@ -186,7 +186,7 @@ export class DockerManager {
     const container = this.docker.getContainer(containerId);
     try {
       await container.stop({ t: timeoutSeconds });
-    } catch (err) {
+    } catch {
       // Container might already be stopped
       const info = await container.inspect();
       if (info.State.Running) {

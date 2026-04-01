@@ -35,9 +35,9 @@ await build({
   plugins: [
     {
       name: "react-singleton",
-      setup(build) {
+      setup(buildCtx) {
         // Force every import of react/react-dom to the top-level install
-        build.onResolve(
+        buildCtx.onResolve(
           { filter: /^react(-dom)?(\/.*)?$/ },
           (args) => {
             const resolved = reactResolves[args.path];

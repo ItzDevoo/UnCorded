@@ -53,7 +53,7 @@ const PluginsSettings = () => {
 
   const categories = () => {
     const cats = new Set((plugins() ?? []).map((p) => p.category));
-    return [...cats].sort();
+    return [...cats].toSorted();
   };
 
   // Only show personal/both scope plugins in user settings
@@ -79,7 +79,7 @@ const PluginsSettings = () => {
       );
     }
 
-    return list.sort((a, b) => (a.featured !== b.featured ? (a.featured ? -1 : 1) : 0));
+    return list.toSorted((a, b) => (a.featured !== b.featured ? (a.featured ? -1 : 1) : 0));
   };
 
   async function handleInstall(pluginId: PluginId) {

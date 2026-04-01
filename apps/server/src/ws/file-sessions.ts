@@ -28,11 +28,51 @@ interface FileSession {
   participants: Set<string>;
   completedParticipants: Set<string>;
   createdAt: Date;
+  lastActivityAt: number;
 }
 
 // ── In-Memory Store ─────────────────────────────────────────────────────────
 
 const activeSessions = new Map<string, FileSession>();
+
+const FILE_SESSION_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+/** Notify sender, participants, and pending invitees that a session is closing. */
+function fanoutSessionClose(id: string, session: FileSession): void {
+  const payload = { op: Opcode.FILE_SESSION_CLOSE, d: { sessionId: id } } as const;
+
+  // Notify sender
+  sendToUser(session.senderId, payload);
+
+  // Notify joined participants
+  for (const participantId of session.participants) {
+    sendToUser(participantId, payload);
+  }
+
+  // Notify invited-but-not-joined users
+  for (const inviteeId of session.invitees) {
+    if (!session.participants.has(inviteeId)) {
+      sendToUser(inviteeId, payload);
+    }
+  }
+}
+
+// Periodic sweep for stale file sessions (inactivity-based)
+const sweepTimer = setInterval(() => {
+  const now = Date.now();
+  for (const [id, session] of activeSessions) {
+    if (now - session.lastActivityAt > FILE_SESSION_TTL_MS) {
+      fanoutSessionClose(id, session);
+      activeSessions.delete(id);
+    }
+  }
+}, 5 * 60 * 1000); // Sweep every 5 minutes
+sweepTimer.unref();
+
+/** Stop the periodic sweep (for graceful shutdown / tests). */
+export function clearFileSessionSweep(): void {
+  clearInterval(sweepTimer);
+}
 
 // ── Handlers ────────────────────────────────────────────────────────────────
 
@@ -86,6 +126,7 @@ export async function handleFileSessionCreate(
     participants: new Set(),
     completedParticipants: new Set(),
     createdAt: new Date(),
+    lastActivityAt: Date.now(),
   };
   activeSessions.set(session.id, session);
 
@@ -129,6 +170,7 @@ export async function handleFileSessionJoin(
   if (session.participants.has(joiningUserId)) return;
 
   session.participants.add(joiningUserId);
+  session.lastActivityAt = Date.now();
 
   // Send magnetUri to the joining recipient so they can start downloading
   sendToUser(joiningUserId, {
@@ -168,6 +210,8 @@ export function handleFileSessionProgress(
   const session = activeSessions.get(data.sessionId);
   if (!session || !session.participants.has(reportingUserId)) return;
 
+  session.lastActivityAt = Date.now();
+
   sendToUser(session.senderId, {
     op: Opcode.FILE_SESSION_PROGRESS,
     d: {
@@ -188,6 +232,8 @@ export async function handleFileSessionComplete(
 
   // Dedupe: skip if already completed
   if (session.completedParticipants.has(reportingUserId)) return;
+
+  session.lastActivityAt = Date.now();
 
   // Create file receipt before marking complete (so retries can succeed if insert fails)
   try {
@@ -227,24 +273,7 @@ export function handleFileSessionClose(
   const session = activeSessions.get(data.sessionId);
   if (!session || session.senderId !== senderId) return;
 
-  // Notify all participants
-  for (const participantId of session.participants) {
-    sendToUser(participantId, {
-      op: Opcode.FILE_SESSION_CLOSE,
-      d: { sessionId: session.id },
-    });
-  }
-
-  // Also notify invited-but-not-joined users
-  for (const inviteeId of session.invitees) {
-    if (!session.participants.has(inviteeId)) {
-      sendToUser(inviteeId, {
-        op: Opcode.FILE_SESSION_CLOSE,
-        d: { sessionId: session.id },
-      });
-    }
-  }
-
+  fanoutSessionClose(session.id, session);
   activeSessions.delete(session.id);
 }
 
@@ -268,20 +297,7 @@ export function cleanupSessionsForUser(disconnectedUserId: string): void {
   for (const [sessionId, session] of activeSessions) {
     if (session.senderId === disconnectedUserId) {
       // Sender disconnected — close session for everyone
-      for (const participantId of session.participants) {
-        sendToUser(participantId, {
-          op: Opcode.FILE_SESSION_CLOSE,
-          d: { sessionId },
-        });
-      }
-      for (const inviteeId of session.invitees) {
-        if (!session.participants.has(inviteeId)) {
-          sendToUser(inviteeId, {
-            op: Opcode.FILE_SESSION_CLOSE,
-            d: { sessionId },
-          });
-        }
-      }
+      fanoutSessionClose(sessionId, session);
       activeSessions.delete(sessionId);
     } else {
       // Recipient disconnected — notify sender, remove from participants

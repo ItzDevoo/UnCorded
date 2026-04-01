@@ -31,7 +31,7 @@ import {
 import { checkRateLimit } from "./rate-limit.js";
 import { eq, and } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { user, messages, fileReceipts, dmMembers } from "../db/schema.js";
+import { user, messages, fileReceipts, dmMembers, channels } from "../db/schema.js";
 import { removeConnection, sendToUser, broadcastToServer, broadcastToDm } from "./connections.js";
 import { handleIdentify } from "./handlers.js";
 import { removeUserFromAllServers } from "./server-members.js";
@@ -283,6 +283,25 @@ export const gateway = new Elysia().ws("/gateway", {
               });
               break;
             }
+
+            // Check if file sharing is enabled for this channel
+            const [channelRow] = await db
+              .select({ fileSharingEnabled: channels.fileSharingEnabled })
+              .from(channels)
+              .where(eq(channels.id, d.channelId))
+              .limit(1);
+
+            if (channelRow && !channelRow.fileSharingEnabled) {
+              sendToUser(ctx.userId, {
+                op: Opcode.ERROR,
+                d: {
+                  code: "FILE_SHARING_DISABLED",
+                  message: "File sharing is disabled in this channel",
+                  channelId: d.channelId,
+                },
+              });
+              break;
+            }
           }
 
           resetIdleTimer(ctx.userId);
@@ -491,6 +510,21 @@ export const gateway = new Elysia().ws("/gateway", {
           if (!ctx.userId) {
             ws.close(CloseCode.NOT_IDENTIFIED, "Not identified");
             return;
+          }
+
+          if (
+            !(await checkRateLimit(
+              ctx.userId,
+              frame.op,
+              RATE_LIMIT_FILE_SESSION.limit,
+              RATE_LIMIT_FILE_SESSION.windowMs,
+            ))
+          ) {
+            sendToUser(ctx.userId, {
+              op: Opcode.ERROR,
+              d: { code: "RATE_LIMITED", message: "Too many file session requests" },
+            });
+            break;
           }
 
           const parsed = fileSessionJoinRequestSchema.safeParse(frame.d);

@@ -43,10 +43,12 @@ async function checkViaRedis(key: string, limit: number, windowMs: number): Prom
   const ttlSeconds = Math.ceil(windowMs / 1000);
 
   try {
-    const count = await redis!.incr(redisKey);
-    if (count === 1) {
-      await redis!.expire(redisKey, ttlSeconds);
-    }
+    const count = (await redis!.eval(
+      "local c = redis.call('INCR', KEYS[1]); if c == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end; return c",
+      1,
+      redisKey,
+      ttlSeconds,
+    )) as number;
     return count <= limit;
   } catch {
     return checkInMemory(key, limit, windowMs);

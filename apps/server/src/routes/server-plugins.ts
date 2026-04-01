@@ -28,7 +28,11 @@ const updatePluginSchema = z.object({
 });
 
 const updateTunnelSchema = z.object({
-  tunnelUrl: z.string().nullable(),
+  tunnelUrl: z
+    .string()
+    .url()
+    .refine((u) => u.startsWith("https://"), { message: "tunnelUrl must use https://" })
+    .nullable(),
   state: z.string().optional(),
 });
 

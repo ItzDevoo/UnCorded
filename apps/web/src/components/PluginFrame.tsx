@@ -38,9 +38,15 @@ const PluginFrame = (props: PluginFrameProps) => {
   // Determine the iframe URL based on scope
   const iframeUrl = () => {
     // Tunnel URL takes priority (server plugin for browser user)
-    if (props.tunnelUrl) return props.tunnelUrl;
+    if (props.tunnelUrl) {
+      if (!props.tunnelUrl.startsWith("https://")) return null;
+      return props.tunnelUrl;
+    }
     // Server plugin with tunnel URL from plugin info
-    if (props.plugin.scope === "server" && props.plugin.tunnelUrl) return props.plugin.tunnelUrl;
+    if (props.plugin.scope === "server" && props.plugin.tunnelUrl) {
+      if (!props.plugin.tunnelUrl.startsWith("https://")) return null;
+      return props.plugin.tunnelUrl;
+    }
     // Local plugin (personal or server on desktop owner)
     if (props.plugin.port) return `http://localhost:${props.plugin.port}/`;
     return null;
@@ -119,7 +125,7 @@ const PluginFrame = (props: PluginFrameProps) => {
       <Show when={(props.plugin.status === "running" || props.tunnelUrl) && !error() && !isOffline()}>
         <iframe
           src={iframeUrl()!}
-          sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
+          sandbox="allow-scripts allow-forms allow-popups"
           allow="clipboard-write"
           referrerpolicy="no-referrer"
           class="h-full w-full border-none"

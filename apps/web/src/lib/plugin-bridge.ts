@@ -124,6 +124,9 @@ const handlers: Record<string, HandlerFn> = {
     if (!channelId || !content) {
       throw { code: "BAD_REQUEST", message: "channelId and content are required" };
     }
+    if (content.length > 4000) {
+      throw { code: "BAD_REQUEST", message: "Message content too long (max 4000 characters)" };
+    }
     // Verify the channel belongs to the current server
     const serverId = selectedServerId();
     if (!serverId) {
@@ -182,6 +185,11 @@ function sendResponse(source: MessageEventSource, origin: string, response: Plug
 async function handleMessage(event: MessageEvent): Promise<void> {
   const pluginId = allowedOrigins.get(event.origin);
   if (!pluginId) return; // unknown origin — silently ignore
+
+  // Reject oversized messages (64KB limit)
+  try {
+    if (typeof event.data === "object" && JSON.stringify(event.data).length > 65_536) return;
+  } catch { return; }
 
   const data = event.data as PluginRequest | undefined;
   if (!data || data.type !== "uncorded:request" || !data.id || !data.method) return;

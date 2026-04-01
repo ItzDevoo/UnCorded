@@ -27,7 +27,10 @@ const permissionEnum = z.enum(PLUGIN_PERMISSIONS);
 
 const manifestSchema = z.object({
   runtime: z.object({
-    image: z.string().min(1),
+    image: z.string().min(1).max(200).refine(
+      (img) => !img.includes("..") && !img.includes("\\") && /^[a-z0-9][a-z0-9._/-]*[a-z0-9]$/i.test(img),
+      { message: "Invalid Docker image reference" },
+    ),
     port: z.number().int().min(1).max(65535),
     healthCheck: z.string().min(1),
   }),
@@ -48,7 +51,7 @@ const pluginSubmitSchema = z.object({
   author: z.string().min(1).max(100),
   category: z.enum(["ai", "productivity", "developer", "media", "social", "utility", "other"]),
   scope: z.enum(["server", "personal", "both"]),
-  image: z.string().min(1),
+  image: z.string().min(1).max(200),
   version: z.string().regex(/^\d+\.\d+\.\d+$/, "Must be semver format (e.g. 1.0.0)"),
   manifest: manifestSchema,
   tags: z.array(z.string().min(1).max(30)).max(10).optional(),
@@ -283,6 +286,15 @@ export const developerRoutes = new Elysia({ prefix: "/api/developer" })
 
     if (result.length === 0) {
       throw new ValidationError(`Version ${data.version} must be greater than the current version`);
+    }
+
+    // If image or manifest changed, require re-review
+    if (data.image !== undefined || data.manifest !== undefined) {
+      await db.update(pluginRegistry).set({ published: false }).where(eq(pluginRegistry.id, params.pluginId));
+      await db.insert(pluginSubmissions).values({
+        pluginId: params.pluginId,
+        authorUserId: sessionUser.id,
+      });
     }
 
     return { success: true, version: data.version };

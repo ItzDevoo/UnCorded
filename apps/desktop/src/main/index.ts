@@ -193,6 +193,13 @@ interface PluginInfo {
   permissions: string[];
 }
 
+interface PluginUpdateInfo {
+  pluginId: string;
+  currentVersion: string;
+  availableVersion: string;
+  updateType: "major" | "minor" | "patch";
+}
+
 let cachedPlugins: PluginInfo[] = [];
 
 // Derive API base URL: explicit env > web URL origin > hardcoded default
@@ -391,7 +398,7 @@ function startPluginPolling(): void {
         if (port) {
           const updateRes = await fetch(`http://localhost:${port}/plugins/updates`);
           if (updateRes.ok) {
-            const { updates } = (await updateRes.json()) as { updates: unknown[] };
+            const { updates } = (await updateRes.json()) as { updates: PluginUpdateInfo[] };
             if (updates.length > 0) {
               for (const win of BrowserWindow.getAllWindows()) {
                 if (!win.isDestroyed()) {

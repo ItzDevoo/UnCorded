@@ -152,8 +152,10 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
     })
 
     .post("/plugins/:id/update", async ({ params }) => {
-      const { pendingMajorUpdates, removePendingUpdate } = await import("../index");
-      const update = pendingMajorUpdates.find((u) => u.pluginId === params.id);
+      const { removePendingUpdate, reinsertPendingUpdate } = await import("../index");
+
+      // Atomically remove the pending update so concurrent requests see 404
+      const update = removePendingUpdate(params.id);
       if (!update) {
         throw new Response(JSON.stringify({ error: "No pending update for this plugin" }), {
           status: 404,
@@ -163,13 +165,14 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
 
       const result = await options.plugins.update(params.id, update.manifest);
       if (result.errors && result.errors.length > 0) {
+        // Re-insert so the user can retry
+        reinsertPendingUpdate(update);
         throw new Response(JSON.stringify({ error: result.errors.join(", ") }), {
           status: 500,
           headers: { "Content-Type": "application/json" },
         });
       }
 
-      removePendingUpdate(params.id);
       return { success: true, version: update.availableVersion };
     })
 

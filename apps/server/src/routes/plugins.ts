@@ -9,11 +9,41 @@ import { getClientIp } from "../helpers/request.js";
 import { RL } from "../helpers/rate-limit-keys.js";
 
 function compareSemver(a: string, b: string): number {
-  const pa = a.split(".").map(Number);
-  const pb = b.split(".").map(Number);
+  const [coreA, preA] = a.split("-", 2);
+  const [coreB, preB] = b.split("-", 2);
+  const pa = (coreA ?? "").replace(/\+.*$/, "").split(".").map((s) => Number(s) || 0);
+  const pb = (coreB ?? "").replace(/\+.*$/, "").split(".").map((s) => Number(s) || 0);
   for (let i = 0; i < 3; i++) {
     const diff = (pa[i] ?? 0) - (pb[i] ?? 0);
     if (diff !== 0) return diff;
+  }
+  // A version without prerelease is greater than one with prerelease
+  if (!preA && preB) return 1;
+  if (preA && !preB) return -1;
+  if (preA && preB) {
+    const partsA = preA.split(".");
+    const partsB = preB.split(".");
+    const len = Math.max(partsA.length, partsB.length);
+    for (let i = 0; i < len; i++) {
+      const segA = partsA[i];
+      const segB = partsB[i];
+      if (segA === undefined) return -1;
+      if (segB === undefined) return 1;
+      const numA = Number(segA);
+      const numB = Number(segB);
+      const aIsNum = !Number.isNaN(numA);
+      const bIsNum = !Number.isNaN(numB);
+      if (aIsNum && bIsNum) {
+        if (numA !== numB) return numA - numB;
+      } else if (aIsNum) {
+        return -1; // numeric < non-numeric
+      } else if (bIsNum) {
+        return 1;
+      } else {
+        const cmp = segA < segB ? -1 : segA > segB ? 1 : 0;
+        if (cmp !== 0) return cmp;
+      }
+    }
   }
   return 0;
 }

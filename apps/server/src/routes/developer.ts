@@ -56,6 +56,12 @@ const pluginSubmitSchema = z.object({
   screenshots: z.array(z.string().url()).max(5).optional(),
 });
 
+const versionPushSchema = z.object({
+  version: z.string().regex(/^\d+\.\d+\.\d+$/, "Must be semver format (e.g. 1.0.0)"),
+  image: z.string().min(1).optional(),
+  manifest: manifestSchema.optional(),
+});
+
 const pluginUpdateSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   description: z.string().min(10).max(500).optional(),
@@ -229,14 +235,7 @@ export const developerRoutes = new Elysia({ prefix: "/api/developer" })
   // ── PUT /api/developer/plugins/:pluginId/version — Push a new version ───
   .put("/plugins/:pluginId/version", async ({ params, body, user: sessionUser }) => {
     await checkUserRateLimit(sessionUser.id, RL.DEVELOPER_PLUGIN_VERSION_PUSH, 10, 3_600_000);
-
-    const parsed = body as { version?: string; image?: string; manifest?: object } | null;
-    if (!parsed?.version || typeof parsed.version !== "string") {
-      throw new ValidationError("version is required");
-    }
-    if (!/^\d+\.\d+\.\d+$/.test(parsed.version)) {
-      throw new ValidationError("version must be semver format (e.g. 1.0.0)");
-    }
+    const data = validateInput(versionPushSchema, body);
 
     // Verify ownership
     const [plugin] = await db
@@ -254,15 +253,15 @@ export const developerRoutes = new Elysia({ prefix: "/api/developer" })
     if (!plugin.published) throw new ForbiddenError("Cannot push versions to unpublished plugins");
 
     const updates: Record<string, unknown> = {
-      version: parsed.version,
+      version: data.version,
       updatedAt: new Date(),
     };
-    if (parsed.image !== undefined) updates.image = parsed.image;
-    if (parsed.manifest !== undefined) updates.manifest = parsed.manifest;
+    if (data.image !== undefined) updates.image = data.image;
+    if (data.manifest !== undefined) updates.manifest = data.manifest;
 
     await db.update(pluginRegistry).set(updates).where(eq(pluginRegistry.id, params.pluginId));
 
-    return { success: true, version: parsed.version };
+    return { success: true, version: data.version };
   })
 
   // ── GET /api/developer/plugins/:pluginId/status — Check submission status

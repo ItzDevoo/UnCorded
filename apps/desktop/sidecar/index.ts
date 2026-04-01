@@ -54,8 +54,17 @@ await plugins.resumeAll();
 
 export let pendingMajorUpdates: UpdateInfo[] = [];
 
-export function removePendingUpdate(pluginId: string): void {
-  pendingMajorUpdates = pendingMajorUpdates.filter((u) => u.pluginId !== pluginId);
+export function removePendingUpdate(pluginId: string): UpdateInfo | undefined {
+  const idx = pendingMajorUpdates.findIndex((u) => u.pluginId === pluginId);
+  if (idx === -1) return undefined;
+  const [removed] = pendingMajorUpdates.splice(idx, 1);
+  return removed;
+}
+
+export function reinsertPendingUpdate(update: UpdateInfo): void {
+  if (!pendingMajorUpdates.some((u) => u.pluginId === update.pluginId)) {
+    pendingMajorUpdates.push(update);
+  }
 }
 
 const apiBaseUrl = plugins.getApiBaseUrl();

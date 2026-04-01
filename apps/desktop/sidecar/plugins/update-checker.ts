@@ -8,11 +8,17 @@ export interface UpdateInfo {
   updateType: "major" | "minor" | "patch";
 }
 
+function coreSegments(version: string): [number, number, number] {
+  const core = version.replace(/[-+].*$/, "");
+  const parts = core.split(".").map(Number);
+  return [(parts[0] ?? 0) || 0, (parts[1] ?? 0) || 0, (parts[2] ?? 0) || 0];
+}
+
 function classifyUpdate(current: string, available: string): "major" | "minor" | "patch" {
-  const c = current.split(".").map(Number);
-  const a = available.split(".").map(Number);
-  if ((a[0] ?? 0) !== (c[0] ?? 0)) return "major";
-  if ((a[1] ?? 0) !== (c[1] ?? 0)) return "minor";
+  const c = coreSegments(current);
+  const a = coreSegments(available);
+  if (a[0] !== c[0]) return "major";
+  if (a[1] !== c[1]) return "minor";
   return "patch";
 }
 

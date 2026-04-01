@@ -4,6 +4,8 @@ import type { PluginStorage } from "./storage";
 import type { GatewayClient } from "../gateway/client";
 import type { PluginLifecycle } from "../plugins/lifecycle";
 import type { DockerManager } from "../docker/manager";
+import { createApiClient } from "./api-client";
+import { notificationQueue } from "./notifications";
 
 export interface RouteDeps {
   gateway: GatewayClient;
@@ -53,6 +55,11 @@ function getPluginServer(gateway: GatewayClient, plugin: PluginContext) {
 
 export function createRoutes(deps: RouteDeps) {
   const { gateway, storage } = deps;
+
+  const api = createApiClient(
+    () => deps.plugins.getApiBaseUrl(),
+    () => deps.plugins.getApiToken(),
+  );
 
   return new Elysia({ prefix: "/bridge" })
 
@@ -119,20 +126,49 @@ export function createRoutes(deps: RouteDeps) {
     })
 
     // --- Messages ---
-    .get("/channels/:channelId/messages", ({ params, query }) => {
-      return {
-        channelId: params.channelId,
-        messages: [],
-        limit: query["limit"] ?? 50,
-      };
+    .get("/channels/:channelId/messages", async ({ params, query }) => {
+      const limit = String(Math.min(Math.max(Number(query["limit"]) || 50, 1), 100));
+      const before = query["before"];
+      const after = query["after"];
+
+      const res = await api.get(
+        `/api/channels/${encodeURIComponent(params.channelId)}/messages`,
+        { limit, before, after },
+      );
+
+      if (!res.ok) {
+        throw new Response(await res.text(), {
+          status: res.status,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      return res.json();
     })
 
-    .post("/channels/:channelId/messages", ({ params }) => {
-      return {
-        channelId: params.channelId,
-        sent: false,
-        error: "Message sending not yet implemented",
-      };
+    .post("/channels/:channelId/messages", async (ctx) => {
+      const { params } = ctx;
+      const body = (ctx as unknown as { body: unknown }).body as Record<string, unknown> | null;
+      const content = body?.content;
+
+      if (typeof content !== "string" || content.trim().length === 0) {
+        throw badRequestError("'content' must be a non-empty string");
+      }
+
+      const res = await api.post(
+        `/api/channels/${encodeURIComponent(params.channelId)}/messages`,
+        { content },
+      );
+
+      if (!res.ok) {
+        throw new Response(await res.text(), {
+          status: res.status,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      const message = await res.json();
+      return { sent: true, message };
     })
 
     // --- Users (restricted to caller's server) ---
@@ -149,13 +185,63 @@ export function createRoutes(deps: RouteDeps) {
     })
 
     // --- Presence ---
-    .get("/presence", () => {
-      return { presence: [] };
+    .get("/presence", (ctx) => {
+      const plugin = (ctx as unknown as { plugin: PluginContext }).plugin;
+      const ready = gateway.getReadyData();
+      if (!ready) return { presence: [] };
+
+      if (isPersonalScope(plugin)) {
+        // Personal plugins derive presence from friends list
+        const friends = ready.friends as Array<{ userId: string; status?: string }> | undefined;
+        return {
+          presence: (friends ?? []).map((f) => ({
+            userId: f.userId,
+            status: f.status ?? "offline",
+          })),
+        };
+      }
+
+      const { server } = getPluginServer(gateway, plugin);
+      if (!server) return { presence: [] };
+
+      return {
+        presence: server.members.map((m) => ({
+          userId: m.id,
+          status: m.status ?? "offline",
+        })),
+      };
     })
 
     // --- Notifications ---
-    .post("/notify", () => {
-      return { sent: false, error: "Notifications not yet implemented" };
+    .post("/notify", (ctx) => {
+      const plugin = (ctx as unknown as { plugin: PluginContext }).plugin;
+      const body = (ctx as unknown as { body: unknown }).body as Record<string, unknown> | null;
+
+      const title = body?.title;
+      const bodyText = body?.body;
+
+      if (typeof title !== "string" || title.trim().length === 0) {
+        throw badRequestError("'title' must be a non-empty string");
+      }
+      if (typeof bodyText !== "string" || bodyText.trim().length === 0) {
+        throw badRequestError("'body' must be a non-empty string");
+      }
+
+      const level = body?.level;
+      const validLevels = ["info", "warning", "error"] as const;
+      const resolvedLevel = typeof level === "string" && (validLevels as readonly string[]).includes(level)
+        ? (level as "info" | "warning" | "error")
+        : "info";
+
+      notificationQueue.push({
+        pluginId: plugin.pluginId,
+        title,
+        body: bodyText,
+        level: resolvedLevel,
+        timestamp: Date.now(),
+      });
+
+      return { sent: true };
     })
 
     // --- Plugin config ---

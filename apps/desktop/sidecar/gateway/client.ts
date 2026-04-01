@@ -36,7 +36,7 @@ export interface ReadyServer {
   name: string;
   iconUrl: string | null;
   channels: Array<{ id: string; name: string; type: string }>;
-  members: Array<{ id: string; username: string; displayName: string | null }>;
+  members: Array<{ id: string; username: string; displayName: string | null; status?: string }>;
 }
 
 export interface ReadyData {

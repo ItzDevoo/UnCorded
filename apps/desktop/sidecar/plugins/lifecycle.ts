@@ -449,6 +449,14 @@ export class PluginLifecycle {
 
   // --- Queries ---
 
+  getApiBaseUrl(): string | null {
+    return this.apiBaseUrl;
+  }
+
+  getApiToken(): string | null {
+    return this.apiToken;
+  }
+
   list(): PluginRecord[] {
     return [...this.plugins.values()];
   }

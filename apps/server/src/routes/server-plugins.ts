@@ -38,7 +38,12 @@ const updateTunnelSchema = z.object({
 
 function normalizeTunnelUrl(url: string | null): string | null {
   if (!url) return null;
-  return url.startsWith("https://") ? url : null;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" ? url : null;
+  } catch {
+    return null;
+  }
 }
 
 function safeJsonParse(value: string | null): Record<string, unknown> {
@@ -198,7 +203,12 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
   })
 
   // ── GET /:pluginId/tunnel — get tunnel URL (any member) ────────────────
-  .get("/:pluginId/tunnel", async ({ user: sessionUser, params }) => {
+  .get("/:pluginId/tunnel", async ({ user: sessionUser, params, request }) => {
+    const ip = getClientIp(request);
+    if (!(await checkIpRateLimit(ip, 30, 60_000, RL.SERVER_PLUGIN_UPDATE))) {
+      throw new RateLimitError("Too many requests, try again later");
+    }
+
     await requireMember(sessionUser.id, params.serverId);
 
     const [row] = await db

@@ -217,8 +217,8 @@ autoUpdater.on("error", (error) => {
 | Manual check     | User clicks "Check for Updates" in menu |
 
 ```typescript
-const AUTO_UPDATE_STARTUP_DELAY_MS = 15_000;
-const AUTO_UPDATE_POLL_INTERVAL_MS = 4 * 60 * 60 * 1000;
+const AUTO_UPDATE_STARTUP_DELAY_MS = 15_000; // 15 seconds after app launch
+const AUTO_UPDATE_POLL_INTERVAL_MS = 4 * 60 * 60 * 1000; // Every 4 hours
 
 // On app ready:
 setTimeout(() => checkForUpdates("startup"), AUTO_UPDATE_STARTUP_DELAY_MS);
@@ -266,7 +266,7 @@ ipcMain.handle("desktop:update-download", async () => {
 ipcMain.handle("desktop:update-install", async () => {
   if (updateState.status !== "downloaded")
     return { accepted: false, completed: false, state: updateState };
-  // ... stop backend server, quit and install
+  // ... stop sidecar process, quit and install
 });
 ```
 
@@ -290,9 +290,10 @@ Install is destructive (quits the app), so handle carefully:
 
 1. Verify state is `"downloaded"`
 2. Set `isQuitting = true` (prevents restart loops)
-3. Stop the embedded ElysiaJS server gracefully (5s timeout)
+3. Stop the Bun sidecar gracefully (SIGTERM, 5s timeout, then SIGKILL)
 4. Call `autoUpdater.quitAndInstall()`
 5. Electron handles: quit → replace binary → relaunch
+6. On relaunch, Electron respawns the sidecar automatically
 
 ```typescript
 async function installUpdate() {
@@ -300,7 +301,7 @@ async function installUpdate() {
   isQuitting = true;
 
   try {
-    await stopBackendServer(5000); // 5s grace period
+    await stopSidecar(); // Uses GRACEFUL_SHUTDOWN_TIMEOUT_MS internally
     autoUpdater.quitAndInstall();
   } catch (error) {
     isQuitting = false;

@@ -32,6 +32,9 @@ export interface PluginManifest {
     type: "panel" | "page" | "both";
     panelWidth?: number | undefined;
   } | undefined;
+
+  // Environment variables (declared by plugin, values set by admin)
+  env?: Record<string, string> | undefined;
 }
 
 const VALID_SCOPES = new Set<PluginScope>(["server", "personal", "both"]);
@@ -67,6 +70,26 @@ function parseResources(value: unknown): ResourceLimits | undefined {
   if (typeof obj["cpus"] === "number" && obj["cpus"] > 0) result.cpus = obj["cpus"];
   if (typeof obj["memoryMb"] === "number" && obj["memoryMb"] > 0) result.memoryMb = obj["memoryMb"];
   return result;
+}
+
+const RESERVED_ENV_PREFIX = /^UNCORDED_/i;
+
+function parseEnv(value: unknown): Record<string, string> | undefined {
+  if (typeof value !== "object" || value === null) return undefined;
+  const obj = value as Record<string, unknown>;
+  const result: Record<string, string> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (RESERVED_ENV_PREFIX.test(k)) {
+      console.error(`[manifest] Rejected reserved env key: ${k}`);
+      continue;
+    }
+    if (typeof v !== "string") {
+      console.error(`[manifest] Skipped non-string env value for key: ${k}`);
+      continue;
+    }
+    result[k] = v;
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
 }
 
 function parseUi(value: unknown): PluginManifest["ui"] {
@@ -162,6 +185,7 @@ export function parseManifest(raw: unknown): { manifest: PluginManifest; errors:
     permissions: parseStringArray(data["permissions"]) ?? [],
     resources: parseResources(data["resources"]),
     ui: parseUi(data["ui"]),
+    env: parseEnv(data["env"]),
   };
 
   return { manifest, errors };

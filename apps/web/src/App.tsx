@@ -57,7 +57,7 @@ const App = () => {
     <ErrorBoundary fallback={(err, reset) => (
       <div class="flex min-h-screen flex-col items-center justify-center gap-4 bg-background text-foreground">
         <h1 class="text-2xl font-bold">Something went wrong</h1>
-        <p class="text-muted-foreground">{err?.message ?? "An unexpected error occurred"}</p>
+        <p class="text-muted-foreground">{import.meta.env.DEV ? err?.message : "An unexpected error occurred"}</p>
         <button
           type="button"
           onClick={reset}

@@ -134,8 +134,10 @@ const handlers: Record<string, HandlerFn> = {
       throw { code: "BAD_REQUEST", message: "Channel not found in current server" };
     }
     const plugin = plugins().find((p) => p.id === pluginId);
-    const pluginName = plugin?.name ?? "Unknown Plugin";
-    const prefixedContent = `[${pluginName}] ${content}`;
+    if (!plugin) {
+      throw { code: "BAD_REQUEST", message: `Plugin not found: ${pluginId}` };
+    }
+    const prefixedContent = `[${plugin.name}] ${content}`;
     await api(`/api/channels/${channelId}/messages`, {
       method: "POST",
       body: JSON.stringify({ content: prefixedContent }),

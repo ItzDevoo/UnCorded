@@ -1,4 +1,4 @@
-import type { ApiError } from "@uncorded/shared";
+import { ValidationError, type ApiError } from "@uncorded/shared";
 import { API_BASE } from "./config.js";
 
 export class ApiRequestError extends Error {
@@ -44,7 +44,14 @@ export async function apiValidated<T>(
   options: RequestInit = {},
 ): Promise<T> {
   const raw = await api<unknown>(path, options);
-  return schema.parse(raw);
+  try {
+    return schema.parse(raw);
+  } catch (err) {
+    throw new ValidationError(
+      err instanceof Error ? err.message : "Response validation failed",
+      { cause: err },
+    );
+  }
 }
 
 export async function apiUpload<T>(

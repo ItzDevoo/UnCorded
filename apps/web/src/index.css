@@ -203,6 +203,16 @@ body::after {
   height: 0;
 }
 
+/* ── Update pill pulse animation ────────────────────────────────────── */
+@keyframes pulse-update {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.animate-update-pulse {
+  animation: pulse-update 1.5s ease-in-out infinite;
+}
+
 /* ── Drag region — makes sidebar header draggable in desktop app ──── */
 .drag-region {
   -webkit-app-region: drag;

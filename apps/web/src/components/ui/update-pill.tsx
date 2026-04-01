@@ -1,4 +1,4 @@
-import { createSignal, onMount, onCleanup, Show } from "solid-js";
+import { createSignal, onMount, onCleanup, Show, type JSX } from "solid-js";
 import { showToast } from "./toast.js";
 
 interface UpdateState {
@@ -14,6 +14,28 @@ interface UpdateState {
 }
 
 const VISIBLE_STATUSES = new Set(["available", "downloading", "downloaded"]);
+
+const RocketIcon = (props: { class?: string }): JSX.Element => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    class={props.class}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.8"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    {/* Rocket body */}
+    <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 00-2.91-.09z" />
+    <path d="M12 15l-3-3a22 22 0 012-3.95A12.88 12.88 0 0122 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 01-4 2z" />
+    {/* Window */}
+    <circle cx="16" cy="8" r="1.5" />
+    {/* Fins */}
+    <path d="M9 11.5L3.5 17" />
+    <path d="M14 6.5l-1 4.5" />
+  </svg>
+);
 
 export const UpdatePill = () => {
   const [state, setState] = createSignal<UpdateState | null>(null);
@@ -67,32 +89,16 @@ export const UpdatePill = () => {
       <div
         class={`flex h-7 items-center gap-1.5 rounded-lg px-2 text-xs font-medium transition-colors ${
           isDownloading() || acting()
-            ? "bg-primary/15 text-primary opacity-60 cursor-default"
+            ? "bg-primary/15 text-primary cursor-default"
             : "bg-primary/15 text-primary cursor-pointer hover:bg-primary/22"
         }`}
         style={{ "-webkit-app-region": "no-drag" }}
         onClick={handleClick}
       >
-        {/* Icon */}
-        <Show when={status() === "available" || status() === "downloading"}>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class={`h-3.5 w-3.5 shrink-0 ${isDownloading() ? "animate-pulse" : ""}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-        </Show>
-        <Show when={status() === "downloaded"}>
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        </Show>
+        <RocketIcon
+          class={`h-3.5 w-3.5 shrink-0 ${isDownloading() ? "animate-update-pulse" : ""}`}
+        />
 
-        {/* Label */}
         <span class="whitespace-nowrap">{label()}</span>
 
         {/* Dismiss button — only for "available" state */}

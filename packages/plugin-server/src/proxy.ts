@@ -69,6 +69,7 @@ const HOP_BY_HOP_HEADERS: ReadonlySet<string> = new Set([
   "proxy-authenticate",
   "proxy-authorization",
   "te",
+  "trailer",
   "trailers",
   "transfer-encoding",
   "upgrade",
@@ -76,11 +77,21 @@ const HOP_BY_HOP_HEADERS: ReadonlySet<string> = new Set([
 
 // ── Helpers ───────────────────────────────────────────────
 
-/** Copy headers from source, stripping hop-by-hop entries. */
+/** Copy headers from source, stripping hop-by-hop and Connection-nominated entries. */
 function forwardHeaders(source: Headers): Headers {
+  // Build set of headers nominated by the Connection header (RFC 2616 §14.10)
+  const connectionNominated = new Set<string>();
+  const connectionValue = source.get("connection");
+  if (connectionValue) {
+    for (const token of connectionValue.split(",")) {
+      connectionNominated.add(token.trim().toLowerCase());
+    }
+  }
+
   const out = new Headers();
   source.forEach((value, key) => {
-    if (!HOP_BY_HOP_HEADERS.has(key.toLowerCase())) {
+    const lower = key.toLowerCase();
+    if (!HOP_BY_HOP_HEADERS.has(lower) && !connectionNominated.has(lower)) {
       out.set(key, value);
     }
   });
@@ -181,9 +192,15 @@ export function proxy(
           const targetUrl = new URL(targetBase);
           // Only rewrite if the redirect points to the same upstream origin
           if (locUrl.origin === targetUrl.origin) {
+            // Strip upstream base path to avoid duplication
+            const upstreamBasePath = targetUrl.pathname.replace(/\/+$/, "");
+            let relativePath = locUrl.pathname;
+            if (upstreamBasePath && relativePath.startsWith(upstreamBasePath)) {
+              relativePath = relativePath.slice(upstreamBasePath.length) || "/";
+            }
             resHeaders.set(
               "location",
-              `${normalizedPrefix}${locUrl.pathname}${locUrl.search}`,
+              `${normalizedPrefix}${relativePath}${locUrl.search}${locUrl.hash}`,
             );
           }
         } catch {
@@ -216,11 +233,14 @@ export function proxy(
         resHeaders.set("content-security-policy", "frame-ancestors *");
       }
 
-      // Echo request origin instead of wildcard — supports credentialed requests
+      // Echo request origin instead of wildcard — supports credentialed requests.
+      // Note: this is a generic SDK proxy; app-level origin restrictions are
+      // enforced by the iframe sandbox and plugin bridge allowlist, not here.
       const requestOrigin = req.headers.get("origin");
       if (requestOrigin) {
         resHeaders.set("access-control-allow-origin", requestOrigin);
         resHeaders.set("access-control-allow-credentials", "true");
+        resHeaders.set("vary", "Origin");
       }
 
       return new Response(upstreamRes.body, {
@@ -278,6 +298,12 @@ export function rewriteHtmlBase(
         const insertPos = headMatch.index! + headMatch[0].length;
         html = html.slice(0, insertPos) + baseTag + html.slice(insertPos);
       }
+      // <base> only affects relative URLs, not root-relative like href="/app.js".
+      // Rewrite those explicitly, skipping protocol-relative (//) and absolute URLs.
+      html = html.replace(
+        /((?:href|src|action)\s*=\s*["'])\/(?!\/)/gi,
+        `$1${normalizedPrefix}/`,
+      );
     } else {
       // Fallback: regex rewriting of href="/", src="/", action="/"
       // v1-pragmatic — known fragile for inline JS, CSS url(), dynamic HTML.

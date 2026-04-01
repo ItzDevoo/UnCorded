@@ -110,7 +110,7 @@ export class HealthMonitor {
           if (response.status === 404) {
             // No /ready endpoint — backward compat, treat as ready
             console.error(
-              `[health] Plugin ${state.pluginId} has no /ready endpoint — treating as ready. This fallback will be required in SDK v2.`,
+              `[health] Plugin ${state.pluginId} has no /ready endpoint — treating as ready. This fallback will be removed in SDK v2; /ready will be required.`,
             );
             this.onReadyChange?.(state.pluginId, true);
             this.startHealthChecks(state);

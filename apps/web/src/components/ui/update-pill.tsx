@@ -13,51 +13,36 @@ interface UpdateState {
   canRetry: boolean;
 }
 
-const HIDDEN_STATUSES = new Set(["idle", "up-to-date", "disabled", ""]);
+const VISIBLE_STATUSES = new Set(["available", "downloading", "downloaded"]);
 
 export const UpdatePill = () => {
   const [state, setState] = createSignal<UpdateState | null>(null);
   const [acting, setActing] = createSignal(false);
+  const [dismissed, setDismissed] = createSignal(false);
 
   const bridge = () => window.desktopBridge;
 
   onMount(() => {
     if (!bridge()) return;
-
     bridge()!.getUpdateState().then((s) => setState(s as UpdateState)).catch(() => {});
-
     const unsub = bridge()!.onUpdateState((s: unknown) => setState(s as UpdateState));
     onCleanup(unsub);
   });
 
   const status = () => state()?.status ?? "idle";
-  const visible = () => !!bridge() && !HIDDEN_STATUSES.has(status());
-
-  const tooltip = (): string => {
-    const s = state();
-    if (!s) return "";
-    switch (s.status) {
-      case "available": return `Update ${s.availableVersion ?? ""} available`;
-      case "downloading": return `Downloading ${s.downloadPercent != null ? `${Math.round(s.downloadPercent)}%` : "..."}`;
-      case "downloaded": return "Restart to update";
-      case "checking": return "Checking for updates";
-      case "error": return s.message ?? "Update error";
-      default: return "";
-    }
-  };
+  const visible = () => !!bridge() && !dismissed() && VISIBLE_STATUSES.has(status());
+  const isDownloading = () => status() === "downloading";
 
   const handleClick = async () => {
-    if (acting()) return;
-    const s = status();
+    if (acting() || isDownloading()) return;
     setActing(true);
     try {
-      if (s === "available") {
+      if (status() === "available") {
         await bridge()!.downloadUpdate();
-      } else if (s === "downloaded") {
+        showToast("Downloading update...", "info");
+      } else if (status() === "downloaded") {
         showToast("Restarting to update...", "info");
         await bridge()!.installUpdate();
-      } else if (s === "error") {
-        await bridge()!.checkForUpdates();
       }
     } catch {
       showToast("Update action failed", "error");
@@ -66,50 +51,67 @@ export const UpdatePill = () => {
     }
   };
 
-  const isClickable = () => {
+  const label = (): string => {
     const s = status();
-    return s === "available" || s === "downloaded" || s === "error";
+    if (s === "available") return "Update available";
+    if (s === "downloading") {
+      const pct = state()?.downloadPercent;
+      return pct != null ? `Downloading (${Math.round(pct)}%)` : "Downloading...";
+    }
+    if (s === "downloaded") return "Restart to update";
+    return "";
   };
 
   return (
     <Show when={visible()}>
-      <button
-        type="button"
-        class={`flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${
-          status() === "error"
-            ? "bg-destructive/15 text-destructive hover:bg-destructive/22"
-            : "bg-primary/15 text-primary hover:bg-primary/22"
-        } ${!isClickable() || acting() ? "opacity-60 cursor-default" : "cursor-pointer"}`}
-        title={tooltip()}
+      <div
+        class={`flex h-7 items-center gap-1.5 rounded-lg px-2 text-xs font-medium transition-colors ${
+          isDownloading() || acting()
+            ? "bg-primary/15 text-primary opacity-60 cursor-default"
+            : "bg-primary/15 text-primary cursor-pointer hover:bg-primary/22"
+        }`}
+        style={{ "-webkit-app-region": "no-drag" }}
         onClick={handleClick}
-        disabled={!isClickable() || acting()}
       >
-        <Show when={status() === "available"}>
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-        </Show>
-        <Show when={status() === "downloading"}>
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        {/* Icon */}
+        <Show when={status() === "available" || status() === "downloading"}>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class={`h-3.5 w-3.5 shrink-0 ${isDownloading() ? "animate-pulse" : ""}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
         </Show>
         <Show when={status() === "downloaded"}>
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
         </Show>
-        <Show when={status() === "checking"}>
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
+
+        {/* Label */}
+        <span class="whitespace-nowrap">{label()}</span>
+
+        {/* Dismiss button — only for "available" state */}
+        <Show when={status() === "available"}>
+          <button
+            type="button"
+            class="ml-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded transition-colors hover:bg-primary/20"
+            onClick={(e) => {
+              e.stopPropagation();
+              setDismissed(true);
+            }}
+            aria-label="Dismiss"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </Show>
-        <Show when={status() === "error"}>
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-          </svg>
-        </Show>
-      </button>
+      </div>
     </Show>
   );
 };

@@ -233,8 +233,8 @@ const AppSidebar = () => {
 
   return (
     <Sidebar variant="inset" collapsible="icon">
-      {/* ── Header: Update Pill + UNCORDED Logo ───────────────────── */}
-      <SidebarHeader class="drag-region flex items-center gap-2">
+      {/* ── Header: Logo + Update Pill ────────────────────────────── */}
+      <SidebarHeader class="drag-region flex items-center justify-between px-3 py-2">
         <SidebarMenu class="flex-1">
           <SidebarMenuItem>
             <SidebarMenuButton
@@ -253,7 +253,9 @@ const AppSidebar = () => {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        <UpdatePill />
+        <Show when={isDesktop()}>
+          <UpdatePill />
+        </Show>
       </SidebarHeader>
 
       {/* ── Content ─────────────────────────────────────────────────── */}

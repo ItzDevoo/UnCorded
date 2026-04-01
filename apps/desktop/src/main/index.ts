@@ -65,10 +65,9 @@ function createWindow(): BrowserWindow {
 }
 
 function createTray(): Tray {
-  const trayIconName = process.platform === "win32" ? "tray-icon-16.png" : "tray-icon.png";
-  const trayIconPath = path.join(RESOURCES_PATH, trayIconName);
+  const trayIconPath = path.join(RESOURCES_PATH, process.platform === "win32" ? "icon.ico" : "icon.png");
   const icon = nativeImage.createFromPath(trayIconPath);
-  const t = new Tray(icon);
+  const t = new Tray(icon.resize({ width: 16, height: 16 }));
 
   const contextMenu = Menu.buildFromTemplate([
     {

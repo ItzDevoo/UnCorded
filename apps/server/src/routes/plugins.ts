@@ -69,14 +69,41 @@ export const pluginPublicRoutes = new Elysia({ prefix: "/api/plugins" })
     }
 
     const [row] = await db
-      .select({ manifest: pluginRegistry.manifest, published: pluginRegistry.published })
+      .select({
+        id: pluginRegistry.id,
+        name: pluginRegistry.name,
+        version: pluginRegistry.version,
+        description: pluginRegistry.description,
+        author: pluginRegistry.author,
+        scope: pluginRegistry.scope,
+        image: pluginRegistry.image,
+        manifest: pluginRegistry.manifest,
+        published: pluginRegistry.published,
+        repository: pluginRegistry.repository,
+        iconUrl: pluginRegistry.iconUrl,
+      })
       .from(pluginRegistry)
       .where(eq(pluginRegistry.id, params.pluginId))
       .limit(1);
 
     if (!row || !row.published) throw new NotFoundError("Plugin");
 
-    return { manifest: row.manifest };
+    // Merge top-level plugin fields with the manifest so the sidecar
+    // receives a complete PluginManifest (id, name, version, etc.)
+    const stored = row.manifest as Record<string, unknown>;
+    return {
+      manifest: {
+        id: row.id,
+        name: row.name,
+        version: row.version,
+        description: row.description,
+        author: row.author,
+        scope: row.scope,
+        icon: row.iconUrl ?? undefined,
+        repository: row.repository ?? undefined,
+        ...stored,
+      },
+    };
   });
 
 // ── Authenticated routes ────────────────────────────────────────────────────

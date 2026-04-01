@@ -54,8 +54,10 @@ export const PluginCard = (props: PluginCardProps) => {
     >
       <div class="flex items-start gap-3">
         {/* Icon */}
-        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <PluginIcon />
+        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary overflow-hidden">
+          <Show when={p().icon} fallback={<PluginIcon />}>
+            <img src={p().icon!} alt={p().name} class="h-10 w-10 rounded-lg object-cover" />
+          </Show>
         </div>
 
         {/* Content */}

@@ -10,7 +10,7 @@ This must be implemented early in the Electron desktop app phase — not bolted 
 
 - **Library**: electron-updater (^6.x)
 - **Feed**: GitHub Releases (electron-updater reads the release atom feed automatically)
-- **User Control**: No auto-download, no auto-install — user explicitly triggers both
+- **User Control**: Auto-download enabled — updates download silently in the background. User only confirms the restart to install.
 - **State**: Reducer-based state machine, broadcasted to renderer via IPC
 - **Signing**: Platform-specific (macOS: Apple notarization, Windows: Azure Trusted Signing, Linux: none)
 
@@ -150,8 +150,8 @@ Result: UI sees updates at 0%, 10%, 20%, ..., 90%, 100% — not every 0.1%.
 import { autoUpdater } from "electron-updater";
 
 function configureAutoUpdater() {
-  autoUpdater.autoDownload = false; // User triggers download
-  autoUpdater.autoInstallOnAppQuit = false; // User triggers install
+  autoUpdater.autoDownload = true; // Download silently in background
+  autoUpdater.autoInstallOnAppQuit = true; // Install on next app quit
   autoUpdater.channel = "latest"; // Stable only
   autoUpdater.allowPrerelease = false;
   autoUpdater.allowDowngrade = false;
@@ -217,8 +217,8 @@ autoUpdater.on("error", (error) => {
 | Manual check     | User clicks "Check for Updates" in menu |
 
 ```typescript
-const AUTO_UPDATE_STARTUP_DELAY_MS = 15_000;
-const AUTO_UPDATE_POLL_INTERVAL_MS = 4 * 60 * 60 * 1000;
+const AUTO_UPDATE_STARTUP_DELAY_MS = 5_000; // Check quickly after launch
+const AUTO_UPDATE_POLL_INTERVAL_MS = 1 * 60 * 60 * 1000; // Check every hour
 
 // On app ready:
 setTimeout(() => checkForUpdates("startup"), AUTO_UPDATE_STARTUP_DELAY_MS);
@@ -266,7 +266,7 @@ ipcMain.handle("desktop:update-download", async () => {
 ipcMain.handle("desktop:update-install", async () => {
   if (updateState.status !== "downloaded")
     return { accepted: false, completed: false, state: updateState };
-  // ... stop backend server, quit and install
+  // ... stop sidecar process, quit and install
 });
 ```
 
@@ -290,9 +290,10 @@ Install is destructive (quits the app), so handle carefully:
 
 1. Verify state is `"downloaded"`
 2. Set `isQuitting = true` (prevents restart loops)
-3. Stop the embedded ElysiaJS server gracefully (5s timeout)
+3. Stop the Bun sidecar gracefully (SIGTERM, 5s timeout, then SIGKILL)
 4. Call `autoUpdater.quitAndInstall()`
 5. Electron handles: quit → replace binary → relaunch
+6. On relaunch, Electron respawns the sidecar automatically
 
 ```typescript
 async function installUpdate() {
@@ -300,7 +301,7 @@ async function installUpdate() {
   isQuitting = true;
 
   try {
-    await stopBackendServer(5000); // 5s grace period
+    await stopSidecar(5000); // SIGTERM, 5s grace, then SIGKILL
     autoUpdater.quitAndInstall();
   } catch (error) {
     isQuitting = false;

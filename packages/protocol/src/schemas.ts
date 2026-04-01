@@ -319,7 +319,7 @@ export const fileSessionLeaveRequestSchema = z.object({
 
 /** Server → Client: session invite */
 export const fileSessionInviteEventSchema = z.object({
-  sessionId: z.string(),
+  sessionId: sessionIdSchema,
   senderId: z.string(),
   senderUsername: z.string(),
   senderDisplayName: z.string().nullable(),
@@ -331,13 +331,13 @@ export const fileSessionInviteEventSchema = z.object({
 
 /** Server → Client: magnetUri for the joining recipient */
 export const fileSessionJoinAcceptEventSchema = z.object({
-  sessionId: z.string(),
+  sessionId: sessionIdSchema,
   magnetUri: z.string(),
 });
 
 /** Server → Client: a user joined the session */
 export const fileSessionJoinedEventSchema = z.object({
-  sessionId: z.string(),
+  sessionId: sessionIdSchema,
   userId: z.string(),
   username: z.string(),
   displayName: z.string().nullable(),
@@ -346,7 +346,7 @@ export const fileSessionJoinedEventSchema = z.object({
 
 /** Server → Client: progress update for a participant */
 export const fileSessionProgressEventSchema = z.object({
-  sessionId: z.string(),
+  sessionId: sessionIdSchema,
   userId: z.string(),
   progress: z.number(),
   speed: z.number(),
@@ -354,17 +354,17 @@ export const fileSessionProgressEventSchema = z.object({
 
 /** Server → Client: participant completed download */
 export const fileSessionCompleteEventSchema = z.object({
-  sessionId: z.string(),
+  sessionId: sessionIdSchema,
   userId: z.string(),
 });
 
 /** Server → Client: session closed */
 export const fileSessionCloseEventSchema = z.object({
-  sessionId: z.string(),
+  sessionId: sessionIdSchema,
 });
 
 /** Server → Client: participant left the session */
 export const fileSessionLeaveEventSchema = z.object({
-  sessionId: z.string(),
+  sessionId: sessionIdSchema,
   userId: z.string(),
 });

@@ -69,6 +69,11 @@ const sweepTimer = setInterval(() => {
 }, 5 * 60 * 1000); // Sweep every 5 minutes
 sweepTimer.unref();
 
+/** Stop the periodic sweep (for graceful shutdown / tests). */
+export function clearFileSessionSweep(): void {
+  clearInterval(sweepTimer);
+}
+
 // ── Handlers ────────────────────────────────────────────────────────────────
 
 export async function handleFileSessionCreate(

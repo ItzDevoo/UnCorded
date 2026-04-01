@@ -261,19 +261,22 @@ export const developerRoutes = new Elysia({ prefix: "/api/developer" })
 
     // Atomic conditional update — only succeeds if new version > current version
     // Compares semver parts numerically using SQL to avoid TOCTOU races
-    const [major, minor, patch] = data.version.split(".").map(Number);
+    const parts = data.version.split(".").map(Number);
+    const major = parts[0] ?? 0;
+    const minor = parts[1] ?? 0;
+    const patch = parts[2] ?? 0;
     const result = await db
       .update(pluginRegistry)
       .set(updates)
       .where(and(
         eq(pluginRegistry.id, params.pluginId),
         sql`(
-          split_part(${pluginRegistry.version}, '.', 1)::int < ${major!}
-          OR (split_part(${pluginRegistry.version}, '.', 1)::int = ${major!}
-              AND split_part(${pluginRegistry.version}, '.', 2)::int < ${minor!})
-          OR (split_part(${pluginRegistry.version}, '.', 1)::int = ${major!}
-              AND split_part(${pluginRegistry.version}, '.', 2)::int = ${minor!}
-              AND split_part(${pluginRegistry.version}, '.', 3)::int < ${patch!})
+          split_part(${pluginRegistry.version}, '.', 1)::int < ${major}
+          OR (split_part(${pluginRegistry.version}, '.', 1)::int = ${major}
+              AND split_part(${pluginRegistry.version}, '.', 2)::int < ${minor})
+          OR (split_part(${pluginRegistry.version}, '.', 1)::int = ${major}
+              AND split_part(${pluginRegistry.version}, '.', 2)::int = ${minor}
+              AND split_part(${pluginRegistry.version}, '.', 3)::int < ${patch})
         )`,
       ))
       .returning({ id: pluginRegistry.id });

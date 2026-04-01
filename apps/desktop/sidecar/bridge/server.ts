@@ -24,6 +24,7 @@ interface BridgeServer {
 export async function startBridgeServer(options: BridgeServerOptions): Promise<BridgeServer> {
   const dataDir = options.dataDir ?? process.env["UNCORDED_DATA_DIR"] ?? "./sidecar-data";
   const storage = new PluginStorage(dataDir);
+  const inFlightUpdates = new Set<string>();
 
   const app = new Elysia()
     // Health check (unauthenticated)
@@ -139,7 +140,9 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
       options.plugins.setApiToken(token);
 
       // Trigger plugin update check now that auth is available
-      import("../index").then((m) => m.runUpdateCheck()).catch(() => {});
+      import("../index")
+        .then((m) => m.runUpdateCheck())
+        .catch((err) => console.error("[bridge] runUpdateCheck failed after auth:", err));
 
       return { success: true };
     })
@@ -150,6 +153,7 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
     })
 
     // --- Plugin updates (called by Electron main process, no auth) ---
+
     .get("/plugins/updates", async () => {
       const { pendingMajorUpdates } = await import("../index");
       return { updates: [...pendingMajorUpdates] };
@@ -158,7 +162,15 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
     .post("/plugins/:id/update", async ({ params }) => {
       const { removePendingUpdate, reinsertPendingUpdate } = await import("../index");
 
-      // Atomically remove the pending update so concurrent requests see 404
+      // If already in-flight, return 202 so the client knows it's being processed
+      if (inFlightUpdates.has(params.id)) {
+        return new Response(JSON.stringify({ status: "in_progress" }), {
+          status: 202,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      // Atomically remove the pending update
       const update = removePendingUpdate(params.id);
       if (!update) {
         throw new Response(JSON.stringify({ error: "No pending update for this plugin" }), {
@@ -167,10 +179,12 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
         });
       }
 
+      inFlightUpdates.add(params.id);
       let result: { errors?: string[] };
       try {
         result = await options.plugins.update(params.id, update.manifest);
       } catch (err) {
+        inFlightUpdates.delete(params.id);
         reinsertPendingUpdate(update);
         const message = err instanceof Error ? err.message : "Unknown error";
         throw new Response(JSON.stringify({ error: message }), {
@@ -178,11 +192,20 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
           headers: { "Content-Type": "application/json" },
         });
       }
+      inFlightUpdates.delete(params.id);
 
       if (result.errors && result.errors.length > 0) {
-        reinsertPendingUpdate(update);
-        throw new Response(JSON.stringify({ error: result.errors.join(", ") }), {
-          status: 500,
+        const joined = result.errors.join(", ");
+        // Permanent validation failures — don't requeue
+        const isPermanent = result.errors.some((e) =>
+          /not found|manifest|scope|parse/i.test(e),
+        );
+        if (!isPermanent) {
+          reinsertPendingUpdate(update);
+        }
+        const status = isPermanent ? 400 : 500;
+        throw new Response(JSON.stringify({ error: joined }), {
+          status,
           headers: { "Content-Type": "application/json" },
         });
       }

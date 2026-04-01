@@ -19,6 +19,13 @@ interface UpdateResult {
   state: UpdateState;
 }
 
+interface PluginUpdateInfo {
+  pluginId: string;
+  currentVersion: string;
+  availableVersion: string;
+  updateType: "major" | "minor" | "patch";
+}
+
 interface DesktopBridgePlugins {
   getAll(): Promise<PluginInfo[]>;
   onStateChange(listener: (plugins: PluginInfo[]) => void): () => void;
@@ -27,6 +34,8 @@ interface DesktopBridgePlugins {
   restart(pluginId: string): Promise<void>;
   getPermissions(pluginId: string): Promise<string[]>;
   uninstall(pluginId: string): Promise<void>;
+  onUpdatesAvailable(listener: (updates: PluginUpdateInfo[]) => void): () => void;
+  update(pluginId: string): Promise<void>;
 }
 
 interface DesktopBridge {
@@ -49,4 +58,4 @@ declare global {
   }
 }
 
-export {};
+export type { PluginUpdateInfo };

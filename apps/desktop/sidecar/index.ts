@@ -3,6 +3,7 @@ import { DockerManager } from "./docker/manager";
 import { GatewayClient } from "./gateway/client";
 import { SeedingEngine } from "./seeding/engine";
 import { PluginLifecycle } from "./plugins/lifecycle";
+import { checkForUpdates, applyAutoUpdates, type UpdateInfo } from "./plugins/update-checker";
 import { TunnelManager } from "./tunnel/manager";
 import path from "node:path";
 import fs from "node:fs";
@@ -48,6 +49,40 @@ await seeding.resume();
 // --- Resume plugins that were previously running ---
 
 await plugins.resumeAll();
+
+// --- Check for plugin updates (async, non-blocking) ---
+
+export let pendingMajorUpdates: UpdateInfo[] = [];
+
+export function removePendingUpdate(pluginId: string): void {
+  pendingMajorUpdates = pendingMajorUpdates.filter((u) => u.pluginId !== pluginId);
+}
+
+const apiBaseUrl = plugins.getApiBaseUrl();
+const apiToken = plugins.getApiToken();
+if (apiBaseUrl && apiToken) {
+  checkForUpdates(plugins, apiBaseUrl, apiToken)
+    .then(async (updates) => {
+      const autoUpdates = updates.filter((u) => u.updateType !== "major");
+      const majorUpdates = updates.filter((u) => u.updateType === "major");
+
+      if (autoUpdates.length > 0) {
+        const result = await applyAutoUpdates(plugins, autoUpdates);
+        if (result.applied.length > 0) {
+          console.error(`[update-checker] Auto-updated: ${result.applied.join(", ")}`);
+        }
+        if (result.skipped.length > 0) {
+          console.error(`[update-checker] Skipped: ${result.skipped.join(", ")}`);
+        }
+      }
+
+      pendingMajorUpdates = majorUpdates;
+      if (majorUpdates.length > 0) {
+        console.error(`[update-checker] Major updates available: ${majorUpdates.map((u) => `${u.pluginId}@${u.availableVersion}`).join(", ")}`);
+      }
+    })
+    .catch((err) => console.error("[update-checker] Update check failed:", err));
+}
 
 // --- Graceful shutdown ---
 

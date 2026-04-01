@@ -226,6 +226,45 @@ export const developerRoutes = new Elysia({ prefix: "/api/developer" })
     return { success: true };
   })
 
+  // ── PUT /api/developer/plugins/:pluginId/version — Push a new version ───
+  .put("/plugins/:pluginId/version", async ({ params, body, user: sessionUser }) => {
+    await checkUserRateLimit(sessionUser.id, RL.DEVELOPER_PLUGIN_VERSION_PUSH, 10, 3_600_000);
+
+    const parsed = body as { version?: string; image?: string; manifest?: object } | null;
+    if (!parsed?.version || typeof parsed.version !== "string") {
+      throw new ValidationError("version is required");
+    }
+    if (!/^\d+\.\d+\.\d+$/.test(parsed.version)) {
+      throw new ValidationError("version must be semver format (e.g. 1.0.0)");
+    }
+
+    // Verify ownership
+    const [plugin] = await db
+      .select({
+        id: pluginRegistry.id,
+        authorUserId: pluginRegistry.authorUserId,
+        published: pluginRegistry.published,
+      })
+      .from(pluginRegistry)
+      .where(eq(pluginRegistry.id, params.pluginId))
+      .limit(1);
+
+    if (!plugin) throw new NotFoundError("Plugin");
+    if (plugin.authorUserId !== sessionUser.id) throw new ForbiddenError("Not your plugin");
+    if (!plugin.published) throw new ForbiddenError("Cannot push versions to unpublished plugins");
+
+    const updates: Record<string, unknown> = {
+      version: parsed.version,
+      updatedAt: new Date(),
+    };
+    if (parsed.image !== undefined) updates.image = parsed.image;
+    if (parsed.manifest !== undefined) updates.manifest = parsed.manifest;
+
+    await db.update(pluginRegistry).set(updates).where(eq(pluginRegistry.id, params.pluginId));
+
+    return { success: true, version: parsed.version };
+  })
+
   // ── GET /api/developer/plugins/:pluginId/status — Check submission status
   .get("/plugins/:pluginId/status", async ({ params, user: sessionUser }) => {
     // Verify ownership

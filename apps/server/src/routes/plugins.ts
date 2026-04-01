@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { eq, and, sql, desc } from "drizzle-orm";
+import { eq, and, sql, desc, inArray } from "drizzle-orm";
 import { NotFoundError, RateLimitError } from "@uncorded/shared";
 import { db } from "../db/index.js";
 import { pluginRegistry, pluginInstalls, bots, user } from "../db/schema.js";
@@ -7,6 +7,16 @@ import { authResolve } from "../middleware/auth.js";
 import { checkIpRateLimit } from "../middleware/ip-rate-limit.js";
 import { getClientIp } from "../helpers/request.js";
 import { RL } from "../helpers/rate-limit-keys.js";
+
+function compareSemver(a: string, b: string): number {
+  const pa = a.split(".").map(Number);
+  const pb = b.split(".").map(Number);
+  for (let i = 0; i < 3; i++) {
+    const diff = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
 
 // ── Public routes (no auth) ─────────────────────────────────────────────────
 
@@ -245,4 +255,47 @@ export const pluginRoutes = new Elysia({ prefix: "/api/plugins" })
       .where(eq(pluginInstalls.pluginId, params.pluginId));
 
     return { success: true, installCount: countRow?.count ?? 0 };
+  })
+
+  // ── POST /api/plugins/check-updates — batch version check ───────────
+  .post("/check-updates", async ({ body, request }) => {
+    const ip = getClientIp(request);
+    if (!(await checkIpRateLimit(ip, 10, 60_000, RL.PLUGIN_CHECK_UPDATES))) {
+      throw new RateLimitError("Too many requests, try again later");
+    }
+
+    const parsed = body as { plugins?: { id: string; version: string }[] } | null;
+    if (!parsed?.plugins || !Array.isArray(parsed.plugins) || parsed.plugins.length === 0) {
+      return { updates: [] };
+    }
+
+    // Cap input to 50 plugins per request
+    const input = parsed.plugins.slice(0, 50);
+    const ids = input.map((p) => p.id);
+
+    const rows = await db
+      .select({
+        id: pluginRegistry.id,
+        version: pluginRegistry.version,
+        manifest: pluginRegistry.manifest,
+      })
+      .from(pluginRegistry)
+      .where(and(eq(pluginRegistry.published, true), inArray(pluginRegistry.id, ids)));
+
+    const inputMap = new Map(input.map((p) => [p.id, p.version]));
+
+    const updates = rows
+      .filter((row) => {
+        const currentVersion = inputMap.get(row.id);
+        if (!currentVersion || !row.version) return false;
+        return compareSemver(row.version, currentVersion) > 0;
+      })
+      .map((row) => ({
+        pluginId: row.id,
+        currentVersion: inputMap.get(row.id)!,
+        latestVersion: row.version,
+        manifest: row.manifest,
+      }));
+
+    return { updates };
   });

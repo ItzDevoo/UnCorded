@@ -145,6 +145,34 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
       return notificationQueue.drain();
     })
 
+    // --- Plugin updates (called by Electron main process, no auth) ---
+    .get("/plugins/updates", async () => {
+      const { pendingMajorUpdates } = await import("../index");
+      return { updates: pendingMajorUpdates };
+    })
+
+    .post("/plugins/:id/update", async ({ params }) => {
+      const { pendingMajorUpdates, removePendingUpdate } = await import("../index");
+      const update = pendingMajorUpdates.find((u) => u.pluginId === params.id);
+      if (!update) {
+        throw new Response(JSON.stringify({ error: "No pending update for this plugin" }), {
+          status: 404,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      const result = await options.plugins.update(params.id, update.manifest);
+      if (result.errors && result.errors.length > 0) {
+        throw new Response(JSON.stringify({ error: result.errors.join(", ") }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      removePendingUpdate(params.id);
+      return { success: true, version: update.availableVersion };
+    })
+
     .post("/plugins/:id/uninstall", async ({ params }) => {
       try {
         await options.plugins.uninstall(params.id);

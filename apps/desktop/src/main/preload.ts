@@ -40,6 +40,13 @@ interface UpdateResult {
   state: UpdateState;
 }
 
+interface PluginUpdateInfo {
+  pluginId: string;
+  currentVersion: string;
+  availableVersion: string;
+  updateType: "major" | "minor" | "patch";
+}
+
 const desktopBridge = {
   // --- Sidecar ---
   getSidecarStatus: (): Promise<SidecarStatus> =>
@@ -76,6 +83,15 @@ const desktopBridge = {
 
     uninstall: (pluginId: string): Promise<void> =>
       ipcRenderer.invoke("plugins:uninstall", pluginId),
+
+    onUpdatesAvailable: (listener: (updates: PluginUpdateInfo[]) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, updates: PluginUpdateInfo[]) => listener(updates);
+      ipcRenderer.on("plugins:updates-available", handler);
+      return () => ipcRenderer.removeListener("plugins:updates-available", handler);
+    },
+
+    update: (pluginId: string): Promise<void> =>
+      ipcRenderer.invoke("plugins:update", pluginId),
   },
 
   // --- Auto-update ---

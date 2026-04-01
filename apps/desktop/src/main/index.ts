@@ -338,6 +338,18 @@ function setupPluginIpc(): void {
     broadcastPluginState();
   });
 
+  ipcMain.handle("plugins:update", async (_event, pluginId: string) => {
+    const port = sidecar.getPort();
+    if (!port) throw new Error("Sidecar not running");
+    const res = await fetch(`http://localhost:${port}/plugins/${pluginId}/update`, { method: "POST" });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`Plugin update failed (${res.status}): ${body}`);
+    }
+    cachedPlugins = await fetchPluginsFromSidecar();
+    broadcastPluginState();
+  });
+
   ipcMain.handle("plugins:get-permissions", async (_event, pluginId: string) => {
     const port = sidecar.getPort();
     if (!port) return [];
@@ -353,6 +365,7 @@ function setupPluginIpc(): void {
 
 // Poll sidecar for plugin state changes (until we have a push mechanism)
 let pluginPollTimer: ReturnType<typeof setInterval> | null = null;
+let updatePollCounter = 0;
 
 function startPluginPolling(): void {
   if (pluginPollTimer) return;
@@ -367,6 +380,28 @@ function startPluginPolling(): void {
     cachedPlugins = await fetchPluginsFromSidecar();
     if (JSON.stringify(cachedPlugins) !== prev) {
       broadcastPluginState();
+    }
+
+    // Check for plugin updates every ~60s (every 20th poll)
+    updatePollCounter++;
+    if (updatePollCounter >= 20) {
+      updatePollCounter = 0;
+      try {
+        const port = sidecar.getPort();
+        if (port) {
+          const updateRes = await fetch(`http://localhost:${port}/plugins/updates`);
+          if (updateRes.ok) {
+            const { updates } = (await updateRes.json()) as { updates: unknown[] };
+            if (updates.length > 0) {
+              for (const win of BrowserWindow.getAllWindows()) {
+                if (!win.isDestroyed()) {
+                  win.webContents.send("plugins:updates-available", updates);
+                }
+              }
+            }
+          }
+        }
+      } catch { /* silently ignore update check failures */ }
     }
   }, 3000);
 }

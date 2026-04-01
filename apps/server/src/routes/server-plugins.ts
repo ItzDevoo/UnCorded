@@ -205,7 +205,7 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
   // ── GET /:pluginId/tunnel — get tunnel URL (any member) ────────────────
   .get("/:pluginId/tunnel", async ({ user: sessionUser, params, request }) => {
     const ip = getClientIp(request);
-    if (!(await checkIpRateLimit(ip, 30, 60_000, RL.SERVER_PLUGIN_UPDATE))) {
+    if (!(await checkIpRateLimit(ip, 30, 60_000, RL.SERVER_PLUGIN_TUNNEL_READ))) {
       throw new RateLimitError("Too many requests, try again later");
     }
 

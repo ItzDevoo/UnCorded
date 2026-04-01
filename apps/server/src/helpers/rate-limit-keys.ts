@@ -11,6 +11,7 @@ export const RL = {
   SERVER_PLUGIN_INSTALL: "server-plugin-install",
   SERVER_PLUGIN_UNINSTALL: "server-plugin-uninstall",
   SERVER_PLUGIN_UPDATE: "server-plugin-update",
+  SERVER_PLUGIN_TUNNEL_READ: "server-plugin-tunnel-read",
   INVITE_LOOKUP: "invite-lookup",
   PLUGIN_CHECK_UPDATES: "plugin-check-updates",
 

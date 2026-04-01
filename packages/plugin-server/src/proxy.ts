@@ -204,10 +204,10 @@ export function proxy(
       // Iframe-safe: merge frame-ancestors into existing CSP instead of overwriting
       const existingCsp = resHeaders.get("content-security-policy");
       if (existingCsp) {
-        if (/frame-ancestors\s/i.test(existingCsp)) {
+        if (/\bframe-ancestors\b/i.test(existingCsp)) {
           resHeaders.set(
             "content-security-policy",
-            existingCsp.replace(/frame-ancestors\s+[^;]*/i, "frame-ancestors *"),
+            existingCsp.replace(/\bframe-ancestors\b[^;]*/i, "frame-ancestors *"),
           );
         } else {
           resHeaders.set("content-security-policy", `${existingCsp}; frame-ancestors *`);
@@ -216,10 +216,11 @@ export function proxy(
         resHeaders.set("content-security-policy", "frame-ancestors *");
       }
 
-      // Echo request origin instead of wildcard — compatible with credentials
+      // Echo request origin instead of wildcard — supports credentialed requests
       const requestOrigin = req.headers.get("origin");
       if (requestOrigin) {
         resHeaders.set("access-control-allow-origin", requestOrigin);
+        resHeaders.set("access-control-allow-credentials", "true");
       }
 
       return new Response(upstreamRes.body, {
@@ -339,10 +340,14 @@ export function createBundledService(config: BundledServiceConfig): BundledServi
   // Pipe stdout/stderr line-by-line when using callbacks
   if (useCallbacks) {
     if (proc.stdout) {
-      pipeLines(proc.stdout as ReadableStream<Uint8Array>, stdoutCb);
+      pipeLines(proc.stdout as ReadableStream<Uint8Array>, stdoutCb).catch((err) => {
+        stderrCb(`[pipe] stdout stream error: ${err}`);
+      });
     }
     if (proc.stderr) {
-      pipeLines(proc.stderr as ReadableStream<Uint8Array>, stderrCb);
+      pipeLines(proc.stderr as ReadableStream<Uint8Array>, stderrCb).catch((err) => {
+        console.error(`[${serviceName}] stderr stream error:`, err);
+      });
     }
   }
 

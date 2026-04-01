@@ -78,10 +78,13 @@ export class HealthMonitor {
 
       const elapsed = Date.now() - startedAt;
       if (elapsed >= READINESS_TIMEOUT_MS) {
-        console.error(`[health] Plugin ${state.pluginId} readiness timed out after ${READINESS_TIMEOUT_MS}ms — marking ready anyway`);
+        console.error(
+          `[health] Plugin ${state.pluginId} readiness timed out after ${READINESS_TIMEOUT_MS}ms — marking unhealthy`,
+        );
         if (!this.isActive(state)) return;
-        this.onReadyChange?.(state.pluginId, true);
-        this.startHealthChecks(state);
+        this.onReadyChange?.(state.pluginId, false);
+        this.onStatusChange?.(state.pluginId, "unhealthy");
+        this.stopMonitoring(state.pluginId);
         return;
       }
 

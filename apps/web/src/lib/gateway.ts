@@ -1,4 +1,4 @@
-import { Opcode, CloseCode, encode, decode, readyEventSchema } from "@uncorded/protocol";
+import { Opcode, CloseCode, encode, decodeClient as decode, readyEventSchema } from "@uncorded/protocol";
 import type { GatewayFrame } from "@uncorded/protocol";
 import { API_BASE } from "./config.js";
 import {

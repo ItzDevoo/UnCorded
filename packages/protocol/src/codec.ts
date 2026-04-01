@@ -22,8 +22,30 @@ export function encode(frame: GatewayFrame): Uint8Array {
   return msgpackEncode(frame);
 }
 
+/** Tighter limits for client-side decoding (browser memory is more constrained). */
+export const CLIENT_DECODE_OPTIONS: DecoderOptions = {
+  maxStrLength: 16_384,
+  maxBinLength: 16_384,
+  maxArrayLength: 2_000,
+  maxMapLength: 200,
+};
+
 export function decode(data: ArrayLike<number> | BufferSource): GatewayFrame {
   const result = msgpackDecode(data as Uint8Array, DECODE_OPTIONS);
+  if (
+    typeof result !== "object" ||
+    result === null ||
+    !("op" in result) ||
+    typeof (result as Record<string, unknown>).op !== "number" ||
+    !("d" in result)
+  ) {
+    throw new Error("Invalid GatewayFrame: missing op or d");
+  }
+  return result as GatewayFrame;
+}
+
+export function decodeClient(data: ArrayLike<number> | BufferSource): GatewayFrame {
+  const result = msgpackDecode(data as Uint8Array, CLIENT_DECODE_OPTIONS);
   if (
     typeof result !== "object" ||
     result === null ||

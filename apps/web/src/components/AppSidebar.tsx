@@ -360,8 +360,8 @@ const AppSidebar = () => {
           </SidebarMenu>
         </SidebarGroup>
 
-        {/* Servers group */}
-        <SidebarGroup label="Servers" collapsible defaultOpen>
+        {/* Servers — no collapsible wrapper */}
+        <SidebarGroup>
           {/* Server selector */}
           <div class="pt-1" classList={{ "px-2": sidebarState() === "expanded", "px-0": sidebarState() === "collapsed" }}>
             <ServerSwitcher
@@ -393,8 +393,16 @@ const AppSidebar = () => {
             </div>
           </Show>
 
-          {/* Channel list — shown when a server is selected */}
+          {/* Channel actions + channel list — shown when a server is selected */}
           <Show when={selectedServerId()}>
+            {/* Channel actions — settings, invite, create */}
+            <Show when={sidebarState() === "expanded"}>
+              <Show when={isServerOwner()}>
+                <div class="flex items-center gap-1 px-3 pt-1">{channelActions()}</div>
+              </Show>
+            </Show>
+
+            {/* Channel list */}
             <Show
               when={channelCacheLoading() !== selectedServerId()}
               fallback={
@@ -448,18 +456,13 @@ const AppSidebar = () => {
                   }}
                 </For>
               </SidebarMenu>
-              <Show when={sidebarState() === "expanded"}>
-                <Show when={isServerOwner()}>
-                  <div class="flex items-center gap-1 px-3 pt-1">{channelActions()}</div>
-                </Show>
-              </Show>
             </Show>
           </Show>
         </SidebarGroup>
 
-        {/* Server Plugins — shown when viewing a server, available to all users */}
+        {/* Server Plugins — footer area */}
         <Show when={selectedServerId() && visibleServerPlugins().length > 0}>
-          <SidebarGroup label="Server Plugins" collapsible defaultOpen>
+          <SidebarGroup label="Server Plugins" collapsible defaultOpen class="mt-auto">
             <SidebarMenu classList={{ hidden: sidebarState() === "collapsed" }}>
               <For each={visibleServerPlugins()}>
                 {(plugin) => {
@@ -499,9 +502,9 @@ const AppSidebar = () => {
           </SidebarGroup>
         </Show>
 
-        {/* My Plugins — pushed to bottom, desktop only */}
+        {/* My Plugins — desktop only */}
         <Show when={isDesktop() && visiblePlugins().length > 0}>
-          <SidebarGroup label={selectedServerId() ? "My Plugins" : "Plugins"} collapsible defaultOpen class="mt-auto">
+          <SidebarGroup label={selectedServerId() ? "My Plugins" : "Plugins"} collapsible defaultOpen class={!(selectedServerId() && visibleServerPlugins().length > 0) ? "mt-auto" : ""}>
             <SidebarMenu classList={{ hidden: sidebarState() === "collapsed" }}>
               <div class="max-h-40 overflow-y-auto">
                 <For each={visiblePlugins()}>
@@ -558,7 +561,7 @@ const AppSidebar = () => {
         </Show>
 
         {/* Bottom nav — Support & Settings */}
-        <SidebarGroup class={isDesktop() && visiblePlugins().length > 0 ? "" : "mt-auto"}>
+        <SidebarGroup class={!(selectedServerId() && visibleServerPlugins().length > 0) && !(isDesktop() && visiblePlugins().length > 0) ? "mt-auto" : ""}>
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton

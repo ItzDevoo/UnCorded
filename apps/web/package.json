@@ -17,6 +17,7 @@
     "better-auth": "^1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "lucide-solid": "^1.7.0",
     "marked": "^17.0.4",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4",

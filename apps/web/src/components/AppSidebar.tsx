@@ -234,7 +234,7 @@ const AppSidebar = () => {
   return (
     <Sidebar variant="inset" collapsible="icon">
       {/* ── Header: Logo + Update Pill ────────────────────────────── */}
-      <SidebarHeader class="drag-region flex items-center justify-between px-3 py-2">
+      <SidebarHeader class="drag-region flex flex-row items-center justify-between px-3 py-2">
         <SidebarMenu class="flex-1">
           <SidebarMenuItem>
             <SidebarMenuButton

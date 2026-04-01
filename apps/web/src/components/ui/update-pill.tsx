@@ -1,4 +1,5 @@
-import { createSignal, onMount, onCleanup, Show, type JSX } from "solid-js";
+import { createSignal, onMount, onCleanup, Show } from "solid-js";
+import { Rocket } from "lucide-solid";
 import { showToast } from "./toast.js";
 import { Tooltip } from "./tooltip.js";
 
@@ -15,25 +16,6 @@ interface UpdateState {
 }
 
 const VISIBLE_STATUSES = new Set(["available", "downloading", "downloaded"]);
-
-const RocketIcon = (props: { class?: string }): JSX.Element => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    class={props.class}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    stroke-width="1.8"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  >
-    <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 00-2.91-.09z" />
-    <path d="M12 15l-3-3a22 22 0 012-3.95A12.88 12.88 0 0122 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 01-4 2z" />
-    <circle cx="16" cy="8" r="1.5" />
-    <path d="M9 11.5L3.5 17" />
-    <path d="M14 6.5l-1 4.5" />
-  </svg>
-);
 
 export const UpdatePill = () => {
   const [state, setState] = createSignal<UpdateState | null>(null);
@@ -101,11 +83,11 @@ export const UpdatePill = () => {
           type="button"
           aria-label={label()}
           disabled={isDownloading()}
-          class={`inline-flex size-7 items-center justify-center rounded-md transition-colors ${colorClasses()} ${interactivityClasses()}`}
+          class={`ml-auto inline-flex size-7 items-center justify-center rounded-md transition-colors ${colorClasses()} ${interactivityClasses()}`}
           style={{ "-webkit-app-region": "no-drag" }}
           onClick={handleClick}
         >
-          <RocketIcon class="h-3.5 w-3.5" />
+          <Rocket class="size-3.5" />
         </button>
       </Tooltip>
     </Show>

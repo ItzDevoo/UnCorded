@@ -24,6 +24,7 @@ import { turnRoutes } from "./routes/turn.js";
 import { fileReceiptRoutes } from "./routes/file-receipts.js";
 import { botRoutes, botAvatarRoutes } from "./routes/bots.js";
 import { pluginRoutes, pluginPublicRoutes } from "./routes/plugins.js";
+import { developerRoutes } from "./routes/developer.js";
 import { serverPluginRoutes } from "./routes/server-plugins.js";
 import { gatewayTicketRoutes } from "./routes/gateway.js";
 import { gateway } from "./ws/gateway.js";
@@ -87,6 +88,7 @@ const app = new Elysia()
   .use(botAvatarRoutes)
   .use(pluginPublicRoutes)
   .use(pluginRoutes)
+  .use(developerRoutes)
   .use(serverPluginRoutes)
   .use(gatewayTicketRoutes)
   .use(gateway)

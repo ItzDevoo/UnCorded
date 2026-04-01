@@ -7,10 +7,12 @@ import {
   integer,
   bigint,
   index,
+  uniqueIndex,
   primaryKey,
   unique,
   jsonb,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 import { nanoid } from "nanoid";
 
@@ -465,6 +467,7 @@ export const pluginRegistry = pgTable(
     downloads: integer("downloads").notNull().default(0),
     screenshots: jsonb("screenshots").notNull().default([]),
     published: boolean("published").notNull().default(true),
+    authorUserId: text("author_user_id").references(() => user.id, { onDelete: "set null" }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -519,6 +522,37 @@ export const pluginInstalls = pgTable(
   (t) => [
     index("plugin_installs_user_id_idx").on(t.userId),
     unique("plugin_installs_plugin_user").on(t.pluginId, t.userId),
+  ],
+);
+
+export const pluginSubmissionStatusEnum = pgEnum("plugin_submission_status", [
+  "pending",
+  "approved",
+  "rejected",
+]);
+
+export const pluginSubmissions = pgTable(
+  "plugin_submissions",
+  {
+    id: id(),
+    pluginId: text("plugin_id")
+      .notNull()
+      .references(() => pluginRegistry.id, { onDelete: "cascade" }),
+    authorUserId: text("author_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    status: pluginSubmissionStatusEnum("status").default("pending").notNull(),
+    submittedAt: timestamp("submitted_at", { mode: "date" }).defaultNow().notNull(),
+    reviewedBy: text("reviewed_by").references(() => user.id, { onDelete: "set null" }),
+    reviewedAt: timestamp("reviewed_at", { mode: "date" }),
+    rejectionReason: text("rejection_reason"),
+  },
+  (t) => [
+    index("plugin_submissions_author_idx").on(t.authorUserId),
+    index("plugin_submissions_status_idx").on(t.status),
+    uniqueIndex("plugin_submissions_pending_unique_idx")
+      .on(t.pluginId)
+      .where(sql`${t.status} = 'pending'`),
   ],
 );
 

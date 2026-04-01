@@ -127,6 +127,13 @@
       "when": 1743350400000,
       "tag": "0017_plugin_registry",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1743436800000,
+      "tag": "0018_plugin_submissions",
+      "breakpoints": true
     }
   ]
 }

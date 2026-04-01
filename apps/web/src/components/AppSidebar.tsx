@@ -323,7 +323,7 @@ const AppSidebar = () => {
         </SidebarGroup>
 
         {/* Social group */}
-        <SidebarGroup label="Social" collapsible defaultOpen>
+        <SidebarGroup label="Social" collapsible defaultOpen class="px-2 py-1">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
@@ -361,9 +361,9 @@ const AppSidebar = () => {
         </SidebarGroup>
 
         {/* Servers — no collapsible wrapper */}
-        <SidebarGroup>
+        <SidebarGroup class="px-2 py-1">
           {/* Server selector */}
-          <div class="pt-1" classList={{ "px-2": sidebarState() === "expanded", "px-0": sidebarState() === "collapsed" }}>
+          <div classList={{ "px-2": sidebarState() === "expanded", "px-0": sidebarState() === "collapsed" }}>
             <ServerSwitcher
               onCreateServer={() => setModal("create")}
               onJoinServer={() => setModal("join")}
@@ -372,7 +372,7 @@ const AppSidebar = () => {
 
           {/* Empty state — no servers yet */}
           <Show when={sidebarState() === "expanded" && (!readyData.data?.servers || readyData.data.servers.length === 0) && !selectedServerId()}>
-            <div class="px-3 py-3 text-center">
+            <div class="px-3 py-2 text-center">
               <p class="text-xs text-muted-foreground">No servers yet</p>
               <div class="mt-2 flex gap-2">
                 <button
@@ -462,7 +462,7 @@ const AppSidebar = () => {
 
         {/* Server Plugins — footer area */}
         <Show when={selectedServerId() && visibleServerPlugins().length > 0}>
-          <SidebarGroup label="Server Plugins" collapsible defaultOpen class="mt-auto">
+          <SidebarGroup label="Server Plugins" collapsible defaultOpen class="mt-auto px-2 py-1">
             <SidebarMenu classList={{ hidden: sidebarState() === "collapsed" }}>
               <For each={visibleServerPlugins()}>
                 {(plugin) => {
@@ -504,7 +504,7 @@ const AppSidebar = () => {
 
         {/* My Plugins — desktop only */}
         <Show when={isDesktop() && visiblePlugins().length > 0}>
-          <SidebarGroup label={selectedServerId() ? "My Plugins" : "Plugins"} collapsible defaultOpen class={!(selectedServerId() && visibleServerPlugins().length > 0) ? "mt-auto" : ""}>
+          <SidebarGroup label={selectedServerId() ? "My Plugins" : "Plugins"} collapsible defaultOpen class={`px-2 py-1 ${!(selectedServerId() && visibleServerPlugins().length > 0) ? "mt-auto" : ""}`}>
             <SidebarMenu classList={{ hidden: sidebarState() === "collapsed" }}>
               <div class="max-h-40 overflow-y-auto">
                 <For each={visiblePlugins()}>
@@ -561,7 +561,7 @@ const AppSidebar = () => {
         </Show>
 
         {/* Bottom nav — Support & Settings */}
-        <SidebarGroup class={!(selectedServerId() && visibleServerPlugins().length > 0) && !(isDesktop() && visiblePlugins().length > 0) ? "mt-auto" : ""}>
+        <SidebarGroup class={`px-2 py-1 ${!(selectedServerId() && visibleServerPlugins().length > 0) && !(isDesktop() && visiblePlugins().length > 0) ? "mt-auto" : ""}`}>
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton

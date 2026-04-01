@@ -1145,21 +1145,29 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
     if (!submission) throw new NotFoundError("Submission");
     if (submission.status !== "pending") throw new ValidationError("Submission is not pending");
 
-    await db
-      .update(pluginSubmissions)
-      .set({
-        status: "approved",
-        reviewedBy: sessionUser.id,
-        reviewedAt: new Date(),
-      })
-      .where(eq(pluginSubmissions.id, params.id));
+    await db.transaction(async (tx) => {
+      await tx
+        .update(pluginSubmissions)
+        .set({
+          status: "approved",
+          reviewedBy: sessionUser.id,
+          reviewedAt: new Date(),
+        })
+        .where(eq(pluginSubmissions.id, params.id));
 
-    await db
-      .update(pluginRegistry)
-      .set({ published: true })
-      .where(eq(pluginRegistry.id, submission.pluginId));
+      await tx
+        .update(pluginRegistry)
+        .set({ published: true })
+        .where(eq(pluginRegistry.id, submission.pluginId));
 
-    await logAudit(sessionUser.id, "approve_plugin_submission", "plugin_submission", params.id);
+      await tx.insert(adminAuditLog).values({
+        adminId: sessionUser.id,
+        action: "approve_plugin_submission",
+        targetType: "plugin_submission",
+        targetId: params.id,
+        details: null,
+      });
+    });
 
     return { success: true };
   })

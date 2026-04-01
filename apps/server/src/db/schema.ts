@@ -7,10 +7,12 @@ import {
   integer,
   bigint,
   index,
+  uniqueIndex,
   primaryKey,
   unique,
   jsonb,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 import { nanoid } from "nanoid";
 
@@ -548,6 +550,9 @@ export const pluginSubmissions = pgTable(
   (t) => [
     index("plugin_submissions_author_idx").on(t.authorUserId),
     index("plugin_submissions_status_idx").on(t.status),
+    uniqueIndex("plugin_submissions_pending_unique_idx")
+      .on(t.pluginId)
+      .where(sql`${t.status} = 'pending'`),
   ],
 );
 

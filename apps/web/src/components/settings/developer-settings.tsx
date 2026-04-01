@@ -72,6 +72,7 @@ const DeveloperSettings = () => {
 
   const [formId, setFormId] = createSignal("");
   const [formName, setFormName] = createSignal("");
+  const [formAuthor, setFormAuthor] = createSignal("");
   const [formDesc, setFormDesc] = createSignal("");
   const [formVersion, setFormVersion] = createSignal("1.0.0");
   const [formCategory, setFormCategory] = createSignal<string>("utility");
@@ -97,6 +98,7 @@ const DeveloperSettings = () => {
   function resetForm() {
     setFormId("");
     setFormName("");
+    setFormAuthor("");
     setFormDesc("");
     setFormVersion("1.0.0");
     setFormCategory("utility");
@@ -127,7 +129,7 @@ const DeveloperSettings = () => {
         id: formId().trim(),
         name: formName().trim(),
         description: formDesc().trim(),
-        author: formName().trim(), // author defaults to plugin name
+        author: formAuthor().trim() || formName().trim(),
         category: formCategory(),
         scope: formScope(),
         image: formImage().trim(),
@@ -245,10 +247,10 @@ const DeveloperSettings = () => {
                             <span
                               class={`shrink-0 rounded px-2 py-0.5 text-xs font-medium ${
                                 sub().status === "pending"
-                                  ? "bg-yellow-500/20 text-yellow-400"
+                                  ? "bg-warning/20 text-warning"
                                   : sub().status === "approved"
-                                    ? "bg-green-500/20 text-green-400"
-                                    : "bg-red-500/20 text-red-400"
+                                    ? "bg-success/20 text-success"
+                                    : "bg-destructive/20 text-destructive"
                               }`}
                             >
                               {sub().status}
@@ -308,6 +310,22 @@ const DeveloperSettings = () => {
                 maxLength={100}
                 class="w-full rounded-lg bg-input px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground"
               />
+            </div>
+
+            {/* Author */}
+            <div>
+              <label class="mb-1 block text-sm font-medium text-foreground">Author</label>
+              <input
+                type="text"
+                value={formAuthor()}
+                onInput={(e) => setFormAuthor(e.currentTarget.value)}
+                placeholder="Your name or organization"
+                maxLength={100}
+                class="w-full rounded-lg bg-input px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              />
+              <p class="mt-1 text-xs text-muted-foreground">
+                Defaults to plugin name if left empty.
+              </p>
             </div>
 
             {/* Description */}

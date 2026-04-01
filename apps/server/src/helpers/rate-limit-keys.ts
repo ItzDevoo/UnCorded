@@ -23,4 +23,6 @@ export const RL = {
   REPORT_CREATE: "report:create",
   SAFETY_CHECK_HASH: "safety:check-hash",
   USER_SEARCH: "users:search",
+  DEVELOPER_PLUGIN_SUBMIT: "developer:plugin-submit",
+  DEVELOPER_PLUGIN_UPDATE: "developer:plugin-update",
 } as const;

@@ -16,4 +16,5 @@ ALTER TABLE "plugin_submissions" ADD CONSTRAINT "plugin_submissions_plugin_id_pl
 ALTER TABLE "plugin_submissions" ADD CONSTRAINT "plugin_submissions_author_user_id_user_id_fk" FOREIGN KEY ("author_user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "plugin_submissions" ADD CONSTRAINT "plugin_submissions_reviewed_by_user_id_fk" FOREIGN KEY ("reviewed_by") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "plugin_submissions_author_idx" ON "plugin_submissions" USING btree ("author_user_id");--> statement-breakpoint
-CREATE INDEX "plugin_submissions_status_idx" ON "plugin_submissions" USING btree ("status");
+CREATE INDEX "plugin_submissions_status_idx" ON "plugin_submissions" USING btree ("status");--> statement-breakpoint
+CREATE UNIQUE INDEX "plugin_submissions_pending_unique_idx" ON "plugin_submissions" ("plugin_id") WHERE "status" = 'pending';

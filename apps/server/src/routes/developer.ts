@@ -6,6 +6,33 @@ import { db } from "../db/index.js";
 import { pluginRegistry, pluginSubmissions } from "../db/schema.js";
 import { authResolve } from "../middleware/auth.js";
 import { validateInput } from "../helpers/validation.js";
+import { checkUserRateLimit } from "../helpers/rate-limit.js";
+import { RL } from "../helpers/rate-limit-keys.js";
+
+const PLUGIN_PERMISSIONS = [
+  "server.read",
+  "members.read",
+  "channels.read",
+  "messages.read",
+  "messages.send",
+  "users.read",
+  "presence.read",
+  "notifications.send",
+  "config.read",
+  "storage.read",
+  "storage.write",
+] as const;
+
+const permissionEnum = z.enum(PLUGIN_PERMISSIONS);
+
+const manifestSchema = z.object({
+  runtime: z.object({
+    image: z.string().min(1),
+    port: z.number().int().min(1).max(65535),
+    healthCheck: z.string().min(1),
+  }),
+  permissions: z.array(permissionEnum).min(1),
+});
 
 const pluginSubmitSchema = z.object({
   id: z
@@ -23,14 +50,7 @@ const pluginSubmitSchema = z.object({
   scope: z.enum(["server", "personal", "both"]),
   image: z.string().min(1),
   version: z.string().regex(/^\d+\.\d+\.\d+$/, "Must be semver format (e.g. 1.0.0)"),
-  manifest: z.object({
-    runtime: z.object({
-      image: z.string().min(1),
-      port: z.number().int().min(1).max(65535),
-      healthCheck: z.string().min(1),
-    }),
-    permissions: z.array(z.string()).min(1),
-  }).passthrough(),
+  manifest: manifestSchema,
   tags: z.array(z.string().min(1).max(30)).max(10).optional(),
   repository: z.string().url().optional(),
   screenshots: z.array(z.string().url()).max(5).optional(),
@@ -41,14 +61,7 @@ const pluginUpdateSchema = z.object({
   description: z.string().min(10).max(500).optional(),
   version: z.string().regex(/^\d+\.\d+\.\d+$/, "Must be semver format").optional(),
   image: z.string().min(1).optional(),
-  manifest: z.object({
-    runtime: z.object({
-      image: z.string().min(1),
-      port: z.number().int().min(1).max(65535),
-      healthCheck: z.string().min(1),
-    }),
-    permissions: z.array(z.string()).min(1),
-  }).passthrough().optional(),
+  manifest: manifestSchema.optional(),
   tags: z.array(z.string().min(1).max(30)).max(10).optional(),
   repository: z.string().url().nullable().optional(),
   screenshots: z.array(z.string().url()).max(5).optional(),
@@ -59,45 +72,54 @@ export const developerRoutes = new Elysia({ prefix: "/api/developer" })
 
   // ── POST /api/developer/plugins — Submit a new plugin ───────────────────
   .post("/plugins", async ({ body, user: sessionUser }) => {
+    await checkUserRateLimit(sessionUser.id, RL.DEVELOPER_PLUGIN_SUBMIT, 5, 3_600_000);
     const data = validateInput(pluginSubmitSchema, body);
 
-    // Check no existing plugin with same id
-    const [existing] = await db
-      .select({ id: pluginRegistry.id })
-      .from(pluginRegistry)
-      .where(eq(pluginRegistry.id, data.id))
-      .limit(1);
+    try {
+      const result = await db.transaction(async (tx) => {
+        const [inserted] = await tx
+          .insert(pluginRegistry)
+          .values({
+            id: data.id,
+            name: data.name,
+            description: data.description,
+            author: data.author,
+            category: data.category,
+            scope: data.scope,
+            image: data.image,
+            version: data.version,
+            manifest: data.manifest,
+            tags: data.tags ?? [],
+            repository: data.repository ?? null,
+            screenshots: data.screenshots ?? [],
+            published: false,
+            authorUserId: sessionUser.id,
+          })
+          .onConflictDoNothing()
+          .returning({ id: pluginRegistry.id });
 
-    if (existing) throw new ValidationError("Plugin with this ID already exists");
+        if (!inserted) throw new ValidationError("Plugin with this ID already exists");
 
-    // Insert into pluginRegistry with published: false
-    await db.insert(pluginRegistry).values({
-      id: data.id,
-      name: data.name,
-      description: data.description,
-      author: data.author,
-      category: data.category,
-      scope: data.scope,
-      image: data.image,
-      version: data.version,
-      manifest: data.manifest,
-      tags: data.tags ?? [],
-      repository: data.repository ?? null,
-      screenshots: data.screenshots ?? [],
-      published: false,
-      authorUserId: sessionUser.id,
-    });
+        const [submission] = await tx
+          .insert(pluginSubmissions)
+          .values({
+            pluginId: data.id,
+            authorUserId: sessionUser.id,
+          })
+          .returning({ id: pluginSubmissions.id });
 
-    // Insert submission record
-    const [submission] = await db
-      .insert(pluginSubmissions)
-      .values({
-        pluginId: data.id,
-        authorUserId: sessionUser.id,
-      })
-      .returning({ id: pluginSubmissions.id });
+        return { pluginId: data.id, submissionId: submission!.id, status: "pending" as const };
+      });
 
-    return { pluginId: data.id, submissionId: submission!.id, status: "pending" as const };
+      return result;
+    } catch (err) {
+      if (err instanceof ValidationError) throw err;
+      // Postgres unique constraint violation (23505)
+      if (typeof err === "object" && err !== null && "code" in err && (err as { code: string }).code === "23505") {
+        throw new ValidationError("Plugin with this ID already exists");
+      }
+      throw err;
+    }
   })
 
   // ── GET /api/developer/plugins — List user's submitted plugins ──────────
@@ -154,6 +176,7 @@ export const developerRoutes = new Elysia({ prefix: "/api/developer" })
 
   // ── PUT /api/developer/plugins/:pluginId — Update unpublished plugin ────
   .put("/plugins/:pluginId", async ({ params, body, user: sessionUser }) => {
+    await checkUserRateLimit(sessionUser.id, RL.DEVELOPER_PLUGIN_UPDATE, 10, 3_600_000);
     const data = validateInput(pluginUpdateSchema, body);
 
     // Verify ownership

@@ -11,7 +11,6 @@ import {
   ALLOWED_AVATAR_TYPES,
   BOT_LIMITS,
   type BotTier,
-  BOT_TOKEN_BYTE_LENGTH,
   BOT_TOKEN_PREFIX_LENGTH,
 } from "@uncorded/shared";
 import { validateInput } from "../helpers/validation.js";
@@ -34,9 +33,10 @@ const createBotSchema = z.object({
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function generateToken(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(BOT_TOKEN_BYTE_LENGTH));
-  const chars = Array.from(bytes, (b) => b.toString(36).padStart(2, "0")).join("").slice(0, 32);
-  return `uncrd_${chars}`;
+  const tokenBytes = new Uint8Array(32);
+  crypto.getRandomValues(tokenBytes);
+  const token = `uncrd_${Buffer.from(tokenBytes).toString("base64url")}`;
+  return token;
 }
 
 function hashToken(token: string): string {

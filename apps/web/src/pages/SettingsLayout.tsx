@@ -14,6 +14,8 @@ const navItems = [
   { label: "Upgrade", href: "/settings/upgrade" },
   { label: "Billing", href: "/settings/billing" },
   { label: "Notifications", href: "/settings/notifications" },
+  { divider: true as const },
+  { label: "Developer", href: "/settings/developer" },
 ] as const;
 
 const SettingsLayout = (props: RouteSectionProps) => {

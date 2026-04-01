@@ -26,6 +26,7 @@ import {
   pluginRegistry,
   pluginInstalls,
   serverPlugins,
+  pluginSubmissions,
 } from "../db/schema.js";
 
 import { readdir } from "node:fs/promises";
@@ -1073,4 +1074,122 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
     await logAudit(sessionUser.id, newValue ? "feature_plugin" : "unfeature_plugin", "plugin", params.pluginId);
 
     return { success: true, featured: newValue };
+  })
+
+  // ── Plugin Submission Review ─────────────────────────────────────────────
+
+  .get("/plugins/submissions", async ({ query }) => {
+    const { page, pageSize, offset } = flexPageQuerySchema({ pageSize: 20, maxPageSize: 50 }).parse(query);
+
+    const author = alias(user, "author");
+
+    const rows = await db
+      .select({
+        id: pluginSubmissions.id,
+        pluginId: pluginSubmissions.pluginId,
+        status: pluginSubmissions.status,
+        submittedAt: pluginSubmissions.submittedAt,
+        rejectionReason: pluginSubmissions.rejectionReason,
+        reviewedAt: pluginSubmissions.reviewedAt,
+        pluginName: pluginRegistry.name,
+        pluginDescription: pluginRegistry.description,
+        pluginVersion: pluginRegistry.version,
+        pluginImage: pluginRegistry.image,
+        authorId: author.id,
+        authorUsername: author.username,
+        authorDisplayName: author.displayName,
+      })
+      .from(pluginSubmissions)
+      .innerJoin(pluginRegistry, eq(pluginSubmissions.pluginId, pluginRegistry.id))
+      .innerJoin(author, eq(pluginSubmissions.authorUserId, author.id))
+      .where(eq(pluginSubmissions.status, "pending"))
+      .orderBy(pluginSubmissions.submittedAt)
+      .limit(pageSize)
+      .offset(offset);
+
+    const [totalRow] = await db
+      .select({ value: count() })
+      .from(pluginSubmissions)
+      .where(eq(pluginSubmissions.status, "pending"));
+
+    const submissions = rows.map((r) => ({
+      id: r.id,
+      pluginId: r.pluginId,
+      status: r.status,
+      submittedAt: r.submittedAt.toISOString(),
+      rejectionReason: r.rejectionReason,
+      reviewedAt: r.reviewedAt?.toISOString() ?? null,
+      plugin: {
+        name: r.pluginName,
+        description: r.pluginDescription,
+        version: r.pluginVersion,
+        image: r.pluginImage,
+      },
+      author: {
+        id: r.authorId,
+        username: r.authorUsername,
+        displayName: r.authorDisplayName,
+      },
+    }));
+
+    return { submissions, total: totalRow?.value ?? 0, page, pageSize };
+  })
+
+  .patch("/plugins/submissions/:id/approve", async ({ params, user: sessionUser }) => {
+    const [submission] = await db
+      .select({ id: pluginSubmissions.id, status: pluginSubmissions.status, pluginId: pluginSubmissions.pluginId })
+      .from(pluginSubmissions)
+      .where(eq(pluginSubmissions.id, params.id))
+      .limit(1);
+
+    if (!submission) throw new NotFoundError("Submission");
+    if (submission.status !== "pending") throw new ValidationError("Submission is not pending");
+
+    await db
+      .update(pluginSubmissions)
+      .set({
+        status: "approved",
+        reviewedBy: sessionUser.id,
+        reviewedAt: new Date(),
+      })
+      .where(eq(pluginSubmissions.id, params.id));
+
+    await db
+      .update(pluginRegistry)
+      .set({ published: true })
+      .where(eq(pluginRegistry.id, submission.pluginId));
+
+    await logAudit(sessionUser.id, "approve_plugin_submission", "plugin_submission", params.id);
+
+    return { success: true };
+  })
+
+  .patch("/plugins/submissions/:id/reject", async ({ params, body, user: sessionUser }) => {
+    const rejectSchema = z.object({
+      reason: z.string().min(1).max(500),
+    });
+    const data = validateInput(rejectSchema, body);
+
+    const [submission] = await db
+      .select({ id: pluginSubmissions.id, status: pluginSubmissions.status })
+      .from(pluginSubmissions)
+      .where(eq(pluginSubmissions.id, params.id))
+      .limit(1);
+
+    if (!submission) throw new NotFoundError("Submission");
+    if (submission.status !== "pending") throw new ValidationError("Submission is not pending");
+
+    await db
+      .update(pluginSubmissions)
+      .set({
+        status: "rejected",
+        rejectionReason: data.reason,
+        reviewedBy: sessionUser.id,
+        reviewedAt: new Date(),
+      })
+      .where(eq(pluginSubmissions.id, params.id));
+
+    await logAudit(sessionUser.id, "reject_plugin_submission", "plugin_submission", params.id);
+
+    return { success: true };
   });

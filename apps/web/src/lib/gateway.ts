@@ -23,7 +23,6 @@ let heartbeatAckTimeout: ReturnType<typeof setTimeout> | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectAttempts = 0;
 let intentionalClose = false;
-let storesInitialized = false;
 
 const listeners = new Map<Opcode, Set<(data: unknown) => void>>();
 
@@ -120,10 +119,7 @@ function handleMessage(event: MessageEvent) {
       reconnectAttempts = 0;
       setGatewayStatus("connected");
       setReadyPayload(parsed.data as ReadyData);
-      if (!storesInitialized) {
-        storesInitialized = true;
-        setupStores();
-      }
+      setupStores(); // Always re-init stores on READY (handles reconnect)
       dispatch(Opcode.READY, parsed.data);
       break;
     }
@@ -207,7 +203,6 @@ export function connectGateway(): void {
 
 export function disconnectGateway(): void {
   intentionalClose = true;
-  storesInitialized = false;
   clearTimers();
   listeners.clear();
   if (ws) {

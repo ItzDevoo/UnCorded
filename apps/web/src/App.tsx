@@ -1,4 +1,4 @@
-import { lazy } from "solid-js";
+import { lazy, ErrorBoundary } from "solid-js";
 import { Router, Route } from "@solidjs/router";
 import AppLayout from "./components/AppLayout.js";
 import "./stores/theme-store.js"; // Initialize theme on app load
@@ -54,46 +54,61 @@ const NotFound = lazy(async () => {
 
 const App = () => {
   return (
-    <Router>
-      {/* Public */}
-      <Route path="/" component={Landing} />
-      <Route path="/login" component={Login} />
-      <Route path="/register" component={Register} />
-      <Route path="/forgot-password" component={ForgotPassword} />
-      <Route path="/reset-password" component={ResetPassword} />
-      <Route path="/onboarding" component={Onboarding} />
-      <Route path="/privacy" component={Privacy} />
-      <Route path="/terms" component={Terms} />
-      <Route path="/verify-email" component={VerifyEmail} />
+    <ErrorBoundary fallback={(err, reset) => (
+      <div class="flex min-h-screen flex-col items-center justify-center gap-4 bg-background text-foreground">
+        <h1 class="text-2xl font-bold">Something went wrong</h1>
+        <p class="text-muted-foreground">{err?.message ?? "An unexpected error occurred"}</p>
+        <button
+          type="button"
+          onClick={reset}
+          class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          Try Again
+        </button>
+        <a href="/" class="text-sm text-muted-foreground underline">Go home</a>
+      </div>
+    )}>
+      <Router>
+        {/* Public */}
+        <Route path="/" component={Landing} />
+        <Route path="/login" component={Login} />
+        <Route path="/register" component={Register} />
+        <Route path="/forgot-password" component={ForgotPassword} />
+        <Route path="/reset-password" component={ResetPassword} />
+        <Route path="/onboarding" component={Onboarding} />
+        <Route path="/privacy" component={Privacy} />
+        <Route path="/terms" component={Terms} />
+        <Route path="/verify-email" component={VerifyEmail} />
 
-      {/* Authenticated — all under AppLayout with AuthGuard */}
-      <Route path="/" component={AppLayout}>
-        <Route path="/home" component={Home} />
-        <Route path="/friends" component={Friends} />
-        <Route path="/messages" component={Messages} />
-        <Route path="/messages/:userId" component={DirectMessage} />
-        <Route path="/servers/:serverId" component={ServerView} />
-        <Route path="/servers/:serverId/settings" component={ServerSettings} />
-        <Route path="/features" component={Features} />
-        <Route path="/settings" component={SettingsLayout}>
-          <Route path="/" component={SettingsRedirect} />
-          <Route path="/profile" component={ProfileSettings} />
-          <Route path="/account" component={AccountSettings} />
-          <Route path="/appearance" component={AppearanceSettings} />
-          <Route path="/transfers" component={TransferHistory} />
-          <Route path="/bots" component={BotsSettings} />
-          <Route path="/plugins" component={PluginsSettings} />
-          <Route path="/plugins/:pluginId" component={PluginConfigure} />
-          <Route path="/upgrade" component={Upgrade} />
-          <Route path="/billing" component={Billing} />
-          <Route path="/notifications" component={NotificationSettings} />
-          <Route path="/developer" component={DeveloperSettings} />
+        {/* Authenticated — all under AppLayout with AuthGuard */}
+        <Route path="/" component={AppLayout}>
+          <Route path="/home" component={Home} />
+          <Route path="/friends" component={Friends} />
+          <Route path="/messages" component={Messages} />
+          <Route path="/messages/:userId" component={DirectMessage} />
+          <Route path="/servers/:serverId" component={ServerView} />
+          <Route path="/servers/:serverId/settings" component={ServerSettings} />
+          <Route path="/features" component={Features} />
+          <Route path="/settings" component={SettingsLayout}>
+            <Route path="/" component={SettingsRedirect} />
+            <Route path="/profile" component={ProfileSettings} />
+            <Route path="/account" component={AccountSettings} />
+            <Route path="/appearance" component={AppearanceSettings} />
+            <Route path="/transfers" component={TransferHistory} />
+            <Route path="/bots" component={BotsSettings} />
+            <Route path="/plugins" component={PluginsSettings} />
+            <Route path="/plugins/:pluginId" component={PluginConfigure} />
+            <Route path="/upgrade" component={Upgrade} />
+            <Route path="/billing" component={Billing} />
+            <Route path="/notifications" component={NotificationSettings} />
+            <Route path="/developer" component={DeveloperSettings} />
+          </Route>
         </Route>
-      </Route>
 
-      {/* 404 */}
-      <Route path="/*" component={NotFound} />
-    </Router>
+        {/* 404 */}
+        <Route path="/*" component={NotFound} />
+      </Router>
+    </ErrorBoundary>
   );
 };
 

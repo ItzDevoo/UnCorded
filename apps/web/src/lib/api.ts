@@ -37,6 +37,16 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   return res.json() as Promise<T>;
 }
 
+/** Type-safe API call with runtime Zod validation. */
+export async function apiValidated<T>(
+  path: string,
+  schema: import("zod").ZodType<T>,
+  options: RequestInit = {},
+): Promise<T> {
+  const raw = await api<unknown>(path, options);
+  return schema.parse(raw);
+}
+
 export async function apiUpload<T>(
   path: string,
   formData: FormData,

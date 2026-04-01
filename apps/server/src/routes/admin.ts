@@ -924,7 +924,14 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       tags: z.array(z.string().max(50)).max(20).optional(),
       image: z.string().min(1).max(500),
       version: z.string().min(1).max(20).optional(),
-      manifest: z.record(z.unknown()),
+      manifest: z.object({
+        runtime: z.object({
+          image: z.string().min(1),
+          port: z.number().int().min(1).max(65535),
+          healthCheck: z.string().min(1),
+        }),
+        permissions: z.array(z.string()).min(1),
+      }).passthrough(),
       repository: z.string().max(500).nullable().optional(),
       screenshots: z.array(z.string().max(500)).max(10).optional(),
     });
@@ -970,7 +977,14 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       tags: z.array(z.string().max(50)).max(20).optional(),
       image: z.string().min(1).max(500).optional(),
       version: z.string().min(1).max(20).optional(),
-      manifest: z.record(z.unknown()).optional(),
+      manifest: z.object({
+        runtime: z.object({
+          image: z.string().min(1),
+          port: z.number().int().min(1).max(65535),
+          healthCheck: z.string().min(1),
+        }),
+        permissions: z.array(z.string()).min(1),
+      }).passthrough().optional(),
       repository: z.string().max(500).nullable().optional(),
       screenshots: z.array(z.string().max(500)).max(10).optional(),
     });

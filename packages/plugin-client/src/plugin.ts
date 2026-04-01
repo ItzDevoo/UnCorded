@@ -41,7 +41,7 @@ export class UnCordedPlugin {
       try {
         this.#shellOrigin = new URL(document.referrer).origin;
       } catch {
-        this.#shellOrigin = "*";
+        throw new Error("Unable to determine shell origin. Pass shellOrigin in PluginOptions.");
       }
     }
 

@@ -1,4 +1,4 @@
-import type { ApiError } from "@uncorded/shared";
+import { ValidationError, type ApiError } from "@uncorded/shared";
 import { API_BASE } from "./config.js";
 
 export class ApiRequestError extends Error {
@@ -35,6 +35,23 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
 
   // TODO: validate API responses with Zod at call sites
   return res.json() as Promise<T>;
+}
+
+/** Type-safe API call with runtime Zod validation. */
+export async function apiValidated<T>(
+  path: string,
+  schema: import("zod").ZodType<T>,
+  options: RequestInit = {},
+): Promise<T> {
+  const raw = await api<unknown>(path, options);
+  try {
+    return schema.parse(raw);
+  } catch (err) {
+    throw new ValidationError(
+      err instanceof Error ? err.message : "Response validation failed",
+      { cause: err },
+    );
+  }
 }
 
 export async function apiUpload<T>(

@@ -118,7 +118,7 @@ const handlers: Record<string, HandlerFn> = {
     return presence;
   },
 
-  async sendMessage(_pluginId, params) {
+  async sendMessage(pluginId, params) {
     const channelId = params.channelId as ChannelId | undefined;
     const content = params.content as string | undefined;
     if (!channelId || !content) {
@@ -136,9 +136,14 @@ const handlers: Record<string, HandlerFn> = {
     if (!channels?.some((c) => c.id === channelId)) {
       throw { code: "BAD_REQUEST", message: "Channel not found in current server" };
     }
+    const plugin = plugins().find((p) => p.id === pluginId);
+    if (!plugin) {
+      throw { code: "BAD_REQUEST", message: `Plugin not found: ${pluginId}` };
+    }
+    const prefixedContent = `[${plugin.name}] ${content}`;
     await api(`/api/channels/${channelId}/messages`, {
       method: "POST",
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ content: prefixedContent }),
     });
     return { sent: true };
   },

@@ -20,6 +20,8 @@ interface PluginCardProps {
   plugin: PluginCardData;
   /** Status indicator (e.g., "Running", "Stopped") — shown as a dot + label */
   status?: { label: string; color: string } | undefined;
+  /** Extra badge rendered after the status indicator */
+  badge?: JSX.Element | undefined;
   /** Action buttons rendered on the right side */
   actions?: JSX.Element | undefined;
 }
@@ -88,6 +90,7 @@ export const PluginCard = (props: PluginCardProps) => {
                 </span>
               )}
             </Show>
+            <Show when={props.badge}>{props.badge}</Show>
           </div>
           <p class="mt-1 text-sm text-muted-foreground">{p().description}</p>
           <div class="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">

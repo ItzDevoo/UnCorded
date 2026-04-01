@@ -24,6 +24,7 @@ interface BridgeServer {
 export async function startBridgeServer(options: BridgeServerOptions): Promise<BridgeServer> {
   const dataDir = options.dataDir ?? process.env["UNCORDED_DATA_DIR"] ?? "./sidecar-data";
   const storage = new PluginStorage(dataDir);
+  const inFlightUpdates = new Set<string>();
 
   const app = new Elysia()
     // Health check (unauthenticated)
@@ -137,12 +138,79 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
       }
       console.error("[bridge] Auth token received");
       options.plugins.setApiToken(token);
+
+      // Trigger plugin update check now that auth is available
+      import("../index")
+        .then((m) => m.runUpdateCheck())
+        .catch((err) => console.error("[bridge] runUpdateCheck failed after auth:", err));
+
       return { success: true };
     })
 
     // --- Notifications (called by Electron main process, no auth) ---
     .get("/notifications/pending", () => {
       return notificationQueue.drain();
+    })
+
+    // --- Plugin updates (called by Electron main process, no auth) ---
+
+    .get("/plugins/updates", async () => {
+      const { pendingMajorUpdates } = await import("../index");
+      return { updates: [...pendingMajorUpdates] };
+    })
+
+    .post("/plugins/:id/update", async ({ params }) => {
+      const { removePendingUpdate, reinsertPendingUpdate } = await import("../index");
+
+      // If already in-flight, return 202 so the client knows it's being processed
+      if (inFlightUpdates.has(params.id)) {
+        return new Response(JSON.stringify({ status: "in_progress" }), {
+          status: 202,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      // Atomically remove the pending update
+      const update = removePendingUpdate(params.id);
+      if (!update) {
+        throw new Response(JSON.stringify({ error: "No pending update for this plugin" }), {
+          status: 404,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      inFlightUpdates.add(params.id);
+      let result: { errors?: string[] };
+      try {
+        result = await options.plugins.update(params.id, update.manifest);
+      } catch (err) {
+        inFlightUpdates.delete(params.id);
+        reinsertPendingUpdate(update);
+        const message = err instanceof Error ? err.message : "Unknown error";
+        throw new Response(JSON.stringify({ error: message }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      inFlightUpdates.delete(params.id);
+
+      if (result.errors && result.errors.length > 0) {
+        const joined = result.errors.join(", ");
+        // Permanent validation failures — don't requeue
+        const isPermanent = result.errors.some((e) =>
+          /not found|manifest|scope|parse/i.test(e),
+        );
+        if (!isPermanent) {
+          reinsertPendingUpdate(update);
+        }
+        const status = isPermanent ? 400 : 500;
+        throw new Response(JSON.stringify({ error: joined }), {
+          status,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      return { success: true, version: update.availableVersion };
     })
 
     .post("/plugins/:id/uninstall", async ({ params }) => {

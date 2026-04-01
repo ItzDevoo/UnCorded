@@ -3,6 +3,7 @@ import { DockerManager } from "./docker/manager";
 import { GatewayClient } from "./gateway/client";
 import { SeedingEngine } from "./seeding/engine";
 import { PluginLifecycle } from "./plugins/lifecycle";
+import { checkForUpdates, applyAutoUpdates, type UpdateInfo } from "./plugins/update-checker";
 import { TunnelManager } from "./tunnel/manager";
 import path from "node:path";
 import fs from "node:fs";
@@ -48,6 +49,69 @@ await seeding.resume();
 // --- Resume plugins that were previously running ---
 
 await plugins.resumeAll();
+
+// --- Check for plugin updates (async, non-blocking) ---
+
+export let pendingMajorUpdates: UpdateInfo[] = [];
+
+export function removePendingUpdate(pluginId: string): UpdateInfo | undefined {
+  const idx = pendingMajorUpdates.findIndex((u) => u.pluginId === pluginId);
+  if (idx === -1) return undefined;
+  const [removed] = pendingMajorUpdates.splice(idx, 1);
+  return removed;
+}
+
+export function reinsertPendingUpdate(update: UpdateInfo): void {
+  if (!pendingMajorUpdates.some((u) => u.pluginId === update.pluginId)) {
+    pendingMajorUpdates.push(update);
+  }
+}
+
+let updateCheckRunning = false;
+
+export async function runUpdateCheck(): Promise<void> {
+  const apiBaseUrl = plugins.getApiBaseUrl();
+  const apiToken = plugins.getApiToken();
+  if (!apiBaseUrl || !apiToken) return;
+  if (updateCheckRunning) return;
+  updateCheckRunning = true;
+
+  try {
+    const updates = await checkForUpdates(plugins, apiBaseUrl, apiToken);
+    const autoUpdates = updates.filter((u) => u.updateType !== "major");
+    const majorUpdates = updates.filter((u) => u.updateType === "major");
+
+    if (autoUpdates.length > 0) {
+      const result = await applyAutoUpdates(plugins, autoUpdates);
+      if (result.applied.length > 0) {
+        console.error(`[update-checker] Auto-updated: ${result.applied.join(", ")}`);
+      }
+      if (result.skipped.length > 0) {
+        console.error(`[update-checker] Skipped: ${result.skipped.join(", ")}`);
+      }
+    }
+
+    // Merge new major updates into pending list, preserving user-queued items
+    for (const update of majorUpdates) {
+      const existing = pendingMajorUpdates.findIndex((u) => u.pluginId === update.pluginId);
+      if (existing === -1) {
+        pendingMajorUpdates.push(update);
+      } else if (pendingMajorUpdates[existing]!.availableVersion !== update.availableVersion) {
+        pendingMajorUpdates[existing] = update;
+      }
+    }
+    if (majorUpdates.length > 0) {
+      console.error(`[update-checker] Major updates available: ${majorUpdates.map((u) => `${u.pluginId}@${u.availableVersion}`).join(", ")}`);
+    }
+  } catch (err) {
+    console.error("[update-checker] Update check failed:", err);
+  } finally {
+    updateCheckRunning = false;
+  }
+}
+
+// Run immediately if token is already available (e.g. from gateway-token.txt)
+runUpdateCheck();
 
 // --- Graceful shutdown ---
 

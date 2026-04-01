@@ -1,4 +1,4 @@
-import { createSignal, createResource, For, Show } from "solid-js";
+import { createSignal, createResource, For, Show, onMount, onCleanup } from "solid-js";
 import type { ServerId, PluginId, UserId } from "@uncorded/protocol";
 import { api } from "../../lib/api.js";
 import { showToast } from "../ui/toast.js";
@@ -7,6 +7,7 @@ import { Button } from "../ui/button.js";
 import { PluginCard, type PluginCardData } from "../ui/plugin-card.js";
 import { readyData } from "../../lib/gateway-store.js";
 import { isDesktop } from "../../stores/plugin-store.js";
+import type { PluginUpdateInfo } from "../../types/desktop-bridge.js";
 
 interface ServerPluginsProps {
   serverId: ServerId;
@@ -43,7 +44,17 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
   const [installing, setInstalling] = createSignal<PluginId | null>(null);
   const [uninstalling, setUninstalling] = createSignal<PluginId | null>(null);
   const [toggling, setToggling] = createSignal<PluginId | null>(null);
+  const [updating, setUpdating] = createSignal<PluginId | null>(null);
   const [search, setSearch] = createSignal("");
+  const [pluginUpdates, setPluginUpdates] = createSignal<PluginUpdateInfo[]>([]);
+
+  onMount(() => {
+    if (!isDesktop()) return;
+    const bridge = window.desktopBridge;
+    if (!bridge?.plugins?.onUpdatesAvailable) return;
+    const unsub = bridge.plugins.onUpdatesAvailable((updates) => setPluginUpdates(updates));
+    onCleanup(unsub);
+  });
 
   const isServerOwnerTier = () =>
     readyData.data?.user.subscriptionTier === "server_owner";
@@ -198,6 +209,21 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
     }
   }
 
+  async function handleUpdate(pluginId: PluginId) {
+    if (!isDesktop()) return;
+    setUpdating(pluginId);
+    try {
+      await window.desktopBridge!.plugins.update(pluginId);
+      showToast("Plugin updated successfully", "info");
+      setPluginUpdates((prev) => prev.filter((u) => u.pluginId !== pluginId));
+      await refetchInstalled();
+    } catch (err) {
+      handleApiError(err, "Failed to update plugin");
+    } finally {
+      setUpdating(null);
+    }
+  }
+
   return (
     <div class="space-y-6">
       <div>
@@ -239,9 +265,28 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
                 <PluginCard
                   plugin={installedToCardData(plugin)}
                   status={stateStatus(plugin.state)}
+                  badge={
+                    <Show when={pluginUpdates().find((u) => u.pluginId === plugin.pluginId)}>
+                      {(update) => (
+                        <span class="inline-flex items-center gap-1 rounded-full bg-warning/20 px-2 py-0.5 text-xs font-medium text-warning">
+                          v{update().availableVersion} available
+                        </span>
+                      )}
+                    </Show>
+                  }
                   actions={
                     <Show when={isServerOwnerTier()}>
                       <div class="flex gap-2">
+                        <Show when={pluginUpdates().find((u) => u.pluginId === plugin.pluginId)}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleUpdate(plugin.pluginId)}
+                            disabled={updating() === plugin.pluginId}
+                          >
+                            {updating() === plugin.pluginId ? "Updating..." : "Update"}
+                          </Button>
+                        </Show>
                         <Button
                           variant="outline"
                           size="sm"

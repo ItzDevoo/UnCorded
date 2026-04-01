@@ -193,6 +193,13 @@ interface PluginInfo {
   permissions: string[];
 }
 
+interface PluginUpdateInfo {
+  pluginId: string;
+  currentVersion: string;
+  availableVersion: string;
+  updateType: "major" | "minor" | "patch";
+}
+
 let cachedPlugins: PluginInfo[] = [];
 
 // Derive API base URL: explicit env > web URL origin > hardcoded default
@@ -338,6 +345,18 @@ function setupPluginIpc(): void {
     broadcastPluginState();
   });
 
+  ipcMain.handle("plugins:update", async (_event, pluginId: string) => {
+    const port = sidecar.getPort();
+    if (!port) throw new Error("Sidecar not running");
+    const res = await fetch(`http://localhost:${port}/plugins/${pluginId}/update`, { method: "POST" });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`Plugin update failed (${res.status}): ${body}`);
+    }
+    cachedPlugins = await fetchPluginsFromSidecar();
+    broadcastPluginState();
+  });
+
   ipcMain.handle("plugins:get-permissions", async (_event, pluginId: string) => {
     const port = sidecar.getPort();
     if (!port) return [];
@@ -353,6 +372,8 @@ function setupPluginIpc(): void {
 
 // Poll sidecar for plugin state changes (until we have a push mechanism)
 let pluginPollTimer: ReturnType<typeof setInterval> | null = null;
+let updatePollCounter = 0;
+let lastUpdatePayload = "";
 
 function startPluginPolling(): void {
   if (pluginPollTimer) return;
@@ -367,6 +388,30 @@ function startPluginPolling(): void {
     cachedPlugins = await fetchPluginsFromSidecar();
     if (JSON.stringify(cachedPlugins) !== prev) {
       broadcastPluginState();
+    }
+
+    // Check for plugin updates every ~60s (every 20th poll)
+    updatePollCounter++;
+    if (updatePollCounter >= 20) {
+      try {
+        const port = sidecar.getPort();
+        if (port) {
+          const updateRes = await fetch(`http://localhost:${port}/plugins/updates`);
+          if (updateRes.ok) {
+            updatePollCounter = 0;
+            const { updates } = (await updateRes.json()) as { updates: PluginUpdateInfo[] };
+            const payload = JSON.stringify(updates);
+            if (payload !== lastUpdatePayload) {
+              lastUpdatePayload = payload;
+              for (const win of BrowserWindow.getAllWindows()) {
+                if (!win.isDestroyed()) {
+                  win.webContents.send("plugins:updates-available", updates);
+                }
+              }
+            }
+          }
+        }
+      } catch { /* silently ignore — counter stays high so next poll retries sooner */ }
     }
   }, 3000);
 }

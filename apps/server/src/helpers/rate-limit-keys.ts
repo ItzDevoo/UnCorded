@@ -12,6 +12,7 @@ export const RL = {
   SERVER_PLUGIN_UNINSTALL: "server-plugin-uninstall",
   SERVER_PLUGIN_UPDATE: "server-plugin-update",
   INVITE_LOOKUP: "invite-lookup",
+  PLUGIN_CHECK_UPDATES: "plugin-check-updates",
 
   // User-based (used with checkUserRateLimit)
   MESSAGE_CREATE: "messages:create",
@@ -25,4 +26,5 @@ export const RL = {
   USER_SEARCH: "users:search",
   DEVELOPER_PLUGIN_SUBMIT: "developer:plugin-submit",
   DEVELOPER_PLUGIN_UPDATE: "developer:plugin-update",
+  DEVELOPER_PLUGIN_VERSION_PUSH: "developer:plugin-version-push",
 } as const;

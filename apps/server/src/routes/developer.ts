@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { z } from "zod";
 import { NotFoundError, ForbiddenError, ValidationError } from "@uncorded/shared";
 import { db } from "../db/index.js";
@@ -54,6 +54,12 @@ const pluginSubmitSchema = z.object({
   tags: z.array(z.string().min(1).max(30)).max(10).optional(),
   repository: z.string().url().optional(),
   screenshots: z.array(z.string().url()).max(5).optional(),
+});
+
+const versionPushSchema = z.object({
+  version: z.string().regex(/^\d+\.\d+\.\d+$/, "Must be semver format (e.g. 1.0.0)"),
+  image: z.string().min(1).optional(),
+  manifest: manifestSchema.optional(),
 });
 
 const pluginUpdateSchema = z.object({
@@ -224,6 +230,62 @@ export const developerRoutes = new Elysia({ prefix: "/api/developer" })
     }
 
     return { success: true };
+  })
+
+  // ── PUT /api/developer/plugins/:pluginId/version — Push a new version ───
+  .put("/plugins/:pluginId/version", async ({ params, body, user: sessionUser }) => {
+    await checkUserRateLimit(sessionUser.id, RL.DEVELOPER_PLUGIN_VERSION_PUSH, 10, 3_600_000);
+    const data = validateInput(versionPushSchema, body);
+
+    // Verify ownership
+    const [plugin] = await db
+      .select({
+        id: pluginRegistry.id,
+        authorUserId: pluginRegistry.authorUserId,
+        published: pluginRegistry.published,
+        version: pluginRegistry.version,
+      })
+      .from(pluginRegistry)
+      .where(eq(pluginRegistry.id, params.pluginId))
+      .limit(1);
+
+    if (!plugin) throw new NotFoundError("Plugin");
+    if (plugin.authorUserId !== sessionUser.id) throw new ForbiddenError("Not your plugin");
+    if (!plugin.published) throw new ForbiddenError("Cannot push versions to unpublished plugins");
+
+    const updates: Record<string, unknown> = {
+      version: data.version,
+    };
+    if (data.image !== undefined) updates.image = data.image;
+    if (data.manifest !== undefined) updates.manifest = data.manifest;
+
+    // Atomic conditional update — only succeeds if new version > current version
+    // Compares semver parts numerically using SQL to avoid TOCTOU races
+    const parts = data.version.split(".").map(Number);
+    const major = parts[0] ?? 0;
+    const minor = parts[1] ?? 0;
+    const patch = parts[2] ?? 0;
+    const result = await db
+      .update(pluginRegistry)
+      .set(updates)
+      .where(and(
+        eq(pluginRegistry.id, params.pluginId),
+        sql`(
+          split_part(${pluginRegistry.version}, '.', 1)::int < ${major}
+          OR (split_part(${pluginRegistry.version}, '.', 1)::int = ${major}
+              AND split_part(${pluginRegistry.version}, '.', 2)::int < ${minor})
+          OR (split_part(${pluginRegistry.version}, '.', 1)::int = ${major}
+              AND split_part(${pluginRegistry.version}, '.', 2)::int = ${minor}
+              AND split_part(${pluginRegistry.version}, '.', 3)::int < ${patch})
+        )`,
+      ))
+      .returning({ id: pluginRegistry.id });
+
+    if (result.length === 0) {
+      throw new ValidationError(`Version ${data.version} must be greater than the current version`);
+    }
+
+    return { success: true, version: data.version };
   })
 
   // ── GET /api/developer/plugins/:pluginId/status — Check submission status

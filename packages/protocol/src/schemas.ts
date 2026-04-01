@@ -11,7 +11,10 @@ import {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Accepts both ISO strings and Date objects (MessagePack preserves Dates). */
-export const coerceDate = z.union([z.string(), z.date().transform((d) => d.toISOString())]);
+export const coerceDate = z.union([
+  z.string().refine((s) => !Number.isNaN(Date.parse(s)), { message: "Invalid date string" }),
+  z.date().transform((d) => d.toISOString()),
+]);
 export const coerceDateNullable = coerceDate.nullable();
 
 export const authorSchema = z.object({

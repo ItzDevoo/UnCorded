@@ -1,6 +1,6 @@
 export { Opcode } from "./opcodes.js";
 export { CloseCode } from "./close-codes.js";
-export { encode, decode } from "./codec.js";
+export { encode, decode, decodeClient, CLIENT_DECODE_OPTIONS } from "./codec.js";
 export type { GatewayFrame } from "./codec.js";
 export * from "./branded.js";
 export type {

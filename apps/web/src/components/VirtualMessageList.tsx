@@ -195,7 +195,6 @@ const VirtualMessageList = (props: { channelId: AnyChannelId }) => {
           })}
         </div>
       </Show>
-
     </div>
   );
 };

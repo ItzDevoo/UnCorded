@@ -4,17 +4,11 @@ import { Opcode } from "@uncorded/protocol";
 import { createId } from "@uncorded/shared";
 import { onGatewayEvent, sendFrame } from "../lib/gateway.js";
 import { readyData } from "../lib/gateway-store.js";
-import {
-  seedFile,
-  downloadFromMagnet,
-  stopSeeding,
-} from "../lib/torrent-client.js";
+import { seedFile, downloadFromMagnet, stopSeeding } from "../lib/torrent-client.js";
 import { computePdqHash } from "../lib/pdq-hash.js";
 import { api, ApiRequestError } from "../lib/api.js";
 import { showToast } from "../components/ui/toast.js";
-import {
-  ensureP2pAcknowledged,
-} from "./file-store.js";
+import { ensureP2pAcknowledged } from "./file-store.js";
 import {
   fileSessionInviteEventSchema,
   fileSessionJoinAcceptEventSchema,
@@ -96,11 +90,7 @@ const [pendingInvite, setPendingInvite] = createSignal<{
   contentType: string;
 } | null>(null);
 
-export {
-  activeSenderSessionId,
-  activeReceiverSessionId,
-  pendingInvite,
-};
+export { activeSenderSessionId, activeReceiverSessionId, pendingInvite };
 
 export function getSession(sessionId: string): ShareSession | undefined {
   return store.sessions[sessionId];
@@ -112,10 +102,7 @@ export function clearReceiverSession(): void {
 
 // ── Sender Actions ──────────────────────────────────────────────────────────
 
-export async function createSession(
-  file: File,
-  inviteeIds: string[],
-): Promise<string> {
+export async function createSession(file: File, inviteeIds: string[]): Promise<string> {
   await ensureP2pAcknowledged();
 
   // CSAM hash check for images

@@ -50,7 +50,12 @@ const devStateSchema = z.object({
 
 type DevState = z.infer<typeof devStateSchema>;
 
-const DEV_STATE_DEFAULT: DevState = { branch: "dev", switchedAt: null, switchedBy: null, status: "active" };
+const DEV_STATE_DEFAULT: DevState = {
+  branch: "dev",
+  switchedAt: null,
+  switchedBy: null,
+  status: "active",
+};
 
 async function loadDevState(): Promise<DevState> {
   const stateFile = Bun.file(DEV_STATE_PATH);
@@ -96,14 +101,8 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
         db.select({ value: count() }).from(user),
         db.select({ value: count() }).from(servers),
         db.select({ value: count() }).from(messages),
-        db
-          .select({ value: count() })
-          .from(reports)
-          .where(eq(reports.resolved, false)),
-        db
-          .select({ value: count() })
-          .from(feedback)
-          .where(eq(feedback.status, "open")),
+        db.select({ value: count() }).from(reports).where(eq(reports.resolved, false)),
+        db.select({ value: count() }).from(feedback).where(eq(feedback.status, "open")),
       ]);
 
     return {
@@ -122,10 +121,7 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
 
     const escaped = search.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
     const searchFilter = search
-      ? or(
-          like(user.username, `%${escaped}%`),
-          like(user.email, `%${escaped}%`),
-        )
+      ? or(like(user.username, `%${escaped}%`), like(user.email, `%${escaped}%`))
       : undefined;
     const conditions = and(eq(user.isBot, false), searchFilter);
 
@@ -181,7 +177,11 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
     if (params.id === sessionUser.id) throw new ValidationError("Cannot ban yourself");
 
     await findOrThrow(
-      db.select({ id: user.id, banned: user.banned }).from(user).where(eq(user.id, params.id)).limit(1),
+      db
+        .select({ id: user.id, banned: user.banned })
+        .from(user)
+        .where(eq(user.id, params.id))
+        .limit(1),
       "User",
     );
 
@@ -269,7 +269,13 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       d: { tier, expiresAt: expiresAt.toISOString(), days },
     });
 
-    await logAudit(sessionUser.id, "gift_tier", "user", params.id, JSON.stringify({ tier, days, reason }));
+    await logAudit(
+      sessionUser.id,
+      "gift_tier",
+      "user",
+      params.id,
+      JSON.stringify({ tier, days, reason }),
+    );
 
     return { success: true };
   })
@@ -314,7 +320,9 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       .where(eq(servers.ownerId, params.id))
       .limit(1);
     if (ownedServer) {
-      throw new ValidationError("Cannot delete user who owns servers. Transfer or delete servers first.");
+      throw new ValidationError(
+        "Cannot delete user who owns servers. Transfer or delete servers first.",
+      );
     }
 
     await db.delete(user).where(eq(user.id, params.id));
@@ -576,7 +584,11 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
     if (adminLevel !== "owner") throw new ForbiddenError("Owner access required");
 
     const adminRecord = await findOrThrow(
-      db.select({ id: admins.id, userId: admins.userId, level: admins.level }).from(admins).where(eq(admins.id, params.id)).limit(1),
+      db
+        .select({ id: admins.id, userId: admins.userId, level: admins.level })
+        .from(admins)
+        .where(eq(admins.id, params.id))
+        .limit(1),
       "Admin",
     );
 
@@ -615,29 +627,30 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
     // Bulk-fetch entries and votes for all polls to avoid N+1
     const pollIds = rows.map((r) => r.id);
 
-    const [allEntries, allVoteCounts] = pollIds.length > 0
-      ? await Promise.all([
-          db
-            .select({
-              pollId: pollEntries.pollId,
-              feedbackId: pollEntries.feedbackId,
-              title: feedback.title,
-              description: feedback.description,
-            })
-            .from(pollEntries)
-            .innerJoin(feedback, eq(pollEntries.feedbackId, feedback.id))
-            .where(inArray(pollEntries.pollId, pollIds)),
-          db
-            .select({
-              pollId: pollVotes.pollId,
-              feedbackId: pollVotes.feedbackId,
-              count: sql<number>`count(*)::int`,
-            })
-            .from(pollVotes)
-            .where(inArray(pollVotes.pollId, pollIds))
-            .groupBy(pollVotes.pollId, pollVotes.feedbackId),
-        ])
-      : [[], []];
+    const [allEntries, allVoteCounts] =
+      pollIds.length > 0
+        ? await Promise.all([
+            db
+              .select({
+                pollId: pollEntries.pollId,
+                feedbackId: pollEntries.feedbackId,
+                title: feedback.title,
+                description: feedback.description,
+              })
+              .from(pollEntries)
+              .innerJoin(feedback, eq(pollEntries.feedbackId, feedback.id))
+              .where(inArray(pollEntries.pollId, pollIds)),
+            db
+              .select({
+                pollId: pollVotes.pollId,
+                feedbackId: pollVotes.feedbackId,
+                count: sql<number>`count(*)::int`,
+              })
+              .from(pollVotes)
+              .where(inArray(pollVotes.pollId, pollIds))
+              .groupBy(pollVotes.pollId, pollVotes.feedbackId),
+          ])
+        : [[], []];
 
     // Build lookup maps
     const entriesByPoll = new Map<string, typeof allEntries>();
@@ -730,7 +743,11 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
     await db.transaction(async (tx) => {
       // Re-read inside transaction to ensure poll is still open
       const poll = await findOrThrow(
-        tx.select({ id: polls.id, closedAt: polls.closedAt }).from(polls).where(eq(polls.id, params.id)).limit(1),
+        tx
+          .select({ id: polls.id, closedAt: polls.closedAt })
+          .from(polls)
+          .where(eq(polls.id, params.id))
+          .limit(1),
         "Poll",
       );
       if (poll.closedAt) throw new ValidationError("Poll is already closed");
@@ -757,7 +774,8 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       } else {
         entriesWithVotes.sort((a, b) => {
           if (b.pollVoteCount !== a.pollVoteCount) return b.pollVoteCount - a.pollVoteCount;
-          if ((b.feedbackVoteCount ?? 0) !== (a.feedbackVoteCount ?? 0)) return (b.feedbackVoteCount ?? 0) - (a.feedbackVoteCount ?? 0);
+          if ((b.feedbackVoteCount ?? 0) !== (a.feedbackVoteCount ?? 0))
+            return (b.feedbackVoteCount ?? 0) - (a.feedbackVoteCount ?? 0);
           return a.feedbackId.localeCompare(b.feedbackId);
         });
 
@@ -767,10 +785,7 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
           .update(polls)
           .set({ closedAt: new Date(), winnerId })
           .where(eq(polls.id, params.id));
-        await tx
-          .update(feedback)
-          .set({ status: "won_poll" })
-          .where(eq(feedback.id, winnerId));
+        await tx.update(feedback).set({ status: "won_poll" }).where(eq(feedback.id, winnerId));
       }
     });
 
@@ -783,7 +798,10 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
   .get("/branches", async () => {
     try {
       const entries = await readdir("/app/worktrees", { withFileTypes: true });
-      const branches = entries.filter((e) => e.isDirectory()).map((e) => e.name).toSorted();
+      const branches = entries
+        .filter((e) => e.isDirectory())
+        .map((e) => e.name)
+        .toSorted();
       return { branches };
     } catch (err) {
       console.error("Failed to read worktrees directory:", err);
@@ -914,7 +932,11 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
 
   .post("/plugins", async ({ body, user: sessionUser }) => {
     const pluginSchema = z.object({
-      id: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/, "ID must be lowercase alphanumeric with hyphens"),
+      id: z
+        .string()
+        .min(1)
+        .max(100)
+        .regex(/^[a-z0-9-]+$/, "ID must be lowercase alphanumeric with hyphens"),
       name: z.string().min(1).max(100),
       description: z.string().min(1).max(2000),
       author: z.string().min(1).max(100),
@@ -924,14 +946,16 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       tags: z.array(z.string().max(50)).max(20).optional(),
       image: z.string().min(1).max(500),
       version: z.string().min(1).max(20).optional(),
-      manifest: z.object({
-        runtime: z.object({
-          image: z.string().min(1),
-          port: z.number().int().min(1).max(65535),
-          healthCheck: z.string().min(1),
-        }),
-        permissions: z.array(z.string()).min(1),
-      }).passthrough(),
+      manifest: z
+        .object({
+          runtime: z.object({
+            image: z.string().min(1),
+            port: z.number().int().min(1).max(65535),
+            healthCheck: z.string().min(1),
+          }),
+          permissions: z.array(z.string()).min(1),
+        })
+        .passthrough(),
       repository: z.string().max(500).nullable().optional(),
       screenshots: z.array(z.string().max(500)).max(10).optional(),
     });
@@ -977,14 +1001,17 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       tags: z.array(z.string().max(50)).max(20).optional(),
       image: z.string().min(1).max(500).optional(),
       version: z.string().min(1).max(20).optional(),
-      manifest: z.object({
-        runtime: z.object({
-          image: z.string().min(1),
-          port: z.number().int().min(1).max(65535),
-          healthCheck: z.string().min(1),
-        }),
-        permissions: z.array(z.string()).min(1),
-      }).passthrough().optional(),
+      manifest: z
+        .object({
+          runtime: z.object({
+            image: z.string().min(1),
+            port: z.number().int().min(1).max(65535),
+            healthCheck: z.string().min(1),
+          }),
+          permissions: z.array(z.string()).min(1),
+        })
+        .passthrough()
+        .optional(),
       repository: z.string().max(500).nullable().optional(),
       screenshots: z.array(z.string().max(500)).max(10).optional(),
     });
@@ -992,7 +1019,11 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
     const data = validateInput(pluginUpdateSchema, body);
 
     await findOrThrow(
-      db.select({ id: pluginRegistry.id }).from(pluginRegistry).where(eq(pluginRegistry.id, params.pluginId)).limit(1),
+      db
+        .select({ id: pluginRegistry.id })
+        .from(pluginRegistry)
+        .where(eq(pluginRegistry.id, params.pluginId))
+        .limit(1),
       "Plugin",
     );
 
@@ -1014,7 +1045,13 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       await db.update(pluginRegistry).set(updates).where(eq(pluginRegistry.id, params.pluginId));
     }
 
-    await logAudit(sessionUser.id, "update_plugin", "plugin", params.pluginId, JSON.stringify(data));
+    await logAudit(
+      sessionUser.id,
+      "update_plugin",
+      "plugin",
+      params.pluginId,
+      JSON.stringify(data),
+    );
 
     return { success: true };
   })
@@ -1024,7 +1061,11 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
 
     await db.transaction(async (tx) => {
       await findOrThrow(
-        tx.select({ id: pluginRegistry.id }).from(pluginRegistry).where(eq(pluginRegistry.id, params.pluginId)).limit(1),
+        tx
+          .select({ id: pluginRegistry.id })
+          .from(pluginRegistry)
+          .where(eq(pluginRegistry.id, params.pluginId))
+          .limit(1),
         "Plugin",
       );
 
@@ -1041,7 +1082,11 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
 
   .patch("/plugins/:pluginId/publish", async ({ params, user: sessionUser }) => {
     const plugin = await findOrThrow(
-      db.select({ id: pluginRegistry.id, published: pluginRegistry.published }).from(pluginRegistry).where(eq(pluginRegistry.id, params.pluginId)).limit(1),
+      db
+        .select({ id: pluginRegistry.id, published: pluginRegistry.published })
+        .from(pluginRegistry)
+        .where(eq(pluginRegistry.id, params.pluginId))
+        .limit(1),
       "Plugin",
     );
 
@@ -1051,14 +1096,23 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       .set({ published: newValue })
       .where(eq(pluginRegistry.id, params.pluginId));
 
-    await logAudit(sessionUser.id, newValue ? "publish_plugin" : "unpublish_plugin", "plugin", params.pluginId);
+    await logAudit(
+      sessionUser.id,
+      newValue ? "publish_plugin" : "unpublish_plugin",
+      "plugin",
+      params.pluginId,
+    );
 
     return { success: true, published: newValue };
   })
 
   .patch("/plugins/:pluginId/verify", async ({ params, user: sessionUser }) => {
     const plugin = await findOrThrow(
-      db.select({ id: pluginRegistry.id, verified: pluginRegistry.verified }).from(pluginRegistry).where(eq(pluginRegistry.id, params.pluginId)).limit(1),
+      db
+        .select({ id: pluginRegistry.id, verified: pluginRegistry.verified })
+        .from(pluginRegistry)
+        .where(eq(pluginRegistry.id, params.pluginId))
+        .limit(1),
       "Plugin",
     );
 
@@ -1068,14 +1122,23 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       .set({ verified: newValue })
       .where(eq(pluginRegistry.id, params.pluginId));
 
-    await logAudit(sessionUser.id, newValue ? "verify_plugin" : "unverify_plugin", "plugin", params.pluginId);
+    await logAudit(
+      sessionUser.id,
+      newValue ? "verify_plugin" : "unverify_plugin",
+      "plugin",
+      params.pluginId,
+    );
 
     return { success: true, verified: newValue };
   })
 
   .patch("/plugins/:pluginId/feature", async ({ params, user: sessionUser }) => {
     const plugin = await findOrThrow(
-      db.select({ id: pluginRegistry.id, featured: pluginRegistry.featured }).from(pluginRegistry).where(eq(pluginRegistry.id, params.pluginId)).limit(1),
+      db
+        .select({ id: pluginRegistry.id, featured: pluginRegistry.featured })
+        .from(pluginRegistry)
+        .where(eq(pluginRegistry.id, params.pluginId))
+        .limit(1),
       "Plugin",
     );
 
@@ -1085,7 +1148,12 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       .set({ featured: newValue })
       .where(eq(pluginRegistry.id, params.pluginId));
 
-    await logAudit(sessionUser.id, newValue ? "feature_plugin" : "unfeature_plugin", "plugin", params.pluginId);
+    await logAudit(
+      sessionUser.id,
+      newValue ? "feature_plugin" : "unfeature_plugin",
+      "plugin",
+      params.pluginId,
+    );
 
     return { success: true, featured: newValue };
   })
@@ -1093,7 +1161,9 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
   // ── Plugin Submission Review ─────────────────────────────────────────────
 
   .get("/plugins/submissions", async ({ query }) => {
-    const { page, pageSize, offset } = flexPageQuerySchema({ pageSize: 20, maxPageSize: 50 }).parse(query);
+    const { page, pageSize, offset } = flexPageQuerySchema({ pageSize: 20, maxPageSize: 50 }).parse(
+      query,
+    );
 
     const author = alias(user, "author");
 
@@ -1151,7 +1221,11 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
 
   .patch("/plugins/submissions/:id/approve", async ({ params, user: sessionUser }) => {
     const [submission] = await db
-      .select({ id: pluginSubmissions.id, status: pluginSubmissions.status, pluginId: pluginSubmissions.pluginId })
+      .select({
+        id: pluginSubmissions.id,
+        status: pluginSubmissions.status,
+        pluginId: pluginSubmissions.pluginId,
+      })
       .from(pluginSubmissions)
       .where(eq(pluginSubmissions.id, params.id))
       .limit(1);

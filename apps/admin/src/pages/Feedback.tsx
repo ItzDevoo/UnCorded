@@ -121,9 +121,7 @@ const AdminFeedback = () => {
     {
       header: "Type",
       accessor: (row) => (
-        <Badge variant={row.type === "bug" ? "destructive" : "info"}>
-          {row.type}
-        </Badge>
+        <Badge variant={row.type === "bug" ? "destructive" : "info"}>{row.type}</Badge>
       ),
     },
     {
@@ -150,9 +148,7 @@ const AdminFeedback = () => {
     },
     {
       header: "Votes",
-      accessor: (row) => (
-        <span class="text-sm font-medium tabular-nums">{row.voteCount}</span>
-      ),
+      accessor: (row) => <span class="text-sm font-medium tabular-nums">{row.voteCount}</span>,
     },
     {
       header: "",
@@ -161,7 +157,12 @@ const AdminFeedback = () => {
           <Button variant="outline" size="sm" onClick={() => openNoteModal(row)}>
             {row.adminNote ? "Edit Note" : "Add Note"}
           </Button>
-          <Button variant="ghost" size="sm" class="text-destructive" onClick={() => deleteFeedback(row.id)}>
+          <Button
+            variant="ghost"
+            size="sm"
+            class="text-destructive"
+            onClick={() => deleteFeedback(row.id)}
+          >
             Delete
           </Button>
         </div>
@@ -195,7 +196,9 @@ const AdminFeedback = () => {
               </div>
             </Show>
             <div class="flex gap-6 text-muted-foreground">
-              <span>ID: <span class="font-mono text-foreground">{row.id}</span></span>
+              <span>
+                ID: <span class="font-mono text-foreground">{row.id}</span>
+              </span>
               <span>Created: {new Date(row.createdAt).toLocaleString()}</span>
               <span>Updated: {new Date(row.updatedAt).toLocaleString()}</span>
             </div>

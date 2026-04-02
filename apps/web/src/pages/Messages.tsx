@@ -68,9 +68,7 @@ const Messages = () => {
                   <button
                     type="button"
                     class={`flex items-center gap-3 px-6 py-3 text-left transition-colors ${
-                      isActive()
-                        ? "bg-accent"
-                        : "hover:bg-accent/50"
+                      isActive() ? "bg-accent" : "hover:bg-accent/50"
                     }`}
                     onClick={() => handleSelect(dm.id, dm.otherUser.id)}
                   >

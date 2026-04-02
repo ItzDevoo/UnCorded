@@ -57,7 +57,12 @@ export async function checkForUpdates(
     }
 
     const data = (await res.json()) as {
-      updates: { pluginId: string; currentVersion: string; latestVersion: string; manifest: unknown }[];
+      updates: {
+        pluginId: string;
+        currentVersion: string;
+        latestVersion: string;
+        manifest: unknown;
+      }[];
     };
 
     return data.updates.map((u) => ({

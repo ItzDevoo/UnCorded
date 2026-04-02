@@ -1,7 +1,12 @@
 import { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, session } from "electron";
 import path from "node:path";
 import { SidecarManager } from "./sidecar.js";
-import { setupAutoUpdater, setupAutoUpdateIpc, setIsQuitting, checkForUpdates } from "./auto-update.js";
+import {
+  setupAutoUpdater,
+  setupAutoUpdateIpc,
+  setIsQuitting,
+  checkForUpdates,
+} from "./auto-update.js";
 
 // Prevent multiple instances
 const gotLock = app.requestSingleInstanceLock();
@@ -15,8 +20,8 @@ let isQuitting = false;
 const sidecar = new SidecarManager();
 
 const IS_DEV = !app.isPackaged;
-const WEB_URL = process.env["UNCORDED_WEB_URL"]
-  ?? (IS_DEV ? "http://localhost:5173" : "https://uncorded.app");
+const WEB_URL =
+  process.env["UNCORDED_WEB_URL"] ?? (IS_DEV ? "http://localhost:5173" : "https://uncorded.app");
 const PRELOAD_PATH = path.join(__dirname, "preload.cjs");
 
 const RESOURCES_PATH = app.isPackaged
@@ -65,7 +70,10 @@ function createWindow(): BrowserWindow {
 }
 
 function createTray(): Tray {
-  const trayIconPath = path.join(RESOURCES_PATH, process.platform === "win32" ? "icon.ico" : "icon.png");
+  const trayIconPath = path.join(
+    RESOURCES_PATH,
+    process.platform === "win32" ? "icon.ico" : "icon.png",
+  );
   const icon = nativeImage.createFromPath(trayIconPath);
   const t = new Tray(icon.resize({ width: 16, height: 16 }));
 
@@ -108,9 +116,7 @@ function createAppMenu(): void {
   const template: Electron.MenuItemConstructorOptions[] = [
     {
       label: "File",
-      submenu: [
-        { role: "quit" },
-      ],
+      submenu: [{ role: "quit" }],
     },
     {
       label: "Edit",
@@ -203,9 +209,10 @@ interface PluginUpdateInfo {
 let cachedPlugins: PluginInfo[] = [];
 
 // Derive API base URL: explicit env > web URL origin > hardcoded default
-const API_URL = process.env["UNCORDED_API_URL"]
-  ?? process.env["UNCORDED_WEB_URL"]
-  ?? (IS_DEV ? "http://localhost:3000" : "https://uncorded.app");
+const API_URL =
+  process.env["UNCORDED_API_URL"] ??
+  process.env["UNCORDED_WEB_URL"] ??
+  (IS_DEV ? "http://localhost:3000" : "https://uncorded.app");
 
 class PluginManifestError extends Error {
   pluginId: string;
@@ -312,7 +319,9 @@ function setupPluginIpc(): void {
   ipcMain.handle("plugins:stop", async (_event, pluginId: string) => {
     const port = sidecar.getPort();
     if (!port) throw new Error("Sidecar not running");
-    const res = await fetch(`http://localhost:${port}/plugins/${pluginId}/stop`, { method: "POST" });
+    const res = await fetch(`http://localhost:${port}/plugins/${pluginId}/stop`, {
+      method: "POST",
+    });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       throw new Error(`Plugin stop failed (${res.status}): ${body}`);
@@ -324,7 +333,9 @@ function setupPluginIpc(): void {
   ipcMain.handle("plugins:restart", async (_event, pluginId: string) => {
     const port = sidecar.getPort();
     if (!port) throw new Error("Sidecar not running");
-    const res = await fetch(`http://localhost:${port}/plugins/${pluginId}/restart`, { method: "POST" });
+    const res = await fetch(`http://localhost:${port}/plugins/${pluginId}/restart`, {
+      method: "POST",
+    });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       throw new Error(`Plugin restart failed (${res.status}): ${body}`);
@@ -336,7 +347,9 @@ function setupPluginIpc(): void {
   ipcMain.handle("plugins:uninstall", async (_event, pluginId: string) => {
     const port = sidecar.getPort();
     if (!port) throw new Error("Sidecar not running");
-    const res = await fetch(`http://localhost:${port}/plugins/${pluginId}/uninstall`, { method: "POST" });
+    const res = await fetch(`http://localhost:${port}/plugins/${pluginId}/uninstall`, {
+      method: "POST",
+    });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       throw new Error(`Plugin uninstall failed (${res.status}): ${body}`);
@@ -348,7 +361,9 @@ function setupPluginIpc(): void {
   ipcMain.handle("plugins:update", async (_event, pluginId: string) => {
     const port = sidecar.getPort();
     if (!port) throw new Error("Sidecar not running");
-    const res = await fetch(`http://localhost:${port}/plugins/${pluginId}/update`, { method: "POST" });
+    const res = await fetch(`http://localhost:${port}/plugins/${pluginId}/update`, {
+      method: "POST",
+    });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       throw new Error(`Plugin update failed (${res.status}): ${body}`);
@@ -411,7 +426,9 @@ function startPluginPolling(): void {
             }
           }
         }
-      } catch { /* silently ignore — counter stays high so next poll retries sooner */ }
+      } catch {
+        /* silently ignore — counter stays high so next poll retries sooner */
+      }
     }
   }, 3000);
 }
@@ -435,7 +452,10 @@ async function syncAuthToSidecar(): Promise<void> {
   try {
     // Debug: dump all cookies to see what's available
     const allCookies = await session.defaultSession.cookies.get({});
-    console.log("[auth] All cookies:", allCookies.map(c => `${c.name} (${c.domain})`));
+    console.log(
+      "[auth] All cookies:",
+      allCookies.map((c) => `${c.name} (${c.domain})`),
+    );
 
     const cookies = await session.defaultSession.cookies.get({
       name: "__Secure-uncorded.session_token",

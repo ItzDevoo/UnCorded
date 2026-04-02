@@ -3,8 +3,7 @@
 @theme inline {
   --font-sans:
     "DM Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-mono:
-    "Fira Code", "JetBrains Mono", "Courier New", monospace;
+  --font-mono: "Fira Code", "JetBrains Mono", "Courier New", monospace;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -48,16 +47,30 @@
   --animate-slide-in-left: slide-in-left 150ms ease-out;
 
   @keyframes fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
   @keyframes scale-in {
-    from { transform: scale(0.98); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
+    from {
+      transform: scale(0.98);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
   @keyframes slide-in-left {
-    from { transform: translateX(-100%); }
-    to { transform: translateX(0); }
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(0);
+    }
   }
 }
 
@@ -76,48 +89,48 @@
 
   --radius: 6px;
 
-  --background: #0A0A0A;
-  --foreground: #E8E8E8;
+  --background: #0a0a0a;
+  --foreground: #e8e8e8;
 
   --card: #111111;
-  --card-foreground: #E8E8E8;
+  --card-foreground: #e8e8e8;
 
   --popover: #111111;
-  --popover-foreground: #E8E8E8;
+  --popover-foreground: #e8e8e8;
 
-  --primary: #16A37F;
-  --primary-foreground: #0A0A0A;
+  --primary: #16a37f;
+  --primary-foreground: #0a0a0a;
 
   --secondary: #181818;
   --secondary-foreground: #888888;
 
   --muted: #181818;
-  --muted-foreground: #8A8A8A;
+  --muted-foreground: #8a8a8a;
 
   --accent: #181818;
-  --accent-foreground: #E8E8E8;
+  --accent-foreground: #e8e8e8;
 
-  --destructive: #F87171;
-  --destructive-foreground: #0A0A0A;
+  --destructive: #f87171;
+  --destructive-foreground: #0a0a0a;
 
-  --border: #2A2A2A;
+  --border: #2a2a2a;
   --input: #111111;
-  --ring: #16A37F;
+  --ring: #16a37f;
 
-  --success: #16A37F;
-  --success-foreground: #0A0A0A;
+  --success: #16a37f;
+  --success-foreground: #0a0a0a;
 
-  --warning: #D97706;
-  --warning-foreground: #0A0A0A;
+  --warning: #d97706;
+  --warning-foreground: #0a0a0a;
 
-  --info: #3B82F6;
-  --info-foreground: #0A0A0A;
+  --info: #3b82f6;
+  --info-foreground: #0a0a0a;
 }
 
 /* ── Scrollbars — subtle thin scrollbar ───────────────────────────────── */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #2A2A2A transparent;
+  scrollbar-color: #2a2a2a transparent;
 }
 
 *::-webkit-scrollbar {
@@ -130,10 +143,10 @@
 }
 
 *::-webkit-scrollbar-thumb {
-  background: #2A2A2A;
+  background: #2a2a2a;
   border-radius: 3px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: #3A3A3A;
+  background: #3a3a3a;
 }

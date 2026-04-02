@@ -33,14 +33,13 @@ export class TunnelManager {
     }
 
     return new Promise<string>((resolve, reject) => {
-      const child = spawn(this.cloudflaredPath!, [
-        "tunnel",
-        "--url",
-        `http://localhost:${localPort}`,
-        "--no-autoupdate",
-      ], {
-        stdio: ["ignore", "pipe", "pipe"],
-      });
+      const child = spawn(
+        this.cloudflaredPath!,
+        ["tunnel", "--url", `http://localhost:${localPort}`, "--no-autoupdate"],
+        {
+          stdio: ["ignore", "pipe", "pipe"],
+        },
+      );
 
       let resolved = false;
 

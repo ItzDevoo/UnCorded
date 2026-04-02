@@ -25,7 +25,9 @@ const AdminGuard: ParentComponent = (props) => {
 
     const userId = s.data.user.id;
     let active = true;
-    onCleanup(() => { active = false; });
+    onCleanup(() => {
+      active = false;
+    });
 
     (async () => {
       try {
@@ -70,9 +72,7 @@ const AdminGuard: ParentComponent = (props) => {
           <div class="flex min-h-screen items-center justify-center">
             <div class="text-center">
               <h1 class="text-2xl font-bold text-foreground">Access Denied</h1>
-              <p class="mt-2 text-muted-foreground">
-                Redirecting...
-              </p>
+              <p class="mt-2 text-muted-foreground">Redirecting...</p>
             </div>
           </div>
         </Show>

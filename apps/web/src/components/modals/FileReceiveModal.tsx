@@ -63,7 +63,14 @@ const FileReceiveModal = () => {
                   title="Close"
                   aria-label="Close"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -79,9 +86,7 @@ const FileReceiveModal = () => {
                     </div>
                   }
                 >
-                  {(url) => (
-                    <img src={url()} alt="" class="h-10 w-10 rounded-full object-cover" />
-                  )}
+                  {(url) => <img src={url()} alt="" class="h-10 w-10 rounded-full object-cover" />}
                 </Show>
                 <div>
                   <p class="text-sm font-medium text-foreground">
@@ -120,18 +125,14 @@ const FileReceiveModal = () => {
                     />
                   </div>
                 </div>
-                <p class="mb-4 text-xs text-muted-foreground">
-                  Downloading via P2P...
-                </p>
+                <p class="mb-4 text-xs text-muted-foreground">Downloading via P2P...</p>
               </Show>
 
               {/* Actions */}
               <div class="flex justify-end gap-3">
                 <Show when={s().status === "closed" || s().status === "complete"}>
                   <Show when={s().downloadedFile}>
-                    <Button onClick={handleSave}>
-                      Save to Device
-                    </Button>
+                    <Button onClick={handleSave}>Save to Device</Button>
                   </Show>
                   <Button variant="secondary" onClick={handleClose}>
                     Dismiss

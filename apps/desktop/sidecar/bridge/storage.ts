@@ -51,7 +51,12 @@ export class PluginStorage {
     if (!fs.existsSync(filePath)) return null;
 
     const raw = fs.readFileSync(filePath, "utf-8");
-    const stored = JSON.parse(raw) as { encrypted: boolean; value: unknown; iv?: string; tag?: string };
+    const stored = JSON.parse(raw) as {
+      encrypted: boolean;
+      value: unknown;
+      iv?: string;
+      tag?: string;
+    };
 
     if (stored.encrypted) {
       const dataKey = this.getPluginDataKey(pluginId);
@@ -61,7 +66,12 @@ export class PluginStorage {
     return stored.value;
   }
 
-  set(pluginId: string, key: string, value: unknown, encrypt?: boolean): { success: boolean; error?: string | undefined } {
+  set(
+    pluginId: string,
+    key: string,
+    value: unknown,
+    encrypt?: boolean,
+  ): { success: boolean; error?: string | undefined } {
     const serialized = JSON.stringify(value);
     const valueBytes = Buffer.byteLength(serialized, "utf-8");
 
@@ -83,7 +93,10 @@ export class PluginStorage {
     // Encrypted values expand due to hex encoding (~2x) + JSON wrapper overhead
     const estimatedNewSize = encrypt ? valueBytes * 2 + 200 : valueBytes + 50;
     if (totalSize - existingSize + estimatedNewSize > MAX_TOTAL_SIZE) {
-      return { success: false, error: `Total storage would exceed ${MAX_TOTAL_SIZE / (1024 * 1024)}MB limit` };
+      return {
+        success: false,
+        error: `Total storage would exceed ${MAX_TOTAL_SIZE / (1024 * 1024)}MB limit`,
+      };
     }
 
     if (encrypt) {

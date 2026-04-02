@@ -82,7 +82,9 @@ const Users = () => {
 
   // ── Bots cache ────────────────────────────────────
 
-  const [botsCache, setBotsCache] = createSignal<Record<string, UserBotsResponse | "loading" | "error">>({});
+  const [botsCache, setBotsCache] = createSignal<
+    Record<string, UserBotsResponse | "loading" | "error">
+  >({});
 
   async function fetchUserBots(userId: string) {
     const cached = botsCache()[userId];
@@ -160,7 +162,9 @@ const Users = () => {
         : `Ban ${user.username ?? user.email}? They will be immediately disconnected and unable to log in.`,
       variant: user.banned ? "default" : "destructive",
       onConfirm: async () => {
-        await api(`/api/admin/users/${user.id}/${user.banned ? "unban" : "ban"}`, { method: "POST" });
+        await api(`/api/admin/users/${user.id}/${user.banned ? "unban" : "ban"}`, {
+          method: "POST",
+        });
         showToast(user.banned ? "User unbanned" : "User banned", "info");
         await fetchUsers(data().page, search());
       },
@@ -333,7 +337,11 @@ const Users = () => {
                 </div>
                 <div>
                   <p class="text-muted-foreground">Gifted Tier</p>
-                  <p>{hasActiveGift(row) ? `${row.giftedTier} (expires ${new Date(row.giftExpiresAt!).toLocaleDateString()})` : "None"}</p>
+                  <p>
+                    {hasActiveGift(row)
+                      ? `${row.giftedTier} (expires ${new Date(row.giftExpiresAt!).toLocaleDateString()})`
+                      : "None"}
+                  </p>
                 </div>
               </div>
 
@@ -373,7 +381,11 @@ const Users = () => {
                             </div>
                             <div>
                               <p class="text-muted-foreground">Last used</p>
-                              <p>{bot.lastUsedAt ? new Date(bot.lastUsedAt).toLocaleDateString() : "Never"}</p>
+                              <p>
+                                {bot.lastUsedAt
+                                  ? new Date(bot.lastUsedAt).toLocaleDateString()
+                                  : "Never"}
+                              </p>
                             </div>
                             <div>
                               <p class="text-muted-foreground">Created</p>
@@ -403,12 +415,25 @@ const Users = () => {
 
           <div class="space-y-4 py-2">
             <div>
-              <label id="gift-tier-label" class="mb-2 block text-xs font-medium text-muted-foreground">Tier</label>
+              <label
+                id="gift-tier-label"
+                class="mb-2 block text-xs font-medium text-muted-foreground"
+              >
+                Tier
+              </label>
               <div class="flex gap-2" role="radiogroup" aria-labelledby="gift-tier-label">
-                <For each={[["supporter", "Supporter"], ["server_owner", "Server Owner"]] as const}>
+                <For
+                  each={
+                    [
+                      ["supporter", "Supporter"],
+                      ["server_owner", "Server Owner"],
+                    ] as const
+                  }
+                >
                   {([value, label]) => {
                     const currentTier = () => giftTarget()?.subscriptionTier ?? "free";
-                    const isCurrentOrBelow = () => value === "supporter" && currentTier() === "server_owner";
+                    const isCurrentOrBelow = () =>
+                      value === "supporter" && currentTier() === "server_owner";
                     const isSelected = () => giftTier() === value;
                     return (
                       <button
@@ -436,7 +461,12 @@ const Users = () => {
               </div>
             </div>
             <div>
-              <label for="gift-duration" class="mb-1 block text-xs font-medium text-muted-foreground">Duration (days)</label>
+              <label
+                for="gift-duration"
+                class="mb-1 block text-xs font-medium text-muted-foreground"
+              >
+                Duration (days)
+              </label>
               <Input
                 id="gift-duration"
                 type="number"
@@ -448,7 +478,9 @@ const Users = () => {
               />
             </div>
             <div>
-              <label for="gift-reason" class="mb-1 block text-xs font-medium text-muted-foreground">Reason (optional)</label>
+              <label for="gift-reason" class="mb-1 block text-xs font-medium text-muted-foreground">
+                Reason (optional)
+              </label>
               <textarea
                 id="gift-reason"
                 value={giftReason()}
@@ -511,8 +543,8 @@ const Users = () => {
             <DialogTitle>Delete User</DialogTitle>
             <DialogDescription>
               This will permanently delete{" "}
-              <span class="font-semibold">{deleteTarget()?.username ?? deleteTarget()?.email}</span>'s
-              account and all associated data. This action cannot be undone.
+              <span class="font-semibold">{deleteTarget()?.username ?? deleteTarget()?.email}</span>
+              's account and all associated data. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
 

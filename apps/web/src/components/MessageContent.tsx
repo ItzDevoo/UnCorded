@@ -6,7 +6,9 @@ function sanitizeUrl(url: string): string {
   try {
     const parsed = new URL(url, "https://placeholder.invalid");
     if (["http:", "https:", "mailto:"].includes(parsed.protocol)) return url;
-  } catch { /* invalid URL */ }
+  } catch {
+    /* invalid URL */
+  }
   return "#";
 }
 

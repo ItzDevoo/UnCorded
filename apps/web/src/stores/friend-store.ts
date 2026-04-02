@@ -153,7 +153,8 @@ export async function sendFriendRequest(username: string): Promise<void> {
 
     const parsed = friendRequestResponseSchema.safeParse(raw);
     if (!parsed.success) {
-      if (import.meta.env.DEV) console.warn("[friend-store] Invalid response:", parsed.error.issues);
+      if (import.meta.env.DEV)
+        console.warn("[friend-store] Invalid response:", parsed.error.issues);
       showToast("Friend request sent", "info");
       return;
     }

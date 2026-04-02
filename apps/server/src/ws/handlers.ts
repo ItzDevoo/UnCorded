@@ -91,10 +91,7 @@ export async function handleIdentify(
     }
 
     // Always set online on reconnect
-    await db
-      .update(user)
-      .set({ status: "online" })
-      .where(eq(user.id, identifiedUserId));
+    await db.update(user).set({ status: "online" }).where(eq(user.id, identifiedUserId));
 
     const effectiveStatus = "online" as const;
     const dbUser = { ...dbUserRow, id: userId(dbUserRow.id) };

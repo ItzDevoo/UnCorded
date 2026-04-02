@@ -63,12 +63,7 @@ export const pollRoutes = new Elysia({ prefix: "/api/polls" })
     const [userVote] = await db
       .select({ feedbackId: pollVotes.feedbackId })
       .from(pollVotes)
-      .where(
-        and(
-          eq(pollVotes.pollId, activePoll.id),
-          eq(pollVotes.userId, sessionUser.id),
-        ),
-      )
+      .where(and(eq(pollVotes.pollId, activePoll.id), eq(pollVotes.userId, sessionUser.id)))
       .limit(1);
 
     const hasVoted = !!userVote;
@@ -114,24 +109,14 @@ export const pollRoutes = new Elysia({ prefix: "/api/polls" })
       const [entry] = await tx
         .select({ feedbackId: pollEntries.feedbackId })
         .from(pollEntries)
-        .where(
-          and(
-            eq(pollEntries.pollId, params.id),
-            eq(pollEntries.feedbackId, voteFeedbackId),
-          ),
-        )
+        .where(and(eq(pollEntries.pollId, params.id), eq(pollEntries.feedbackId, voteFeedbackId)))
         .limit(1);
       if (!entry) throw new ValidationError("Invalid poll entry");
 
       const [existingVote] = await tx
         .select({ id: pollVotes.id })
         .from(pollVotes)
-        .where(
-          and(
-            eq(pollVotes.pollId, params.id),
-            eq(pollVotes.userId, sessionUser.id),
-          ),
-        )
+        .where(and(eq(pollVotes.pollId, params.id), eq(pollVotes.userId, sessionUser.id)))
         .limit(1);
       if (existingVote) throw new ValidationError("You have already voted");
 

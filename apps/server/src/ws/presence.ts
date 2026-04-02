@@ -19,10 +19,7 @@ export function resetIdleTimer(userId: string): void {
   const timer = setTimeout(async () => {
     idleTimers.delete(userId);
     try {
-      const result = await db
-        .update(user)
-        .set({ status: "idle" })
-        .where(eq(user.id, userId));
+      const result = await db.update(user).set({ status: "idle" }).where(eq(user.id, userId));
       // Only broadcast if a row was actually updated
       if (result.rowCount && result.rowCount > 0) {
         await broadcastPresence(userId, "idle");

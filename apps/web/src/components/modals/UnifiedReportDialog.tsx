@@ -88,10 +88,9 @@ const UnifiedReportDialog = (props: Props) => {
       const controller = new AbortController();
       searchAbort = controller;
 
-      api<{ users: SearchUser[] }>(
-        `/api/users/search?q=${encodeURIComponent(q)}`,
-        { signal: controller.signal },
-      )
+      api<{ users: SearchUser[] }>(`/api/users/search?q=${encodeURIComponent(q)}`, {
+        signal: controller.signal,
+      })
         .then((res) => {
           if (!controller.signal.aborted) {
             setSearchSuggestions(res.users);
@@ -280,9 +279,7 @@ const UnifiedReportDialog = (props: Props) => {
               rows={5}
               class="block w-full resize-none rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground"
             />
-            <p class="text-right text-xs text-muted-foreground">
-              {bugDescription().length}/2000
-            </p>
+            <p class="text-right text-xs text-muted-foreground">{bugDescription().length}/2000</p>
           </Show>
 
           {/* Player form */}
@@ -377,9 +374,7 @@ const UnifiedReportDialog = (props: Props) => {
               class="w-full cursor-pointer rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground outline-none [&>option]:bg-popover [&>option]:text-foreground"
             >
               <option value="">Select a server...</option>
-              <For each={userServers()}>
-                {(s) => <option value={s.id}>{s.name}</option>}
-              </For>
+              <For each={userServers()}>{(s) => <option value={s.id}>{s.name}</option>}</For>
             </select>
 
             <select

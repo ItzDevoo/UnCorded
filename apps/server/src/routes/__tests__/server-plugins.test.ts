@@ -3,63 +3,74 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ── Hoisted mocks ──────────────────────────────────────────────────────────
 
-const { mockRequireMember, mockRequireOwner, mockComputeEffectiveTier, selectResults, mockDb, deletedRows, insertedRow } =
-  vi.hoisted(() => {
-    const mockRequireMember = vi.fn().mockResolvedValue({});
-    const mockRequireOwner = vi.fn().mockResolvedValue({ ownerId: "owner1" });
-    const mockComputeEffectiveTier = vi.fn().mockResolvedValue("server_owner");
+const {
+  mockRequireMember,
+  mockRequireOwner,
+  mockComputeEffectiveTier,
+  selectResults,
+  mockDb,
+  deletedRows,
+  insertedRow,
+} = vi.hoisted(() => {
+  const mockRequireMember = vi.fn().mockResolvedValue({});
+  const mockRequireOwner = vi.fn().mockResolvedValue({ ownerId: "owner1" });
+  const mockComputeEffectiveTier = vi.fn().mockResolvedValue("server_owner");
 
-    const selectResults: unknown[][] = [];
-    const deletedRows: unknown[][] = [];
-    const insertedRow: unknown[] = [];
+  const selectResults: unknown[][] = [];
+  const deletedRows: unknown[][] = [];
+  const insertedRow: unknown[] = [];
 
-    /** Returns a chainable that supports both `await where(...)` and `where(...).limit(n)` */
-    function makeWhereResult() {
-      const resolve = () => selectResults.shift() ?? [];
-      return {
-        limit: vi.fn().mockImplementation(() => Promise.resolve(resolve())),
-        // eslint-disable-next-line no-thenable
-        then: (onFulfilled: (v: unknown[]) => unknown, onRejected?: (e: unknown) => unknown) =>
-          Promise.resolve(resolve()).then(onFulfilled, onRejected),
-      };
-    }
-
-    const mockDb = {
-      select: vi.fn().mockImplementation(() => ({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockImplementation(() => makeWhereResult()),
-        }),
-      })),
-      insert: vi.fn().mockImplementation(() => ({
-        values: vi.fn().mockReturnValue({
-          onConflictDoNothing: vi.fn().mockReturnValue({
-            returning: vi.fn().mockImplementation(() => {
-              const row = insertedRow.shift();
-              return Promise.resolve(row ? [row] : []);
-            }),
-          }),
-        }),
-      })),
-      delete: vi.fn().mockImplementation(() => ({
-        where: vi.fn().mockReturnValue({
-          returning: vi.fn().mockImplementation(() =>
-            Promise.resolve(deletedRows.shift() ?? []),
-          ),
-        }),
-      })),
-      update: vi.fn().mockImplementation(() => ({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            returning: vi.fn().mockImplementation(() =>
-              Promise.resolve(selectResults.shift() ?? []),
-            ),
-          }),
-        }),
-      })),
+  /** Returns a chainable that supports both `await where(...)` and `where(...).limit(n)` */
+  function makeWhereResult() {
+    const resolve = () => selectResults.shift() ?? [];
+    return {
+      limit: vi.fn().mockImplementation(() => Promise.resolve(resolve())),
+      // eslint-disable-next-line no-thenable
+      then: (onFulfilled: (v: unknown[]) => unknown, onRejected?: (e: unknown) => unknown) =>
+        Promise.resolve(resolve()).then(onFulfilled, onRejected),
     };
+  }
 
-    return { mockRequireMember, mockRequireOwner, mockComputeEffectiveTier, selectResults, mockDb, deletedRows, insertedRow };
-  });
+  const mockDb = {
+    select: vi.fn().mockImplementation(() => ({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockImplementation(() => makeWhereResult()),
+      }),
+    })),
+    insert: vi.fn().mockImplementation(() => ({
+      values: vi.fn().mockReturnValue({
+        onConflictDoNothing: vi.fn().mockReturnValue({
+          returning: vi.fn().mockImplementation(() => {
+            const row = insertedRow.shift();
+            return Promise.resolve(row ? [row] : []);
+          }),
+        }),
+      }),
+    })),
+    delete: vi.fn().mockImplementation(() => ({
+      where: vi.fn().mockReturnValue({
+        returning: vi.fn().mockImplementation(() => Promise.resolve(deletedRows.shift() ?? [])),
+      }),
+    })),
+    update: vi.fn().mockImplementation(() => ({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockImplementation(() => Promise.resolve(selectResults.shift() ?? [])),
+        }),
+      }),
+    })),
+  };
+
+  return {
+    mockRequireMember,
+    mockRequireOwner,
+    mockComputeEffectiveTier,
+    selectResults,
+    mockDb,
+    deletedRows,
+    insertedRow,
+  };
+});
 
 // ── Module mocks ───────────────────────────────────────────────────────────
 
@@ -100,16 +111,14 @@ import { AppError } from "@uncorded/shared";
 import { serverPluginRoutes } from "../server-plugins.js";
 
 // Wrap with error handler like the real app does
-const app = new Elysia()
-  .use(serverPluginRoutes)
-  .onError(({ error, set }) => {
-    if (error instanceof AppError) {
-      set.status = error.statusCode;
-      return { code: error.code, message: error.message };
-    }
-    set.status = 500;
-    return { code: "INTERNAL", message: "Internal server error" };
-  });
+const app = new Elysia().use(serverPluginRoutes).onError(({ error, set }) => {
+  if (error instanceof AppError) {
+    set.status = error.statusCode;
+    return { code: error.code, message: error.message };
+  }
+  set.status = 500;
+  return { code: "INTERNAL", message: "Internal server error" };
+});
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -119,9 +128,7 @@ function makeRequest(method: string, path: string, body?: unknown): Promise<Resp
     headers: { "content-type": "application/json" },
   };
   if (body !== undefined) opts.body = JSON.stringify(body);
-  return app.handle(
-    new Request(`http://localhost${path}`, opts),
-  );
+  return app.handle(new Request(`http://localhost${path}`, opts));
 }
 
 // ── Tests ──────────────────────────────────────────────────────────────────
@@ -254,9 +261,7 @@ describe("server plugin routes", () => {
     });
 
     it("updates state successfully", async () => {
-      selectResults.push([
-        { id: "sp1", pluginId: "claude-code", state: "active" },
-      ]);
+      selectResults.push([{ id: "sp1", pluginId: "claude-code", state: "active" }]);
 
       const res = await makeRequest("PATCH", "/api/servers/server1/plugins/claude-code", {
         state: "stopped",
@@ -290,9 +295,7 @@ describe("server plugin routes", () => {
 
   describe("GET /api/servers/:serverId/plugins/:pluginId/tunnel", () => {
     it("returns tunnel URL for members", async () => {
-      selectResults.push([
-        { tunnelUrl: "https://abc.trycloudflare.com", state: "active" },
-      ]);
+      selectResults.push([{ tunnelUrl: "https://abc.trycloudflare.com", state: "active" }]);
 
       const res = await makeRequest("GET", "/api/servers/server1/plugins/claude-code/tunnel");
       expect(res.status).toBe(200);
@@ -314,9 +317,7 @@ describe("server plugin routes", () => {
 
   describe("PUT /api/servers/:serverId/plugins/:pluginId/tunnel", () => {
     it("updates tunnel URL for the owner", async () => {
-      selectResults.push([
-        { id: "sp1", tunnelUrl: "https://new.trycloudflare.com" },
-      ]);
+      selectResults.push([{ id: "sp1", tunnelUrl: "https://new.trycloudflare.com" }]);
 
       const res = await makeRequest("PUT", "/api/servers/server1/plugins/claude-code/tunnel", {
         tunnelUrl: "https://new.trycloudflare.com",

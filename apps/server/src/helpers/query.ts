@@ -9,10 +9,7 @@ export const userPublicFields = {
   status: user.status,
 };
 
-export async function findOrThrow<T>(
-  query: Promise<T[]>,
-  entityName: string,
-): Promise<T> {
+export async function findOrThrow<T>(query: Promise<T[]>, entityName: string): Promise<T> {
   const [row] = await query;
   if (!row) throw new NotFoundError(entityName);
   return row;

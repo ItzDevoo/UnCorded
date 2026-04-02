@@ -193,7 +193,9 @@ describe("UnCordedPlugin", () => {
 
   it("catches exceptions in event handlers without breaking other handlers", () => {
     const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const badHandler = () => { throw new Error("handler crash"); };
+    const badHandler = () => {
+      throw new Error("handler crash");
+    };
     const goodHandler = vi.fn();
 
     plugin.on("test", badHandler);
@@ -214,7 +216,9 @@ describe("UnCordedPlugin", () => {
     plugin.onError(errorHandler);
 
     const thrownError = new Error("handler crash");
-    plugin.on("test", () => { throw thrownError; });
+    plugin.on("test", () => {
+      throw thrownError;
+    });
 
     sendEvent("test", {});
 
@@ -231,7 +235,9 @@ describe("UnCordedPlugin", () => {
     plugin.onError(handler1);
     plugin.onError(handler2);
 
-    plugin.on("test", () => { throw new Error("boom"); });
+    plugin.on("test", () => {
+      throw new Error("boom");
+    });
     sendEvent("test", {});
 
     expect(handler1).toHaveBeenCalledTimes(1);
@@ -248,7 +254,9 @@ describe("UnCordedPlugin", () => {
 
     cleanup1(); // Remove handler1
 
-    plugin.on("test", () => { throw new Error("boom"); });
+    plugin.on("test", () => {
+      throw new Error("boom");
+    });
     sendEvent("test", {});
 
     expect(handler1).not.toHaveBeenCalled();
@@ -260,7 +268,9 @@ describe("UnCordedPlugin", () => {
     const errorHandler = vi.fn();
     plugin.onError(errorHandler);
 
-    plugin.on("test", () => { throw "string error"; }); // eslint-disable-line no-throw-literal
+    plugin.on("test", () => {
+      throw "string error";
+    }); // eslint-disable-line no-throw-literal
     sendEvent("test", {});
 
     expect(errorHandler).toHaveBeenCalledWith(expect.any(Error));

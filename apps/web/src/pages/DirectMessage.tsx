@@ -15,8 +15,7 @@ const DirectMessage = () => {
 
   const userId = () => params.userId as UserId;
 
-  const findDm = () =>
-    readyData.data?.dmChannels.find((d) => d.otherUser.id === userId());
+  const findDm = () => readyData.data?.dmChannels.find((d) => d.otherUser.id === userId());
 
   // Auto-select the DM channel matching the URL userId
   createEffect(() => {
@@ -34,7 +33,9 @@ const DirectMessage = () => {
   });
 
   const isLoading = () =>
-    !findDm() && !fetchFailed() && (loadingMoreDms() || (readyData.data?.hasMoreDmChannels ?? false));
+    !findDm() &&
+    !fetchFailed() &&
+    (loadingMoreDms() || (readyData.data?.hasMoreDmChannels ?? false));
 
   const hasDm = () => findDm() !== undefined;
 
@@ -45,10 +46,7 @@ const DirectMessage = () => {
 
   return (
     <div class="flex h-full flex-col">
-      <ContentHeader
-        title={dmName()}
-        breadcrumbs={[{ label: "Messages", href: "/messages" }]}
-      />
+      <ContentHeader title={dmName()} breadcrumbs={[{ label: "Messages", href: "/messages" }]} />
       <Show
         when={!isLoading()}
         fallback={

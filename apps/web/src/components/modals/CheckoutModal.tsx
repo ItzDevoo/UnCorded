@@ -24,10 +24,7 @@ const CheckoutModal = (props: CheckoutModalProps) => {
 
   onMount(async () => {
     try {
-      const [stripe, clientSecret] = await Promise.all([
-        getStripe(),
-        createCheckout(props.tier),
-      ]);
+      const [stripe, clientSecret] = await Promise.all([getStripe(), createCheckout(props.tier)]);
 
       if (!stripe) {
         setError("Payment system unavailable");
@@ -56,7 +53,12 @@ const CheckoutModal = (props: CheckoutModalProps) => {
   });
 
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) props.onClose(); }}>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) props.onClose();
+      }}
+    >
       <DialogContent class="max-w-lg" onClose={props.onClose}>
         <DialogHeader>
           <DialogTitle>Upgrade to {TIER_LABELS[props.tier] ?? props.tier}</DialogTitle>

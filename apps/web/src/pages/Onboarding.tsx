@@ -44,12 +44,15 @@ const Onboarding = () => {
       // Refetch the session so the updated username is available, then SPA-navigate
       const refreshed = await authClient.getSession({ fetchOptions: { throw: false } });
       if (!refreshed.data) {
-        if (import.meta.env.DEV) console.error("[Onboarding] Session refetch failed after profile setup");
+        if (import.meta.env.DEV)
+          console.error("[Onboarding] Session refetch failed after profile setup");
       }
       navigate("/home", { replace: true });
     } catch (err) {
       const message =
-        err instanceof ApiRequestError ? err.body.message ?? "Something went wrong" : "Something went wrong";
+        err instanceof ApiRequestError
+          ? (err.body.message ?? "Something went wrong")
+          : "Something went wrong";
       setError(message);
     } finally {
       setLoading(false);
@@ -59,12 +62,8 @@ const Onboarding = () => {
   return (
     <AuthGuard>
       <AuthLayout>
-        <h1 class="mb-2 text-center text-2xl font-bold text-foreground">
-          Welcome to UnCorded!
-        </h1>
-        <p class="mb-6 text-center text-sm text-secondary-foreground">
-          Let's set up your profile.
-        </p>
+        <h1 class="mb-2 text-center text-2xl font-bold text-foreground">Welcome to UnCorded!</h1>
+        <p class="mb-6 text-center text-sm text-secondary-foreground">Let's set up your profile.</p>
 
         <Show when={error()}>
           <div

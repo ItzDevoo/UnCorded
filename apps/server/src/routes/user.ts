@@ -36,18 +36,26 @@ function validateImageMagicBytes(buffer: ArrayBuffer, claimedType: string): bool
   switch (claimedType) {
     case "image/png":
       // PNG: 89 50 4E 47
-      return bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47;
+      return bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
     case "image/jpeg":
       // JPEG: FF D8 FF
-      return bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF;
+      return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
     case "image/gif":
       // GIF: 47 49 46 38
       return bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38;
     case "image/webp":
       // WebP: 52 49 46 46 ... 57 45 42 50
-      return bytes.length >= 12 &&
-        bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
-        bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50;
+      return (
+        bytes.length >= 12 &&
+        bytes[0] === 0x52 &&
+        bytes[1] === 0x49 &&
+        bytes[2] === 0x46 &&
+        bytes[3] === 0x46 &&
+        bytes[8] === 0x57 &&
+        bytes[9] === 0x45 &&
+        bytes[10] === 0x42 &&
+        bytes[11] === 0x50
+      );
     default:
       return false;
   }
@@ -216,263 +224,275 @@ const avatarRoutes = new Elysia({ prefix: "/api/users" })
     return serializeUser(updated);
   });
 
-export const userRoutes = new Elysia()
-  .use(avatarRoutes)
-  .group("/api/users", (app) => app
-  .resolve(authResolve())
-  .get("/@me", async ({ user: sessionUser }) => {
-    const [dbUser] = await db.select().from(user).where(eq(user.id, sessionUser.id)).limit(1);
+export const userRoutes = new Elysia().use(avatarRoutes).group("/api/users", (app) =>
+  app
+    .resolve(authResolve())
+    .get("/@me", async ({ user: sessionUser }) => {
+      const [dbUser] = await db.select().from(user).where(eq(user.id, sessionUser.id)).limit(1);
 
-    if (!dbUser) {
-      throw new NotFoundError("User");
-    }
-
-    return serializeUser(dbUser);
-  })
-  .get("/search", async ({ user: sessionUser, query }) => {
-    const searchSchema = z.object({ q: z.string().min(1).max(32) });
-    const parsed = searchSchema.safeParse(query);
-    if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid search query");
-    }
-
-    await checkUserRateLimit(
-      sessionUser.id,
-      RL.USER_SEARCH,
-      RATE_LIMIT_USER_SEARCH.limit,
-      RATE_LIMIT_USER_SEARCH.windowMs,
-    );
-
-    // Escape LIKE wildcards in user input
-    const escaped = parsed.data.q.replace(/[%_\\]/g, (ch: string) => `\\${ch}`);
-
-    const results = await db
-      .select({
-        id: user.id,
-        username: user.username,
-        displayName: user.displayName,
-        avatarUrl: user.avatarUrl,
-      })
-      .from(user)
-      .where(and(
-        or(ilike(user.username, `%${escaped}%`), ilike(user.displayName, `%${escaped}%`)),
-        ne(user.id, sessionUser.id),
-        eq(user.isBot, false),
-      ))
-      .limit(3);
-
-    return {
-      users: results
-        .filter((u) => u.username !== null)
-        .map((u) => ({
-          id: userId(u.id),
-          username: u.username!,
-          displayName: u.displayName,
-          avatarUrl: u.avatarUrl,
-        })),
-    };
-  })
-  .patch("/@me", async ({ user: sessionUser, body }) => {
-    const parsed = updateUserSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
-    }
-
-    const updates: Partial<typeof user.$inferInsert> = {};
-
-    if (parsed.data.username !== undefined) {
-      const [existing] = await db
-        .select({ id: user.id })
-        .from(user)
-        .where(and(
-          sql`lower(${user.username}) = lower(${parsed.data.username})`,
-          ne(user.id, sessionUser.id),
-        ))
-        .limit(1);
-
-      if (existing) {
-        throw new ConflictError("USERNAME_TAKEN", "Username is already taken");
-      }
-
-      updates.username = parsed.data.username;
-      updates.displayUsername = parsed.data.username;
-    }
-
-    if (parsed.data.displayName !== undefined) {
-      updates.displayName = parsed.data.displayName;
-    }
-
-    if (parsed.data.status !== undefined) {
-      updates.status = parsed.data.status;
-    }
-
-    if (Object.keys(updates).length === 0) {
-      throw new ValidationError("No fields to update");
-    }
-
-    let updated: typeof user.$inferSelect;
-    try {
-      const [row] = await db
-        .update(user)
-        .set(updates)
-        .where(eq(user.id, sessionUser.id))
-        .returning();
-
-      if (!row) {
+      if (!dbUser) {
         throw new NotFoundError("User");
       }
-      updated = row;
-    } catch (err) {
-      // Handle unique constraint race condition (another user took the username between check and update)
-      if (err instanceof DatabaseError && err.code === "23505") {
-        throw new ConflictError("USERNAME_TAKEN", "Username is already taken");
+
+      return serializeUser(dbUser);
+    })
+    .get("/search", async ({ user: sessionUser, query }) => {
+      const searchSchema = z.object({ q: z.string().min(1).max(32) });
+      const parsed = searchSchema.safeParse(query);
+      if (!parsed.success) {
+        throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid search query");
       }
-      throw err;
-    }
 
-    return serializeUser(updated);
-  })
-  .post("/@me/password", async ({ body, request }) => {
-    const ip = getClientIp(request);
-    if (!(await checkIpRateLimit(ip, 5, 900_000, RL.PASSWORD))) {
-      throw new RateLimitError("Too many requests, try again later");
-    }
+      await checkUserRateLimit(
+        sessionUser.id,
+        RL.USER_SEARCH,
+        RATE_LIMIT_USER_SEARCH.limit,
+        RATE_LIMIT_USER_SEARCH.windowMs,
+      );
 
-    const parsed = changePasswordSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
-    }
+      // Escape LIKE wildcards in user input
+      const escaped = parsed.data.q.replace(/[%_\\]/g, (ch: string) => `\\${ch}`);
 
-    try {
-      await auth.api.changePassword({
-        body: {
-          currentPassword: parsed.data.currentPassword,
-          newPassword: parsed.data.newPassword,
-        },
-        headers: request.headers,
-      });
-    } catch (err) {
-      const code = err instanceof Error && "code" in err ? (err as { code: string }).code : null;
-      if (code === "INVALID_PASSWORD") {
-        throw new UnauthorizedError("Current password is incorrect");
-      }
-      if (code === "PASSWORD_TOO_SHORT" || code === "PASSWORD_TOO_LONG") {
-        throw new ValidationError("New password does not meet requirements");
-      }
-      if (code === "CREDENTIAL_ACCOUNT_NOT_FOUND") {
-        throw new ValidationError("No password set — account uses OAuth only");
-      }
-      throw err;
-    }
-
-    return { success: true };
-  })
-  .delete("/@me", async ({ user: sessionUser, body, request }) => {
-    const ip = getClientIp(request);
-    if (!(await checkIpRateLimit(ip, 3, 900_000, RL.ACCOUNT_DELETE))) {
-      throw new RateLimitError("Too many requests, try again later");
-    }
-
-    // If there's already a pending deletion, reject
-    if (pendingDeletions.has(sessionUser.id)) {
-      throw new ConflictError("DELETION_PENDING", "Account deletion is already in progress");
-    }
-
-    const parsed = deleteAccountSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
-    }
-
-    // Reserve the slot atomically before any awaits to prevent races
-    pendingDeletions.set(sessionUser.id, { timer: null, avatarUrl: null, status: "reserved" });
-
-    let dbUser: { avatarUrl: string | null };
-    try {
-      const [row] = await db
-        .select({ avatarUrl: user.avatarUrl })
+      const results = await db
+        .select({
+          id: user.id,
+          username: user.username,
+          displayName: user.displayName,
+          avatarUrl: user.avatarUrl,
+        })
         .from(user)
-        .where(eq(user.id, sessionUser.id))
-        .limit(1);
+        .where(
+          and(
+            or(ilike(user.username, `%${escaped}%`), ilike(user.displayName, `%${escaped}%`)),
+            ne(user.id, sessionUser.id),
+            eq(user.isBot, false),
+          ),
+        )
+        .limit(3);
 
-      if (!row) {
-        throw new NotFoundError("User");
+      return {
+        users: results
+          .filter((u) => u.username !== null)
+          .map((u) => ({
+            id: userId(u.id),
+            username: u.username!,
+            displayName: u.displayName,
+            avatarUrl: u.avatarUrl,
+          })),
+      };
+    })
+    .patch("/@me", async ({ user: sessionUser, body }) => {
+      const parsed = updateUserSchema.safeParse(body);
+      if (!parsed.success) {
+        throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
       }
-      dbUser = row;
 
-      // Verify password without creating a session
+      const updates: Partial<typeof user.$inferInsert> = {};
+
+      if (parsed.data.username !== undefined) {
+        const [existing] = await db
+          .select({ id: user.id })
+          .from(user)
+          .where(
+            and(
+              sql`lower(${user.username}) = lower(${parsed.data.username})`,
+              ne(user.id, sessionUser.id),
+            ),
+          )
+          .limit(1);
+
+        if (existing) {
+          throw new ConflictError("USERNAME_TAKEN", "Username is already taken");
+        }
+
+        updates.username = parsed.data.username;
+        updates.displayUsername = parsed.data.username;
+      }
+
+      if (parsed.data.displayName !== undefined) {
+        updates.displayName = parsed.data.displayName;
+      }
+
+      if (parsed.data.status !== undefined) {
+        updates.status = parsed.data.status;
+      }
+
+      if (Object.keys(updates).length === 0) {
+        throw new ValidationError("No fields to update");
+      }
+
+      let updated: typeof user.$inferSelect;
       try {
-        const result = await auth.api.verifyPassword({
-          body: { password: parsed.data.password },
+        const [row] = await db
+          .update(user)
+          .set(updates)
+          .where(eq(user.id, sessionUser.id))
+          .returning();
+
+        if (!row) {
+          throw new NotFoundError("User");
+        }
+        updated = row;
+      } catch (err) {
+        // Handle unique constraint race condition (another user took the username between check and update)
+        if (err instanceof DatabaseError && err.code === "23505") {
+          throw new ConflictError("USERNAME_TAKEN", "Username is already taken");
+        }
+        throw err;
+      }
+
+      return serializeUser(updated);
+    })
+    .post("/@me/password", async ({ body, request }) => {
+      const ip = getClientIp(request);
+      if (!(await checkIpRateLimit(ip, 5, 900_000, RL.PASSWORD))) {
+        throw new RateLimitError("Too many requests, try again later");
+      }
+
+      const parsed = changePasswordSchema.safeParse(body);
+      if (!parsed.success) {
+        throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
+      }
+
+      try {
+        await auth.api.changePassword({
+          body: {
+            currentPassword: parsed.data.currentPassword,
+            newPassword: parsed.data.newPassword,
+          },
           headers: request.headers,
         });
-        if (!result.status) {
-          throw new UnauthorizedError("Incorrect password");
-        }
       } catch (err) {
-        if (err instanceof UnauthorizedError) throw err;
         const code = err instanceof Error && "code" in err ? (err as { code: string }).code : null;
         if (code === "INVALID_PASSWORD") {
-          throw new UnauthorizedError("Incorrect password");
+          throw new UnauthorizedError("Current password is incorrect");
+        }
+        if (code === "PASSWORD_TOO_SHORT" || code === "PASSWORD_TOO_LONG") {
+          throw new ValidationError("New password does not meet requirements");
         }
         if (code === "CREDENTIAL_ACCOUNT_NOT_FOUND") {
           throw new ValidationError("No password set — account uses OAuth only");
         }
-        throw new UnauthorizedError("Incorrect password");
+        throw err;
       }
 
-      // Check server ownership — servers have onDelete: "restrict"
-      const [ownedServer] = await db
-        .select({ id: servers.id })
-        .from(servers)
-        .where(eq(servers.ownerId, sessionUser.id))
-        .limit(1);
+      return { success: true };
+    })
+    .delete("/@me", async ({ user: sessionUser, body, request }) => {
+      const ip = getClientIp(request);
+      if (!(await checkIpRateLimit(ip, 3, 900_000, RL.ACCOUNT_DELETE))) {
+        throw new RateLimitError("Too many requests, try again later");
+      }
 
-      if (ownedServer) {
+      // If there's already a pending deletion, reject
+      if (pendingDeletions.has(sessionUser.id)) {
+        throw new ConflictError("DELETION_PENDING", "Account deletion is already in progress");
+      }
+
+      const parsed = deleteAccountSchema.safeParse(body);
+      if (!parsed.success) {
+        throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
+      }
+
+      // Reserve the slot atomically before any awaits to prevent races
+      pendingDeletions.set(sessionUser.id, { timer: null, avatarUrl: null, status: "reserved" });
+
+      let dbUser: { avatarUrl: string | null };
+      try {
+        const [row] = await db
+          .select({ avatarUrl: user.avatarUrl })
+          .from(user)
+          .where(eq(user.id, sessionUser.id))
+          .limit(1);
+
+        if (!row) {
+          throw new NotFoundError("User");
+        }
+        dbUser = row;
+
+        // Verify password without creating a session
+        try {
+          const result = await auth.api.verifyPassword({
+            body: { password: parsed.data.password },
+            headers: request.headers,
+          });
+          if (!result.status) {
+            throw new UnauthorizedError("Incorrect password");
+          }
+        } catch (err) {
+          if (err instanceof UnauthorizedError) throw err;
+          const code =
+            err instanceof Error && "code" in err ? (err as { code: string }).code : null;
+          if (code === "INVALID_PASSWORD") {
+            throw new UnauthorizedError("Incorrect password");
+          }
+          if (code === "CREDENTIAL_ACCOUNT_NOT_FOUND") {
+            throw new ValidationError("No password set — account uses OAuth only");
+          }
+          throw new UnauthorizedError("Incorrect password");
+        }
+
+        // Check server ownership — servers have onDelete: "restrict"
+        const [ownedServer] = await db
+          .select({ id: servers.id })
+          .from(servers)
+          .where(eq(servers.ownerId, sessionUser.id))
+          .limit(1);
+
+        if (ownedServer) {
+          throw new ConflictError(
+            "SERVER_OWNER",
+            "You must transfer or delete all servers you own before deleting your account",
+          );
+        }
+      } catch (err) {
+        // Validation failed — release the reservation
+        pendingDeletions.delete(sessionUser.id);
+        throw err;
+      }
+
+      // Schedule deletion with 10-second countdown
+      const expiresAt = new Date(Date.now() + 10_000);
+      const timer = setTimeout(() => executeDeletion(sessionUser.id, dbUser.avatarUrl), 10_000);
+      pendingDeletions.set(sessionUser.id, {
+        timer,
+        avatarUrl: dbUser.avatarUrl,
+        status: "pending",
+      });
+
+      // Notify the user via WebSocket
+      sendToUser(sessionUser.id, {
+        op: Opcode.ACCOUNT_DELETION_PENDING,
+        d: { expiresAt: expiresAt.toISOString() },
+      });
+
+      return { success: true, pending: true, expiresAt: expiresAt.toISOString() };
+    })
+    .post("/@me/cancel-deletion", async ({ user: sessionUser, request }) => {
+      const ip = getClientIp(request);
+      if (!(await checkIpRateLimit(ip, 5, 900_000, RL.ACCOUNT_DELETE_CANCEL))) {
+        throw new RateLimitError("Too many requests, try again later");
+      }
+
+      const pending = pendingDeletions.get(sessionUser.id);
+      if (!pending) {
+        throw new ConflictError("NO_PENDING_DELETION", "No pending deletion to cancel");
+      }
+      if (pending.status === "executing") {
         throw new ConflictError(
-          "SERVER_OWNER",
-          "You must transfer or delete all servers you own before deleting your account",
+          "DELETION_EXECUTING",
+          "Deletion is already in progress and cannot be cancelled",
         );
       }
-    } catch (err) {
-      // Validation failed — release the reservation
+
+      if (pending.timer !== null) clearTimeout(pending.timer);
       pendingDeletions.delete(sessionUser.id);
-      throw err;
-    }
 
-    // Schedule deletion with 10-second countdown
-    const expiresAt = new Date(Date.now() + 10_000);
-    const timer = setTimeout(() => executeDeletion(sessionUser.id, dbUser.avatarUrl), 10_000);
-    pendingDeletions.set(sessionUser.id, { timer, avatarUrl: dbUser.avatarUrl, status: "pending" });
+      sendToUser(sessionUser.id, {
+        op: Opcode.ACCOUNT_DELETION_CANCELLED,
+        d: null,
+      });
 
-    // Notify the user via WebSocket
-    sendToUser(sessionUser.id, {
-      op: Opcode.ACCOUNT_DELETION_PENDING,
-      d: { expiresAt: expiresAt.toISOString() },
-    });
-
-    return { success: true, pending: true, expiresAt: expiresAt.toISOString() };
-  })
-  .post("/@me/cancel-deletion", async ({ user: sessionUser, request }) => {
-    const ip = getClientIp(request);
-    if (!(await checkIpRateLimit(ip, 5, 900_000, RL.ACCOUNT_DELETE_CANCEL))) {
-      throw new RateLimitError("Too many requests, try again later");
-    }
-
-    const pending = pendingDeletions.get(sessionUser.id);
-    if (!pending) {
-      throw new ConflictError("NO_PENDING_DELETION", "No pending deletion to cancel");
-    }
-    if (pending.status === "executing") {
-      throw new ConflictError("DELETION_EXECUTING", "Deletion is already in progress and cannot be cancelled");
-    }
-
-    if (pending.timer !== null) clearTimeout(pending.timer);
-    pendingDeletions.delete(sessionUser.id);
-
-    sendToUser(sessionUser.id, {
-      op: Opcode.ACCOUNT_DELETION_CANCELLED,
-      d: null,
-    });
-
-    return { success: true };
-  }));
+      return { success: true };
+    }),
+);

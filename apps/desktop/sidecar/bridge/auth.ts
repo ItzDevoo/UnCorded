@@ -37,9 +37,7 @@ export function revokeAllForPlugin(pluginId: string): void {
 export function validateToken(bearerHeader: string | undefined): PluginContext | null {
   if (!bearerHeader) return null;
 
-  const token = bearerHeader.startsWith("Bearer ")
-    ? bearerHeader.slice(7)
-    : bearerHeader;
+  const token = bearerHeader.startsWith("Bearer ") ? bearerHeader.slice(7) : bearerHeader;
 
   if (!token) return null;
 

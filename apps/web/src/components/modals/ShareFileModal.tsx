@@ -76,18 +76,14 @@ const ShareFileModal = (props: Props) => {
 
   const friends = createMemo(() => {
     // P2P requires both peers online — only show online/idle friends
-    return allAcceptedFriends().filter(
-      (f) => f.status === "online" || f.status === "idle",
-    );
+    return allAcceptedFriends().filter((f) => f.status === "online" || f.status === "idle");
   });
 
   const filteredFriends = createMemo(() => {
     const q = searchQuery().toLowerCase().trim();
     if (!q) return friends();
     return friends().filter(
-      (f) =>
-        (f.username?.toLowerCase().includes(q)) ||
-        (f.displayName?.toLowerCase().includes(q)),
+      (f) => f.username?.toLowerCase().includes(q) || f.displayName?.toLowerCase().includes(q),
     );
   });
 
@@ -193,7 +189,14 @@ const ShareFileModal = (props: Props) => {
               title="Close"
               aria-label="Close"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -218,8 +221,19 @@ const ShareFileModal = (props: Props) => {
                   when={selectedFile()}
                   fallback={
                     <>
-                      <svg xmlns="http://www.w3.org/2000/svg" class="mb-4 h-12 w-12 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="mb-4 h-12 w-12 text-muted-foreground"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                        />
                       </svg>
                       <p class="mb-2 text-sm text-foreground">Drag and drop a file here</p>
                       <p class="mb-4 text-xs text-muted-foreground">or click to browse</p>
@@ -240,12 +254,7 @@ const ShareFileModal = (props: Props) => {
                   )}
                 </Show>
 
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  class="hidden"
-                  onChange={handleFileInput}
-                />
+                <input ref={fileInputRef} type="file" class="hidden" onChange={handleFileInput} />
 
                 <Show when={!selectedFile()}>
                   <Button variant="secondary" size="sm" onClick={() => fileInputRef.click()}>
@@ -264,10 +273,7 @@ const ShareFileModal = (props: Props) => {
               </p>
 
               <div class="mt-6 flex justify-end">
-                <Button
-                  onClick={() => setStep("friends")}
-                  disabled={!selectedFile()}
-                >
+                <Button onClick={() => setStep("friends")} disabled={!selectedFile()}>
                   Next
                 </Button>
               </div>
@@ -283,8 +289,12 @@ const ShareFileModal = (props: Props) => {
                   onInput={(e) => setSearchQuery(e.currentTarget.value)}
                   class="flex-1"
                 />
-                <Button variant="ghost" size="sm" onClick={selectAll}>Select All</Button>
-                <Button variant="ghost" size="sm" onClick={deselectAll}>Clear</Button>
+                <Button variant="ghost" size="sm" onClick={selectAll}>
+                  Select All
+                </Button>
+                <Button variant="ghost" size="sm" onClick={deselectAll}>
+                  Clear
+                </Button>
               </div>
 
               <div class="mb-4 text-sm text-muted-foreground">
@@ -320,21 +330,21 @@ const ShareFileModal = (props: Props) => {
                             when={friend.avatarUrl}
                             fallback={
                               <div class="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
-                                {(friend.displayName ?? friend.username ?? "?").charAt(0).toUpperCase()}
+                                {(friend.displayName ?? friend.username ?? "?")
+                                  .charAt(0)
+                                  .toUpperCase()}
                               </div>
                             }
                           >
                             {(url) => (
-                              <img
-                                src={url()}
-                                alt=""
-                                class="h-8 w-8 rounded-full object-cover"
-                              />
+                              <img src={url()} alt="" class="h-8 w-8 rounded-full object-cover" />
                             )}
                           </Show>
-                          <div class={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card ${
-                            friend.status === "online" ? "bg-success" : "bg-warning"
-                          }`} />
+                          <div
+                            class={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card ${
+                              friend.status === "online" ? "bg-success" : "bg-warning"
+                            }`}
+                          />
                         </div>
                         <div class="min-w-0 flex-1">
                           <p class="truncate text-sm font-medium text-foreground">
@@ -344,14 +354,25 @@ const ShareFileModal = (props: Props) => {
                             <p class="truncate text-xs text-muted-foreground">{friend.username}</p>
                           </Show>
                         </div>
-                        <div class={`flex h-5 w-5 items-center justify-center rounded border transition-colors ${
-                          selectedFriends().has(friend.userId)
-                            ? "border-primary bg-primary"
-                            : "border-border"
-                        }`}>
+                        <div
+                          class={`flex h-5 w-5 items-center justify-center rounded border transition-colors ${
+                            selectedFriends().has(friend.userId)
+                              ? "border-primary bg-primary"
+                              : "border-border"
+                          }`}
+                        >
                           <Show when={selectedFriends().has(friend.userId)}>
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-primary-foreground" viewBox="0 0 20 20" fill="currentColor">
-                              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              class="h-3.5 w-3.5 text-primary-foreground"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fill-rule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clip-rule="evenodd"
+                              />
                             </svg>
                           </Show>
                         </div>
@@ -385,11 +406,7 @@ const ShareFileModal = (props: Props) => {
             <Show when={step() === "sharing" && activeSenderSessionId()}>
               {(sessionId) => {
                 const session = () => getSession(sessionId());
-                return (
-                  <Show when={session()}>
-                    {(s) => <ShareVisualization session={s()} />}
-                  </Show>
-                );
+                return <Show when={session()}>{(s) => <ShareVisualization session={s()} />}</Show>;
               }}
             </Show>
           </div>
@@ -399,10 +416,14 @@ const ShareFileModal = (props: Props) => {
         <Show when={showCloseConfirm()}>
           <div class="fixed inset-0 z-[60] flex items-center justify-center">
             <div class="fixed inset-0 bg-black/50" onClick={() => setShowCloseConfirm(false)} />
-            <div class="relative z-10 mx-4 w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg" onClick={(e) => e.stopPropagation()}>
+            <div
+              class="relative z-10 mx-4 w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg"
+              onClick={(e) => e.stopPropagation()}
+            >
               <h3 class="mb-2 text-lg font-semibold text-foreground">End Share Session?</h3>
               <p class="mb-4 text-sm text-muted-foreground">
-                Closing will end the share session for everyone. Recipients who haven't finished downloading will lose access.
+                Closing will end the share session for everyone. Recipients who haven't finished
+                downloading will lose access.
               </p>
               <div class="flex justify-end gap-3">
                 <Button variant="secondary" onClick={() => setShowCloseConfirm(false)}>

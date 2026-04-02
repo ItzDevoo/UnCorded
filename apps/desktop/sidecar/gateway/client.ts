@@ -145,7 +145,8 @@ export class GatewayClient {
       return;
     }
     if (this.isDestroyed) return;
-    if (this.ws?.readyState === WebSocket.OPEN || this.ws?.readyState === WebSocket.CONNECTING) return;
+    if (this.ws?.readyState === WebSocket.OPEN || this.ws?.readyState === WebSocket.CONNECTING)
+      return;
 
     try {
       this.ws = new WebSocket(this.gatewayUrl);
@@ -196,8 +197,12 @@ export class GatewayClient {
 
       case Op.READY: {
         this.readyData = frame.d as ReadyData;
-        console.error(`[gateway] Connected as ${this.readyData.user.username} (${this.readyData.user.id})`);
-        console.error(`[gateway] ${this.readyData.servers.length} servers, ${this.readyData.dmChannels.length} DM channels`);
+        console.error(
+          `[gateway] Connected as ${this.readyData.user.username} (${this.readyData.user.id})`,
+        );
+        console.error(
+          `[gateway] ${this.readyData.servers.length} servers, ${this.readyData.dmChannels.length} DM channels`,
+        );
         this.emit("ready", this.readyData);
         break;
       }
@@ -262,7 +267,9 @@ export class GatewayClient {
     );
     this.reconnectAttempts++;
 
-    console.error(`[gateway] Reconnecting in ${delay / 1000}s (attempt ${this.reconnectAttempts})...`);
+    console.error(
+      `[gateway] Reconnecting in ${delay / 1000}s (attempt ${this.reconnectAttempts})...`,
+    );
 
     setTimeout(() => {
       if (!this.isDestroyed) {

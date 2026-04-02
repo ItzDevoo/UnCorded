@@ -205,10 +205,7 @@ const Sidebar = (props: SidebarComponentProps) => {
             local.class,
           )}
         >
-          <div
-            data-slot="sidebar-inner"
-            class="flex size-full flex-col bg-sidebar"
-          >
+          <div data-slot="sidebar-inner" class="flex size-full flex-col bg-sidebar">
             {local.children}
           </div>
         </div>
@@ -218,15 +215,9 @@ const Sidebar = (props: SidebarComponentProps) => {
 
   return (
     <>
-      <Show when={collapsible() === "none"}>
-        {renderNone()}
-      </Show>
-      <Show when={collapsible() !== "none" && isMobile()}>
-        {renderMobile()}
-      </Show>
-      <Show when={collapsible() !== "none" && !isMobile()}>
-        {renderDesktop()}
-      </Show>
+      <Show when={collapsible() === "none"}>{renderNone()}</Show>
+      <Show when={collapsible() !== "none" && isMobile()}>{renderMobile()}</Show>
+      <Show when={collapsible() !== "none" && !isMobile()}>{renderDesktop()}</Show>
     </>
   );
 };
@@ -286,11 +277,7 @@ const SidebarTrigger = (props: SidebarTriggerProps) => {
             stroke="currentColor"
             stroke-width="2"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M3 6h8m-8 6h16M3 18h8"
-            />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 6h8m-8 6h16M3 18h8" />
           </svg>
         }
       >
@@ -384,7 +371,15 @@ const SidebarGroup = (props: SidebarGroupProps) => {
   const sidebarExpanded = () => state() === "expanded";
 
   return (
-    <div data-slot="sidebar-group" class={cn("relative flex w-full min-w-0 flex-col p-2", !sidebarExpanded() && "items-center", local.class)} {...rest}>
+    <div
+      data-slot="sidebar-group"
+      class={cn(
+        "relative flex w-full min-w-0 flex-col p-2",
+        !sidebarExpanded() && "items-center",
+        local.class,
+      )}
+      {...rest}
+    >
       <Show when={local.label && sidebarExpanded()}>
         <div class="flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-semibold uppercase text-muted-foreground">
           <button
@@ -427,7 +422,11 @@ const SidebarMenu = (props: SidebarMenuProps) => {
   const { state } = useSidebar();
   const collapsed = () => state() === "collapsed";
   return (
-    <ul data-slot="sidebar-menu" class={cn("flex flex-col gap-0.5", collapsed() ? "items-center px-0" : "px-2", local.class)} {...rest}>
+    <ul
+      data-slot="sidebar-menu"
+      class={cn("flex flex-col gap-0.5", collapsed() ? "items-center px-0" : "px-2", local.class)}
+      {...rest}
+    >
       {local.children}
     </ul>
   );

@@ -21,11 +21,7 @@ const TIER_BENEFITS: Record<string, string[]> = {
     "TURN relay for better P2P connections",
     "Desktop app access",
   ],
-  server_owner: [
-    "Everything in Supporter",
-    "Create and manage servers",
-    "Traffic-based scaling",
-  ],
+  server_owner: ["Everything in Supporter", "Create and manage servers", "Traffic-based scaling"],
 };
 
 const GiftNotification = () => {
@@ -40,9 +36,7 @@ const GiftNotification = () => {
     >
       <DialogContent onClose={dismissGift}>
         <DialogHeader>
-          <DialogTitle class="text-center text-2xl">
-            You've received a gift!
-          </DialogTitle>
+          <DialogTitle class="text-center text-2xl">You've received a gift!</DialogTitle>
           <DialogDescription class="text-center">
             You've been upgraded to{" "}
             <span class="font-semibold text-primary">
@@ -54,9 +48,7 @@ const GiftNotification = () => {
 
         <div class="py-4">
           <div class="rounded-xl border border-primary/20 bg-primary/5 p-4">
-            <p class="mb-2 text-sm font-medium text-primary">
-              What you get:
-            </p>
+            <p class="mb-2 text-sm font-medium text-primary">What you get:</p>
             <Show when={TIER_BENEFITS[state().tier]}>
               <ul class="space-y-1.5">
                 {TIER_BENEFITS[state().tier]!.map((benefit) => (
@@ -75,7 +67,11 @@ const GiftNotification = () => {
               const d = new Date(state().expiresAt);
               return Number.isNaN(d.getTime())
                 ? "N/A"
-                : d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+                : d.toLocaleDateString(undefined, {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  });
             })()}
           </p>
         </div>

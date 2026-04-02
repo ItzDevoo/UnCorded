@@ -244,7 +244,10 @@ const MessageBubble = (props: MessageBubbleProps) => {
     "rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors";
 
   const ToolbarButtons = (tbProps: { onClose?: () => void }) => {
-    const wrap = (fn: () => void) => () => { fn(); tbProps.onClose?.(); };
+    const wrap = (fn: () => void) => () => {
+      fn();
+      tbProps.onClose?.();
+    };
     return (
       <>
         <button
@@ -332,7 +335,13 @@ const MessageBubble = (props: MessageBubbleProps) => {
           aria-label="Message actions"
           onClick={() => setMobileMenuOpen((prev) => !prev)}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
             <circle cx="5" cy="12" r="2" />
             <circle cx="12" cy="12" r="2" />
             <circle cx="19" cy="12" r="2" />

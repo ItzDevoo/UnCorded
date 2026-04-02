@@ -3,8 +3,6 @@
 Running log of mistakes made and decisions taken during the build.
 Updated by the coding agent at the end of every session.
 
-
-
 ## Format
 
 **[Week X Day Y]** — What went wrong or what was decided and why.

@@ -115,90 +115,95 @@ const Feedback = () => {
           </Button>
         </div>
         <div class="ml-auto">
-          <Button size="sm" onClick={() => setDialogOpen(true)}>Submit</Button>
+          <Button size="sm" onClick={() => setDialogOpen(true)}>
+            Submit
+          </Button>
         </div>
       </div>
 
       <div class="mx-auto max-w-3xl flex-1 overflow-y-auto p-6">
-
-      <Show
-        when={!loading()}
-        fallback={<p class="py-8 text-center text-muted-foreground">Loading...</p>}
-      >
         <Show
-          when={items().length > 0}
-          fallback={
-            <p class="py-8 text-center text-muted-foreground">
-              No feature requests yet. Be the first!
-            </p>
-          }
+          when={!loading()}
+          fallback={<p class="py-8 text-center text-muted-foreground">Loading...</p>}
         >
-          <div class="space-y-3">
-            <For each={items()}>
-              {(item) => (
-                <Card>
-                  <CardHeader class="pb-2">
-                    <div class="flex items-start gap-3">
-                      <button
-                        class={`mt-0.5 flex flex-col items-center rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                          item.voted
-                            ? "border-primary bg-primary/10 text-primary"
-                            : "border-border text-muted-foreground hover:border-primary/50 hover:text-primary"
-                        }`}
-                        aria-label={item.voted ? `Remove upvote (${item.voteCount} votes)` : `Upvote (${item.voteCount} votes)`}
-                        aria-pressed={item.voted}
-                        onClick={() => toggleVote(item.id)}
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill={item.voted ? "currentColor" : "none"}
-                          stroke="currentColor"
-                          stroke-width="2"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
+          <Show
+            when={items().length > 0}
+            fallback={
+              <p class="py-8 text-center text-muted-foreground">
+                No feature requests yet. Be the first!
+              </p>
+            }
+          >
+            <div class="space-y-3">
+              <For each={items()}>
+                {(item) => (
+                  <Card>
+                    <CardHeader class="pb-2">
+                      <div class="flex items-start gap-3">
+                        <button
+                          class={`mt-0.5 flex flex-col items-center rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                            item.voted
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border text-muted-foreground hover:border-primary/50 hover:text-primary"
+                          }`}
+                          aria-label={
+                            item.voted
+                              ? `Remove upvote (${item.voteCount} votes)`
+                              : `Upvote (${item.voteCount} votes)`
+                          }
+                          aria-pressed={item.voted}
+                          onClick={() => toggleVote(item.id)}
                         >
-                          <path d="m18 15-6-6-6 6" />
-                        </svg>
-                        <span>{item.voteCount}</span>
-                      </button>
-                      <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2">
-                          <CardTitle class="text-base">{item.title}</CardTitle>
-                          <Badge variant={statusBadgeVariant(item.status)}>
-                            {item.status.replace("_", " ")}
-                          </Badge>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill={item.voted ? "currentColor" : "none"}
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <path d="m18 15-6-6-6 6" />
+                          </svg>
+                          <span>{item.voteCount}</span>
+                        </button>
+                        <div class="flex-1 min-w-0">
+                          <div class="flex items-center gap-2">
+                            <CardTitle class="text-base">{item.title}</CardTitle>
+                            <Badge variant={statusBadgeVariant(item.status)}>
+                              {item.status.replace("_", " ")}
+                            </Badge>
+                          </div>
+                          <p class="mt-0.5 text-xs text-muted-foreground">
+                            by {item.authorUsername ?? "Anonymous"} &middot;{" "}
+                            {new Date(item.createdAt).toLocaleDateString()}
+                          </p>
                         </div>
-                        <p class="mt-0.5 text-xs text-muted-foreground">
-                          by {item.authorUsername ?? "Anonymous"} &middot;{" "}
-                          {new Date(item.createdAt).toLocaleDateString()}
-                        </p>
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p class="text-sm text-foreground/80">{item.description}</p>
-                    <Show when={item.adminNote}>
-                      <div class="mt-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
-                        <p class="text-xs font-medium text-primary">Admin Response</p>
-                        <p class="mt-1 text-sm text-foreground/80">{item.adminNote}</p>
-                      </div>
-                    </Show>
-                  </CardContent>
-                </Card>
-              )}
-            </For>
-          </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p class="text-sm text-foreground/80">{item.description}</p>
+                      <Show when={item.adminNote}>
+                        <div class="mt-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
+                          <p class="text-xs font-medium text-primary">Admin Response</p>
+                          <p class="mt-1 text-sm text-foreground/80">{item.adminNote}</p>
+                        </div>
+                      </Show>
+                    </CardContent>
+                  </Card>
+                )}
+              </For>
+            </div>
+          </Show>
         </Show>
-      </Show>
 
-      <FeedbackDialog
-        open={dialogOpen()}
-        onClose={() => setDialogOpen(false)}
-        onSubmitted={fetchFeedback}
-      />
+        <FeedbackDialog
+          open={dialogOpen()}
+          onClose={() => setDialogOpen(false)}
+          onSubmitted={fetchFeedback}
+        />
       </div>
     </div>
   );

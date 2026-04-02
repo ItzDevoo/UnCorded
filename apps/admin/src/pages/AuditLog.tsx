@@ -5,19 +5,20 @@ import { showToast } from "../components/ui/toast.js";
 import { Badge } from "../components/ui/badge.js";
 import { DataTable, type Column } from "../components/DataTable.js";
 
-const ACTION_VARIANTS: Record<string, "default" | "destructive" | "warning" | "info" | "success"> = {
-  ban_user: "destructive",
-  unban_user: "success",
-  delete_user: "destructive",
-  gift_tier: "info",
-  revoke_gift: "warning",
-  resolve_report: "success",
-  delete_report: "destructive",
-  update_feedback: "info",
-  delete_feedback: "destructive",
-  add_admin: "info",
-  remove_admin: "warning",
-};
+const ACTION_VARIANTS: Record<string, "default" | "destructive" | "warning" | "info" | "success"> =
+  {
+    ban_user: "destructive",
+    unban_user: "success",
+    delete_user: "destructive",
+    gift_tier: "info",
+    revoke_gift: "warning",
+    resolve_report: "success",
+    delete_report: "destructive",
+    update_feedback: "info",
+    delete_feedback: "destructive",
+    add_admin: "info",
+    remove_admin: "warning",
+  };
 
 function formatDetails(details: string | null): string {
   if (!details) return "";
@@ -60,9 +61,7 @@ const AuditLog = () => {
   const columns: Column<AuditEntry>[] = [
     {
       header: "Admin",
-      accessor: (row) => (
-        <span class="text-sm font-medium">{row.adminUsername ?? "Unknown"}</span>
-      ),
+      accessor: (row) => <span class="text-sm font-medium">{row.adminUsername ?? "Unknown"}</span>,
     },
     {
       header: "Action",
@@ -74,11 +73,7 @@ const AuditLog = () => {
     },
     {
       header: "Target",
-      accessor: (row) => (
-        <span class="text-xs text-muted-foreground">
-          {row.targetType}
-        </span>
-      ),
+      accessor: (row) => <span class="text-xs text-muted-foreground">{row.targetType}</span>,
     },
     {
       header: "When",

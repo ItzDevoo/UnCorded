@@ -101,7 +101,9 @@ export async function runUpdateCheck(): Promise<void> {
       }
     }
     if (majorUpdates.length > 0) {
-      console.error(`[update-checker] Major updates available: ${majorUpdates.map((u) => `${u.pluginId}@${u.availableVersion}`).join(", ")}`);
+      console.error(
+        `[update-checker] Major updates available: ${majorUpdates.map((u) => `${u.pluginId}@${u.availableVersion}`).join(", ")}`,
+      );
     }
   } catch (err) {
     console.error("[update-checker] Update check failed:", err);

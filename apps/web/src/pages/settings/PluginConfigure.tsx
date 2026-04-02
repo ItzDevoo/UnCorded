@@ -176,11 +176,7 @@ const PluginConfigure = () => {
                       <h3 class="mb-4 text-sm font-semibold text-foreground">Setup Steps</h3>
                       <div class="space-y-5">
                         {/* Step 1: Create a Bot */}
-                        <StepItem
-                          number={1}
-                          title="Create a Bot"
-                          completed={s().hasBotAccount}
-                        >
+                        <StepItem number={1} title="Create a Bot" completed={s().hasBotAccount}>
                           <Show
                             when={s().hasBotAccount}
                             fallback={
@@ -197,11 +193,11 @@ const PluginConfigure = () => {
                             }
                           >
                             <div class="mt-1 text-sm text-muted-foreground">
-                              <p>Bot: <span class="font-mono text-foreground">@{s().botUsername}</span></p>
-                              <A
-                                href="/settings/bots"
-                                class="text-xs text-primary hover:underline"
-                              >
+                              <p>
+                                Bot:{" "}
+                                <span class="font-mono text-foreground">@{s().botUsername}</span>
+                              </p>
+                              <A href="/settings/bots" class="text-xs text-primary hover:underline">
                                 Manage in Bot Settings
                               </A>
                             </div>
@@ -210,9 +206,7 @@ const PluginConfigure = () => {
 
                         {/* Step 2: Install the Plugin */}
                         <StepItem number={2} title="Install the Plugin" completed={false}>
-                          <p class="mt-1 text-sm text-muted-foreground">
-                            Run inside Claude Code:
-                          </p>
+                          <p class="mt-1 text-sm text-muted-foreground">Run inside Claude Code:</p>
                           <CodeBlock text="/plugin install uncorded@uncorded-plugins" />
                         </StepItem>
 
@@ -224,8 +218,9 @@ const PluginConfigure = () => {
                           <CodeBlock text="/uncorded:configure uncrd_YOUR_BOT_TOKEN" />
                           <Show when={s().botTokenPrefix}>
                             <p class="mt-1.5 text-xs text-muted-foreground">
-                              Your token starts with <span class="font-mono text-foreground">{s().botTokenPrefix}...</span>
-                              {" "}&mdash;{" "}
+                              Your token starts with{" "}
+                              <span class="font-mono text-foreground">{s().botTokenPrefix}...</span>{" "}
+                              &mdash;{" "}
                               <A href="/settings/bots" class="text-primary hover:underline">
                                 regenerate it in Bot Settings
                               </A>{" "}
@@ -265,11 +260,7 @@ const PluginConfigure = () => {
                         </StepItem>
 
                         {/* Step 6: Connection Status */}
-                        <StepItem
-                          number={6}
-                          title="Connection Status"
-                          completed={s().botOnline}
-                        >
+                        <StepItem number={6} title="Connection Status" completed={s().botOnline}>
                           <div class="mt-1 flex items-center gap-2 text-sm">
                             <Show
                               when={s().botOnline}
@@ -296,11 +287,7 @@ const PluginConfigure = () => {
                 {/* Uninstall — only show when installed */}
                 <Show when={plugin().installed}>
                   <div class="border-t border-border pt-4">
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => setShowUninstall(true)}
-                    >
+                    <Button variant="destructive" size="sm" onClick={() => setShowUninstall(true)}>
                       Uninstall Plugin
                     </Button>
                   </div>
@@ -311,7 +298,8 @@ const PluginConfigure = () => {
                       <DialogHeader>
                         <DialogTitle>Uninstall Plugin</DialogTitle>
                         <DialogDescription>
-                          Are you sure you want to uninstall <strong>{plugin().name}</strong>? You can reinstall it later.
+                          Are you sure you want to uninstall <strong>{plugin().name}</strong>? You
+                          can reinstall it later.
                         </DialogDescription>
                       </DialogHeader>
                       <DialogFooter>
@@ -340,11 +328,13 @@ const PluginConfigure = () => {
 
 // ── Step Item ────────────────────────────────────────────────────────────────
 
-function StepItem(props: ParentProps<{
-  number: number;
-  title: string;
-  completed: boolean;
-}>) {
+function StepItem(
+  props: ParentProps<{
+    number: number;
+    title: string;
+    completed: boolean;
+  }>,
+) {
   return (
     <div class="flex gap-3">
       {/* Step indicator */}
@@ -356,10 +346,7 @@ function StepItem(props: ParentProps<{
               : "border border-border bg-muted text-muted-foreground"
           }`}
         >
-          <Show
-            when={props.completed}
-            fallback={<span>{props.number}</span>}
-          >
+          <Show when={props.completed} fallback={<span>{props.number}</span>}>
             <svg
               class="h-3.5 w-3.5"
               xmlns="http://www.w3.org/2000/svg"
@@ -376,7 +363,9 @@ function StepItem(props: ParentProps<{
 
       {/* Step content */}
       <div class="min-w-0 flex-1 pb-1">
-        <p class={`text-sm font-medium ${props.completed ? "text-foreground" : "text-muted-foreground"}`}>
+        <p
+          class={`text-sm font-medium ${props.completed ? "text-foreground" : "text-muted-foreground"}`}
+        >
           Step {props.number}: {props.title}
         </p>
         {props.children}

@@ -37,16 +37,13 @@ await build({
       name: "react-singleton",
       setup(buildCtx) {
         // Force every import of react/react-dom to the top-level install
-        buildCtx.onResolve(
-          { filter: /^react(-dom)?(\/.*)?$/ },
-          (args) => {
-            const resolved = reactResolves[args.path];
-            if (resolved) {
-              return { path: resolved };
-            }
-            return null;
+        buildCtx.onResolve({ filter: /^react(-dom)?(\/.*)?$/ }, (args) => {
+          const resolved = reactResolves[args.path];
+          if (resolved) {
+            return { path: resolved };
           }
-        );
+          return null;
+        });
       },
     },
   ],

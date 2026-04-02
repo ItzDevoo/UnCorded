@@ -17,7 +17,11 @@ const { mockSpawn, mockEnsureCloudflared, mockProcess } = vi.hoisted(() => {
   const hoistedSpawn = vi.fn().mockReturnValue(hoistedProcess);
   const hoistedEnsureCloudflared = vi.fn().mockResolvedValue("/usr/local/bin/cloudflared");
 
-  return { mockSpawn: hoistedSpawn, mockEnsureCloudflared: hoistedEnsureCloudflared, mockProcess: hoistedProcess };
+  return {
+    mockSpawn: hoistedSpawn,
+    mockEnsureCloudflared: hoistedEnsureCloudflared,
+    mockProcess: hoistedProcess,
+  };
 });
 
 vi.mock("node:child_process", () => ({ spawn: mockSpawn }));
@@ -30,9 +34,7 @@ import { TunnelManager } from "../manager";
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function getStderrCallback(proc: typeof mockProcess): (data: Buffer) => void {
-  const entry = proc.stderr.on.mock.calls.find(
-    (c: unknown[]) => c[0] === "data",
-  );
+  const entry = proc.stderr.on.mock.calls.find((c: unknown[]) => c[0] === "data");
   expect(entry).toBeDefined();
   expect(typeof entry![1]).toBe("function");
   return entry![1] as (data: Buffer) => void;
@@ -58,9 +60,7 @@ describe("TunnelManager", () => {
       const createPromise = manager.create("test-plugin", 3000);
 
       const stderrCallback = getStderrCallback(mockProcess);
-      stderrCallback(Buffer.from(
-        "2026-01-01 INF | https://random-words.trycloudflare.com\n",
-      ));
+      stderrCallback(Buffer.from("2026-01-01 INF | https://random-words.trycloudflare.com\n"));
 
       const url = await createPromise;
       expect(url).toBe("https://random-words.trycloudflare.com");
@@ -100,9 +100,7 @@ describe("TunnelManager", () => {
       const createPromise = manager.create("test-plugin", 3000);
 
       // Simulate process exit before URL is found
-      const exitCallback = mockProcess.on.mock.calls.find(
-        (c: unknown[]) => c[0] === "exit",
-      )?.[1];
+      const exitCallback = mockProcess.on.mock.calls.find((c: unknown[]) => c[0] === "exit")?.[1];
       expect(exitCallback).toBeDefined();
       exitCallback(1);
 
@@ -114,9 +112,7 @@ describe("TunnelManager", () => {
       const createPromise = manager.create("test-plugin", 3000);
 
       // Simulate spawn error
-      const errorCallback = mockProcess.on.mock.calls.find(
-        (c: unknown[]) => c[0] === "error",
-      )?.[1];
+      const errorCallback = mockProcess.on.mock.calls.find((c: unknown[]) => c[0] === "error")?.[1];
       expect(errorCallback).toBeDefined();
       errorCallback(new Error("ENOENT: cloudflared not found"));
 

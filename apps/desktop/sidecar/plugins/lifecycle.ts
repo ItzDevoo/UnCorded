@@ -11,7 +11,14 @@ import type { PluginErrorPayload } from "@uncorded/shared";
 import type { TunnelManager } from "../tunnel/manager";
 import { classifyLifecycleError } from "./errors";
 
-export type PluginState = "installed" | "starting" | "running" | "stopping" | "stopped" | "crashed" | "error";
+export type PluginState =
+  | "installed"
+  | "starting"
+  | "running"
+  | "stopping"
+  | "stopped"
+  | "crashed"
+  | "error";
 
 interface PluginRecord {
   pluginId: string;
@@ -99,7 +106,11 @@ export class PluginLifecycle {
 
   // --- Public API ---
 
-  async install(manifestRaw: unknown, serverId: string, scope: ResolvedScope = "personal"): Promise<{ pluginId: string; errors?: string[] }> {
+  async install(
+    manifestRaw: unknown,
+    serverId: string,
+    scope: ResolvedScope = "personal",
+  ): Promise<{ pluginId: string; errors?: string[] }> {
     const { manifest, errors } = parseManifest(manifestRaw);
     if (errors.length > 0) {
       return { pluginId: "", errors };
@@ -203,16 +214,23 @@ export class PluginLifecycle {
     // the auth store so the bridge can validate it (needed after sidecar restart).
     // We must NOT issue a new token here because the container already has the old one.
     if (plugin.bridgeToken) {
-      reregisterToken(plugin.bridgeToken, pluginId, plugin.serverId, plugin.manifest.permissions, plugin.scope);
+      reregisterToken(
+        plugin.bridgeToken,
+        pluginId,
+        plugin.serverId,
+        plugin.manifest.permissions,
+        plugin.scope,
+      );
     }
 
     // Start container (304 = already running, 404 = stale container removed externally)
     try {
       await this.docker.startContainer(plugin.containerId);
     } catch (err: unknown) {
-      const statusCode = err && typeof err === "object" && "statusCode" in err
-        ? (err as { statusCode: number }).statusCode
-        : 0;
+      const statusCode =
+        err && typeof err === "object" && "statusCode" in err
+          ? (err as { statusCode: number }).statusCode
+          : 0;
 
       if (statusCode === 304) {
         console.error(`[lifecycle] Container already running for ${pluginId}, attaching`);
@@ -387,7 +405,9 @@ export class PluginLifecycle {
     // Validate the existing scope is still allowed by the new manifest
     if (!PluginLifecycle.isScopeAllowed(newManifest.scope, plugin.scope)) {
       return {
-        errors: [`Updated manifest scope "${newManifest.scope}" does not allow current scope "${plugin.scope}"`],
+        errors: [
+          `Updated manifest scope "${newManifest.scope}" does not allow current scope "${plugin.scope}"`,
+        ],
       };
     }
 
@@ -400,7 +420,12 @@ export class PluginLifecycle {
     await this.docker.pullImage(newManifest.runtime.image, undefined, { skipIfExists: false });
 
     // Create new container FIRST, then remove old one (rollback-safe)
-    const bridgeToken = issueToken(pluginId, plugin.serverId, newManifest.permissions, plugin.scope);
+    const bridgeToken = issueToken(
+      pluginId,
+      plugin.serverId,
+      newManifest.permissions,
+      plugin.scope,
+    );
     const newContainerId = await this.docker.createContainer({
       image: newManifest.runtime.image,
       pluginId,
@@ -449,7 +474,10 @@ export class PluginLifecycle {
         const reason = err instanceof Error ? err.message : "Failed to resume";
         plugin.state = "error";
         plugin.error = reason;
-        plugin.errorPayload = classifyLifecycleError(`Failed to resume: ${reason}`, plugin.pluginId);
+        plugin.errorPayload = classifyLifecycleError(
+          `Failed to resume: ${reason}`,
+          plugin.pluginId,
+        );
         this.saveState();
       }
     }
@@ -480,8 +508,9 @@ export class PluginLifecycle {
     if (this.apiBaseUrl) {
       for (const plugin of this.plugins.values()) {
         if (plugin.scope === "server" && plugin.state === "running" && plugin.tunnelUrl) {
-          this.reportTunnelUrl(plugin.serverId, plugin.pluginId, plugin.tunnelUrl, "active")
-            .catch((err) => console.error(`[lifecycle] Re-report failed for ${plugin.pluginId}:`, err));
+          this.reportTunnelUrl(plugin.serverId, plugin.pluginId, plugin.tunnelUrl, "active").catch(
+            (err) => console.error(`[lifecycle] Re-report failed for ${plugin.pluginId}:`, err),
+          );
         }
       }
     }
@@ -521,10 +550,7 @@ export class PluginLifecycle {
     }
 
     const controller = new AbortController();
-    const timeout = setTimeout(
-      () => controller.abort(),
-      PluginLifecycle.REPORT_TIMEOUT_MS,
-    );
+    const timeout = setTimeout(() => controller.abort(), PluginLifecycle.REPORT_TIMEOUT_MS);
 
     try {
       const res = await fetch(
@@ -556,7 +582,10 @@ export class PluginLifecycle {
 
   // --- Helpers ---
 
-  private static isScopeAllowed(manifestScope: PluginScope, requestedScope: ResolvedScope): boolean {
+  private static isScopeAllowed(
+    manifestScope: PluginScope,
+    requestedScope: ResolvedScope,
+  ): boolean {
     if (manifestScope === "both") return true;
     return manifestScope === requestedScope;
   }

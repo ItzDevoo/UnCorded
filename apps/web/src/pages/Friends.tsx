@@ -68,10 +68,9 @@ const Friends = () => {
       const controller = new AbortController();
       searchAbort = controller;
 
-      api<{ users: SearchUser[] }>(
-        `/api/users/search?q=${encodeURIComponent(q)}`,
-        { signal: controller.signal },
-      )
+      api<{ users: SearchUser[] }>(`/api/users/search?q=${encodeURIComponent(q)}`, {
+        signal: controller.signal,
+      })
         .then((res) => {
           if (!controller.signal.aborted) {
             setSearchSuggestions(res.users);
@@ -151,14 +150,20 @@ const Friends = () => {
           <Button
             size="sm"
             variant={tab() === "all" ? "default" : "ghost"}
-            onClick={() => { setTab("all"); setSearchQuery(""); }}
+            onClick={() => {
+              setTab("all");
+              setSearchQuery("");
+            }}
           >
             All
           </Button>
           <Button
             size="sm"
             variant={tab() === "pending" ? "default" : "ghost"}
-            onClick={() => { setTab("pending"); setSearchQuery(""); }}
+            onClick={() => {
+              setTab("pending");
+              setSearchQuery("");
+            }}
           >
             Pending
             <Show when={pendingIncoming().length + pendingOutgoing().length > 0}>
@@ -170,7 +175,10 @@ const Friends = () => {
           <Button
             size="sm"
             variant={tab() === "blocked" ? "default" : "ghost"}
-            onClick={() => { setTab("blocked"); setSearchQuery(""); }}
+            onClick={() => {
+              setTab("blocked");
+              setSearchQuery("");
+            }}
           >
             Blocked
           </Button>
@@ -251,7 +259,9 @@ const Friends = () => {
                       when={suggestion.avatarUrl}
                       fallback={
                         <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
-                          {(suggestion.displayName ?? suggestion.username ?? "?").charAt(0).toUpperCase()}
+                          {(suggestion.displayName ?? suggestion.username ?? "?")
+                            .charAt(0)
+                            .toUpperCase()}
                         </div>
                       }
                     >
@@ -268,9 +278,7 @@ const Friends = () => {
                         {suggestion.displayName ?? suggestion.username ?? "Unknown"}
                       </p>
                       <Show when={suggestion.username}>
-                        {(uname) => (
-                          <p class="truncate text-xs text-muted-foreground">{uname()}</p>
-                        )}
+                        {(uname) => <p class="truncate text-xs text-muted-foreground">{uname()}</p>}
                       </Show>
                     </div>
                   </button>
@@ -301,7 +309,9 @@ const Friends = () => {
           <Show when={filteredFriends().length === 0}>
             <Show
               when={searchQuery().trim()}
-              fallback={<Empty title="No friends yet" description="Send a friend request to get started!" />}
+              fallback={
+                <Empty title="No friends yet" description="Send a friend request to get started!" />
+              }
             >
               <Empty title="No matches" description="No friends match your search." />
             </Show>
@@ -319,7 +329,11 @@ const Friends = () => {
                     }
                   >
                     {(url) => (
-                      <img src={url()} alt={displayName(friend)} class="h-10 w-10 rounded-full object-cover" />
+                      <img
+                        src={url()}
+                        alt={displayName(friend)}
+                        class="h-10 w-10 rounded-full object-cover"
+                      />
                     )}
                   </Show>
                   <StatusDot status={friend.status as UserStatus} />
@@ -387,11 +401,17 @@ const Friends = () => {
                     }
                   >
                     {(url) => (
-                      <img src={url()} alt={displayName(friend)} class="h-10 w-10 shrink-0 rounded-full object-cover" />
+                      <img
+                        src={url()}
+                        alt={displayName(friend)}
+                        class="h-10 w-10 shrink-0 rounded-full object-cover"
+                      />
                     )}
                   </Show>
                   <div class="min-w-0 flex-1">
-                    <p class="truncate text-sm font-medium text-foreground">{displayName(friend)}</p>
+                    <p class="truncate text-sm font-medium text-foreground">
+                      {displayName(friend)}
+                    </p>
                   </div>
                   <div class="flex gap-1">
                     <Button
@@ -448,11 +468,17 @@ const Friends = () => {
                     }
                   >
                     {(url) => (
-                      <img src={url()} alt={displayName(friend)} class="h-10 w-10 shrink-0 rounded-full object-cover" />
+                      <img
+                        src={url()}
+                        alt={displayName(friend)}
+                        class="h-10 w-10 shrink-0 rounded-full object-cover"
+                      />
                     )}
                   </Show>
                   <div class="min-w-0 flex-1">
-                    <p class="truncate text-sm font-medium text-foreground">{displayName(friend)}</p>
+                    <p class="truncate text-sm font-medium text-foreground">
+                      {displayName(friend)}
+                    </p>
                     <p class="text-xs text-muted-foreground">Request sent</p>
                   </div>
                 </div>
@@ -481,7 +507,11 @@ const Friends = () => {
                   }
                 >
                   {(url) => (
-                    <img src={url()} alt={displayName(friend)} class="h-10 w-10 shrink-0 rounded-full object-cover" />
+                    <img
+                      src={url()}
+                      alt={displayName(friend)}
+                      class="h-10 w-10 shrink-0 rounded-full object-cover"
+                    />
                   )}
                 </Show>
                 <div class="min-w-0 flex-1">

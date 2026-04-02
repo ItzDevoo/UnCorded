@@ -17,19 +17,19 @@ UnCorded is a chat platform built on radical transparency. No dark patterns, no 
 
 ## Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Runtime | [Bun](https://bun.sh) |
-| Frontend | [SolidJS](https://solidjs.com) + [Tailwind CSS v4](https://tailwindcss.com) |
-| Backend | [ElysiaJS](https://elysiajs.com) |
-| Database | PostgreSQL via [Neon](https://neon.tech) + [Drizzle ORM](https://orm.drizzle.team) |
-| Cache / PubSub | Redis via ioredis |
-| File Transfer | [WebTorrent](https://webtorrent.io) (BitTorrent over WebRTC) |
-| Auth | [Better Auth](https://better-auth.com) (email/password + Discord + Google OAuth) |
-| Payments | Stripe + Stripe Tax |
-| Real-time | Bun native WebSockets + MessagePack |
-| Linter | [Oxlint](https://oxc.rs) |
-| Formatter | [Oxfmt](https://oxc.rs) |
+| Layer          | Technology                                                                         |
+| -------------- | ---------------------------------------------------------------------------------- |
+| Runtime        | [Bun](https://bun.sh)                                                              |
+| Frontend       | [SolidJS](https://solidjs.com) + [Tailwind CSS v4](https://tailwindcss.com)        |
+| Backend        | [ElysiaJS](https://elysiajs.com)                                                   |
+| Database       | PostgreSQL via [Neon](https://neon.tech) + [Drizzle ORM](https://orm.drizzle.team) |
+| Cache / PubSub | Redis via ioredis                                                                  |
+| File Transfer  | [WebTorrent](https://webtorrent.io) (BitTorrent over WebRTC)                       |
+| Auth           | [Better Auth](https://better-auth.com) (email/password + Discord + Google OAuth)   |
+| Payments       | Stripe + Stripe Tax                                                                |
+| Real-time      | Bun native WebSockets + MessagePack                                                |
+| Linter         | [Oxlint](https://oxc.rs)                                                           |
+| Formatter      | [Oxfmt](https://oxc.rs)                                                            |
 
 ## Project Structure
 

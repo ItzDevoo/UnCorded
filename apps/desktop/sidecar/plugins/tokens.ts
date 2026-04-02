@@ -1,5 +1,11 @@
 import { randomBytes } from "node:crypto";
-import { registerToken, revokeAllForPlugin, hashToken, type PluginContext, type ResolvedScope } from "../bridge/auth";
+import {
+  registerToken,
+  revokeAllForPlugin,
+  hashToken,
+  type PluginContext,
+  type ResolvedScope,
+} from "../bridge/auth";
 
 const TOKEN_BYTES = 32; // 256-bit
 

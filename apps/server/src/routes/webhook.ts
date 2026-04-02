@@ -190,7 +190,8 @@ async function handleSubscriptionUpdated(sub: Stripe.Subscription) {
     await tx.update(subscriptions).set(updateData).where(eq(subscriptions.id, existing.id));
 
     // Compute effective tier considering gifted subscriptions
-    const userTier = status === "active" && tier ? tier : await computeEffectiveTier(existing.userId);
+    const userTier =
+      status === "active" && tier ? tier : await computeEffectiveTier(existing.userId);
     await tx.update(user).set({ subscriptionTier: userTier }).where(eq(user.id, existing.userId));
   });
 
@@ -216,7 +217,10 @@ async function handleSubscriptionDeleted(sub: Stripe.Subscription) {
 
   // Fall back to gifted tier if one exists, otherwise free
   const effectiveTier = await computeEffectiveTier(existing.userId);
-  await db.update(user).set({ subscriptionTier: effectiveTier }).where(eq(user.id, existing.userId));
+  await db
+    .update(user)
+    .set({ subscriptionTier: effectiveTier })
+    .where(eq(user.id, existing.userId));
 
   disconnectUser(existing.userId);
 }
@@ -252,7 +256,10 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
 
   // Fall back to gifted tier if one exists, otherwise free
   const effectiveTier = await computeEffectiveTier(existing.userId);
-  await db.update(user).set({ subscriptionTier: effectiveTier }).where(eq(user.id, existing.userId));
+  await db
+    .update(user)
+    .set({ subscriptionTier: effectiveTier })
+    .where(eq(user.id, existing.userId));
 
   disconnectUser(existing.userId);
 }

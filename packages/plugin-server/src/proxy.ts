@@ -150,10 +150,7 @@ export function proxy(
     const url = new URL(req.url);
 
     // Check if this request matches the prefix
-    if (
-      url.pathname !== normalizedPrefix &&
-      !url.pathname.startsWith(`${normalizedPrefix}/`)
-    ) {
+    if (url.pathname !== normalizedPrefix && !url.pathname.startsWith(`${normalizedPrefix}/`)) {
       return null;
     }
 
@@ -197,8 +194,7 @@ export function proxy(
             let relativePath = locUrl.pathname;
             if (
               upstreamBasePath &&
-              (relativePath === upstreamBasePath ||
-                relativePath.startsWith(`${upstreamBasePath}/`))
+              (relativePath === upstreamBasePath || relativePath.startsWith(`${upstreamBasePath}/`))
             ) {
               relativePath = relativePath.slice(upstreamBasePath.length) || "/";
             }
@@ -315,18 +311,12 @@ export function rewriteHtmlBase(
       }
       // <base> only affects relative URLs, not root-relative like href="/app.js".
       // Rewrite those explicitly, skipping protocol-relative (//) and absolute URLs.
-      html = html.replace(
-        /((?:href|src|action)\s*=\s*["'])\/(?!\/)/gi,
-        `$1${normalizedPrefix}/`,
-      );
+      html = html.replace(/((?:href|src|action)\s*=\s*["'])\/(?!\/)/gi, `$1${normalizedPrefix}/`);
     } else {
       // Fallback: regex rewriting of href="/", src="/", action="/"
       // v1-pragmatic — known fragile for inline JS, CSS url(), dynamic HTML.
       // Negative lookahead (?!\/) skips protocol-relative //cdn... URLs.
-      html = html.replace(
-        /((?:href|src|action)\s*=\s*["'])\/(?!\/)/gi,
-        `$1${normalizedPrefix}/`,
-      );
+      html = html.replace(/((?:href|src|action)\s*=\s*["'])\/(?!\/)/gi, `$1${normalizedPrefix}/`);
     }
 
     // Apply extra user-supplied patterns regardless of strategy
@@ -374,9 +364,7 @@ export function createBundledService(config: BundledServiceConfig): BundledServi
 
   // Spawn child
   const proc = Bun.spawn(command, {
-    stdio: useCallbacks
-      ? ["ignore", "pipe", "pipe"]
-      : ["ignore", "inherit", "inherit"],
+    stdio: useCallbacks ? ["ignore", "pipe", "pipe"] : ["ignore", "inherit", "inherit"],
   });
 
   // Pipe stdout/stderr line-by-line when using callbacks
@@ -398,14 +386,16 @@ export function createBundledService(config: BundledServiceConfig): BundledServi
 
   // Reset readiness when the child exits (crash, SIGTERM, etc.)
   proc.exited
-    .then(() => { isReady = false; })
-    .catch(() => { isReady = false; });
+    .then(() => {
+      isReady = false;
+    })
+    .catch(() => {
+      isReady = false;
+    });
 
   // Build proxy handler
   const target = `http://localhost:${port}`;
-  const handler = rewriteUrls
-    ? rewriteHtmlBase(proxyPath, target)
-    : proxy(proxyPath, target);
+  const handler = rewriteUrls ? rewriteHtmlBase(proxyPath, target) : proxy(proxyPath, target);
 
   // Poll for readiness with exponential backoff (500ms → 1s → 2s → 4s cap)
   // Error logs suppressed during grace window to avoid noise from expected failures.
@@ -433,9 +423,7 @@ export function createBundledService(config: BundledServiceConfig): BundledServi
     if (proc.exitCode !== null) {
       console.error(`[${serviceName}] child process exited before becoming ready`);
     } else {
-      console.error(
-        `[${serviceName}] readiness check timed out after ${readyTimeout}ms`,
-      );
+      console.error(`[${serviceName}] readiness check timed out after ${readyTimeout}ms`);
     }
   })();
 

@@ -22,6 +22,9 @@
     "pack:desktop": "bun run --filter @uncorded/desktop pack",
     "dist:desktop": "bun run --filter @uncorded/desktop dist"
   },
+  "dependencies": {
+    "@stripe/stripe-js": "^8.10.0"
+  },
   "devDependencies": {
     "happy-dom": "^20.8.9",
     "oxfmt": "^0.36.0",
@@ -33,8 +36,5 @@
   "engines": {
     "bun": ">=1.2.0"
   },
-  "packageManager": "bun@1.2.20",
-  "dependencies": {
-    "@stripe/stripe-js": "^8.10.0"
-  }
+  "packageManager": "bun@1.2.20"
 }

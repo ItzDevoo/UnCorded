@@ -51,10 +51,9 @@ const AddFriendModal = (props: Props) => {
       const controller = new AbortController();
       searchAbort = controller;
 
-      api<{ users: SearchUser[] }>(
-        `/api/users/search?q=${encodeURIComponent(q)}`,
-        { signal: controller.signal },
-      )
+      api<{ users: SearchUser[] }>(`/api/users/search?q=${encodeURIComponent(q)}`, {
+        signal: controller.signal,
+      })
         .then((res) => {
           if (!controller.signal.aborted) setSuggestions(res.users);
         })
@@ -124,15 +123,18 @@ const AddFriendModal = (props: Props) => {
   };
 
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) props.onClose(); }}>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) props.onClose();
+      }}
+    >
       <DialogContent onClose={props.onClose}>
         <DialogHeader>
           <DialogTitle>Add Friend</DialogTitle>
         </DialogHeader>
 
-        <p class="mb-3 text-sm text-muted-foreground">
-          Enter a username to send a friend request.
-        </p>
+        <p class="mb-3 text-sm text-muted-foreground">Enter a username to send a friend request.</p>
 
         <div class="relative">
           <Input

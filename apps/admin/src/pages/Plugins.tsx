@@ -43,7 +43,15 @@ interface PluginsResponse {
   pageSize: number;
 }
 
-const CATEGORY_OPTIONS = ["AI", "Collaboration", "Developer Tools", "Automation", "Appearance", "Moderation", "Other"] as const;
+const CATEGORY_OPTIONS = [
+  "AI",
+  "Collaboration",
+  "Developer Tools",
+  "Automation",
+  "Appearance",
+  "Moderation",
+  "Other",
+] as const;
 const SCOPE_OPTIONS = ["server", "personal", "both"] as const;
 
 function slugify(name: string): string {
@@ -299,9 +307,7 @@ const AdminPlugins = () => {
         <div class="flex gap-1" onClick={(e) => e.stopPropagation()}>
           <button
             class={`rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
-              row.published
-                ? "bg-success/15 text-success"
-                : "text-muted-foreground hover:bg-accent"
+              row.published ? "bg-success/15 text-success" : "text-muted-foreground hover:bg-accent"
             } ${pendingId() === row.id ? "pointer-events-none opacity-50" : ""}`}
             onClick={() => toggleField(row.id, "publish")}
             title={row.published ? "Unpublish" : "Publish"}
@@ -310,9 +316,7 @@ const AdminPlugins = () => {
           </button>
           <button
             class={`rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
-              row.verified
-                ? "bg-primary/15 text-primary"
-                : "text-muted-foreground hover:bg-accent"
+              row.verified ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-accent"
             } ${pendingId() === row.id ? "pointer-events-none opacity-50" : ""}`}
             onClick={() => toggleField(row.id, "verify")}
             title={row.verified ? "Unverify" : "Verify"}
@@ -321,9 +325,7 @@ const AdminPlugins = () => {
           </button>
           <button
             class={`rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
-              row.featured
-                ? "bg-warning/15 text-warning"
-                : "text-muted-foreground hover:bg-accent"
+              row.featured ? "bg-warning/15 text-warning" : "text-muted-foreground hover:bg-accent"
             } ${pendingId() === row.id ? "pointer-events-none opacity-50" : ""}`}
             onClick={() => toggleField(row.id, "feature")}
             title={row.featured ? "Unfeature" : "Feature"}
@@ -340,7 +342,12 @@ const AdminPlugins = () => {
           <Button variant="outline" size="sm" onClick={() => openEditForm(row)}>
             Edit
           </Button>
-          <Button variant="ghost" size="sm" class="text-destructive" onClick={() => deletePlugin(row.id, row.name)}>
+          <Button
+            variant="ghost"
+            size="sm"
+            class="text-destructive"
+            onClick={() => deletePlugin(row.id, row.name)}
+          >
             Delete
           </Button>
         </div>
@@ -375,18 +382,20 @@ const AdminPlugins = () => {
               <p class="mt-1 whitespace-pre-wrap text-sm">{row.description}</p>
             </div>
             <div class="flex flex-wrap gap-6 text-muted-foreground">
-              <span>Image: <span class="font-mono text-foreground">{row.image}</span></span>
+              <span>
+                Image: <span class="font-mono text-foreground">{row.image}</span>
+              </span>
               <Show when={row.repository}>
-                <span>Repo: <span class="font-mono text-foreground">{row.repository}</span></span>
+                <span>
+                  Repo: <span class="font-mono text-foreground">{row.repository}</span>
+                </span>
               </Show>
               <span>Created: {new Date(row.createdAt).toLocaleString()}</span>
               <span>Updated: {new Date(row.updatedAt).toLocaleString()}</span>
             </div>
             <Show when={row.tags.length > 0}>
               <div class="flex flex-wrap gap-1">
-                <For each={row.tags}>
-                  {(tag) => <Badge variant="outline">{tag}</Badge>}
-                </For>
+                <For each={row.tags}>{(tag) => <Badge variant="outline">{tag}</Badge>}</For>
               </div>
             </Show>
           </div>
@@ -399,7 +408,9 @@ const AdminPlugins = () => {
           <DialogHeader>
             <DialogTitle>{editTarget() ? "Edit Plugin" : "Add Plugin"}</DialogTitle>
             <DialogDescription>
-              {editTarget() ? `Editing ${editTarget()!.name}` : "Register a new plugin in the catalog"}
+              {editTarget()
+                ? `Editing ${editTarget()!.name}`
+                : "Register a new plugin in the catalog"}
             </DialogDescription>
           </DialogHeader>
 
@@ -428,7 +439,9 @@ const AdminPlugins = () => {
             </div>
 
             <div>
-              <label class="mb-1 block text-xs font-medium text-muted-foreground">Description</label>
+              <label class="mb-1 block text-xs font-medium text-muted-foreground">
+                Description
+              </label>
               <textarea
                 value={formDescription()}
                 onInput={(e) => setFormDescription(e.currentTarget.value)}
@@ -448,7 +461,9 @@ const AdminPlugins = () => {
                 />
               </div>
               <div>
-                <label class="mb-1 block text-xs font-medium text-muted-foreground">Docker Image</label>
+                <label class="mb-1 block text-xs font-medium text-muted-foreground">
+                  Docker Image
+                </label>
                 <Input
                   value={formImage()}
                   onInput={(e) => setFormImage(e.currentTarget.value)}
@@ -465,9 +480,7 @@ const AdminPlugins = () => {
                   onChange={(e) => setFormCategory(e.currentTarget.value)}
                   class="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground outline-none"
                 >
-                  <For each={CATEGORY_OPTIONS}>
-                    {(c) => <option value={c}>{c}</option>}
-                  </For>
+                  <For each={CATEGORY_OPTIONS}>{(c) => <option value={c}>{c}</option>}</For>
                 </select>
               </div>
               <div>
@@ -477,9 +490,7 @@ const AdminPlugins = () => {
                   onChange={(e) => setFormScope(e.currentTarget.value)}
                   class="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground outline-none"
                 >
-                  <For each={SCOPE_OPTIONS}>
-                    {(s) => <option value={s}>{s}</option>}
-                  </For>
+                  <For each={SCOPE_OPTIONS}>{(s) => <option value={s}>{s}</option>}</For>
                 </select>
               </div>
               <div>
@@ -493,7 +504,9 @@ const AdminPlugins = () => {
             </div>
 
             <div>
-              <label class="mb-1 block text-xs font-medium text-muted-foreground">Tags (comma-separated)</label>
+              <label class="mb-1 block text-xs font-medium text-muted-foreground">
+                Tags (comma-separated)
+              </label>
               <Input
                 value={formTags()}
                 onInput={(e) => setFormTags(e.currentTarget.value)}
@@ -503,7 +516,8 @@ const AdminPlugins = () => {
 
             <div>
               <label class="mb-1 block text-xs font-medium text-muted-foreground">
-                Manifest JSON {editTarget() ? "(leave empty to keep current)" : "(leave empty to auto-generate)"}
+                Manifest JSON{" "}
+                {editTarget() ? "(leave empty to keep current)" : "(leave empty to auto-generate)"}
               </label>
               <textarea
                 value={formManifest()}
@@ -515,7 +529,9 @@ const AdminPlugins = () => {
             </div>
 
             <div>
-              <label class="mb-1 block text-xs font-medium text-muted-foreground">Repository URL</label>
+              <label class="mb-1 block text-xs font-medium text-muted-foreground">
+                Repository URL
+              </label>
               <Input
                 value={formRepository()}
                 onInput={(e) => setFormRepository(e.currentTarget.value)}
@@ -524,7 +540,9 @@ const AdminPlugins = () => {
             </div>
 
             <div>
-              <label class="mb-1 block text-xs font-medium text-muted-foreground">Screenshot URLs (one per line)</label>
+              <label class="mb-1 block text-xs font-medium text-muted-foreground">
+                Screenshot URLs (one per line)
+              </label>
               <textarea
                 value={formScreenshots()}
                 onInput={(e) => setFormScreenshots(e.currentTarget.value)}

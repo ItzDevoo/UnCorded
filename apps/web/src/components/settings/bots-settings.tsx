@@ -1,5 +1,10 @@
 import { createSignal, createResource, For, Show } from "solid-js";
-import { MAX_AVATAR_SIZE_BYTES, ALLOWED_AVATAR_TYPES, BOT_LIMITS, type BotTier } from "@uncorded/shared";
+import {
+  MAX_AVATAR_SIZE_BYTES,
+  ALLOWED_AVATAR_TYPES,
+  BOT_LIMITS,
+  type BotTier,
+} from "@uncorded/shared";
 import { api, apiUpload } from "../../lib/api.js";
 import { readyData } from "../../lib/gateway-store.js";
 import { showToast } from "../ui/toast.js";
@@ -178,109 +183,121 @@ const BotsSettings = () => {
       </div>
 
       {/* Create button */}
-      <Button
-        onClick={() => setShowCreate(true)}
-        disabled={(botList()?.length ?? 0) >= limit()}
-      >
+      <Button onClick={() => setShowCreate(true)} disabled={(botList()?.length ?? 0) >= limit()}>
         + Create Bot
       </Button>
 
       {/* Bot list */}
-      <Show when={!botList.loading} fallback={<p class="text-sm text-muted-foreground">Loading...</p>}>
-        <Show when={!botList.error} fallback={
-          <div class="rounded-lg border border-destructive/50 bg-destructive/10 p-6 text-center">
-            <p class="text-sm text-destructive">Failed to load bots.</p>
-            <Button variant="outline" size="sm" class="mt-2" onClick={() => refetch()}>
-              Retry
-            </Button>
-          </div>
-        }>
+      <Show
+        when={!botList.loading}
+        fallback={<p class="text-sm text-muted-foreground">Loading...</p>}
+      >
         <Show
-          when={(botList()?.length ?? 0) > 0}
+          when={!botList.error}
           fallback={
-            <div class="rounded-lg border border-border p-6 text-center">
-              <p class="text-sm text-muted-foreground">
-                No bots yet. Create one to get started with the UnCorded API.
-              </p>
+            <div class="rounded-lg border border-destructive/50 bg-destructive/10 p-6 text-center">
+              <p class="text-sm text-destructive">Failed to load bots.</p>
+              <Button variant="outline" size="sm" class="mt-2" onClick={() => refetch()}>
+                Retry
+              </Button>
             </div>
           }
         >
-          <div class="space-y-3">
-            <For each={botList()}>
-              {(bot) => (
-                <div class="rounded-lg border border-border p-4">
-                  <div class="flex items-start justify-between gap-4">
-                    {/* Bot avatar */}
-                    <button
-                      type="button"
-                      class="group relative flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-border transition-colors hover:border-primary"
-                      onClick={() => {
-                        const input = document.createElement("input");
-                        input.type = "file";
-                        input.accept = "image/png,image/jpeg,image/gif,image/webp";
-                        input.addEventListener("change", () => {
-                          const file = input.files?.[0];
-                          if (file) handleAvatarUpload(bot, file);
-                        });
-                        input.click();
-                      }}
-                      title="Change bot avatar"
-                    >
-                      <Show
-                        when={bot.avatarUrl}
-                        fallback={
-                          <div class="flex h-full w-full items-center justify-center bg-primary/15 text-lg font-bold text-primary">
-                            {bot.name[0]?.toUpperCase() ?? "?"}
-                          </div>
-                        }
+          <Show
+            when={(botList()?.length ?? 0) > 0}
+            fallback={
+              <div class="rounded-lg border border-border p-6 text-center">
+                <p class="text-sm text-muted-foreground">
+                  No bots yet. Create one to get started with the UnCorded API.
+                </p>
+              </div>
+            }
+          >
+            <div class="space-y-3">
+              <For each={botList()}>
+                {(bot) => (
+                  <div class="rounded-lg border border-border p-4">
+                    <div class="flex items-start justify-between gap-4">
+                      {/* Bot avatar */}
+                      <button
+                        type="button"
+                        class="group relative flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-border transition-colors hover:border-primary"
+                        onClick={() => {
+                          const input = document.createElement("input");
+                          input.type = "file";
+                          input.accept = "image/png,image/jpeg,image/gif,image/webp";
+                          input.addEventListener("change", () => {
+                            const file = input.files?.[0];
+                            if (file) handleAvatarUpload(bot, file);
+                          });
+                          input.click();
+                        }}
+                        title="Change bot avatar"
                       >
-                        {(url) => <img src={url()} alt={bot.name} class="h-full w-full object-cover" />}
-                      </Show>
-                      <div class="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                      </div>
-                    </button>
-                    <div class="min-w-0 flex-1">
-                      <div class="flex items-center gap-2">
-                        <span class="font-semibold text-foreground">{bot.name}</span>
-                        <span class="rounded bg-primary/20 px-1 py-0.5 text-[9px] font-bold uppercase text-primary">
-                          Bot
-                        </span>
-                      </div>
-                      <p class="text-sm text-muted-foreground">@{bot.username}</p>
-                      <Show when={bot.description}>
-                        <p class="mt-1 text-sm text-muted-foreground">{bot.description}</p>
-                      </Show>
-                      <div class="mt-2 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-                        <span>Token: {bot.tokenPrefix}...</span>
-                        <span>Last used: {formatRelativeTime(bot.lastUsedAt)}</span>
+                        <Show
+                          when={bot.avatarUrl}
+                          fallback={
+                            <div class="flex h-full w-full items-center justify-center bg-primary/15 text-lg font-bold text-primary">
+                              {bot.name[0]?.toUpperCase() ?? "?"}
+                            </div>
+                          }
+                        >
+                          {(url) => (
+                            <img src={url()} alt={bot.name} class="h-full w-full object-cover" />
+                          )}
+                        </Show>
+                        <div class="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-4 w-4 text-white"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="2"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                            />
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                          </svg>
+                        </div>
+                      </button>
+                      <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2">
+                          <span class="font-semibold text-foreground">{bot.name}</span>
+                          <span class="rounded bg-primary/20 px-1 py-0.5 text-[9px] font-bold uppercase text-primary">
+                            Bot
+                          </span>
+                        </div>
+                        <p class="text-sm text-muted-foreground">@{bot.username}</p>
+                        <Show when={bot.description}>
+                          <p class="mt-1 text-sm text-muted-foreground">{bot.description}</p>
+                        </Show>
+                        <div class="mt-2 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                          <span>Token: {bot.tokenPrefix}...</span>
+                          <span>Last used: {formatRelativeTime(bot.lastUsedAt)}</span>
+                        </div>
                       </div>
                     </div>
+                    <div class="mt-3 flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setRegenTarget(bot)}>
+                        Regenerate Token
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => setDeleteTarget(bot)}>
+                        Delete
+                      </Button>
+                    </div>
                   </div>
-                  <div class="mt-3 flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setRegenTarget(bot)}
-                    >
-                      Regenerate Token
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => setDeleteTarget(bot)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </For>
-          </div>
-        </Show>
+                )}
+              </For>
+            </div>
+          </Show>
         </Show>
       </Show>
 
@@ -329,10 +346,7 @@ const BotsSettings = () => {
             <Button variant="ghost" onClick={() => setShowCreate(false)}>
               Cancel
             </Button>
-            <Button
-              onClick={handleCreate}
-              disabled={creating() || createName().trim().length < 2}
-            >
+            <Button onClick={handleCreate} disabled={creating() || createName().trim().length < 2}>
               {creating() ? "Creating..." : "Create"}
             </Button>
           </DialogFooter>
@@ -340,7 +354,12 @@ const BotsSettings = () => {
       </Dialog>
 
       {/* ── Token Reveal Dialog ───────────────────────────────────────────── */}
-      <Dialog open={!!revealedToken()} onOpenChange={(open) => { if (!open) setRevealedToken(null); }}>
+      <Dialog
+        open={!!revealedToken()}
+        onOpenChange={(open) => {
+          if (!open) setRevealedToken(null);
+        }}
+      >
         <DialogContent onClose={() => setRevealedToken(null)}>
           <DialogHeader>
             <DialogTitle>Bot Token</DialogTitle>
@@ -368,12 +387,18 @@ const BotsSettings = () => {
       </Dialog>
 
       {/* ── Delete Dialog ─────────────────────────────────────────────────── */}
-      <Dialog open={!!deleteTarget()} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+      <Dialog
+        open={!!deleteTarget()}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+      >
         <DialogContent onClose={() => setDeleteTarget(null)}>
           <DialogHeader>
             <DialogTitle>Delete Bot</DialogTitle>
             <DialogDescription>
-              This will permanently delete <strong>{deleteTarget()?.name}</strong> and revoke its token. This cannot be undone.
+              This will permanently delete <strong>{deleteTarget()?.name}</strong> and revoke its
+              token. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -388,12 +413,18 @@ const BotsSettings = () => {
       </Dialog>
 
       {/* ── Regenerate Dialog ─────────────────────────────────────────────── */}
-      <Dialog open={!!regenTarget()} onOpenChange={(open) => { if (!open) setRegenTarget(null); }}>
+      <Dialog
+        open={!!regenTarget()}
+        onOpenChange={(open) => {
+          if (!open) setRegenTarget(null);
+        }}
+      >
         <DialogContent onClose={() => setRegenTarget(null)}>
           <DialogHeader>
             <DialogTitle>Regenerate Token</DialogTitle>
             <DialogDescription>
-              This will invalidate the current token for <strong>{regenTarget()?.name}</strong> and disconnect it from any active sessions.
+              This will invalidate the current token for <strong>{regenTarget()?.name}</strong> and
+              disconnect it from any active sessions.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

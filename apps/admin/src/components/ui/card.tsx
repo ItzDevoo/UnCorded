@@ -7,7 +7,10 @@ const Card = (props: DivProps) => {
   const [local, rest] = splitProps(props, ["class", "children"]);
   return (
     <div
-      class={cn("rounded-2xl border border-border bg-card text-card-foreground shadow-sm", local.class)}
+      class={cn(
+        "rounded-2xl border border-border bg-card text-card-foreground shadow-sm",
+        local.class,
+      )}
       {...rest}
     >
       {local.children}

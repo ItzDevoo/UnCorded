@@ -7,10 +7,7 @@
 
 import type { PluginErrorPayload, PluginErrorCategory } from "@uncorded/shared";
 
-export function classifyLifecycleError(
-  reason: string,
-  pluginId: string,
-): PluginErrorPayload {
+export function classifyLifecycleError(reason: string, pluginId: string): PluginErrorPayload {
   const lower = reason.toLowerCase();
 
   let category: PluginErrorCategory = "lifecycle";

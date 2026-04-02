@@ -121,14 +121,16 @@ describe("PluginError.isPayload()", () => {
   });
 
   it("returns true for payload with optional fields", () => {
-    expect(PluginError.isPayload({
-      code: "X",
-      message: "y",
-      category: "network",
-      retryable: true,
-      pluginId: "p",
-      causeCode: "c",
-    })).toBe(true);
+    expect(
+      PluginError.isPayload({
+        code: "X",
+        message: "y",
+        category: "network",
+        retryable: true,
+        pluginId: "p",
+        causeCode: "c",
+      }),
+    ).toBe(true);
   });
 
   it("returns false for plain error object", () => {
@@ -145,17 +147,21 @@ describe("PluginError.isPayload()", () => {
   });
 
   it("returns false for missing required fields", () => {
-    expect(PluginError.isPayload({ code: "X", category: "internal", retryable: false })).toBe(false);
+    expect(PluginError.isPayload({ code: "X", category: "internal", retryable: false })).toBe(
+      false,
+    );
     expect(PluginError.isPayload({ code: "X", message: "y", retryable: false })).toBe(false);
     expect(PluginError.isPayload({ code: "X", message: "y", category: "internal" })).toBe(false);
   });
 
   it("returns false for invalid category value", () => {
-    expect(PluginError.isPayload({
-      code: "X",
-      message: "y",
-      category: "bogus",
-      retryable: false,
-    })).toBe(false);
+    expect(
+      PluginError.isPayload({
+        code: "X",
+        message: "y",
+        category: "bogus",
+        retryable: false,
+      }),
+    ).toBe(false);
   });
 });

@@ -1,5 +1,10 @@
 import type { ChannelId, UserId } from "@uncorded/protocol";
-import { BridgeConfigError, BridgeHttpError, BridgeNetworkError, BridgeNotFoundError } from "./errors.js";
+import {
+  BridgeConfigError,
+  BridgeHttpError,
+  BridgeNetworkError,
+  BridgeNotFoundError,
+} from "./errors.js";
 import { BridgeStorage } from "./storage.js";
 import type {
   BridgeOptions,
@@ -145,7 +150,10 @@ export class UnCordedBridge {
   }
 
   /** Send a message to a channel. */
-  async sendMessage(channelId: ChannelId, content: string): Promise<{ sent: boolean; error?: string }> {
+  async sendMessage(
+    channelId: ChannelId,
+    content: string,
+  ): Promise<{ sent: boolean; error?: string }> {
     return this.#post(`/bridge/channels/${encodeURIComponent(channelId)}/messages`, { content });
   }
 
@@ -167,7 +175,10 @@ export class UnCordedBridge {
   // ── Notifications ────────────────────────────────────────
 
   /** Send a notification. */
-  async notify(options: { title: string; body: string }): Promise<{ sent: boolean; error?: string }> {
+  async notify(options: {
+    title: string;
+    body: string;
+  }): Promise<{ sent: boolean; error?: string }> {
     return this.#post("/bridge/notify", options);
   }
 

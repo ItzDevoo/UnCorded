@@ -100,124 +100,165 @@ const Home = () => {
 
       {/* Sub-header */}
       <div class="flex shrink-0 items-center justify-center border-b border-border px-4 py-3">
-        <span class="font-semibold text-foreground">Welcome{username() ? `, ${username()}` : ""}</span>
+        <span class="font-semibold text-foreground">
+          Welcome{username() ? `, ${username()}` : ""}
+        </span>
       </div>
 
       <div class="flex flex-1 flex-col items-center justify-start gap-4 overflow-y-auto px-6 pt-[10vh] text-center">
-      <p class="max-w-md text-sm text-muted-foreground">
-        Select a server from the sidebar or start a DM to begin chatting.
-      </p>
+        <p class="max-w-md text-sm text-muted-foreground">
+          Select a server from the sidebar or start a DM to begin chatting.
+        </p>
 
-      {/* Poll Widget */}
-      <Show when={poll()}>
-        {(activePoll) => (
-          <div class="mt-4 w-full max-w-lg rounded-xl border border-border bg-card p-5 text-left">
-            <div class="mb-4">
-              <h2 class="text-base font-semibold text-foreground">Community Poll</h2>
-              <p class="text-xs text-muted-foreground">Vote for the next feature</p>
-            </div>
+        {/* Poll Widget */}
+        <Show when={poll()}>
+          {(activePoll) => (
+            <div class="mt-4 w-full max-w-lg rounded-xl border border-border bg-card p-5 text-left">
+              <div class="mb-4">
+                <h2 class="text-base font-semibold text-foreground">Community Poll</h2>
+                <p class="text-xs text-muted-foreground">Vote for the next feature</p>
+              </div>
 
-            <div class="flex flex-col gap-2">
-              <For each={activePoll().entries}>
-                {(entry) => (
-                  <Show
-                    when={hasVoted()}
-                    fallback={
-                      <div class="flex items-center gap-1">
-                        <button
-                          class={`flex flex-1 items-center gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
-                            voting()
-                              ? "pointer-events-none border-border opacity-50"
-                              : "border-border hover:border-primary/50 hover:bg-accent"
-                          }`}
-                          disabled={voting()}
-                          onClick={() => castVote(entry.feedbackId)}
-                        >
-                          <span class="flex size-4 shrink-0 items-center justify-center rounded-full border-2 border-muted-foreground" />
-                          <span class="flex-1 font-medium">{entry.title}</span>
-                        </button>
-                        <button
-                          class="shrink-0 rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                          title="View description"
-                          aria-label={`View description for ${entry.title}`}
-                          onClick={() => setViewingEntry(entry)}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
-                          </svg>
-                        </button>
-                      </div>
-                    }
-                  >
-                    {/* Results view */}
-                    {(() => {
-                      const total = activePoll().totalVotes ?? 0;
-                      const votes = entry.votes ?? 0;
-                      const pct = total > 0 ? Math.round((votes / total) * 100) : 0;
-                      const isUserChoice = activePoll().userVote === entry.feedbackId;
-                      return (
-                        <div class="relative overflow-hidden rounded-lg border border-border px-3 py-2.5">
-                          {/* Progress bar background */}
-                          <div
-                            class={`absolute inset-y-0 left-0 transition-all duration-500 ${
-                              isUserChoice ? "bg-primary/8" : "bg-muted"
+              <div class="flex flex-col gap-2">
+                <For each={activePoll().entries}>
+                  {(entry) => (
+                    <Show
+                      when={hasVoted()}
+                      fallback={
+                        <div class="flex items-center gap-1">
+                          <button
+                            class={`flex flex-1 items-center gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
+                              voting()
+                                ? "pointer-events-none border-border opacity-50"
+                                : "border-border hover:border-primary/50 hover:bg-accent"
                             }`}
-                            style={{ width: `${pct}%` }}
-                          />
-                          <div class="relative flex items-center gap-3">
-                            <Show when={isUserChoice}>
-                              <span class="flex size-4 shrink-0 items-center justify-center rounded-full bg-primary/60">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                                  <polyline points="20 6 9 17 4 12" />
-                                </svg>
-                              </span>
-                            </Show>
-                            <span class={`flex-1 text-sm font-medium ${isUserChoice ? "text-foreground" : ""}`}>
-                              {entry.title}
-                            </span>
-                            <span class="text-xs font-medium tabular-nums text-muted-foreground">
-                              {pct}%
-                            </span>
-                            <button
-                              class="shrink-0 rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                              title="View description"
-                              aria-label={`View description for ${entry.title}`}
-                              onClick={() => setViewingEntry(entry)}
+                            disabled={voting()}
+                            onClick={() => castVote(entry.feedbackId)}
+                          >
+                            <span class="flex size-4 shrink-0 items-center justify-center rounded-full border-2 border-muted-foreground" />
+                            <span class="flex-1 font-medium">{entry.title}</span>
+                          </button>
+                          <button
+                            class="shrink-0 rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                            title="View description"
+                            aria-label={`View description for ${entry.title}`}
+                            onClick={() => setViewingEntry(entry)}
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
                             >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
-                              </svg>
-                            </button>
-                          </div>
+                              <circle cx="12" cy="12" r="10" />
+                              <line x1="12" y1="16" x2="12" y2="12" />
+                              <line x1="12" y1="8" x2="12.01" y2="8" />
+                            </svg>
+                          </button>
                         </div>
-                      );
-                    })()}
-                  </Show>
-                )}
-              </For>
+                      }
+                    >
+                      {/* Results view */}
+                      {(() => {
+                        const total = activePoll().totalVotes ?? 0;
+                        const votes = entry.votes ?? 0;
+                        const pct = total > 0 ? Math.round((votes / total) * 100) : 0;
+                        const isUserChoice = activePoll().userVote === entry.feedbackId;
+                        return (
+                          <div class="relative overflow-hidden rounded-lg border border-border px-3 py-2.5">
+                            {/* Progress bar background */}
+                            <div
+                              class={`absolute inset-y-0 left-0 transition-all duration-500 ${
+                                isUserChoice ? "bg-primary/8" : "bg-muted"
+                              }`}
+                              style={{ width: `${pct}%` }}
+                            />
+                            <div class="relative flex items-center gap-3">
+                              <Show when={isUserChoice}>
+                                <span class="flex size-4 shrink-0 items-center justify-center rounded-full bg-primary/60">
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="10"
+                                    height="10"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="white"
+                                    stroke-width="3"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                  >
+                                    <polyline points="20 6 9 17 4 12" />
+                                  </svg>
+                                </span>
+                              </Show>
+                              <span
+                                class={`flex-1 text-sm font-medium ${isUserChoice ? "text-foreground" : ""}`}
+                              >
+                                {entry.title}
+                              </span>
+                              <span class="text-xs font-medium tabular-nums text-muted-foreground">
+                                {pct}%
+                              </span>
+                              <button
+                                class="shrink-0 rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                                title="View description"
+                                aria-label={`View description for ${entry.title}`}
+                                onClick={() => setViewingEntry(entry)}
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="14"
+                                  height="14"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                >
+                                  <circle cx="12" cy="12" r="10" />
+                                  <line x1="12" y1="16" x2="12" y2="12" />
+                                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </Show>
+                  )}
+                </For>
+              </div>
+
+              <Show when={activePoll().totalVotes != null}>
+                <p class="mt-3 text-xs text-muted-foreground">
+                  {activePoll().totalVotes} {activePoll().totalVotes === 1 ? "vote" : "votes"}
+                </p>
+              </Show>
             </div>
+          )}
+        </Show>
 
-            <Show when={activePoll().totalVotes != null}>
-              <p class="mt-3 text-xs text-muted-foreground">
-                {activePoll().totalVotes} {activePoll().totalVotes === 1 ? "vote" : "votes"}
-              </p>
-            </Show>
-          </div>
-        )}
-      </Show>
-
-      {/* Entry detail dialog */}
-      <Dialog open={viewingEntry() !== null} onOpenChange={(open) => { if (!open) setViewingEntry(null); }}>
-        <DialogContent onClose={() => setViewingEntry(null)}>
-          <DialogHeader>
-            <DialogTitle>{viewingEntry()?.title}</DialogTitle>
-            <DialogDescription>Feature request details</DialogDescription>
-          </DialogHeader>
-          <p class="whitespace-pre-wrap text-sm text-foreground">
-            {viewingEntry()?.description}
-          </p>
-        </DialogContent>
-      </Dialog>
+        {/* Entry detail dialog */}
+        <Dialog
+          open={viewingEntry() !== null}
+          onOpenChange={(open) => {
+            if (!open) setViewingEntry(null);
+          }}
+        >
+          <DialogContent onClose={() => setViewingEntry(null)}>
+            <DialogHeader>
+              <DialogTitle>{viewingEntry()?.title}</DialogTitle>
+              <DialogDescription>Feature request details</DialogDescription>
+            </DialogHeader>
+            <p class="whitespace-pre-wrap text-sm text-foreground">{viewingEntry()?.description}</p>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

@@ -104,7 +104,6 @@ const ShareVisualization = (props: Props) => {
 
       {/* Main layout: sender — lines — recipients */}
       <div ref={containerRef} class="relative flex min-h-[200px] items-center gap-0">
-
         {/* Sender (left) */}
         <div class="z-10 flex shrink-0 flex-col items-center gap-2" style={{ width: "100px" }}>
           <div class="relative">
@@ -112,7 +111,9 @@ const ShareVisualization = (props: Props) => {
               when={props.session.senderAvatarUrl}
               fallback={
                 <div class="flex h-16 w-16 items-center justify-center rounded-full bg-card ring-2 ring-primary/50 text-xl font-semibold text-foreground">
-                  {(props.session.senderDisplayName ?? props.session.senderUsername ?? "?").charAt(0).toUpperCase()}
+                  {(props.session.senderDisplayName ?? props.session.senderUsername ?? "?")
+                    .charAt(0)
+                    .toUpperCase()}
                 </div>
               }
             >
@@ -169,7 +170,11 @@ const ShareVisualization = (props: Props) => {
                     fill="none"
                     stroke={getLineColor(participant.status)}
                     stroke-width="1.5"
-                    stroke-dasharray={participant.status === "invited" || participant.status === "joined" ? "6 4" : "none"}
+                    stroke-dasharray={
+                      participant.status === "invited" || participant.status === "joined"
+                        ? "6 4"
+                        : "none"
+                    }
                     opacity="0.25"
                   />
 
@@ -201,7 +206,12 @@ const ShareVisualization = (props: Props) => {
                       <animateMotion dur="2s" repeatCount="indefinite" path={pathD()} />
                     </circle>
                     <circle r="1.5" fill={getLineColor("downloading")} opacity="0.4">
-                      <animateMotion dur="2s" repeatCount="indefinite" path={pathD()} begin="0.7s" />
+                      <animateMotion
+                        dur="2s"
+                        repeatCount="indefinite"
+                        path={pathD()}
+                        begin="0.7s"
+                      />
                     </circle>
                   </Show>
                 </>
@@ -219,7 +229,11 @@ const ShareVisualization = (props: Props) => {
             when={participants().length > 0}
             fallback={
               <div class="flex h-full items-center">
-                <p class="text-xs text-muted-foreground">Waiting for<br />recipients...</p>
+                <p class="text-xs text-muted-foreground">
+                  Waiting for
+                  <br />
+                  recipients...
+                </p>
               </div>
             }
           >
@@ -230,8 +244,12 @@ const ShareVisualization = (props: Props) => {
                     <Show
                       when={participant.avatarUrl}
                       fallback={
-                        <div class={`flex h-12 w-12 items-center justify-center rounded-full bg-card text-sm font-semibold text-foreground ${getBorderClass(participant.status)}`}>
-                          {(participant.displayName ?? participant.username ?? "?").charAt(0).toUpperCase()}
+                        <div
+                          class={`flex h-12 w-12 items-center justify-center rounded-full bg-card text-sm font-semibold text-foreground ${getBorderClass(participant.status)}`}
+                        >
+                          {(participant.displayName ?? participant.username ?? "?")
+                            .charAt(0)
+                            .toUpperCase()}
                         </div>
                       }
                     >

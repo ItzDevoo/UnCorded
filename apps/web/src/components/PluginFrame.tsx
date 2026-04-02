@@ -25,8 +25,7 @@ const PluginFrame = (props: PluginFrameProps) => {
   const [loading, setLoading] = createSignal(true);
   const [error, setError] = createSignal(false);
 
-  const isCrashed = () =>
-    props.plugin.status === "crashed" || props.plugin.status === "stopped";
+  const isCrashed = () => props.plugin.status === "crashed" || props.plugin.status === "stopped";
 
   const isStarting = () => props.plugin.status === "starting";
 
@@ -88,8 +87,7 @@ const PluginFrame = (props: PluginFrameProps) => {
   const isOffline = () => !iframeUrl();
 
   // Longer timeout for tunnel URLs (network latency)
-  const timeoutMs = () =>
-    (props.tunnelUrl || props.plugin.tunnelUrl) ? 20_000 : 15_000;
+  const timeoutMs = () => (props.tunnelUrl || props.plugin.tunnelUrl ? 20_000 : 15_000);
 
   // Reactive timeout — restarts when plugin ID or timeout duration changes
   createEffect(() => {
@@ -112,10 +110,7 @@ const PluginFrame = (props: PluginFrameProps) => {
     <div class="relative flex h-full w-full flex-col bg-background">
       {/* Error / crashed state */}
       <Show when={isCrashed() || error()}>
-        <Empty
-          title={errorTitle()}
-          description={errorDescription()}
-        >
+        <Empty title={errorTitle()} description={errorDescription()}>
           <button
             type="button"
             onClick={handleRestart}
@@ -165,7 +160,14 @@ const PluginFrame = (props: PluginFrameProps) => {
       </Show>
 
       {/* iframe — only render when plugin is running, ready, and URL is available */}
-      <Show when={(props.plugin.status === "running" || props.tunnelUrl) && !error() && !isOffline() && (props.plugin.ready === undefined || props.plugin.ready)}>
+      <Show
+        when={
+          (props.plugin.status === "running" || props.tunnelUrl) &&
+          !error() &&
+          !isOffline() &&
+          (props.plugin.ready === undefined || props.plugin.ready)
+        }
+      >
         <iframe
           src={iframeUrl()!}
           sandbox="allow-scripts allow-forms allow-popups"

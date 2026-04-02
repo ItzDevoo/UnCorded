@@ -71,7 +71,12 @@ const SubscriptionModal = (props: SubscriptionModalProps) => {
   onMount(load);
 
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) props.onClose(); }}>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) props.onClose();
+      }}
+    >
       <DialogContent class="max-w-md" onClose={props.onClose}>
         <Show when={loading()}>
           <div class="flex items-center justify-center py-12">
@@ -93,10 +98,14 @@ const SubscriptionModal = (props: SubscriptionModalProps) => {
               <GiftOnlyView
                 gift={gift()!}
                 onClose={props.onClose}
-                onSubscribe={props.onCheckout ? () => {
-                  props.onClose();
-                  props.onCheckout!(gift()!.tier);
-                } : undefined}
+                onSubscribe={
+                  props.onCheckout
+                    ? () => {
+                        props.onClose();
+                        props.onCheckout!(gift()!.tier);
+                      }
+                    : undefined
+                }
               />
             </Match>
 
@@ -203,7 +212,11 @@ const SubscriptionModal = (props: SubscriptionModalProps) => {
 
 // ── Gift-Only View ──────────────────────────────────────────────────────
 
-const GiftOnlyView = (props: { gift: GiftDetails; onClose: () => void; onSubscribe?: (() => void) | undefined }) => (
+const GiftOnlyView = (props: {
+  gift: GiftDetails;
+  onClose: () => void;
+  onSubscribe?: (() => void) | undefined;
+}) => (
   <>
     <DialogHeader>
       <DialogTitle>Your Subscription</DialogTitle>
@@ -230,13 +243,10 @@ const GiftOnlyView = (props: { gift: GiftDetails; onClose: () => void; onSubscri
     </div>
 
     <p class="mt-3 text-xs text-muted-foreground">
-      This subscription was gifted to you. You can also purchase your own subscription to ensure access after the gift expires. Billing starts immediately and runs alongside your gift.{" "}
+      This subscription was gifted to you. You can also purchase your own subscription to ensure
+      access after the gift expires. Billing starts immediately and runs alongside your gift.{" "}
       <Show when={props.onSubscribe}>
-        <button
-          type="button"
-          class="text-primary hover:underline"
-          onClick={props.onSubscribe}
-        >
+        <button type="button" class="text-primary hover:underline" onClick={props.onSubscribe}>
           Subscribe now
         </button>
       </Show>
@@ -301,8 +311,7 @@ const OverviewView = (props: {
           <Show when={props.sub.currentPeriodEnd}>
             {(end) => (
               <p>
-                {props.sub.cancelAtPeriodEnd ? "Access until" : "Next billing"}{" "}
-                {formatDate(end())}
+                {props.sub.cancelAtPeriodEnd ? "Access until" : "Next billing"} {formatDate(end())}
               </p>
             )}
           </Show>
@@ -416,8 +425,12 @@ const CancelView = (props: {
     <div class="rounded-lg border border-warning/30 bg-warning/5 p-4 text-sm text-foreground">
       <p>
         Your subscription will remain active until{" "}
-        <strong>{props.sub.currentPeriodEnd ? formatDate(props.sub.currentPeriodEnd) : "the end of your billing period"}</strong>.
-        After that, you'll be downgraded to the Free plan.
+        <strong>
+          {props.sub.currentPeriodEnd
+            ? formatDate(props.sub.currentPeriodEnd)
+            : "the end of your billing period"}
+        </strong>
+        . After that, you'll be downgraded to the Free plan.
       </p>
       <p class="mt-2 text-xs text-muted-foreground">
         You can resume your subscription at any time before then.
@@ -446,10 +459,7 @@ const CancelView = (props: {
 
 // ── Payment View ──────────────────────────────────────────────────────────
 
-const PaymentView = (props: {
-  onBack: () => void;
-  onSuccess: () => void;
-}) => {
+const PaymentView = (props: { onBack: () => void; onSuccess: () => void }) => {
   const [loading, setLoading] = createSignal(true);
   const [error, setError] = createSignal<string | null>(null);
   const [submitting, setSubmitting] = createSignal(false);
@@ -460,10 +470,7 @@ const PaymentView = (props: {
 
   onMount(async () => {
     try {
-      const [stripe, clientSecret] = await Promise.all([
-        getStripe(),
-        createSetupIntent(),
-      ]);
+      const [stripe, clientSecret] = await Promise.all([getStripe(), createSetupIntent()]);
 
       if (!stripe) {
         setError("Payment system unavailable");
@@ -577,8 +584,18 @@ const PaymentView = (props: {
 // ── Change Plan View ──────────────────────────────────────────────────────
 
 const plans = [
-  { tier: "supporter" as const, label: "Supporter", price: "$5/mo", features: "File sharing in servers, TURN relay, desktop app" },
-  { tier: "server_owner" as const, label: "Server Owner", price: "$10/mo", features: "Everything in Supporter + create & manage servers" },
+  {
+    tier: "supporter" as const,
+    label: "Supporter",
+    price: "$5/mo",
+    features: "File sharing in servers, TURN relay, desktop app",
+  },
+  {
+    tier: "server_owner" as const,
+    label: "Server Owner",
+    price: "$10/mo",
+    features: "Everything in Supporter + create & manage servers",
+  },
 ];
 
 const ChangePlanView = (props: {
@@ -638,7 +655,9 @@ const ChangePlanView = (props: {
           disabled={props.actionLoading || selected() === props.currentTier}
           onClick={() => props.onConfirm(selected())}
         >
-          {props.actionLoading ? "Switching..." : `Switch to ${TIER_LABELS[selected()] ?? selected()}`}
+          {props.actionLoading
+            ? "Switching..."
+            : `Switch to ${TIER_LABELS[selected()] ?? selected()}`}
         </button>
       </DialogFooter>
     </>

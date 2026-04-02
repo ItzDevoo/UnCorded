@@ -36,7 +36,11 @@ export class BridgeHttpError extends BridgeError {
   readonly body: string;
 
   constructor(httpMethod: string, path: string, statusCode: number, body: string) {
-    super(statusCode, "BRIDGE_HTTP_ERROR", `Bridge ${httpMethod} ${path} failed (${statusCode}): ${body}`);
+    super(
+      statusCode,
+      "BRIDGE_HTTP_ERROR",
+      `Bridge ${httpMethod} ${path} failed (${statusCode}): ${body}`,
+    );
     this.path = path;
     this.method = httpMethod;
     this.body = body;
@@ -44,10 +48,13 @@ export class BridgeHttpError extends BridgeError {
 
   override toPluginError(pluginId?: string): PluginError {
     const category: PluginErrorCategory =
-      this.statusCode === 403 ? "permission" :
-      this.statusCode === 429 ? "network" :
-      this.statusCode >= 500 ? "internal" :
-      "validation";
+      this.statusCode === 403
+        ? "permission"
+        : this.statusCode === 429
+          ? "network"
+          : this.statusCode >= 500
+            ? "internal"
+            : "validation";
     const retryable = this.statusCode === 429 || this.statusCode >= 500;
     return new PluginError(this.code, this.message, category, retryable, {
       pluginId,

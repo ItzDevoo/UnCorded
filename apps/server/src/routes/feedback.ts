@@ -114,11 +114,7 @@ export const feedbackRoutes = new Elysia({ prefix: "/api/feedback" })
     );
 
     await findOrThrow(
-      db
-        .select({ id: feedback.id })
-        .from(feedback)
-        .where(eq(feedback.id, params.id))
-        .limit(1),
+      db.select({ id: feedback.id }).from(feedback).where(eq(feedback.id, params.id)).limit(1),
       "Feedback",
     );
 
@@ -126,12 +122,7 @@ export const feedbackRoutes = new Elysia({ prefix: "/api/feedback" })
     const [existingVote] = await db
       .select({ id: feedbackVotes.id })
       .from(feedbackVotes)
-      .where(
-        and(
-          eq(feedbackVotes.feedbackId, params.id),
-          eq(feedbackVotes.userId, sessionUser.id),
-        ),
-      )
+      .where(and(eq(feedbackVotes.feedbackId, params.id), eq(feedbackVotes.userId, sessionUser.id)))
       .limit(1);
 
     if (existingVote) {

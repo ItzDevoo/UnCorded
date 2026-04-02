@@ -134,11 +134,21 @@ function sendImagesAndBroadcast(
   boardId: string,
 ): void {
   // Send existing images to new client
-  getImages(boardId).then((images) => {
-    for (const img of images) {
-      trySend(ws, JSON.stringify({ type: "image-init", id: img.id, dataURL: img.dataURL, mimeType: img.mimeType }));
-    }
-  }).catch(() => {});
+  getImages(boardId)
+    .then((images) => {
+      for (const img of images) {
+        trySend(
+          ws,
+          JSON.stringify({
+            type: "image-init",
+            id: img.id,
+            dataURL: img.dataURL,
+            mimeType: img.mimeType,
+          }),
+        );
+      }
+    })
+    .catch(() => {});
   broadcastRoomUsers(room);
 }
 
@@ -173,7 +183,7 @@ export function removeClient(ws: ServerWebSocket<{ boardId: string; clientId: st
 
 export function handleMessage(
   ws: ServerWebSocket<{ boardId: string; clientId: string }>,
-  message: string | Buffer
+  message: string | Buffer,
 ): void {
   const { boardId, clientId } = ws.data;
   const room = rooms.get(boardId);
@@ -198,8 +208,10 @@ export function handleMessage(
           for (const el of parsed.elements) {
             if (el && typeof el === "object" && "id" in el) {
               const local = localMap.get((el as { id: string }).id);
-              const localVer = local && typeof local === "object" && "version" in local
-                ? (local as { version: number }).version : 0;
+              const localVer =
+                local && typeof local === "object" && "version" in local
+                  ? (local as { version: number }).version
+                  : 0;
               const remoteVer = (el as { version?: number }).version ?? 0;
               if (remoteVer >= localVer) {
                 localMap.set((el as { id: string }).id, el);

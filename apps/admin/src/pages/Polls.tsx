@@ -97,9 +97,7 @@ const AdminPolls = () => {
     },
     {
       header: "Total Votes",
-      accessor: (row) => (
-        <span class="text-sm font-medium tabular-nums">{row.totalVotes}</span>
-      ),
+      accessor: (row) => <span class="text-sm font-medium tabular-nums">{row.totalVotes}</span>,
     },
     {
       header: "Winner",
@@ -107,11 +105,7 @@ const AdminPolls = () => {
         if (row.closedAt === null) return <span class="text-xs text-muted-foreground">—</span>;
         if (!row.winnerId) return <span class="text-xs text-muted-foreground">No votes</span>;
         const winner = row.entries.find((e) => e.feedbackId === row.winnerId);
-        return (
-          <span class="text-sm font-medium text-primary">
-            {winner?.title ?? "Unknown"}
-          </span>
-        );
+        return <span class="text-sm font-medium text-primary">{winner?.title ?? "Unknown"}</span>;
       },
     },
     {
@@ -119,11 +113,7 @@ const AdminPolls = () => {
       accessor: (row) => (
         <div class="flex justify-end" onClick={(e) => e.stopPropagation()}>
           <Show when={row.closedAt === null}>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setConfirmClose(row)}
-            >
+            <Button variant="destructive" size="sm" onClick={() => setConfirmClose(row)}>
               Close Poll
             </Button>
           </Show>
@@ -146,31 +136,30 @@ const AdminPolls = () => {
         onPageChange={(p) => fetchPolls(p)}
         loading={loading()}
         actions={
-          <Button
-            onClick={createPoll}
-            disabled={creating() || hasActivePoll()}
-          >
+          <Button onClick={createPoll} disabled={creating() || hasActivePoll()}>
             {creating() ? "Creating..." : "Create Poll"}
           </Button>
         }
         expandRow={(row) => (
           <div class="space-y-2">
-            <p class="text-xs font-medium text-muted-foreground">
-              Entries ({row.entries.length})
-            </p>
+            <p class="text-xs font-medium text-muted-foreground">Entries ({row.entries.length})</p>
             <div class="grid gap-2">
               <For each={row.entries}>
                 {(entry) => {
                   const isWinner = row.winnerId === entry.feedbackId;
                   return (
-                    <div class={`flex items-center justify-between rounded-lg border px-3 py-2 ${
-                      isWinner ? "border-primary/30 bg-primary/5" : "border-border"
-                    }`}>
+                    <div
+                      class={`flex items-center justify-between rounded-lg border px-3 py-2 ${
+                        isWinner ? "border-primary/30 bg-primary/5" : "border-border"
+                      }`}
+                    >
                       <div class="min-w-0 flex-1">
                         <p class={`text-sm font-medium ${isWinner ? "text-primary" : ""}`}>
                           {entry.title}
                           <Show when={isWinner}>
-                            <Badge variant="success" class="ml-2">Winner</Badge>
+                            <Badge variant="success" class="ml-2">
+                              Winner
+                            </Badge>
                           </Show>
                         </p>
                         <p class="mt-0.5 truncate text-xs text-muted-foreground">
@@ -186,7 +175,9 @@ const AdminPolls = () => {
               </For>
             </div>
             <div class="flex gap-6 text-xs text-muted-foreground">
-              <span>ID: <span class="font-mono text-foreground">{row.id}</span></span>
+              <span>
+                ID: <span class="font-mono text-foreground">{row.id}</span>
+              </span>
               <span>Created: {new Date(row.createdAt).toLocaleString()}</span>
               <Show when={row.closedAt}>
                 <span>Closed: {new Date(row.closedAt!).toLocaleString()}</span>
@@ -197,12 +188,18 @@ const AdminPolls = () => {
       />
 
       {/* Close Poll Confirmation Dialog */}
-      <Dialog open={confirmClose() !== null} onOpenChange={(open) => { if (!open) setConfirmClose(null); }}>
+      <Dialog
+        open={confirmClose() !== null}
+        onOpenChange={(open) => {
+          if (!open) setConfirmClose(null);
+        }}
+      >
         <DialogContent onClose={() => setConfirmClose(null)}>
           <DialogHeader>
             <DialogTitle>Close Poll</DialogTitle>
             <DialogDescription>
-              This will close the active poll and set the winning feature's status to "won_poll". This action cannot be undone.
+              This will close the active poll and set the winning feature's status to "won_poll".
+              This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

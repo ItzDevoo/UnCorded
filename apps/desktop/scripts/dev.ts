@@ -27,9 +27,12 @@ function buildMain(): ChildProcess {
     [
       "tsdown",
       "src/main/index.ts",
-      "--out-dir", "dist-electron/main",
-      "--format", "cjs",
-      "--external", "electron",
+      "--out-dir",
+      "dist-electron/main",
+      "--format",
+      "cjs",
+      "--external",
+      "electron",
       "--watch",
     ],
     {
@@ -47,9 +50,12 @@ function buildPreload(): ChildProcess {
     [
       "tsdown",
       "src/main/preload.ts",
-      "--out-dir", "dist-electron/main",
-      "--format", "cjs",
-      "--external", "electron",
+      "--out-dir",
+      "dist-electron/main",
+      "--format",
+      "cjs",
+      "--external",
+      "electron",
       "--watch",
     ],
     {
@@ -72,28 +78,23 @@ function startElectron(): void {
 }
 
 function spawnElectron(): void {
-
   console.log("[dev] Starting Electron...");
   // Default to live URL unless UNCORDED_LOCAL=1 is set (for local web dev)
   const useLocal = process.env["UNCORDED_LOCAL"] === "1";
   const webUrl = useLocal ? "http://localhost:5173" : "https://uncorded.app";
   console.log(`[dev] Loading web app from: ${webUrl}`);
 
-  electronProcess = spawn(
-    "bunx",
-    ["electron", "."],
-    {
-      cwd: ROOT,
-      stdio: "inherit",
-      env: {
-        ...process.env,
-        NODE_ENV: "development",
-        UNCORDED_WEB_URL: webUrl,
-        UNCORDED_API_URL: process.env["UNCORDED_API_URL"] ?? webUrl,
-      },
-      shell: true,
+  electronProcess = spawn("bunx", ["electron", "."], {
+    cwd: ROOT,
+    stdio: "inherit",
+    env: {
+      ...process.env,
+      NODE_ENV: "development",
+      UNCORDED_WEB_URL: webUrl,
+      UNCORDED_API_URL: process.env["UNCORDED_API_URL"] ?? webUrl,
     },
-  );
+    shell: true,
+  });
 
   electronProcess.on("exit", (code) => {
     console.log(`[dev] Electron exited (code=${code})`);

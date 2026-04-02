@@ -31,8 +31,7 @@ export interface ServerPluginInfo {
 
 // ── Desktop detection ──────────────────────────────────────────────────────
 
-export const isDesktop = () =>
-  typeof window !== "undefined" && "desktopBridge" in window;
+export const isDesktop = () => typeof window !== "undefined" && "desktopBridge" in window;
 
 // ── Signals ────────────────────────────────────────────────────────────────
 
@@ -58,15 +57,12 @@ const [serverPluginsLoading, setServerPluginsLoading] = createSignal(false);
 const activeServerPlugin = () =>
   serverPlugins().find((p) => p.pluginId === activeServerPluginId()) ?? null;
 
-const visibleServerPlugins = () =>
-  serverPlugins().filter((p) => p.state === "active");
+const visibleServerPlugins = () => serverPlugins().filter((p) => p.state === "active");
 
 async function fetchServerPlugins(serverId: string): Promise<void> {
   setServerPluginsLoading(true);
   try {
-    const res = await api<{ plugins: ServerPluginInfo[] }>(
-      `/api/servers/${serverId}/plugins`,
-    );
+    const res = await api<{ plugins: ServerPluginInfo[] }>(`/api/servers/${serverId}/plugins`);
     setServerPlugins(res.plugins);
   } catch {
     setServerPlugins([]);
@@ -99,8 +95,8 @@ export function setupPluginStore(): void {
 
   disposeRoot = createRoot((dispose) => {
     // Fetch initial plugin list
-    window.desktopBridge!.plugins
-      .getAll()
+    window
+      .desktopBridge!.plugins.getAll()
       .then((list) => setPlugins(list))
       .catch((err: unknown) => {
         if (import.meta.env.DEV) console.error("[plugin-store] getAll failed:", err);

@@ -111,10 +111,7 @@ const ResetPassword = () => {
             />
           </div>
           <div>
-            <label
-              for="reset-confirm"
-              class="mb-1 block text-sm font-medium text-muted-foreground"
-            >
+            <label for="reset-confirm" class="mb-1 block text-sm font-medium text-muted-foreground">
               Confirm Password
             </label>
             <Input

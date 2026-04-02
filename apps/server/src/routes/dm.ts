@@ -77,12 +77,25 @@ export const dmRoutes = new Elysia({ prefix: "/api/dms" })
       const [raceChannel] = await db
         .select({ channelId: dmMembers.channelId })
         .from(dmMembers)
-        .where(and(eq(dmMembers.userId, targetId), inArray(dmMembers.channelId,
-          db.select({ channelId: dmMembers.channelId }).from(dmMembers).where(eq(dmMembers.userId, sessionUser.id))
-        )))
+        .where(
+          and(
+            eq(dmMembers.userId, targetId),
+            inArray(
+              dmMembers.channelId,
+              db
+                .select({ channelId: dmMembers.channelId })
+                .from(dmMembers)
+                .where(eq(dmMembers.userId, sessionUser.id)),
+            ),
+          ),
+        )
         .limit(1);
 
-      const [otherUser] = await db.select(userPublicFields).from(user).where(eq(user.id, targetId)).limit(1);
+      const [otherUser] = await db
+        .select(userPublicFields)
+        .from(user)
+        .where(eq(user.id, targetId))
+        .limit(1);
 
       return {
         id: brandDmChannelId(raceChannel!.channelId),

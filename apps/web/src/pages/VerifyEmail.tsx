@@ -51,16 +51,11 @@ const VerifyEmail = () => {
 
         <p class="mb-6 text-sm text-secondary-foreground">
           We sent a verification link to{" "}
-          <span class="font-medium text-foreground">{email() || "your email"}</span>.
-          Click it to verify your account.
+          <span class="font-medium text-foreground">{email() || "your email"}</span>. Click it to
+          verify your account.
         </p>
 
-        <Button
-          variant="outline"
-          class="w-full"
-          disabled={resending()}
-          onClick={handleResend}
-        >
+        <Button variant="outline" class="w-full" disabled={resending()} onClick={handleResend}>
           {resending() ? "Sending..." : resent() ? "Sent!" : error() ? "Retry" : "Resend Email"}
         </Button>
 
@@ -68,9 +63,7 @@ const VerifyEmail = () => {
           <p class="mt-3 text-sm text-destructive">{error()}</p>
         </Show>
 
-        <p class="mt-4 text-xs text-muted-foreground">
-          Didn't receive it? Check your spam folder.
-        </p>
+        <p class="mt-4 text-xs text-muted-foreground">Didn't receive it? Check your spam folder.</p>
 
         <button
           type="button"

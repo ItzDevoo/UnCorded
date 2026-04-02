@@ -148,9 +148,7 @@ export function setupNotificationStore(): void {
       id: `file-${d.fileReceiptId}`,
       subtitle: "Click to view file",
       durationMs: 60_000,
-      onClick: dmChId
-        ? () => selectDmChannel(dmChId as DmChannelId)
-        : undefined,
+      onClick: dmChId ? () => selectDmChannel(dmChId as DmChannelId) : undefined,
     });
     notifyBrowser(`UnCorded — ${name}`, `Sending a ${ext} file`);
   });

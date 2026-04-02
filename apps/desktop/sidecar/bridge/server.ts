@@ -51,21 +51,32 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
 
     .post("/plugins/install", async ({ body }) => {
       const parsed = body as Record<string, unknown> | null;
-      if (!parsed || typeof parsed !== "object" || !("manifest" in parsed) || parsed.manifest == null) {
-        throw new Response(JSON.stringify({ error: "Request body must include a 'manifest' object" }), {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        });
+      if (
+        !parsed ||
+        typeof parsed !== "object" ||
+        !("manifest" in parsed) ||
+        parsed.manifest == null
+      ) {
+        throw new Response(
+          JSON.stringify({ error: "Request body must include a 'manifest' object" }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
       }
-      const scope = parsed.scope === "server" ? "server" as const : "personal" as const;
+      const scope = parsed.scope === "server" ? ("server" as const) : ("personal" as const);
       const serverId = typeof parsed.serverId === "string" ? parsed.serverId : undefined;
 
       // Server-scoped installs must provide a real serverId
       if (scope === "server" && !serverId) {
-        throw new Response(JSON.stringify({ error: "serverId is required for server-scoped plugins" }), {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        });
+        throw new Response(
+          JSON.stringify({ error: "serverId is required for server-scoped plugins" }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
       }
 
       const result = await options.plugins.install(parsed.manifest, serverId ?? "local", scope);
@@ -199,9 +210,7 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
       if (result.errors && result.errors.length > 0) {
         const joined = result.errors.join(", ");
         // Permanent validation failures — don't requeue
-        const isPermanent = result.errors.some((e) =>
-          /not found|manifest|scope|parse/i.test(e),
-        );
+        const isPermanent = result.errors.some((e) => /not found|manifest|scope|parse/i.test(e));
         if (!isPermanent) {
           reinsertPendingUpdate(update);
         }

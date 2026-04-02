@@ -36,6 +36,8 @@ import {
   updateAllowedOrigins,
 } from "../lib/plugin-bridge.js";
 import FileReceiveModal from "./modals/FileReceiveModal.js";
+import InstallPrompt from "./InstallPrompt.js";
+
 const AppLayout: ParentComponent = (props) => {
   const session = useSession();
   const [showConnected, setShowConnected] = createSignal(false);
@@ -152,6 +154,7 @@ const AppLayout: ParentComponent = (props) => {
         <AppSidebar />
         <SidebarInset>
           <VerificationBanner />
+          <InstallPrompt />
           <div class="relative flex min-h-0 flex-1 flex-col overflow-hidden">
             {/* Always render children so chat content persists during disconnects */}
             <div

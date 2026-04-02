@@ -1,7 +1,8 @@
 /**
  * Shared overlay history manager.
- * Pushes history entries when overlays open so the Android back button
- * (and browser back) closes overlays instead of navigating away.
+ *
+ * Maintains exactly ONE history entry while any overlay is open, zero when none are.
+ * Back button closes the topmost overlay. Escape/click close also cleans up correctly.
  */
 
 type CloseCallback = () => void;
@@ -20,6 +21,8 @@ let handlingPopstate = false;
 /** Count of popstate events to suppress (triggered by our own history.back() cleanup). */
 let skipPopstateCount = 0;
 
+const HISTORY_STATE = { overlay: true } as const;
+
 function onPopstate(event: Event): void {
   if (skipPopstateCount > 0) {
     skipPopstateCount--;
@@ -27,18 +30,18 @@ function onPopstate(event: Event): void {
   }
   if (stack.length === 0) return;
 
-  // Validate that the history state matches the topmost overlay
-  const top = stack[stack.length - 1]!;
-  const state = (event as PopStateEvent).state as { overlayId?: string } | null;
-  if (!state?.overlayId || state.overlayId !== top.id) return;
-
   // Prevent SolidJS router from also handling this popstate
   event.stopImmediatePropagation();
 
-  stack.pop();
+  const entry = stack.pop()!;
   handlingPopstate = true;
-  top.close();
+  entry.close();
   handlingPopstate = false;
+
+  // If overlays remain, re-push the single history guard entry
+  if (stack.length > 0) {
+    history.pushState(HISTORY_STATE, "");
+  }
 }
 
 function ensureListening(): void {
@@ -47,26 +50,26 @@ function ensureListening(): void {
   listening = true;
 }
 
-/** Register an overlay. Pushes a history entry so back-button closes it. */
+/** Register an overlay. Pushes a history entry only for the first overlay. */
 export function pushOverlay(id: string, close: CloseCallback): void {
   ensureListening();
+  const wasEmpty = stack.length === 0;
   stack.push({ id, close });
-  history.pushState({ overlayId: id }, "");
+  if (wasEmpty) {
+    history.pushState(HISTORY_STATE, "");
+  }
 }
 
-/** Unregister an overlay. Cleans up the matching history entry if needed. */
+/** Unregister an overlay. Cleans up the history entry when the last overlay closes. */
 export function popOverlay(id: string): void {
   const idx = stack.findIndex((e) => e.id === id);
   if (idx === -1) return;
-
-  const wasTopmost = idx === stack.length - 1;
   stack.splice(idx, 1);
 
   if (handlingPopstate) return;
 
-  // Only manipulate history for the topmost overlay — non-topmost entries
-  // don't have the matching history state on top of the history stack
-  if (wasTopmost) {
+  // When the last overlay closes via Escape/click, clean up the single history entry
+  if (stack.length === 0) {
     skipPopstateCount++;
     history.back();
   }

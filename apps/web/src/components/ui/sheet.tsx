@@ -101,7 +101,7 @@ const SheetContent = (props: SheetContentProps) => {
 
   return (
     <Portal mount={document.body}>
-      <div class="fixed inset-0 z-50 flex" onClick={() => local.onClose?.()}>
+      <div class="fixed inset-0 z-50 flex" onClick={close}>
         {/* Overlay */}
         <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" />
 

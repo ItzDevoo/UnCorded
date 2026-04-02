@@ -120,7 +120,9 @@ describe("authResolve", () => {
       });
       const resolve = authResolve({ allowBots: true });
 
-      await expect(resolve({ request: fakeRequest() })).rejects.toBeInstanceOf(ForbiddenError);
+      await expect(
+        resolve({ request: fakeRequest({ authorization: "Bearer uncrd_banned" }) }),
+      ).rejects.toBeInstanceOf(ForbiddenError);
     });
 
     it("throws UnauthorizedError when bot auth also fails", async () => {
@@ -128,7 +130,9 @@ describe("authResolve", () => {
       mockGetBotSession.mockResolvedValueOnce(null);
       const resolve = authResolve({ allowBots: true });
 
-      await expect(resolve({ request: fakeRequest() })).rejects.toBeInstanceOf(UnauthorizedError);
+      await expect(
+        resolve({ request: fakeRequest({ authorization: "Bearer uncrd_invalid" }) }),
+      ).rejects.toBeInstanceOf(UnauthorizedError);
     });
   });
 });

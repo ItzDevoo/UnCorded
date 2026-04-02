@@ -24,11 +24,6 @@ import { validateInput } from "../helpers/validation.js";
 
 const DEFAULT_LIMIT = MESSAGE_PAGE_LIMIT;
 
-/** Escape HTML entities in message content (defense-in-depth, sanitize on write). */
-function sanitizeContent(text: string): string {
-  return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-}
-
 const listQuerySchema = z.object({
   before: z.string().min(1).optional(),
   after: z.string().min(1).optional(),
@@ -102,14 +97,12 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
       throw new ValidationError("Message content is required");
     }
 
-    const content = sanitizeContent(parsed.content);
-
     const [inserted] = await db
       .insert(messages)
       .values({
         channelId: params.channelId,
         authorId: sessionUser.id,
-        content,
+        content: parsed.content,
       })
       .returning();
 
@@ -236,6 +229,13 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
 
   // PATCH /:messageId — Edit message
   .patch("/:messageId", async ({ user: sessionUser, params, body }) => {
+    await checkUserRateLimit(
+      sessionUser.id,
+      RL.MESSAGE_EDIT,
+      RATE_LIMIT_MESSAGE_CREATE.limit,
+      RATE_LIMIT_MESSAGE_CREATE.windowMs,
+    );
+
     const resolution = await resolveChannel(params.channelId, sessionUser.id);
 
     const parsed = validateInput(updateMessageSchema, body);
@@ -255,11 +255,10 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
       throw new ForbiddenError("Only the author can edit this message");
     }
 
-    const sanitizedContent = sanitizeContent(parsed.content);
     const editedAt = new Date();
     await db
       .update(messages)
-      .set({ content: sanitizedContent, editedAt })
+      .set({ content: parsed.content, editedAt })
       .where(eq(messages.id, params.messageId));
 
     const updated = await fetchMessageWithAuthor(params.messageId);
@@ -269,7 +268,7 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
       d: {
         id: messageId(params.messageId),
         channelId: channelId(params.channelId),
-        content: sanitizedContent,
+        content: parsed.content,
         editedAt,
       },
     } as const;

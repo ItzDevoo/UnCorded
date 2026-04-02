@@ -2,7 +2,6 @@ import { lazy, ErrorBoundary } from "solid-js";
 import { Router, Route } from "@solidjs/router";
 import AppLayout from "./components/AppLayout.js";
 import OfflineIndicator from "./components/OfflineIndicator.js";
-import InstallPrompt from "./components/InstallPrompt.js";
 import "./stores/theme-store.js"; // Initialize theme on app load
 
 // Public pages
@@ -79,7 +78,6 @@ const App = () => {
       )}
     >
       <OfflineIndicator />
-      <InstallPrompt />
       <Router>
         {/* Public */}
         <Route path="/" component={Landing} />

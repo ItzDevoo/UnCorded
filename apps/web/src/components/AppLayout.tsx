@@ -2,6 +2,7 @@ import {
   onCleanup,
   onMount,
   createEffect,
+  createSignal,
   Show,
   on,
   type ParentComponent,
@@ -38,11 +39,26 @@ import FileReceiveModal from "./modals/FileReceiveModal.js";
 
 const AppLayout: ParentComponent = (props) => {
   const session = useSession();
+  const [showConnected, setShowConnected] = createSignal(false);
+  let wasDisconnected = false;
 
   createEffect(() => {
     const s = session();
     if (s.data?.session && gatewayStatus() === "disconnected") {
       connectGateway();
+    }
+  });
+
+  // Show "Connected" banner briefly when transitioning to connected
+  createEffect(() => {
+    const status = gatewayStatus();
+    if (status === "connecting" || status === "disconnected") {
+      wasDisconnected = true;
+    }
+    if (status === "connected" && wasDisconnected) {
+      wasDisconnected = false;
+      setShowConnected(true);
+      setTimeout(() => setShowConnected(false), 2000);
     }
   });
 
@@ -172,6 +188,16 @@ const AppLayout: ParentComponent = (props) => {
                   <div class="h-4 w-4 animate-spin rounded-full border-2 border-warning-foreground border-t-transparent" />
                   <span>Connecting to UnCorded...</span>
                 </Show>
+              </div>
+            </Show>
+
+            {/* Connected success banner — briefly shown after connection established */}
+            <Show when={showConnected()}>
+              <div class="absolute inset-x-0 top-0 z-10 flex items-center justify-center gap-2 bg-success/90 px-3 py-2 text-sm font-medium text-success-foreground">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Connected to UnCorded</span>
               </div>
             </Show>
           </div>

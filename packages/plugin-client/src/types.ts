@@ -56,7 +56,7 @@ export interface PluginResponse {
   type: "uncorded:response";
   id: string;
   result?: unknown;
-  error?: { code: string; message: string };
+  error?: { code: string; message: string; category?: string; retryable?: boolean; pluginId?: string; causeCode?: string };
 }
 
 /** postMessage event (shell → plugin). */

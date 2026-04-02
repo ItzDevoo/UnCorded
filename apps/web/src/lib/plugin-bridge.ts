@@ -6,8 +6,10 @@
  */
 
 import type { ChannelId } from "@uncorded/protocol";
+import type { PluginErrorPayload } from "@uncorded/shared";
 import { readyData, channelCache } from "./gateway-store.js";
 import { api } from "./api.js";
+import { classifyBridgeError } from "./plugin-errors.js";
 import {
   plugins,
   type PluginInfo,
@@ -28,7 +30,7 @@ interface PluginResponse {
   type: "uncorded:response";
   id: string;
   result?: unknown;
-  error?: { code: string; message: string };
+  error?: PluginErrorPayload;
 }
 
 interface PluginEvent {
@@ -213,10 +215,10 @@ async function handleMessage(event: MessageEvent): Promise<void> {
     sendResponse(source, event.origin, {
       type: "uncorded:response",
       id: data.id,
-      error: {
-        code: "FORBIDDEN",
-        message: `Missing permission: ${required ?? data.method}`,
-      },
+      error: classifyBridgeError(
+        { code: "FORBIDDEN", message: `Missing permission: ${required ?? data.method}` },
+        pluginId,
+      ),
     });
     return;
   }
@@ -227,7 +229,10 @@ async function handleMessage(event: MessageEvent): Promise<void> {
     sendResponse(source, event.origin, {
       type: "uncorded:response",
       id: data.id,
-      error: { code: "UNKNOWN_METHOD", message: `Unknown method: ${data.method}` },
+      error: classifyBridgeError(
+        { code: "UNKNOWN_METHOD", message: `Unknown method: ${data.method}` },
+        pluginId,
+      ),
     });
     return;
   }
@@ -240,14 +245,10 @@ async function handleMessage(event: MessageEvent): Promise<void> {
       result,
     });
   } catch (err) {
-    const typed = err as { code?: string; message?: string };
     sendResponse(source, event.origin, {
       type: "uncorded:response",
       id: data.id,
-      error: {
-        code: typed.code ?? "INTERNAL_ERROR",
-        message: typed.message ?? "An unexpected error occurred",
-      },
+      error: classifyBridgeError(err, pluginId),
     });
   }
 }

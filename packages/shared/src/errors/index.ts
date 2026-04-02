@@ -6,3 +6,5 @@ export { ConflictError } from "./conflict.js";
 export { RateLimitError } from "./rate-limit.js";
 export { InternalError } from "./internal.js";
 export { BadGatewayError, ServiceUnavailableError } from "./gateway.js";
+export { PluginError } from "./plugin.js";
+export type { PluginErrorPayload, PluginErrorCategory } from "./plugin.js";

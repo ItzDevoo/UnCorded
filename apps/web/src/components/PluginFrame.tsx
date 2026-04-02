@@ -1,7 +1,19 @@
 import { createSignal, createEffect, Show, onCleanup } from "solid-js";
+import type { PluginErrorCategory } from "@uncorded/shared";
 import type { PluginInfo } from "../stores/plugin-store.js";
 import { isDesktop } from "../stores/plugin-store.js";
+import { showToast } from "./ui/toast.js";
 import { Empty } from "./ui/empty.js";
+
+const CATEGORY_TITLES: Record<PluginErrorCategory, string> = {
+  lifecycle: "Plugin crashed",
+  configuration: "Configuration error",
+  resource: "Resource limit exceeded",
+  network: "Connection lost",
+  permission: "Permission denied",
+  validation: "Plugin error",
+  internal: "Plugin error",
+};
 
 interface PluginFrameProps {
   plugin: PluginInfo;
@@ -34,10 +46,25 @@ const PluginFrame = (props: PluginFrameProps) => {
     setError(true);
   };
 
+  const errorTitle = () => {
+    const payload = props.plugin.errorPayload;
+    if (payload) return CATEGORY_TITLES[payload.category] ?? "Plugin error";
+    if (isCrashed()) return `Plugin ${props.plugin.status}`;
+    return "Plugin failed to load";
+  };
+
+  const errorDescription = () => {
+    const fallback = `"${props.plugin.name}" is not responding.`;
+    const payload = props.plugin.errorPayload;
+    if (payload) return payload.message.trim() || fallback;
+    return fallback;
+  };
+
   const handleRestart = () => {
     if (!isDesktop()) return;
     window.desktopBridge!.plugins.restart(props.plugin.id).catch((err: unknown) => {
       if (import.meta.env.DEV) console.error("[PluginFrame] restart failed:", err);
+      showToast("Failed to restart plugin", "error");
     });
   };
 
@@ -86,8 +113,8 @@ const PluginFrame = (props: PluginFrameProps) => {
       {/* Error / crashed state */}
       <Show when={isCrashed() || error()}>
         <Empty
-          title={`Plugin ${isCrashed() ? props.plugin.status : "failed to load"}`}
-          description={`"${props.plugin.name}" is not responding.`}
+          title={errorTitle()}
+          description={errorDescription()}
         >
           <button
             type="button"

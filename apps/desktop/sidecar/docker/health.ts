@@ -19,7 +19,7 @@ interface HealthState {
   timer: ReturnType<typeof setTimeout> | null;
 }
 
-type StatusChangeHandler = (pluginId: string, status: "healthy" | "unhealthy" | "crashed") => void;
+type StatusChangeHandler = (pluginId: string, status: "healthy" | "unhealthy" | "crashed", reason?: string) => void;
 type ReadyChangeHandler = (pluginId: string, ready: boolean) => void;
 
 export class HealthMonitor {
@@ -83,7 +83,7 @@ export class HealthMonitor {
         );
         if (!this.isActive(state)) return;
         this.onReadyChange?.(state.pluginId, false);
-        this.onStatusChange?.(state.pluginId, "unhealthy");
+        this.onStatusChange?.(state.pluginId, "unhealthy", `Readiness timed out after ${READINESS_TIMEOUT_MS}ms`);
         this.stopMonitoring(state.pluginId);
         return;
       }
@@ -201,7 +201,7 @@ export class HealthMonitor {
           console.error(`[health] Plugin ${state.pluginId} unhealthy (${state.consecutiveFailures} failures), restarting...`);
           state.autoRestarts++;
           state.consecutiveFailures = 0;
-          this.onStatusChange?.(state.pluginId, "unhealthy");
+          this.onStatusChange?.(state.pluginId, "unhealthy", `Health check failed ${MAX_CONSECUTIVE_FAILURES} times, auto-restarting (attempt ${state.autoRestarts}/${MAX_AUTO_RESTARTS})`);
 
           try {
             await this.docker.stopContainer(state.containerId);
@@ -219,14 +219,15 @@ export class HealthMonitor {
             this.pollReadiness(state, READINESS_INITIAL_INTERVAL_MS, Date.now());
             return false; // stop health check cycle — readiness will restart it
           } catch (err) {
+            const reason = `Restart failed: ${err instanceof Error ? err.message : String(err)}`;
             console.error(`[health] Failed to restart plugin ${state.pluginId}:`, err);
-            this.onStatusChange?.(state.pluginId, "crashed");
+            this.onStatusChange?.(state.pluginId, "crashed", reason);
             this.stopMonitoring(state.pluginId);
             return false;
           }
         } else {
           console.error(`[health] Plugin ${state.pluginId} exceeded max restarts, marking crashed`);
-          this.onStatusChange?.(state.pluginId, "crashed");
+          this.onStatusChange?.(state.pluginId, "crashed", `Exceeded maximum auto-restarts (${MAX_AUTO_RESTARTS})`);
           this.stopMonitoring(state.pluginId);
           return false;
         }

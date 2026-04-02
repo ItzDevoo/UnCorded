@@ -1,4 +1,5 @@
 import type { ChannelId } from "@uncorded/protocol";
+import { PluginError } from "@uncorded/shared";
 import { BridgeError, PluginDestroyedError, RequestTimeoutError } from "./errors.js";
 import type {
   Channel,
@@ -30,6 +31,7 @@ export class UnCordedPlugin {
   readonly #shellOrigin: string;
   readonly #timeoutMs: number;
   #idCounter = 0;
+  readonly #errorHandlers = new Set<(error: Error) => void>();
 
   constructor(options?: PluginOptions) {
     this.#timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -110,7 +112,10 @@ export class UnCordedPlugin {
       this.#pending.delete(response.id);
 
       if (response.error) {
-        pending.reject(new BridgeError(response.error.code, response.error.message));
+        const err = PluginError.isPayload(response.error)
+          ? PluginError.fromPayload(response.error)
+          : new BridgeError(response.error.code, response.error.message);
+        pending.reject(err);
       } else {
         pending.resolve(response.result);
       }
@@ -122,7 +127,13 @@ export class UnCordedPlugin {
       const handlers = this.#listeners.get(pluginEvent.event);
       if (handlers) {
         for (const handler of handlers) {
-          handler(pluginEvent.data);
+          try {
+            handler(pluginEvent.data);
+          } catch (err) {
+            console.error(`[uncorded] Event handler for "${pluginEvent.event}" threw:`, err);
+            const wrapped = err instanceof Error ? err : new Error(String(err));
+            for (const eh of this.#errorHandlers) eh(wrapped);
+          }
         }
       }
     }
@@ -191,5 +202,13 @@ export class UnCordedPlugin {
       set.delete(handler as (data: unknown) => void);
       if (set.size === 0) this.#listeners.delete(event);
     }
+  }
+
+  /** Register a global error handler. Returns a cleanup function. */
+  onError(handler: (error: Error) => void): () => void {
+    this.#errorHandlers.add(handler);
+    return () => {
+      this.#errorHandlers.delete(handler);
+    };
   }
 }

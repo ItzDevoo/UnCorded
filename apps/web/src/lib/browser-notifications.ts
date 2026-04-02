@@ -3,7 +3,6 @@ let permissionState: NotificationPermission = "default";
 export function initBrowserNotifications(): void {
   if (!("Notification" in window)) return;
   permissionState = Notification.permission;
-  registerServiceWorker();
 }
 
 export async function requestPermission(): Promise<boolean> {
@@ -30,12 +29,4 @@ export function showBrowserNotification(title: string, body: string): void {
     window.focus();
     notification.close();
   });
-}
-
-function registerServiceWorker(): void {
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/sw.js").catch(() => {
-      // Non-critical — PWA features degrade gracefully
-    });
-  }
 }

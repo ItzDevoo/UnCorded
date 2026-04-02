@@ -36,6 +36,7 @@ import {
   updateAllowedOrigins,
 } from "../lib/plugin-bridge.js";
 import FileReceiveModal from "./modals/FileReceiveModal.js";
+import InstallPrompt from "./InstallPrompt.js";
 
 const AppLayout: ParentComponent = (props) => {
   const session = useSession();
@@ -137,6 +138,7 @@ const AppLayout: ParentComponent = (props) => {
 
   return (
     <AuthGuard>
+      <InstallPrompt />
       <ToastContainer />
       <ShortcutsDialog />
       <GiftNotification />

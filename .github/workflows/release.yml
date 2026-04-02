@@ -1,6 +1,8 @@
 name: Release Desktop App
 
 on:
+  push:
+    tags: ["v*.*.*"]
   workflow_dispatch:
     inputs:
       version:
@@ -10,7 +12,7 @@ on:
 
 jobs:
   preflight:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.validate.outputs.version }}
       tag: ${{ steps.validate.outputs.tag }}
@@ -31,10 +33,17 @@ jobs:
       - run: bun run typecheck
       - run: bun run lint
       - run: bun run test
-      - name: Validate version
+      - name: Resolve version
         id: validate
         run: |
-          VERSION="${{ inputs.version }}"
+          # Tag push: extract version from tag; manual dispatch: use input
+          if [[ -n "${{ github.ref_name }}" && "${{ github.ref_type }}" == "tag" ]]; then
+            VERSION="${{ github.ref_name }}"
+            VERSION="${VERSION#v}"  # strip leading v
+          else
+            VERSION="${{ inputs.version }}"
+          fi
+
           if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
             echo "Invalid semver: $VERSION"
             exit 1
@@ -103,7 +112,7 @@ jobs:
 
   release:
     needs: [preflight, build]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:

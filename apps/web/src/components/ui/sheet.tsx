@@ -1,6 +1,7 @@
 import { Show, onMount, onCleanup, splitProps, type JSX } from "solid-js";
 import { Portal } from "solid-js/web";
 import { cn } from "../../lib/cn.js";
+import { pushOverlay, popOverlay } from "../../lib/overlay-history.js";
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -49,14 +50,18 @@ const SheetContent = (props: SheetContentProps) => {
   // oxlint-disable-next-line eslint(no-unassigned-vars) -- SolidJS ref pattern
   let panelRef!: HTMLDivElement;
 
+  const overlayId = `sheet-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
   onMount(() => {
     lockScroll();
     local.onPanelRef?.(panelRef);
+    pushOverlay(overlayId, () => local.onClose?.());
     const first = panelRef.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
     first?.focus();
   });
 
   onCleanup(() => {
+    popOverlay(overlayId);
     unlockScroll();
     local.onPanelRef?.(undefined);
   });

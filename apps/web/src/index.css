@@ -269,6 +269,33 @@ body::after {
   }
 }
 
+/* ── Mobile UX ─────────────────────────────────────────────────────── */
+
+/* Safe area insets — notch, home indicator, punch-hole cameras */
+#app {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  box-sizing: border-box;
+}
+
+/* Prevent double-tap zoom on interactive elements */
+button,
+a,
+input,
+select,
+textarea,
+[role="button"] {
+  touch-action: manipulation;
+}
+
+/* Prevent pull-to-refresh and overscroll bounce in scrollable panels */
+[data-slot="sidebar-content"],
+[data-slot="virtual-message-list"] {
+  overscroll-behavior: contain;
+}
+
 .no-transitions *,
 .no-transitions *::before,
 .no-transitions *::after {

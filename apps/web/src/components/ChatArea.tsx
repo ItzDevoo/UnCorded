@@ -21,6 +21,7 @@ import FileDropZone from "./FileDropZone.js";
 import MemberList from "./MemberList.js";
 import { StatusDotInline, type UserStatus } from "./StatusDot.js";
 import { Sheet, SheetContent } from "./ui/sheet.js";
+import { createSwipeGesture } from "../lib/create-swipe-gesture.js";
 
 const ChatArea = () => {
   // Use Sheet overlay when viewport is too narrow for inline member list.
@@ -34,6 +35,15 @@ const ChatArea = () => {
     mql.addEventListener("change", handleResize);
   });
   onCleanup(() => mql?.removeEventListener("change", handleResize));
+
+  // Swipe right to close member list sheet on mobile
+  const [memberPanelRef, setMemberPanelRef] = createSignal<HTMLDivElement | undefined>();
+  createSwipeGesture({
+    target: memberPanelRef,
+    direction: "right",
+    enabled: () => useSheet() && showMembers(),
+    onSwipe: () => setShowMembers(false),
+  });
 
   const channelId = createMemo(
     () => selectedChannelId() ?? (selectedDmChannelId() as AnyChannelId | null),
@@ -209,7 +219,11 @@ const ChatArea = () => {
             <Show when={useSheet() && isServerChannel() && currentServer()}>
               {(server) => (
                 <Sheet open={showMembers()} onOpenChange={setShowMembers} side="right">
-                  <SheetContent side="right" onClose={() => setShowMembers(false)}>
+                  <SheetContent
+                    side="right"
+                    onClose={() => setShowMembers(false)}
+                    onPanelRef={setMemberPanelRef}
+                  >
                     <MemberList serverId={server().id} ownerId={server().ownerId} />
                   </SheetContent>
                 </Sheet>

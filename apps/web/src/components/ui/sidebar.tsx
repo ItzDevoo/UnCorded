@@ -14,6 +14,7 @@ import {
 } from "solid-js";
 import { cn } from "../../lib/cn.js";
 import { Sheet, SheetContent } from "./sheet.js";
+import { createSwipeGesture } from "../../lib/create-swipe-gesture.js";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -89,6 +90,16 @@ const SidebarProvider = (props: SidebarProviderProps) => {
     });
   });
 
+  // Swipe from left edge to open sidebar on mobile
+  createSwipeGesture({
+    target: () => document.body,
+    direction: "right",
+    edgeZone: 30,
+    edgeFrom: "left",
+    enabled: () => isMobile() && !openMobile(),
+    onSwipe: () => setOpenMobile(true),
+  });
+
   const ctxValue: SidebarContextValue = {
     state,
     open,
@@ -137,6 +148,15 @@ const Sidebar = (props: SidebarComponentProps) => {
 
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
 
+  // Swipe left to close sidebar on mobile
+  const [sidebarPanelRef, setSidebarPanelRef] = createSignal<HTMLDivElement | undefined>();
+  createSwipeGesture({
+    target: sidebarPanelRef,
+    direction: "left",
+    enabled: () => isMobile() && openMobile(),
+    onSwipe: () => setOpenMobile(false),
+  });
+
   // Non-collapsible: simple static sidebar
   const renderNone = () => (
     <aside
@@ -156,6 +176,7 @@ const Sidebar = (props: SidebarComponentProps) => {
       <SheetContent
         side={side()}
         onClose={() => setOpenMobile(false)}
+        onPanelRef={setSidebarPanelRef}
         class="w-[var(--sidebar-width)] p-0"
         style={{ "--sidebar-width": SIDEBAR_WIDTH_MOBILE }}
       >

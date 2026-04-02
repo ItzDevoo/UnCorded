@@ -39,22 +39,26 @@ const Sheet = (props: SheetProps) => {
 interface SheetContentProps extends JSX.HTMLAttributes<HTMLDivElement> {
   side?: "left" | "right";
   onClose?: () => void;
+  /** Callback to receive the panel element on mount (and undefined on unmount). */
+  onPanelRef?: (el: HTMLDivElement | undefined) => void;
 }
 
 const SheetContent = (props: SheetContentProps) => {
-  const [local, rest] = splitProps(props, ["class", "children", "side", "onClose"]);
+  const [local, rest] = splitProps(props, ["class", "children", "side", "onClose", "onPanelRef"]);
   const side = () => local.side ?? "left";
   // oxlint-disable-next-line eslint(no-unassigned-vars) -- SolidJS ref pattern
   let panelRef!: HTMLDivElement;
 
   onMount(() => {
     lockScroll();
+    local.onPanelRef?.(panelRef);
     const first = panelRef.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
     first?.focus();
   });
 
   onCleanup(() => {
     unlockScroll();
+    local.onPanelRef?.(undefined);
   });
 
   const handleKeyDown = (e: KeyboardEvent) => {

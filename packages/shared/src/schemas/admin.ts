@@ -98,14 +98,16 @@ export type FeedbackResponse = z.infer<typeof feedbackResponseSchema>;
 export type AdminLevel = "owner" | "admin";
 
 export const adminsResponseSchema = z.object({
-  admins: z.array(z.object({
-    id: z.string(),
-    userId: z.string(),
-    level: z.string(),
-    addedAt: z.string(),
-    username: z.string().nullable(),
-    email: z.string().nullable(),
-  })),
+  admins: z.array(
+    z.object({
+      id: z.string(),
+      userId: z.string(),
+      level: z.string(),
+      addedAt: z.string(),
+      username: z.string().nullable(),
+      email: z.string().nullable(),
+    }),
+  ),
 });
 
 export type AdminsResponse = z.infer<typeof adminsResponseSchema>;

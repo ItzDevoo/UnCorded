@@ -105,11 +105,19 @@ const Admins = () => {
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-border bg-muted/30">
-              <th class="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">User</th>
-              <th class="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Level</th>
-              <th class="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Added</th>
+              <th class="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                User
+              </th>
+              <th class="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Level
+              </th>
+              <th class="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Added
+              </th>
               <Show when={isOwner()}>
-                <th class="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Actions</th>
+                <th class="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Actions
+                </th>
               </Show>
             </tr>
           </thead>
@@ -175,8 +183,8 @@ const Admins = () => {
           <DialogHeader>
             <DialogTitle>Remove Admin</DialogTitle>
             <DialogDescription>
-              Remove {removeTarget()?.username ?? removeTarget()?.email} as admin?
-              They will lose all admin privileges.
+              Remove {removeTarget()?.username ?? removeTarget()?.email} as admin? They will lose
+              all admin privileges.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

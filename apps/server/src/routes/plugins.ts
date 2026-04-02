@@ -139,9 +139,7 @@ export const pluginRoutes = new Elysia({ prefix: "/api/plugins" })
       .from(pluginInstalls)
       .where(eq(pluginInstalls.userId, sessionUser.id));
 
-    const userInstallMap = new Map(
-      userInstalls.map((r) => [r.pluginId, r.installedAt]),
-    );
+    const userInstallMap = new Map(userInstalls.map((r) => [r.pluginId, r.installedAt]));
 
     const plugins = rows.map((p) => ({
       id: p.id,
@@ -331,12 +329,14 @@ export const pluginRoutes = new Elysia({ prefix: "/api/plugins" })
     }
 
     const checkUpdatesSchema = z.object({
-      plugins: z.array(
-        z.object({
-          id: z.string().min(1),
-          version: z.string().min(1),
-        }),
-      ).max(50),
+      plugins: z
+        .array(
+          z.object({
+            id: z.string().min(1),
+            version: z.string().min(1),
+          }),
+        )
+        .max(50),
     });
 
     const { plugins } = validateInput(checkUpdatesSchema, body);

@@ -108,11 +108,7 @@ export const botRoutes = new Elysia({ prefix: "/api/bots" })
 
     const result = await db.transaction(async (tx) => {
       // Lock owner row to serialize concurrent bot creates per-owner
-      await tx
-        .select({ id: user.id })
-        .from(user)
-        .where(eq(user.id, sessionUser.id))
-        .for("update");
+      await tx.select({ id: user.id }).from(user).where(eq(user.id, sessionUser.id)).for("update");
 
       const [countRow] = await tx
         .select({ value: count() })
@@ -299,10 +295,7 @@ export const botAvatarRoutes = new Elysia({ prefix: "/api/bots" })
     const buffer = await file.arrayBuffer();
     const avatarUrl = await uploadAvatar(bot.userId, buffer, file.type);
 
-    await db
-      .update(user)
-      .set({ avatarUrl })
-      .where(eq(user.id, bot.userId));
+    await db.update(user).set({ avatarUrl }).where(eq(user.id, bot.userId));
 
     if (current?.avatarUrl) {
       deleteAvatar(current.avatarUrl).catch((err) =>
@@ -332,10 +325,7 @@ export const botAvatarRoutes = new Elysia({ prefix: "/api/bots" })
       .where(eq(user.id, bot.userId))
       .limit(1);
 
-    await db
-      .update(user)
-      .set({ avatarUrl: null })
-      .where(eq(user.id, bot.userId));
+    await db.update(user).set({ avatarUrl: null }).where(eq(user.id, bot.userId));
 
     if (current?.avatarUrl && isR2Configured()) {
       deleteAvatar(current.avatarUrl).catch((err) =>

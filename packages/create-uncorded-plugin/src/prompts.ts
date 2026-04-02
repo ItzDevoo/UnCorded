@@ -52,7 +52,11 @@ function askChoice(rl: readline.Interface, question: string, options: string[]):
   });
 }
 
-function askMultiChoice(rl: readline.Interface, question: string, options: string[]): Promise<string[]> {
+function askMultiChoice(
+  rl: readline.Interface,
+  question: string,
+  options: string[],
+): Promise<string[]> {
   const optionsStr = options.map((o, i) => `  ${i + 1}) ${o}`).join("\n");
   return new Promise((resolve) => {
     const prompt = (): void => {
@@ -134,11 +138,23 @@ export async function runPrompts(defaultName?: string): Promise<PluginAnswers> {
     const name = defaultName ?? (await ask(rl, "Plugin name: "));
     const description = await ask(rl, "Description: ");
     const author = await ask(rl, "Author: ");
-    const scope = (await askChoice(rl, "Scope:", ["server", "personal", "both"])) as PluginAnswers["scope"];
+    const scope = (await askChoice(rl, "Scope:", [
+      "server",
+      "personal",
+      "both",
+    ])) as PluginAnswers["scope"];
     const permissions = await askMultiChoice(rl, "Permissions:", [...KNOWN_PERMISSIONS]);
     const port = await askPort(rl);
-    const uiType = (await askChoice(rl, "UI type:", ["panel", "page", "both", "none"])) as PluginAnswers["uiType"];
-    const pluginType = (await askChoice(rl, "Plugin type:", ["standard", "bundled"])) as PluginAnswers["pluginType"];
+    const uiType = (await askChoice(rl, "UI type:", [
+      "panel",
+      "page",
+      "both",
+      "none",
+    ])) as PluginAnswers["uiType"];
+    const pluginType = (await askChoice(rl, "Plugin type:", [
+      "standard",
+      "bundled",
+    ])) as PluginAnswers["pluginType"];
 
     let internalPort: number | undefined;
     if (pluginType === "bundled") {
@@ -146,7 +162,14 @@ export async function runPrompts(defaultName?: string): Promise<PluginAnswers> {
     }
 
     return {
-      name, description, author, scope, permissions, port, uiType, pluginType,
+      name,
+      description,
+      author,
+      scope,
+      permissions,
+      port,
+      uiType,
+      pluginType,
       ...(internalPort !== undefined ? { internalPort } : {}),
     };
   } finally {

@@ -477,11 +477,7 @@ export const pluginRegistry = pgTable(
   ],
 );
 
-export const serverPluginStateEnum = pgEnum("server_plugin_state", [
-  "active",
-  "stopped",
-  "error",
-]);
+export const serverPluginStateEnum = pgEnum("server_plugin_state", ["active", "stopped", "error"]);
 
 export const serverPlugins = pgTable(
   "server_plugins",

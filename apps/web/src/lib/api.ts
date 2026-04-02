@@ -47,10 +47,9 @@ export async function apiValidated<T>(
   try {
     return schema.parse(raw);
   } catch (err) {
-    throw new ValidationError(
-      err instanceof Error ? err.message : "Response validation failed",
-      { cause: err },
-    );
+    throw new ValidationError(err instanceof Error ? err.message : "Response validation failed", {
+      cause: err,
+    });
   }
 }
 
@@ -118,7 +117,10 @@ export async function getSubscription(): Promise<SubscriptionResponse> {
   return api<SubscriptionResponse>("/api/stripe/subscription");
 }
 
-export async function cancelSubscription(): Promise<{ cancelAtPeriodEnd: boolean; currentPeriodEnd: string }> {
+export async function cancelSubscription(): Promise<{
+  cancelAtPeriodEnd: boolean;
+  currentPeriodEnd: string;
+}> {
   return api("/api/stripe/subscription/cancel", { method: "POST" });
 }
 

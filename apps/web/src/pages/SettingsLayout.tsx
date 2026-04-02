@@ -38,10 +38,7 @@ const SettingsLayout = (props: RouteSectionProps) => {
 
   return (
     <div class="flex h-full flex-col">
-      <ContentHeader
-        title="Settings"
-        breadcrumbs={[{ label: "Settings", href: "/settings" }]}
-      />
+      <ContentHeader title="Settings" breadcrumbs={[{ label: "Settings", href: "/settings" }]} />
 
       {/* Sub-header — active page label + nav toggle */}
       <div class="flex shrink-0 items-center gap-3 border-b border-border px-4 py-3">

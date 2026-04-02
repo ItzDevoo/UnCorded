@@ -20,12 +20,14 @@ const installPluginSchema = z.object({
   pluginId: z.string().min(1, "pluginId is required"),
 });
 
-const updatePluginSchema = z.object({
-  config: z.record(z.unknown()).optional(),
-  state: z.string().optional(),
-}).refine((d) => d.config !== undefined || d.state !== undefined, {
-  message: "No fields to update",
-});
+const updatePluginSchema = z
+  .object({
+    config: z.record(z.unknown()).optional(),
+    state: z.string().optional(),
+  })
+  .refine((d) => d.config !== undefined || d.state !== undefined, {
+    message: "No fields to update",
+  });
 
 const updateTunnelSchema = z.object({
   tunnelUrl: z
@@ -125,10 +127,7 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
         .select()
         .from(serverPlugins)
         .where(
-          and(
-            eq(serverPlugins.serverId, params.serverId),
-            eq(serverPlugins.pluginId, pluginId),
-          ),
+          and(eq(serverPlugins.serverId, params.serverId), eq(serverPlugins.pluginId, pluginId)),
         );
       return { success: true, serverPlugin: existing };
     }

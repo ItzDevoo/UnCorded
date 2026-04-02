@@ -27,7 +27,11 @@ export async function installApp(): Promise<void> {
 }
 
 function isBeforeInstallPromptEvent(e: Event): e is BeforeInstallPromptEvent {
-  return "prompt" in e && typeof (e as BeforeInstallPromptEvent).prompt === "function" && "userChoice" in e;
+  return (
+    "prompt" in e &&
+    typeof (e as BeforeInstallPromptEvent).prompt === "function" &&
+    "userChoice" in e
+  );
 }
 
 function onBeforeInstallPrompt(e: Event): void {

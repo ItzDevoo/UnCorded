@@ -49,19 +49,16 @@ interface PluginUpdateInfo {
 
 const desktopBridge = {
   // --- Sidecar ---
-  getSidecarStatus: (): Promise<SidecarStatus> =>
-    ipcRenderer.invoke("sidecar:status"),
+  getSidecarStatus: (): Promise<SidecarStatus> => ipcRenderer.invoke("sidecar:status"),
 
-  getSidecarPort: (): Promise<number | null> =>
-    ipcRenderer.invoke("sidecar:port"),
+  getSidecarPort: (): Promise<number | null> => ipcRenderer.invoke("sidecar:port"),
 
   getDockerStatus: (): Promise<{ available: boolean; bridgePort?: number }> =>
     ipcRenderer.invoke("docker:status"),
 
   // --- Plugins ---
   plugins: {
-    getAll: (): Promise<PluginInfo[]> =>
-      ipcRenderer.invoke("plugins:get-all"),
+    getAll: (): Promise<PluginInfo[]> => ipcRenderer.invoke("plugins:get-all"),
 
     onStateChange: (listener: (plugins: PluginInfo[]) => void): (() => void) => {
       const handler = (_event: Electron.IpcRendererEvent, list: PluginInfo[]) => listener(list);
@@ -72,11 +69,9 @@ const desktopBridge = {
     start: (pluginId: string, serverId?: string): Promise<void> =>
       ipcRenderer.invoke("plugins:start", pluginId, serverId),
 
-    stop: (pluginId: string): Promise<void> =>
-      ipcRenderer.invoke("plugins:stop", pluginId),
+    stop: (pluginId: string): Promise<void> => ipcRenderer.invoke("plugins:stop", pluginId),
 
-    restart: (pluginId: string): Promise<void> =>
-      ipcRenderer.invoke("plugins:restart", pluginId),
+    restart: (pluginId: string): Promise<void> => ipcRenderer.invoke("plugins:restart", pluginId),
 
     getPermissions: (pluginId: string): Promise<string[]> =>
       ipcRenderer.invoke("plugins:get-permissions", pluginId),
@@ -85,27 +80,23 @@ const desktopBridge = {
       ipcRenderer.invoke("plugins:uninstall", pluginId),
 
     onUpdatesAvailable: (listener: (updates: PluginUpdateInfo[]) => void): (() => void) => {
-      const handler = (_event: Electron.IpcRendererEvent, updates: PluginUpdateInfo[]) => listener(updates);
+      const handler = (_event: Electron.IpcRendererEvent, updates: PluginUpdateInfo[]) =>
+        listener(updates);
       ipcRenderer.on("plugins:updates-available", handler);
       return () => ipcRenderer.removeListener("plugins:updates-available", handler);
     },
 
-    update: (pluginId: string): Promise<void> =>
-      ipcRenderer.invoke("plugins:update", pluginId),
+    update: (pluginId: string): Promise<void> => ipcRenderer.invoke("plugins:update", pluginId),
   },
 
   // --- Auto-update ---
-  getUpdateState: (): Promise<UpdateState> =>
-    ipcRenderer.invoke("desktop:update-get-state"),
+  getUpdateState: (): Promise<UpdateState> => ipcRenderer.invoke("desktop:update-get-state"),
 
-  checkForUpdates: (): Promise<UpdateState> =>
-    ipcRenderer.invoke("desktop:update-check"),
+  checkForUpdates: (): Promise<UpdateState> => ipcRenderer.invoke("desktop:update-check"),
 
-  downloadUpdate: (): Promise<UpdateResult> =>
-    ipcRenderer.invoke("desktop:update-download"),
+  downloadUpdate: (): Promise<UpdateResult> => ipcRenderer.invoke("desktop:update-download"),
 
-  installUpdate: (): Promise<UpdateResult> =>
-    ipcRenderer.invoke("desktop:update-install"),
+  installUpdate: (): Promise<UpdateResult> => ipcRenderer.invoke("desktop:update-install"),
 
   onUpdateState: (listener: (state: UpdateState) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, state: UpdateState) => listener(state);

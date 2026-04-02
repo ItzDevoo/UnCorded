@@ -41,13 +41,13 @@ A plugin is a self-contained application that runs inside a Docker container on 
 
 ### Who Runs What?
 
-| Component | Runs Where | Controlled By |
-|-----------|-----------|---------------|
-| UnCorded Shell | User's browser | UnCorded |
-| Plugin Frontend | User's browser (iframe) | Plugin developer |
-| Plugin Backend | Server owner's machine (Docker) | Plugin developer |
-| UnCorded Server | UnCorded infrastructure | UnCorded |
-| Docker Engine | Server owner's machine | Server owner |
+| Component       | Runs Where                      | Controlled By    |
+| --------------- | ------------------------------- | ---------------- |
+| UnCorded Shell  | User's browser                  | UnCorded         |
+| Plugin Frontend | User's browser (iframe)         | Plugin developer |
+| Plugin Backend  | Server owner's machine (Docker) | Plugin developer |
+| UnCorded Server | UnCorded infrastructure         | UnCorded         |
+| Docker Engine   | Server owner's machine          | Server owner     |
 
 ### Trust Model
 
@@ -82,6 +82,7 @@ my-plugin/
 ### Language/Framework Agnostic
 
 Plugin backends can be written in any language — Bun, Node, Python, Go, Rust, etc. The only requirement is that the Docker container:
+
 1. Exposes an HTTP server on the port specified in the manifest
 2. Serves the plugin frontend at `GET /`
 3. Implements the UnCorded Bridge API endpoints
@@ -127,13 +128,7 @@ The `uncorded-plugin.json` file defines everything UnCorded needs to know about 
     "rightPanel": false
   },
 
-  "permissions": [
-    "chat:read",
-    "chat:write",
-    "users:read",
-    "presence:read",
-    "storage:persistent"
-  ],
+  "permissions": ["chat:read", "chat:write", "users:read", "presence:read", "storage:persistent"],
 
   "config": [
     {
@@ -158,31 +153,31 @@ The `uncorded-plugin.json` file defines everything UnCorded needs to know about 
 
 ### Manifest Fields
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | string | yes | Unique plugin identifier (lowercase, alphanumeric, hyphens) |
-| `name` | string | yes | Display name |
-| `version` | semver | yes | Plugin version |
-| `description` | string | yes | Short description (max 200 chars) |
-| `author` | object | yes | Author name and optional URL |
-| `repository` | URL | yes | Git repository URL |
-| `icon` | string | no | Path to icon file in repo (PNG/SVG, 128x128) |
-| `category` | string | yes | One of: AI, Productivity, Developer, Media, Social, Utility, Other |
-| `tags` | string[] | no | Searchable tags (max 10) |
-| `runtime` | object | yes | Docker runtime configuration |
-| `runtime.image` | string | yes | Docker image reference |
-| `runtime.port` | number | yes | Port the plugin server listens on |
-| `runtime.healthCheck` | string | yes | HTTP path for health checks |
-| `runtime.memory` | string | no | Memory limit (default: "256m") |
-| `runtime.cpu` | string | no | CPU limit (default: "0.25") |
-| `ui` | object | yes | UI integration configuration |
-| `ui.slot` | string | yes | "content" (full area) or "panel" (sidebar panel) |
-| `ui.sidebar` | object | yes | Sidebar tab configuration |
-| `ui.header` | boolean | no | Whether plugin renders its own header bar |
-| `ui.rightPanel` | boolean | no | Whether plugin uses the right panel slot |
-| `permissions` | string[] | yes | Required permissions (see Permissions section) |
-| `config` | object[] | no | User-configurable settings |
-| `minVersion` | semver | no | Minimum UnCorded version required |
+| Field                 | Type     | Required | Description                                                        |
+| --------------------- | -------- | -------- | ------------------------------------------------------------------ |
+| `id`                  | string   | yes      | Unique plugin identifier (lowercase, alphanumeric, hyphens)        |
+| `name`                | string   | yes      | Display name                                                       |
+| `version`             | semver   | yes      | Plugin version                                                     |
+| `description`         | string   | yes      | Short description (max 200 chars)                                  |
+| `author`              | object   | yes      | Author name and optional URL                                       |
+| `repository`          | URL      | yes      | Git repository URL                                                 |
+| `icon`                | string   | no       | Path to icon file in repo (PNG/SVG, 128x128)                       |
+| `category`            | string   | yes      | One of: AI, Productivity, Developer, Media, Social, Utility, Other |
+| `tags`                | string[] | no       | Searchable tags (max 10)                                           |
+| `runtime`             | object   | yes      | Docker runtime configuration                                       |
+| `runtime.image`       | string   | yes      | Docker image reference                                             |
+| `runtime.port`        | number   | yes      | Port the plugin server listens on                                  |
+| `runtime.healthCheck` | string   | yes      | HTTP path for health checks                                        |
+| `runtime.memory`      | string   | no       | Memory limit (default: "256m")                                     |
+| `runtime.cpu`         | string   | no       | CPU limit (default: "0.25")                                        |
+| `ui`                  | object   | yes      | UI integration configuration                                       |
+| `ui.slot`             | string   | yes      | "content" (full area) or "panel" (sidebar panel)                   |
+| `ui.sidebar`          | object   | yes      | Sidebar tab configuration                                          |
+| `ui.header`           | boolean  | no       | Whether plugin renders its own header bar                          |
+| `ui.rightPanel`       | boolean  | no       | Whether plugin uses the right panel slot                           |
+| `permissions`         | string[] | yes      | Required permissions (see Permissions section)                     |
+| `config`              | object[] | no       | User-configurable settings                                         |
+| `minVersion`          | semver   | no       | Minimum UnCorded version required                                  |
 
 ---
 
@@ -225,15 +220,15 @@ INSTALLED → STARTING → RUNNING → STOPPING → STOPPED
              CRASHED              DISABLED
 ```
 
-| State | Description |
-|-------|-------------|
-| `INSTALLED` | Image pulled, container created, not running |
-| `STARTING` | Container starting, waiting for health check |
-| `RUNNING` | Healthy and serving requests |
-| `STOPPING` | Graceful shutdown in progress |
-| `STOPPED` | Container stopped by server owner |
-| `CRASHED` | Container exited unexpectedly (auto-restart up to 3 times, then STOPPED) |
-| `DISABLED` | Manually disabled by server owner (can be re-enabled → STARTING) |
+| State       | Description                                                              |
+| ----------- | ------------------------------------------------------------------------ |
+| `INSTALLED` | Image pulled, container created, not running                             |
+| `STARTING`  | Container starting, waiting for health check                             |
+| `RUNNING`   | Healthy and serving requests                                             |
+| `STOPPING`  | Graceful shutdown in progress                                            |
+| `STOPPED`   | Container stopped by server owner                                        |
+| `CRASHED`   | Container exited unexpectedly (auto-restart up to 3 times, then STOPPED) |
+| `DISABLED`  | Manually disabled by server owner (can be re-enabled → STARTING)         |
 
 ### Update Flow
 
@@ -295,7 +290,7 @@ services:
     mem_limit: 512m
     cpus: 0.5
     networks:
-      - plugin-t3chat-net  # Isolated per-plugin network — no cross-plugin access
+      - plugin-t3chat-net # Isolated per-plugin network — no cross-plugin access
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:3100/health"]
       interval: 10s
@@ -340,12 +335,12 @@ services:
 
 The Electron app enforces resource limits per plugin and globally:
 
-| Resource | Per Plugin Default | Per Plugin Max | Global Max |
-|----------|-------------------|----------------|------------|
-| Memory | 256 MB | 2 GB | 8 GB |
-| CPU | 0.25 cores | 2 cores | 4 cores |
-| Disk | 1 GB | 10 GB | 50 GB |
-| Network | Unlimited | Rate-limited | Rate-limited |
+| Resource | Per Plugin Default | Per Plugin Max | Global Max   |
+| -------- | ------------------ | -------------- | ------------ |
+| Memory   | 256 MB             | 2 GB           | 8 GB         |
+| CPU      | 0.25 cores         | 2 cores        | 4 cores      |
+| Disk     | 1 GB               | 10 GB          | 50 GB        |
+| Network  | Unlimited          | Rate-limited   | Rate-limited |
 
 Server owners can adjust limits per plugin within the max bounds.
 
@@ -388,12 +383,12 @@ UnCorded's UI becomes a shell that hosts plugins:
 
 ### What a Plugin Can Control
 
-| UI Slot | Description | Manifest Field |
-|---------|-------------|----------------|
-| **Content Area** | Full main content — replaces chat view entirely | `ui.slot: "content"` |
-| **Sidebar Panel** | Smaller panel below server channels | `ui.slot: "panel"` |
-| **Header Bar** | Custom header replacing channel name/info | `ui.header: true` |
-| **Right Panel** | Panel on right side (like member list slot) | `ui.rightPanel: true` |
+| UI Slot           | Description                                     | Manifest Field        |
+| ----------------- | ----------------------------------------------- | --------------------- |
+| **Content Area**  | Full main content — replaces chat view entirely | `ui.slot: "content"`  |
+| **Sidebar Panel** | Smaller panel below server channels             | `ui.slot: "panel"`    |
+| **Header Bar**    | Custom header replacing channel name/info       | `ui.header: true`     |
+| **Right Panel**   | Panel on right side (like member list slot)     | `ui.rightPanel: true` |
 
 ### Plugin Tab in Sidebar
 
@@ -411,6 +406,7 @@ When a plugin is installed, its tab appears in the sidebar under a "Plugins" sec
 ```
 
 Clicking a plugin tab:
+
 1. Hides the chat content area
 2. Shows the plugin's iframe in the content slot
 3. Updates the header if plugin has `ui.header: true`
@@ -459,13 +455,13 @@ Plugin frontends communicate with the UnCorded shell via `window.postMessage`. U
 **Origin Validation:** The shell maintains a dynamic allowlist of `http://localhost:{PORT}` origins — one per running plugin, mapped from the Docker port assignment. On every `message` event:
 
 ```typescript
-window.addEventListener('message', (event) => {
+window.addEventListener("message", (event) => {
   // Reject messages from unknown origins
   const pluginId = allowedOrigins.get(event.origin);
   if (!pluginId) return;
 
   // Validate message shape
-  if (event.data?.type?.startsWith('uncorded:')) {
+  if (event.data?.type?.startsWith("uncorded:")) {
     handlePluginMessage(pluginId, event.data);
   }
 });
@@ -579,6 +575,7 @@ The Bridge Server runs inside the Electron app on the server owner's machine. It
 ### API Reference
 
 #### Server Info
+
 ```
 GET /bridge/server
 Response: {
@@ -591,6 +588,7 @@ Response: {
 ```
 
 #### Members
+
 ```
 GET /bridge/members
 Query: ?limit=100&offset=0
@@ -602,6 +600,7 @@ Response: {
 ```
 
 #### Channel Messages
+
 ```
 GET /bridge/channels/:channelId/messages
 Query: ?limit=50&before=messageId
@@ -612,6 +611,7 @@ Response: {
 ```
 
 #### Send Message
+
 ```
 POST /bridge/channels/:channelId/messages
 Permission: chat:write
@@ -620,6 +620,7 @@ Response: { id: string, createdAt: string }
 ```
 
 #### User Info
+
 ```
 GET /bridge/users/:userId
 Permission: users:read
@@ -627,6 +628,7 @@ Response: { id, username, displayName, avatarUrl, status }
 ```
 
 #### Presence
+
 ```
 GET /bridge/presence
 Permission: presence:read
@@ -636,6 +638,7 @@ Response: {
 ```
 
 #### Push to Frontend
+
 ```
 POST /bridge/notify
 Permission: none (intentionally permission-free)
@@ -646,6 +649,7 @@ Response: { delivered: true }
 Sends a custom event to the plugin's frontend iframe via postMessage. Useful for pushing backend state changes to the UI. This endpoint is intentionally permission-free — a plugin can only notify its own frontend (scoped by bridge token), so no cross-plugin risk exists.
 
 #### Plugin Storage
+
 ```
 PUT /bridge/storage/:key
 Permission: storage:persistent
@@ -679,11 +683,11 @@ Encrypted values are AES-256-GCM encrypted at rest using a key derived from the 
 
 ### Storage Tiers
 
-| Type | Persistence | Location | Use Case |
-|------|-------------|----------|----------|
-| **Volume** | Survives restarts & updates | `./plugin-data/{pluginId}/` on host | Databases, large files, caches |
-| **Bridge KV** | Survives restarts & updates | Bridge Server → volume | Small config, state, preferences |
-| **In-Memory** | Container lifetime only | Inside container | Caches, sessions, temp data |
+| Type          | Persistence                 | Location                            | Use Case                         |
+| ------------- | --------------------------- | ----------------------------------- | -------------------------------- |
+| **Volume**    | Survives restarts & updates | `./plugin-data/{pluginId}/` on host | Databases, large files, caches   |
+| **Bridge KV** | Survives restarts & updates | Bridge Server → volume              | Small config, state, preferences |
+| **In-Memory** | Container lifetime only     | Inside container                    | Caches, sessions, temp data      |
 
 ### Volume Mount
 
@@ -729,24 +733,24 @@ When a server owner removes a plugin:
 
 ### Permission Definitions
 
-| Permission | Description | Risk Level |
-|-----------|-------------|------------|
-| `chat:read` | Read messages in server channels | Low |
-| `chat:write` | Send messages to server channels | Medium |
-| `users:read` | Read user profiles and member list | Low |
-| `presence:read` | See who's online/offline | Low |
-| `storage:persistent` | Store data that persists across restarts | Low |
-| `network:external` | Make HTTP requests to external services | Medium |
-| `ui:notifications` | Show toast notifications in UnCorded shell | Low |
-| `ui:navigate` | Navigate the user to channels/views | Low |
+| Permission           | Description                                | Risk Level |
+| -------------------- | ------------------------------------------ | ---------- |
+| `chat:read`          | Read messages in server channels           | Low        |
+| `chat:write`         | Send messages to server channels           | Medium     |
+| `users:read`         | Read user profiles and member list         | Low        |
+| `presence:read`      | See who's online/offline                   | Low        |
+| `storage:persistent` | Store data that persists across restarts   | Low        |
+| `network:external`   | Make HTTP requests to external services    | Medium     |
+| `ui:notifications`   | Show toast notifications in UnCorded shell | Low        |
+| `ui:navigate`        | Navigate the user to channels/views        | Low        |
 
 ### Permission Groups (Convenience)
 
-| Group | Includes |
-|-------|----------|
+| Group   | Includes                                          |
+| ------- | ------------------------------------------------- |
 | `basic` | `users:read`, `presence:read`, `ui:notifications` |
-| `chat` | `chat:read`, `chat:write` |
-| `full` | All permissions |
+| `chat`  | `chat:read`, `chat:write`                         |
+| `full`  | All permissions                                   |
 
 ### Permission Enforcement
 
@@ -765,16 +769,16 @@ A plugin CANNOT request permissions at runtime that it didn't declare in its man
 
 ### Threat Matrix
 
-| Threat | Mitigation |
-|--------|-----------|
-| Plugin reads UnCorded auth tokens | iframe sandbox — different origin, no cookie/localStorage access |
-| Plugin XSS attacks UnCorded shell | postMessage validation — only known message types accepted, origin checked |
-| Plugin escapes Docker container | Standard Docker isolation — no privileged mode, no host mounts except data volume |
-| Plugin mines crypto / abuses resources | CPU and memory limits enforced per container |
-| Plugin exfiltrates user data | Permissions system — plugin only gets data it's approved for |
-| Plugin serves malicious frontend | Server owner chose to install it — trust model |
-| Plugin backend attacks host network | Docker network isolation — only bridge and internet access |
-| Malicious plugin update | Server owner must approve permission changes, can pin versions |
+| Threat                                 | Mitigation                                                                        |
+| -------------------------------------- | --------------------------------------------------------------------------------- |
+| Plugin reads UnCorded auth tokens      | iframe sandbox — different origin, no cookie/localStorage access                  |
+| Plugin XSS attacks UnCorded shell      | postMessage validation — only known message types accepted, origin checked        |
+| Plugin escapes Docker container        | Standard Docker isolation — no privileged mode, no host mounts except data volume |
+| Plugin mines crypto / abuses resources | CPU and memory limits enforced per container                                      |
+| Plugin exfiltrates user data           | Permissions system — plugin only gets data it's approved for                      |
+| Plugin serves malicious frontend       | Server owner chose to install it — trust model                                    |
+| Plugin backend attacks host network    | Docker network isolation — only bridge and internet access                        |
+| Malicious plugin update                | Server owner must approve permission changes, can pin versions                    |
 
 ### iframe Security
 
@@ -881,7 +885,7 @@ UnCorded provides an SDK for plugin developers:
 **Frontend SDK (`@uncorded/plugin-client`):**
 
 ```typescript
-import { UnCordedPlugin } from '@uncorded/plugin-client';
+import { UnCordedPlugin } from "@uncorded/plugin-client";
 
 const plugin = new UnCordedPlugin();
 
@@ -892,7 +896,7 @@ const user = await plugin.getUser();
 const members = await plugin.getMembers();
 
 // Listen for messages
-plugin.on('message:create', (message) => {
+plugin.on("message:create", (message) => {
   console.log(`${message.author.username}: ${message.content}`);
 });
 
@@ -903,13 +907,13 @@ await plugin.sendMessage(channelId, "Hello from T3 Chat!");
 plugin.showToast("Analysis complete!", "info");
 
 // Navigate user to a channel
-plugin.navigate({ to: 'channel', channelId: 'abc123' });
+plugin.navigate({ to: "channel", channelId: "abc123" });
 ```
 
 **Backend SDK (`@uncorded/plugin-server`):**
 
 ```typescript
-import { UnCordedBridge } from '@uncorded/plugin-server';
+import { UnCordedBridge } from "@uncorded/plugin-server";
 
 const bridge = new UnCordedBridge();
 
@@ -923,16 +927,16 @@ const messages = await bridge.getMessages(channelId, { limit: 50 });
 await bridge.sendMessage(channelId, "Hello from backend!");
 
 // Store data
-await bridge.storage.set('last-sync', Date.now());
-const lastSync = await bridge.storage.get('last-sync');
+await bridge.storage.set("last-sync", Date.now());
+const lastSync = await bridge.storage.get("last-sync");
 
 // Listen for real-time events
-bridge.on('message:create', (message) => {
+bridge.on("message:create", (message) => {
   // Process incoming message
 });
 
 // Push update to frontend
-await bridge.notify({ type: 'analysis-complete', data: { result: '...' } });
+await bridge.notify({ type: "analysis-complete", data: { result: "..." } });
 ```
 
 ### Plugin Template
@@ -944,6 +948,7 @@ bunx create-uncorded-plugin my-plugin
 ```
 
 Generates:
+
 - Manifest with sensible defaults
 - Dockerfile optimized for the chosen runtime (Bun/Node/Python)
 - Frontend boilerplate with SDK initialized
@@ -985,17 +990,20 @@ The SDK includes a mock Bridge Server for local development that simulates UnCor
 ### Migration Path
 
 **Phase 1 — Keep existing system, build new alongside it:**
+
 - Current Claude bot plugin continues working as-is
 - New Docker-based plugins are a separate system
 - Both coexist — server owners can have bots AND Docker plugins
 
 **Phase 2 — Unify:**
+
 - Bot accounts become a type of plugin connection
 - The Claude channel plugin gets a Dockerfile and becomes a Docker plugin
 - Plugin installs table expanded with new fields (config, permissions, state)
 - Old hardcoded catalog replaced by registry
 
 **Phase 3 — Deprecate old system:**
+
 - Bot-only plugins migrated to Docker containers
 - Old bot auth flow kept for backward compatibility but new plugins use Bridge API
 
@@ -1107,22 +1115,22 @@ interface DockerManager {
 
 ### Per-Server Limits
 
-| Resource | Free Server | Server Owner |
-|----------|------------|--------------|
-| Max plugins | 5 | 15 |
-| Total plugin memory | 2 GB | 8 GB |
-| Total plugin CPU | 1 core | 4 cores |
-| Total plugin storage | 5 GB | 50 GB |
+| Resource             | Free Server | Server Owner |
+| -------------------- | ----------- | ------------ |
+| Max plugins          | 5           | 15           |
+| Total plugin memory  | 2 GB        | 8 GB         |
+| Total plugin CPU     | 1 core      | 4 cores      |
+| Total plugin storage | 5 GB        | 50 GB        |
 
 ### Performance Targets
 
-| Metric | Target |
-|--------|--------|
-| Plugin iframe load time | < 2 seconds |
-| Bridge API response time | < 50ms |
-| postMessage round-trip | < 10ms |
-| Container start time | < 10 seconds |
-| Health check interval | 10 seconds |
+| Metric                   | Target       |
+| ------------------------ | ------------ |
+| Plugin iframe load time  | < 2 seconds  |
+| Bridge API response time | < 50ms       |
+| postMessage round-trip   | < 10ms       |
+| Container start time     | < 10 seconds |
+| Health check interval    | 10 seconds   |
 
 ### Optimizations
 
@@ -1136,6 +1144,7 @@ interface DockerManager {
 ## 17. Implementation Phases
 
 ### Phase 1: Foundation (Electron + Bridge)
+
 **Goal:** Desktop app that runs, connects to UnCorded, and manages Docker containers.
 
 - [ ] Electron app shell (loads UnCorded web app)
@@ -1147,6 +1156,7 @@ interface DockerManager {
 - [ ] Plugin settings UI in Electron (install, configure, start/stop)
 
 ### Phase 2: UI Integration
+
 **Goal:** Plugins appear in the sidebar and render in the content area.
 
 - [ ] Sidebar plugin tabs (dynamic, based on installed plugins)
@@ -1157,6 +1167,7 @@ interface DockerManager {
 - [ ] Loading states and error boundaries for plugin iframes
 
 ### Phase 3: Developer Experience
+
 **Goal:** Plugin developers can build, test, and publish plugins.
 
 - [ ] `@uncorded/plugin-client` SDK (npm package)
@@ -1167,6 +1178,7 @@ interface DockerManager {
 - [ ] Developer documentation site
 
 ### Phase 4: Registry & Distribution
+
 **Goal:** Server owners can browse and install plugins from a public registry.
 
 - [ ] Plugin registry repository (GitHub)
@@ -1177,6 +1189,7 @@ interface DockerManager {
 - [ ] Sideloading support (direct repo URL / image)
 
 ### Phase 5: Ecosystem
+
 **Goal:** Community-driven plugin ecosystem.
 
 - [ ] Plugin submission flow
@@ -1191,6 +1204,7 @@ interface DockerManager {
 ## Appendix A: Example Plugins
 
 ### Excalidraw Whiteboard
+
 - **Category:** Productivity
 - **UI Slot:** Content (fullscreen)
 - **Backend:** Serves Excalidraw web app, stores boards in SQLite
@@ -1198,6 +1212,7 @@ interface DockerManager {
 - **Use case:** Team brainstorming, architecture diagrams
 
 ### GitHub Project Board
+
 - **Category:** Developer
 - **UI Slot:** Content (fullscreen)
 - **Backend:** GitHub API integration, syncs issues/PRs
@@ -1206,6 +1221,7 @@ interface DockerManager {
 - **Use case:** Team project management from within UnCorded
 
 ### AI Chat (T3Chat-style)
+
 - **Category:** AI
 - **UI Slot:** Content (fullscreen)
 - **Backend:** Proxies to OpenAI/Anthropic/etc, stores conversations
@@ -1214,6 +1230,7 @@ interface DockerManager {
 - **Use case:** Team AI assistant with shared conversation history
 
 ### Music Player
+
 - **Category:** Media
 - **UI Slot:** Panel (sidebar)
 - **Backend:** Serves web player, integrates with Spotify/YouTube APIs
@@ -1222,6 +1239,7 @@ interface DockerManager {
 - **Use case:** Listen together feature
 
 ### Document Viewer
+
 - **Category:** Utility
 - **UI Slot:** Content (fullscreen)
 - **Backend:** Renders DOCX/PDF/Markdown locally, no external calls
@@ -1232,13 +1250,13 @@ interface DockerManager {
 
 ## Appendix B: Glossary
 
-| Term | Definition |
-|------|-----------|
-| **Shell** | UnCorded's UI frame — sidebar, header, navigation |
-| **Content Area** | Main viewport that plugins or chat occupy |
-| **Bridge Server** | HTTP + WS server in Electron that plugins talk to |
-| **Bridge Token** | Per-plugin auth token for Bridge API access |
-| **Plugin Host** | The Electron app that manages Docker containers |
-| **Manifest** | `uncorded-plugin.json` — plugin metadata and configuration |
-| **Sideloading** | Installing a plugin outside the official registry |
-| **Registry** | Public index of available plugins |
+| Term              | Definition                                                 |
+| ----------------- | ---------------------------------------------------------- |
+| **Shell**         | UnCorded's UI frame — sidebar, header, navigation          |
+| **Content Area**  | Main viewport that plugins or chat occupy                  |
+| **Bridge Server** | HTTP + WS server in Electron that plugins talk to          |
+| **Bridge Token**  | Per-plugin auth token for Bridge API access                |
+| **Plugin Host**   | The Electron app that manages Docker containers            |
+| **Manifest**      | `uncorded-plugin.json` — plugin metadata and configuration |
+| **Sideloading**   | Installing a plugin outside the official registry          |
+| **Registry**      | Public index of available plugins                          |

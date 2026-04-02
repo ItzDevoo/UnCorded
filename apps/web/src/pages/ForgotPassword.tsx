@@ -49,10 +49,7 @@ const ForgotPassword = () => {
       >
         <form onSubmit={handleSubmit} class="animate-fade-in space-y-4">
           <div>
-            <label
-              for="forgot-email"
-              class="mb-1 block text-sm font-medium text-muted-foreground"
-            >
+            <label for="forgot-email" class="mb-1 block text-sm font-medium text-muted-foreground">
               Email
             </label>
             <Input

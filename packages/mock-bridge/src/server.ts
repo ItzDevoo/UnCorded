@@ -22,7 +22,13 @@ export function createMockBridge() {
       const auth = headers["authorization"];
       if (!auth?.startsWith("Bearer ")) {
         set.status = 401;
-        return { pluginId: "", serverId: "", scope: "server" as const, permissions: [] as string[], authError: true as const };
+        return {
+          pluginId: "",
+          serverId: "",
+          scope: "server" as const,
+          permissions: [] as string[],
+          authError: true as const,
+        };
       }
       return {
         pluginId: "mock-plugin",
@@ -58,9 +64,8 @@ export function createMockBridge() {
         let limit = DEFAULT_LIMIT;
         if (query.limit !== undefined) {
           const parsed = parseInt(query.limit, 10);
-          limit = Number.isFinite(parsed) && parsed >= 0
-            ? Math.min(parsed, MAX_LIMIT)
-            : DEFAULT_LIMIT;
+          limit =
+            Number.isFinite(parsed) && parsed >= 0 ? Math.min(parsed, MAX_LIMIT) : DEFAULT_LIMIT;
         }
         const messages = mockMessages[channelId] ?? [];
         return {

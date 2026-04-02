@@ -478,10 +478,7 @@ export const friendRoutes = new Elysia({ prefix: "/api/friends" })
     );
     if (peerIds.length === 0) return { friends: [], hasMore: false };
 
-    const users = await db
-      .select(userPublicFields)
-      .from(user)
-      .where(inArray(user.id, peerIds));
+    const users = await db.select(userPublicFields).from(user).where(inArray(user.id, peerIds));
 
     return {
       friends: users.map((u) => ({

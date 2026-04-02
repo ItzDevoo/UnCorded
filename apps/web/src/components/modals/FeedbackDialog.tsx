@@ -64,9 +64,7 @@ const FeedbackDialog = (props: FeedbackDialogProps) => {
       <DialogContent onClose={handleClose}>
         <DialogHeader>
           <DialogTitle>Submit Feature Request</DialogTitle>
-          <DialogDescription>
-            Share your idea for a new feature
-          </DialogDescription>
+          <DialogDescription>Share your idea for a new feature</DialogDescription>
         </DialogHeader>
 
         <div class="space-y-3 py-2">
@@ -87,9 +85,7 @@ const FeedbackDialog = (props: FeedbackDialogProps) => {
             class="block w-full resize-none rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground"
           />
 
-          <p class="text-xs text-muted-foreground text-right">
-            {description().length}/2000
-          </p>
+          <p class="text-xs text-muted-foreground text-right">{description().length}/2000</p>
         </div>
 
         <DialogFooter>

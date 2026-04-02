@@ -118,7 +118,10 @@ const DevEnvironment = () => {
               <CardTitle>Current Status</CardTitle>
             </CardHeader>
             <CardContent>
-              <Show when={status()} fallback={<p class="text-sm text-muted-foreground">No status available</p>}>
+              <Show
+                when={status()}
+                fallback={<p class="text-sm text-muted-foreground">No status available</p>}
+              >
                 {(s) => (
                   <div class="space-y-3">
                     <div class="flex items-center justify-between">
@@ -163,7 +166,10 @@ const DevEnvironment = () => {
             <CardContent>
               <div class="space-y-4">
                 <div>
-                  <label for="branch-select" class="mb-1.5 block text-sm font-medium text-muted-foreground">
+                  <label
+                    for="branch-select"
+                    class="mb-1.5 block text-sm font-medium text-muted-foreground"
+                  >
                     Target Branch
                   </label>
                   <select
@@ -181,7 +187,9 @@ const DevEnvironment = () => {
 
                 <button
                   onClick={handleSwitch}
-                  disabled={switching() || !selectedBranch() || selectedBranch() === status()?.branch}
+                  disabled={
+                    switching() || !selectedBranch() || selectedBranch() === status()?.branch
+                  }
                   class="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {switching() ? "Marking..." : "Mark for Switch"}
@@ -189,7 +197,8 @@ const DevEnvironment = () => {
 
                 <Show when={status()?.status === "pending"}>
                   <p class="rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-warning">
-                    Rebuild pending — tell Git Manager: <span class="font-mono">switch dev to {status()?.branch}</span>
+                    Rebuild pending — tell Git Manager:{" "}
+                    <span class="font-mono">switch dev to {status()?.branch}</span>
                   </p>
                 </Show>
               </div>

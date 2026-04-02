@@ -27,10 +27,7 @@ export const fileReceiptRoutes = new Elysia({ prefix: "/api/file-receipts" })
       conditions.push(eq(fileReceipts.receiverId, sessionUser.id));
     } else {
       conditions.push(
-        or(
-          eq(fileReceipts.senderId, sessionUser.id),
-          eq(fileReceipts.receiverId, sessionUser.id),
-        )!,
+        or(eq(fileReceipts.senderId, sessionUser.id), eq(fileReceipts.receiverId, sessionUser.id))!,
       );
     }
 

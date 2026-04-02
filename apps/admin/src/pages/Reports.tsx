@@ -44,7 +44,10 @@ const Reports = () => {
   const [filter, setFilter] = createSignal<string>("unresolved");
   const [typeFilter, setTypeFilter] = createSignal<string>("all");
   const [confirmOpen, setConfirmOpen] = createSignal(false);
-  const [confirmTarget, setConfirmTarget] = createSignal<{ id: string; action: "resolve" | "delete" } | null>(null);
+  const [confirmTarget, setConfirmTarget] = createSignal<{
+    id: string;
+    action: "resolve" | "delete";
+  } | null>(null);
   const [submitting, setSubmitting] = createSignal(false);
 
   let fetchCounter = 0;
@@ -101,22 +104,20 @@ const Reports = () => {
   const columns: Column<ReportRow>[] = [
     {
       header: "Reporter",
-      accessor: (row) => (
-        <span class="text-sm">{row.reporterUsername ?? "Deleted user"}</span>
-      ),
+      accessor: (row) => <span class="text-sm">{row.reporterUsername ?? "Deleted user"}</span>,
     },
     {
       header: "Type",
-      accessor: (row) => (
-        <Badge variant={typeBadgeVariant(row.type)}>
-          {row.type}
-        </Badge>
-      ),
+      accessor: (row) => <Badge variant={typeBadgeVariant(row.type)}>{row.type}</Badge>,
     },
     {
       header: "Category",
       accessor: (row) => (
-        <Badge variant={row.category === "csam" || row.category === "intimate_image" ? "destructive" : "outline"}>
+        <Badge
+          variant={
+            row.category === "csam" || row.category === "intimate_image" ? "destructive" : "outline"
+          }
+        >
           {row.category.replace(/_/g, " ")}
         </Badge>
       ),
@@ -147,7 +148,12 @@ const Reports = () => {
               Resolve
             </Button>
           )}
-          <Button variant="ghost" size="sm" class="text-destructive" onClick={() => openConfirm(row.id, "delete")}>
+          <Button
+            variant="ghost"
+            size="sm"
+            class="text-destructive"
+            onClick={() => openConfirm(row.id, "delete")}
+          >
             Delete
           </Button>
         </div>
@@ -277,7 +283,9 @@ const Reports = () => {
             >
               {submitting()
                 ? "Processing..."
-                : confirmTarget()?.action === "resolve" ? "Resolve" : "Delete"}
+                : confirmTarget()?.action === "resolve"
+                  ? "Resolve"
+                  : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

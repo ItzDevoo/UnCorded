@@ -156,10 +156,7 @@ export async function saveImage(
   await writeFile(join(dir, `${imageId}.json`), JSON.stringify(data));
 }
 
-export async function getImage(
-  boardId: string,
-  imageId: string,
-): Promise<ImageData | null> {
+export async function getImage(boardId: string, imageId: string): Promise<ImageData | null> {
   try {
     const raw = await readFile(join(imagesDir(boardId), `${imageId}.json`), "utf-8");
     const data = JSON.parse(raw) as { dataURL: string; mimeType: string };
@@ -173,9 +170,7 @@ export async function getImages(boardId: string): Promise<ImageData[]> {
   const dir = imagesDir(boardId);
   try {
     const files = await readdir(dir);
-    const ids = files
-      .filter((f) => f.endsWith(".json"))
-      .map((f) => f.replace(".json", ""));
+    const ids = files.filter((f) => f.endsWith(".json")).map((f) => f.replace(".json", ""));
     const results = await Promise.all(ids.map((id) => getImage(boardId, id)));
     return results.filter((img): img is ImageData => img !== null);
   } catch {

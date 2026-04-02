@@ -36,11 +36,7 @@ import { removeConnection, sendToUser, broadcastToServer, broadcastToDm } from "
 import { handleIdentify } from "./handlers.js";
 import { removeUserFromAllServers } from "./server-members.js";
 import { resolveChannelMembership } from "../helpers/resolve-channel.js";
-import {
-  resetIdleTimer,
-  cleanupPresence,
-  broadcastPresence,
-} from "./presence.js";
+import { resetIdleTimer, cleanupPresence, broadcastPresence } from "./presence.js";
 import {
   handleFileSessionCreate,
   handleFileSessionJoin,
@@ -359,8 +355,20 @@ export const gateway = new Elysia().ws("/gateway", {
               editedAt: null,
               createdAt: insertedMsg!.createdAt.toISOString(),
               author: author
-                ? { id: author.id, username: author.username, displayName: author.displayName, avatarUrl: author.avatarUrl, isBot: author.isBot }
-                : { id: ctx.userId, username: null, displayName: null, avatarUrl: null, isBot: false },
+                ? {
+                    id: author.id,
+                    username: author.username,
+                    displayName: author.displayName,
+                    avatarUrl: author.avatarUrl,
+                    isBot: author.isBot,
+                  }
+                : {
+                    id: ctx.userId,
+                    username: null,
+                    displayName: null,
+                    avatarUrl: null,
+                    isBot: false,
+                  },
               fileReceipt: {
                 id: receiptId,
                 fileName: sanitizedFileName,

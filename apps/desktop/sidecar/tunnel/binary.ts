@@ -9,7 +9,10 @@ function getPlatformBinary(): { url: string; name: string } {
   const arch = process.arch;
 
   if (platform === "win32") {
-    return { url: `${CLOUDFLARED_RELEASES}/cloudflared-windows-amd64.exe`, name: "cloudflared.exe" };
+    return {
+      url: `${CLOUDFLARED_RELEASES}/cloudflared-windows-amd64.exe`,
+      name: "cloudflared.exe",
+    };
   }
   if (platform === "darwin") {
     const suffix = arch === "arm64" ? "darwin-arm64" : "darwin-amd64";

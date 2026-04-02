@@ -38,7 +38,10 @@ export class ResourceEnforcer {
     const memoryMb = requested.memoryMb ?? DEFAULT_PLUGIN_MEMORY_MB;
 
     if (this.currentUsage.pluginCount >= this.serverLimits.maxPlugins) {
-      return { allowed: false, reason: `Maximum plugin count (${this.serverLimits.maxPlugins}) reached` };
+      return {
+        allowed: false,
+        reason: `Maximum plugin count (${this.serverLimits.maxPlugins}) reached`,
+      };
     }
 
     if (this.currentUsage.cpus + cpus > this.serverLimits.maxCpus) {
@@ -64,8 +67,14 @@ export class ResourceEnforcer {
   }
 
   release(resources: ResourceLimits): void {
-    this.currentUsage.cpus = Math.max(0, this.currentUsage.cpus - (resources.cpus ?? DEFAULT_PLUGIN_CPUS));
-    this.currentUsage.memoryMb = Math.max(0, this.currentUsage.memoryMb - (resources.memoryMb ?? DEFAULT_PLUGIN_MEMORY_MB));
+    this.currentUsage.cpus = Math.max(
+      0,
+      this.currentUsage.cpus - (resources.cpus ?? DEFAULT_PLUGIN_CPUS),
+    );
+    this.currentUsage.memoryMb = Math.max(
+      0,
+      this.currentUsage.memoryMb - (resources.memoryMb ?? DEFAULT_PLUGIN_MEMORY_MB),
+    );
     this.currentUsage.pluginCount = Math.max(0, this.currentUsage.pluginCount - 1);
   }
 

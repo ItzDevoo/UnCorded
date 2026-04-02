@@ -53,9 +53,7 @@ const TransferHistory = () => {
   const currentUserId = () => readyData.data?.user.id;
 
   const fetchReceipts = async (type: FilterType) => {
-    const data = await api<ReceiptsResponse>(
-      `/api/file-receipts?type=${type}`,
-    );
+    const data = await api<ReceiptsResponse>(`/api/file-receipts?type=${type}`);
     setAllReceipts(data.receipts);
     setHasMore(data.hasMore);
     if (data.receipts.length > 0) {
@@ -122,8 +120,19 @@ const TransferHistory = () => {
           title="No file transfers yet"
           description="Files you send or receive will appear here."
           icon={
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-12 w-12"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+              />
             </svg>
           }
         />
@@ -142,13 +151,38 @@ const TransferHistory = () => {
                 <div class="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
                   {/* File type icon */}
                   <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-                    <Show when={getFileIcon(receipt.contentType) === "image"} fallback={
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    }>
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    <Show
+                      when={getFileIcon(receipt.contentType) === "image"}
+                      fallback={
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-5 w-5 text-muted-foreground"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                      }
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-5 w-5 text-muted-foreground"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
                       </svg>
                     </Show>
                   </div>
@@ -164,7 +198,9 @@ const TransferHistory = () => {
                       </span>
                       <Show when={otherUsername()}>
                         <span>·</span>
-                        <span>{isSent() ? "to" : "from"} {otherUsername()}</span>
+                        <span>
+                          {isSent() ? "to" : "from"} {otherUsername()}
+                        </span>
                       </Show>
                     </div>
                   </div>
@@ -181,12 +217,7 @@ const TransferHistory = () => {
           {/* Load more */}
           <Show when={hasMore()}>
             <div class="flex justify-center pt-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={loadMore}
-                disabled={loadingMore()}
-              >
+              <Button variant="ghost" size="sm" onClick={loadMore} disabled={loadingMore()}>
                 <Show when={loadingMore()} fallback="Load More">
                   Loading...
                 </Show>

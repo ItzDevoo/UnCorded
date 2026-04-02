@@ -39,7 +39,12 @@ export const reportRoutes = new Elysia({ prefix: "/api/reports" })
       if (!resolution) throw new NotFoundError("Message");
     } else if (data.type === "file") {
       const [fr] = await db
-        .select({ id: fileReceipts.id, channelId: fileReceipts.channelId, senderId: fileReceipts.senderId, receiverId: fileReceipts.receiverId })
+        .select({
+          id: fileReceipts.id,
+          channelId: fileReceipts.channelId,
+          senderId: fileReceipts.senderId,
+          receiverId: fileReceipts.receiverId,
+        })
         .from(fileReceipts)
         .where(eq(fileReceipts.id, data.fileReceiptId))
         .limit(1);

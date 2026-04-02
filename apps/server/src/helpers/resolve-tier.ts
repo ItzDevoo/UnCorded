@@ -29,7 +29,11 @@ export async function computeEffectiveTier(userId: string): Promise<Tier> {
       .where(eq(subscriptions.userId, userId))
       .limit(1),
     db
-      .select({ id: giftedSubscriptions.id, tier: giftedSubscriptions.tier, expiresAt: giftedSubscriptions.expiresAt })
+      .select({
+        id: giftedSubscriptions.id,
+        tier: giftedSubscriptions.tier,
+        expiresAt: giftedSubscriptions.expiresAt,
+      })
       .from(giftedSubscriptions)
       .where(eq(giftedSubscriptions.userId, userId))
       .limit(1),

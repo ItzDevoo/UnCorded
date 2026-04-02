@@ -29,7 +29,15 @@ interface DeveloperPlugin {
 
 // ── Constants ───────────────────────────────────────────────────────────────
 
-const CATEGORIES = ["ai", "productivity", "developer", "media", "social", "utility", "other"] as const;
+const CATEGORIES = [
+  "ai",
+  "productivity",
+  "developer",
+  "media",
+  "social",
+  "utility",
+  "other",
+] as const;
 const SCOPES = ["server", "personal", "both"] as const;
 const PERMISSIONS = [
   "server.read",
@@ -48,9 +56,7 @@ const PERMISSIONS = [
 // ── Component ───────────────────────────────────────────────────────────────
 
 const DeveloperSettings = () => {
-  const [devMode, setDevMode] = createSignal(
-    localStorage.getItem("developerMode") === "true",
-  );
+  const [devMode, setDevMode] = createSignal(localStorage.getItem("developerMode") === "true");
 
   function toggleDevMode() {
     const next = !devMode();
@@ -205,7 +211,8 @@ const DeveloperSettings = () => {
         fallback={
           <div class="rounded-lg border border-border p-6 text-center">
             <p class="text-sm text-muted-foreground">
-              Enable developer mode to submit plugins, view your submissions, and access developer tools.
+              Enable developer mode to submit plugins, view your submissions, and access developer
+              tools.
             </p>
           </div>
         }
@@ -260,7 +267,12 @@ const DeveloperSettings = () => {
                       </div>
 
                       {/* Rejection reason */}
-                      <Show when={plugin.submission?.status === "rejected" && plugin.submission?.rejectionReason}>
+                      <Show
+                        when={
+                          plugin.submission?.status === "rejected" &&
+                          plugin.submission?.rejectionReason
+                        }
+                      >
                         <div class="mt-2 rounded bg-destructive/10 p-2">
                           <p class="text-xs text-muted-foreground">
                             <span class="font-medium text-destructive">Rejected:</span>{" "}
@@ -362,9 +374,7 @@ const DeveloperSettings = () => {
                   onChange={(e) => setFormCategory(e.currentTarget.value)}
                   class="w-full rounded-lg bg-input px-3 py-2 text-sm text-foreground outline-none"
                 >
-                  <For each={[...CATEGORIES]}>
-                    {(cat) => <option value={cat}>{cat}</option>}
-                  </For>
+                  <For each={[...CATEGORIES]}>{(cat) => <option value={cat}>{cat}</option>}</For>
                 </select>
               </div>
               <div>
@@ -374,9 +384,7 @@ const DeveloperSettings = () => {
                   onChange={(e) => setFormScope(e.currentTarget.value)}
                   class="w-full rounded-lg bg-input px-3 py-2 text-sm text-foreground outline-none"
                 >
-                  <For each={[...SCOPES]}>
-                    {(s) => <option value={s}>{s}</option>}
-                  </For>
+                  <For each={[...SCOPES]}>{(s) => <option value={s}>{s}</option>}</For>
                 </select>
               </div>
             </div>
@@ -407,7 +415,9 @@ const DeveloperSettings = () => {
                 />
               </div>
               <div>
-                <label class="mb-1 block text-sm font-medium text-foreground">Health Check Path</label>
+                <label class="mb-1 block text-sm font-medium text-foreground">
+                  Health Check Path
+                </label>
                 <input
                   type="text"
                   value={formHealthCheck()}
@@ -468,9 +478,7 @@ const DeveloperSettings = () => {
 
             {/* Error message */}
             <Show when={formError()}>
-              {(err) => (
-                <p class="text-sm text-destructive">{err()}</p>
-              )}
+              {(err) => <p class="text-sm text-destructive">{err()}</p>}
             </Show>
 
             {/* Submit button */}

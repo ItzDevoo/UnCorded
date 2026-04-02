@@ -18,7 +18,13 @@ function deletedUserProfile(id: string) {
   };
 }
 
-function brandProfile(u: { id: string; username: string | null; displayName: string | null; avatarUrl: string | null; status: string }) {
+function brandProfile(u: {
+  id: string;
+  username: string | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+  status: string;
+}) {
   return { ...u, id: brandUserId(u.id) };
 }
 

@@ -28,10 +28,12 @@ export interface PluginManifest {
   resources?: ResourceLimits | undefined;
 
   // UI
-  ui?: {
-    type: "panel" | "page" | "both";
-    panelWidth?: number | undefined;
-  } | undefined;
+  ui?:
+    | {
+        type: "panel" | "page" | "both";
+        panelWidth?: number | undefined;
+      }
+    | undefined;
 
   // Environment variables (declared by plugin, values set by admin)
   env?: Record<string, string> | undefined;
@@ -118,8 +120,10 @@ export function parseManifest(raw: unknown): { manifest: PluginManifest; errors:
   } else if (!SAFE_ID_REGEX.test(data["id"])) {
     errors.push("Plugin id contains invalid characters (only alphanumeric, '.', '-', '_' allowed)");
   }
-  if (typeof data["name"] !== "string" || !data["name"]) errors.push("Missing required field: name");
-  if (typeof data["version"] !== "string" || !data["version"]) errors.push("Missing required field: version");
+  if (typeof data["name"] !== "string" || !data["name"])
+    errors.push("Missing required field: name");
+  if (typeof data["version"] !== "string" || !data["version"])
+    errors.push("Missing required field: version");
   if (typeof data["description"] !== "string") errors.push("Missing required field: description");
   if (typeof data["author"] !== "string") errors.push("Missing required field: author");
 
@@ -156,10 +160,16 @@ export function parseManifest(raw: unknown): { manifest: PluginManifest; errors:
   // Validate resources if present
   if (data["resources"] !== undefined) {
     const res = data["resources"] as Record<string, unknown>;
-    if (typeof res["cpus"] !== "undefined" && (typeof res["cpus"] !== "number" || res["cpus"] <= 0)) {
+    if (
+      typeof res["cpus"] !== "undefined" &&
+      (typeof res["cpus"] !== "number" || res["cpus"] <= 0)
+    ) {
       errors.push("resources.cpus must be a positive number");
     }
-    if (typeof res["memoryMb"] !== "undefined" && (typeof res["memoryMb"] !== "number" || res["memoryMb"] <= 0)) {
+    if (
+      typeof res["memoryMb"] !== "undefined" &&
+      (typeof res["memoryMb"] !== "number" || res["memoryMb"] <= 0)
+    ) {
       errors.push("resources.memoryMb must be a positive number");
     }
   }
@@ -170,16 +180,19 @@ export function parseManifest(raw: unknown): { manifest: PluginManifest; errors:
     version: String(data["version"] ?? "0.0.0"),
     description: String(data["description"] ?? ""),
     author: String(data["author"] ?? ""),
-    scope: VALID_SCOPES.has(data["scope"] as PluginScope) ? (data["scope"] as PluginScope) : "personal",
+    scope: VALID_SCOPES.has(data["scope"] as PluginScope)
+      ? (data["scope"] as PluginScope)
+      : "personal",
     icon: typeof data["icon"] === "string" ? data["icon"] : undefined,
     repository: typeof data["repository"] === "string" ? data["repository"] : undefined,
     license: typeof data["license"] === "string" ? data["license"] : undefined,
     runtime: {
       image: String((data["runtime"] as Record<string, unknown>)?.["image"] ?? ""),
       port: Number((data["runtime"] as Record<string, unknown>)?.["port"] ?? 3000),
-      healthCheck: typeof (data["runtime"] as Record<string, unknown>)?.["healthCheck"] === "string"
-        ? String((data["runtime"] as Record<string, unknown>)["healthCheck"])
-        : "/health",
+      healthCheck:
+        typeof (data["runtime"] as Record<string, unknown>)?.["healthCheck"] === "string"
+          ? String((data["runtime"] as Record<string, unknown>)["healthCheck"])
+          : "/health",
       command: parseStringArray((data["runtime"] as Record<string, unknown>)?.["command"]),
     },
     permissions: parseStringArray(data["permissions"]) ?? [],

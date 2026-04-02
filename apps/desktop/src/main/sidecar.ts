@@ -159,16 +159,16 @@ export class SidecarManager {
   private handleCrash(): void {
     this.restartCount++;
     if (this.restartCount <= MAX_RESTART_ATTEMPTS) {
-      console.error(`[sidecar] Restarting (attempt ${this.restartCount}/${MAX_RESTART_ATTEMPTS})...`);
+      console.error(
+        `[sidecar] Restarting (attempt ${this.restartCount}/${MAX_RESTART_ATTEMPTS})...`,
+      );
       this.restartTimer = setTimeout(() => {
         this.restartTimer = null;
         this.start();
       }, 1_000 * this.restartCount);
     } else {
       console.error("[sidecar] Max restart attempts reached. Giving up.");
-      this.broadcastError(
-        `Sidecar crashed ${MAX_RESTART_ATTEMPTS} times. Please restart the app.`,
-      );
+      this.broadcastError(`Sidecar crashed ${MAX_RESTART_ATTEMPTS} times. Please restart the app.`);
     }
   }
 

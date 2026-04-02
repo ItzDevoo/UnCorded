@@ -34,8 +34,13 @@ const DOCKER_NOT_RUNNING = "Docker is not running. Please start Docker Desktop a
 function isConnectionError(err: unknown): boolean {
   if (!(err instanceof Error)) return false;
   const msg = err.message.toLowerCase();
-  return msg.includes("econnrefused") || msg.includes("enoent") || msg.includes("epipe")
-    || msg.includes("typo in the url") || msg.includes("connect econnreset");
+  return (
+    msg.includes("econnrefused") ||
+    msg.includes("enoent") ||
+    msg.includes("epipe") ||
+    msg.includes("typo in the url") ||
+    msg.includes("connect econnreset")
+  );
 }
 
 export class DockerManager {
@@ -61,7 +66,12 @@ export class DockerManager {
       await this.docker.getImage(image).inspect();
       return true;
     } catch (err: unknown) {
-      if (typeof err === "object" && err !== null && "statusCode" in err && (err as { statusCode: number }).statusCode === 404) {
+      if (
+        typeof err === "object" &&
+        err !== null &&
+        "statusCode" in err &&
+        (err as { statusCode: number }).statusCode === 404
+      ) {
         return false;
       }
       throw err;
@@ -73,7 +83,7 @@ export class DockerManager {
     onProgress?: (event: { status: string; progress?: string }) => void,
     { skipIfExists = true }: { skipIfExists?: boolean } = {},
   ): Promise<void> {
-    if (skipIfExists && await this.imageExists(image)) {
+    if (skipIfExists && (await this.imageExists(image))) {
       console.error(`[docker] Image ${image} already exists locally, skipping pull`);
       return;
     }
@@ -101,8 +111,17 @@ export class DockerManager {
 
   /** Env var keys that plugins must never override — prevents clobbering system vars. */
   private static readonly ENV_DENYLIST: ReadonlySet<string> = new Set([
-    "PATH", "HOME", "USER", "SHELL", "HOSTNAME", "LANG", "LC_ALL",
-    "LD_PRELOAD", "LD_LIBRARY_PATH", "NODE_OPTIONS", "BUN_INSTALL",
+    "PATH",
+    "HOME",
+    "USER",
+    "SHELL",
+    "HOSTNAME",
+    "LANG",
+    "LC_ALL",
+    "LD_PRELOAD",
+    "LD_LIBRARY_PATH",
+    "NODE_OPTIONS",
+    "BUN_INSTALL",
   ]);
 
   async createContainer(config: ContainerConfig): Promise<string> {
@@ -111,7 +130,9 @@ export class DockerManager {
     // Filter manifest env vars against denylist to prevent system var clobbering
     const safeEnv = Object.entries(config.env ?? {}).filter(([k]) => {
       if (DockerManager.ENV_DENYLIST.has(k)) {
-        console.error(`[docker] Plugin ${config.pluginId}: blocked env var "${k}" (system denylist)`);
+        console.error(
+          `[docker] Plugin ${config.pluginId}: blocked env var "${k}" (system denylist)`,
+        );
         return false;
       }
       return true;
@@ -133,9 +154,7 @@ export class DockerManager {
       Binds: [`${pluginDataDir}:/app/data`],
       RestartPolicy: { Name: "no" },
       // Resource limits
-      NanoCpus: config.resources?.cpus
-        ? config.resources.cpus * 1e9
-        : DOCKER_DEFAULT_CPUS * 1e9,
+      NanoCpus: config.resources?.cpus ? config.resources.cpus * 1e9 : DOCKER_DEFAULT_CPUS * 1e9,
       Memory: config.resources?.memoryMb
         ? config.resources.memoryMb * 1024 * 1024
         : DOCKER_DEFAULT_MEMORY_MB * 1024 * 1024,

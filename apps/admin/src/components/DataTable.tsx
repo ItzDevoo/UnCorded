@@ -142,32 +142,40 @@ export function DataTable<T>(props: DataTableProps<T>) {
                     <>
                       <tr
                         class={`border-b border-border last:border-0 transition-colors ${
-                          props.expandRow ? "cursor-pointer hover:bg-accent/30" : "hover:bg-accent/20"
+                          props.expandRow
+                            ? "cursor-pointer hover:bg-accent/30"
+                            : "hover:bg-accent/20"
                         } ${expandedIdx() === idx() ? "bg-accent/20" : ""}`}
                         onClick={() => props.expandRow && toggleExpand(idx())}
-                        {...(props.expandRow ? {
-                          tabIndex: 0,
-                          role: "button" as const,
-                          "aria-expanded": expandedIdx() === idx(),
-                          "aria-controls": `detail-${idx()}`,
-                          onKeyDown: (e: KeyboardEvent) => {
-                            if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) {
-                              e.preventDefault();
-                              toggleExpand(idx());
+                        {...(props.expandRow
+                          ? {
+                              tabIndex: 0,
+                              role: "button" as const,
+                              "aria-expanded": expandedIdx() === idx(),
+                              "aria-controls": `detail-${idx()}`,
+                              onKeyDown: (e: KeyboardEvent) => {
+                                if (
+                                  (e.key === "Enter" || e.key === " ") &&
+                                  e.target === e.currentTarget
+                                ) {
+                                  e.preventDefault();
+                                  toggleExpand(idx());
+                                }
+                              },
                             }
-                          },
-                        } : {})}
+                          : {})}
                       >
                         <For each={props.columns}>
                           {(col) => (
-                            <td class={`px-4 py-2.5 ${col.class ?? ""}`}>
-                              {col.accessor(row)}
-                            </td>
+                            <td class={`px-4 py-2.5 ${col.class ?? ""}`}>{col.accessor(row)}</td>
                           )}
                         </For>
                       </tr>
                       <Show when={props.expandRow && expandedIdx() === idx()}>
-                        <tr id={`detail-${idx()}`} class="border-b border-border last:border-0 bg-muted/20">
+                        <tr
+                          id={`detail-${idx()}`}
+                          class="border-b border-border last:border-0 bg-muted/20"
+                        >
                           <td colSpan={props.columns.length} class="px-4 py-3">
                             {props.expandRow!(row)}
                           </td>
@@ -185,9 +193,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
       {/* Pagination */}
       <Show when={totalPages() > 1}>
         <div class="flex items-center justify-between">
-          <p class="text-xs text-muted-foreground">
-            {props.total.toLocaleString()} total
-          </p>
+          <p class="text-xs text-muted-foreground">{props.total.toLocaleString()} total</p>
           <div class="flex items-center gap-1">
             <Button
               variant="ghost"
@@ -196,7 +202,17 @@ export function DataTable<T>(props: DataTableProps<T>) {
               onClick={() => props.onPageChange(props.page - 1)}
               aria-label="Previous page"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6" /></svg>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
             </Button>
             <For each={pageNumbers()}>
               {(p) =>
@@ -223,7 +239,17 @@ export function DataTable<T>(props: DataTableProps<T>) {
               onClick={() => props.onPageChange(props.page + 1)}
               aria-label="Next page"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6" /></svg>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
             </Button>
           </div>
         </div>

@@ -31,10 +31,19 @@ interface Plugin {
 
 function toCardData(p: Plugin): PluginCardData {
   return {
-    id: p.id, name: p.name, description: p.description, author: p.author,
-    icon: p.icon, category: p.category, scope: p.scope,
-    tags: p.tags, version: p.version, verified: p.verified, featured: p.featured,
-    downloads: p.downloads, installCount: p.installCount,
+    id: p.id,
+    name: p.name,
+    description: p.description,
+    author: p.author,
+    icon: p.icon,
+    category: p.category,
+    scope: p.scope,
+    tags: p.tags,
+    version: p.version,
+    verified: p.verified,
+    featured: p.featured,
+    downloads: p.downloads,
+    installCount: p.installCount,
   };
 }
 
@@ -93,7 +102,12 @@ const PluginsSettings = () => {
       mutate((prev) =>
         prev?.map((p) =>
           p.id === pluginId
-            ? { ...p, installed: true, installCount: res.installCount, installedAt: new Date().toISOString() }
+            ? {
+                ...p,
+                installed: true,
+                installCount: res.installCount,
+                installedAt: new Date().toISOString(),
+              }
             : p,
         ),
       );
@@ -109,9 +123,7 @@ const PluginsSettings = () => {
     <div class="space-y-6">
       <div>
         <h2 class="text-lg font-semibold text-foreground">Plugins</h2>
-        <p class="text-sm text-muted-foreground">
-          Extend UnCorded with integrations and tools.
-        </p>
+        <p class="text-sm text-muted-foreground">Extend UnCorded with integrations and tools.</p>
       </div>
 
       {/* Search + Filters */}
@@ -146,9 +158,7 @@ const PluginsSettings = () => {
           class="rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground outline-none"
         >
           <option value="all">All Categories</option>
-          <For each={categories()}>
-            {(cat) => <option value={cat}>{cat}</option>}
-          </For>
+          <For each={categories()}>{(cat) => <option value={cat}>{cat}</option>}</For>
         </select>
 
         <select
@@ -163,19 +173,25 @@ const PluginsSettings = () => {
       </div>
 
       {/* Plugin cards */}
-      <Show when={!plugins.loading} fallback={
-        <div class="space-y-3">
-          <div class="h-40 animate-skeleton rounded-xl border border-border bg-muted" />
-        </div>
-      }>
-        <Show when={!plugins.error} fallback={
-          <div class="rounded-lg border border-destructive/50 bg-destructive/10 p-6 text-center">
-            <p class="text-sm text-destructive">Failed to load plugins.</p>
-            <Button variant="outline" size="sm" class="mt-2" onClick={() => refetch()}>
-              Retry
-            </Button>
+      <Show
+        when={!plugins.loading}
+        fallback={
+          <div class="space-y-3">
+            <div class="h-40 animate-skeleton rounded-xl border border-border bg-muted" />
           </div>
-        }>
+        }
+      >
+        <Show
+          when={!plugins.error}
+          fallback={
+            <div class="rounded-lg border border-destructive/50 bg-destructive/10 p-6 text-center">
+              <p class="text-sm text-destructive">Failed to load plugins.</p>
+              <Button variant="outline" size="sm" class="mt-2" onClick={() => refetch()}>
+                Retry
+              </Button>
+            </div>
+          }
+        >
           <div class="space-y-3">
             <For each={filteredPlugins()}>
               {(plugin) => (
@@ -204,7 +220,11 @@ const PluginsSettings = () => {
                             stroke="currentColor"
                             stroke-width="2.5"
                           >
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M4.5 12.75l6 6 9-13.5"
+                            />
                           </svg>
                           Installed
                         </Button>

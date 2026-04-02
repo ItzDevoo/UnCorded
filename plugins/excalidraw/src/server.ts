@@ -1,12 +1,15 @@
 import { readFile } from "node:fs/promises";
 import { join, extname, resolve, normalize } from "node:path";
-import { listBoards, createBoard, deleteBoard, getBoard, saveImage, getImages, getImage } from "./boards.js";
 import {
-  addClient,
-  removeClient,
-  handleMessage,
-  getAllRoomCounts,
-} from "./room.js";
+  listBoards,
+  createBoard,
+  deleteBoard,
+  getBoard,
+  saveImage,
+  getImages,
+  getImage,
+} from "./boards.js";
+import { addClient, removeClient, handleMessage, getAllRoomCounts } from "./room.js";
 
 const PORT = Number(process.env.PORT) || 3000;
 const PUBLIC_DIR = join(import.meta.dir, "..", "public");
@@ -139,7 +142,9 @@ const server = Bun.serve<{ boardId: string; clientId: string }>({
       return withIframeHeaders(json(images));
     }
 
-    const imageSingleMatch = pathname.match(/^\/api\/boards\/([a-f0-9-]+)\/images\/([a-zA-Z0-9_-]+)$/);
+    const imageSingleMatch = pathname.match(
+      /^\/api\/boards\/([a-f0-9-]+)\/images\/([a-zA-Z0-9_-]+)$/,
+    );
     if (imageSingleMatch && req.method === "GET") {
       const img = await getImage(imageSingleMatch[1]!, imageSingleMatch[2]!);
       if (!img) return withIframeHeaders(json({ error: "Image not found" }, 404));

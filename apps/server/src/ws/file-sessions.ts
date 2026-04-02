@@ -58,15 +58,18 @@ function fanoutSessionClose(id: string, session: FileSession): void {
 }
 
 // Periodic sweep for stale file sessions (inactivity-based)
-const sweepTimer = setInterval(() => {
-  const now = Date.now();
-  for (const [id, session] of activeSessions) {
-    if (now - session.lastActivityAt > FILE_SESSION_TTL_MS) {
-      fanoutSessionClose(id, session);
-      activeSessions.delete(id);
+const sweepTimer = setInterval(
+  () => {
+    const now = Date.now();
+    for (const [id, session] of activeSessions) {
+      if (now - session.lastActivityAt > FILE_SESSION_TTL_MS) {
+        fanoutSessionClose(id, session);
+        activeSessions.delete(id);
+      }
     }
-  }
-}, 5 * 60 * 1000); // Sweep every 5 minutes
+  },
+  5 * 60 * 1000,
+); // Sweep every 5 minutes
 sweepTimer.unref();
 
 /** Stop the periodic sweep (for graceful shutdown / tests). */
@@ -91,9 +94,7 @@ export async function handleFileSessionCreate(
       ),
     );
 
-  const friendIds = new Set(
-    friendRows.map((r) => (r.usrId === senderId ? r.frdId : r.usrId)),
-  );
+  const friendIds = new Set(friendRows.map((r) => (r.usrId === senderId ? r.frdId : r.usrId)));
 
   const validInvitees = data.invitees.filter((id) => friendIds.has(id));
   if (validInvitees.length === 0) {

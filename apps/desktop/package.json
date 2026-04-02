@@ -16,17 +16,17 @@
   },
   "dependencies": {
     "@uncorded/shared": "workspace:*",
+    "dockerode": "^4.0.4",
     "electron-updater": "^6.3.9",
     "elysia": "^1.2.25",
-    "dockerode": "^4.0.4",
     "msgpackr": "^1.11.3",
-    "ws": "^8.18.0",
-    "webtorrent": "^2.5.1"
+    "webtorrent": "^2.5.1",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/dockerode": "^3.3.34",
-    "@types/ws": "^8.5.14",
     "@types/webtorrent": "^0.109.8",
+    "@types/ws": "^8.5.14",
     "electron": "33.4.11",
     "electron-builder": "^25.1.8",
     "tsdown": "^0.9.2",

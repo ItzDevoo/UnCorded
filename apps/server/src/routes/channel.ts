@@ -108,11 +108,7 @@ const channelIdRoutes = new Elysia({ prefix: "/api/channels/:channelId" })
 
     const updated = await db.transaction(async (tx) =>
       findOrThrow(
-        tx
-          .update(channels)
-          .set(updates)
-          .where(eq(channels.id, params.channelId))
-          .returning(),
+        tx.update(channels).set(updates).where(eq(channels.id, params.channelId)).returning(),
         "Channel",
       ),
     );

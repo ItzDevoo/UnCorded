@@ -29,11 +29,9 @@ const ServerView = () => {
     }
   });
 
-  const hasServer = () =>
-    readyData.data?.servers.some((s) => s.id === serverId()) ?? false;
+  const hasServer = () => readyData.data?.servers.some((s) => s.id === serverId()) ?? false;
 
-  const isLoadingChannels = () =>
-    channelCacheLoading() === serverId();
+  const isLoadingChannels = () => channelCacheLoading() === serverId();
 
   const serverName = () =>
     readyData.data?.servers.find((s) => s.id === serverId())?.name ?? "Server";
@@ -65,7 +63,10 @@ const ServerView = () => {
     if (!sp) return null;
     return {
       id: sp.pluginId,
-      name: sp.pluginId.split(/[-_]/).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
+      name: sp.pluginId
+        .split(/[-_]/)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" "),
       icon: null,
       uiSlot: "content",
       header: false,
@@ -88,10 +89,7 @@ const ServerView = () => {
         when={currentPlugin()}
         fallback={
           <>
-            <ContentHeader
-              title={serverName()}
-              breadcrumbs={[{ label: "Servers" }]}
-            />
+            <ContentHeader title={serverName()} breadcrumbs={[{ label: "Servers" }]} />
             <Show
               when={hasServer() && hasValidChannel()}
               fallback={
@@ -123,10 +121,7 @@ const ServerView = () => {
                       </div>
                     }
                   >
-                    <Empty
-                      title="No channels"
-                      description="This server has no channels yet."
-                    />
+                    <Empty title="No channels" description="This server has no channels yet." />
                   </Show>
                 </Show>
               }
@@ -138,10 +133,7 @@ const ServerView = () => {
       >
         {(plugin) => (
           <>
-            <ContentHeader
-              title={plugin().name}
-              breadcrumbs={[{ label: "Servers" }]}
-            />
+            <ContentHeader title={plugin().name} breadcrumbs={[{ label: "Servers" }]} />
             <div class="flex-1 overflow-hidden">
               <PluginFrame plugin={plugin()} tunnelUrl={activeServerPlugin()?.tunnelUrl ?? null} />
             </div>

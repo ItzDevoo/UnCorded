@@ -154,7 +154,9 @@ export class SeedingEngine {
         client.seed(entry.filePath, {}, (torrent) => {
           const magnetURI = torrent["magnetURI"] as string;
           this.seeds.set(magnetURI, { torrent, entry: { ...entry, magnetURI } });
-          console.error(`[seeding] Seeding: ${path.basename(entry.filePath)} (${magnetURI.slice(0, 60)}...)`);
+          console.error(
+            `[seeding] Seeding: ${path.basename(entry.filePath)} (${magnetURI.slice(0, 60)}...)`,
+          );
           resolve(magnetURI);
         });
       } catch (err) {

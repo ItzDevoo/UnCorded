@@ -29,7 +29,9 @@ export function addConnection(userId: string, ws: AnyServerWebSocket): void {
     if (oldest) {
       try {
         oldest.close(4008, "Too many connections");
-      } catch { /* already closed */ }
+      } catch {
+        /* already closed */
+      }
       set.delete(oldest);
     }
   }

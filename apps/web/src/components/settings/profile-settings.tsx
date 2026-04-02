@@ -1,5 +1,12 @@
 import { createSignal, createEffect, Show, onCleanup } from "solid-js";
-import { MAX_AVATAR_SIZE_BYTES, ALLOWED_AVATAR_TYPES, DISPLAY_NAME_MAX, USERNAME_REGEX, USERNAME_MIN, USERNAME_MAX } from "@uncorded/shared";
+import {
+  MAX_AVATAR_SIZE_BYTES,
+  ALLOWED_AVATAR_TYPES,
+  DISPLAY_NAME_MAX,
+  USERNAME_REGEX,
+  USERNAME_MIN,
+  USERNAME_MAX,
+} from "@uncorded/shared";
 import { api, apiUpload } from "../../lib/api.js";
 import { readyData, updateCurrentUser } from "../../lib/gateway-store.js";
 import { showToast } from "../ui/toast.js";

@@ -118,9 +118,10 @@ const AppLayout: ParentComponent = (props) => {
   createEffect(
     on(pendingInvite, (invite) => {
       if (!invite) return;
-      const sizeKb = invite.fileSize < 1024 * 1024
-        ? `${(invite.fileSize / 1024).toFixed(1)} KB`
-        : `${(invite.fileSize / (1024 * 1024)).toFixed(1)} MB`;
+      const sizeKb =
+        invite.fileSize < 1024 * 1024
+          ? `${(invite.fileSize / 1024).toFixed(1)} KB`
+          : `${(invite.fileSize / (1024 * 1024)).toFixed(1)} MB`;
 
       showToast(
         `${invite.senderDisplayName ?? invite.senderUsername} wants to share "${invite.fileName}" (${sizeKb})`,
@@ -168,8 +169,19 @@ const AppLayout: ParentComponent = (props) => {
                   when={gatewayStatus() === "connecting"}
                   fallback={
                     <>
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+                        />
                       </svg>
                       <span>Connection lost — trying to reconnect...</span>
                       <button
@@ -194,8 +206,19 @@ const AppLayout: ParentComponent = (props) => {
             {/* Connected success banner — briefly shown after connection established */}
             <Show when={showConnected()}>
               <div class="absolute inset-x-0 top-0 z-10 flex items-center justify-center gap-2 bg-success/90 px-3 py-2 text-sm font-medium text-success-foreground">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
                 <span>Connected to UnCorded</span>
               </div>

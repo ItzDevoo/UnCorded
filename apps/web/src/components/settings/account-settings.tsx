@@ -118,7 +118,10 @@ const AccountSettings = () => {
   async function handleConnect(provider: "google" | "discord") {
     setConnecting(true);
     try {
-      await signIn.social({ provider, callbackURL: `${window.location.origin}/settings/account?linked=1` });
+      await signIn.social({
+        provider,
+        callbackURL: `${window.location.origin}/settings/account?linked=1`,
+      });
     } catch {
       showToast("Failed to connect account", "error");
       setConnecting(false);
@@ -265,71 +268,81 @@ const AccountSettings = () => {
             </Button>
           </div>
         ) : (
-        <div class="space-y-2">
-          <For
-            each={
-              [
-                { id: "discord", name: "Discord", bgClass: "bg-[#5865F2] text-white", icon: DiscordIcon },
-                { id: "google", name: "Google", bgClass: "bg-white text-foreground", icon: GoogleIcon },
-              ] as const
-            }
-          >
-            {(provider) => {
-              const connected = () => linkedProviders().has(provider.id);
-              const isUnlinking = () => unlinking() === provider.id;
-              return (
-                <div class="flex items-center justify-between rounded-lg border border-border bg-card p-3">
-                  <div class="flex items-center gap-3">
-                    <div
-                      class={`flex h-8 w-8 items-center justify-center rounded-full ${provider.bgClass}`}
-                    >
-                      <provider.icon />
+          <div class="space-y-2">
+            <For
+              each={
+                [
+                  {
+                    id: "discord",
+                    name: "Discord",
+                    bgClass: "bg-[#5865F2] text-white",
+                    icon: DiscordIcon,
+                  },
+                  {
+                    id: "google",
+                    name: "Google",
+                    bgClass: "bg-white text-foreground",
+                    icon: GoogleIcon,
+                  },
+                ] as const
+              }
+            >
+              {(provider) => {
+                const connected = () => linkedProviders().has(provider.id);
+                const isUnlinking = () => unlinking() === provider.id;
+                return (
+                  <div class="flex items-center justify-between rounded-lg border border-border bg-card p-3">
+                    <div class="flex items-center gap-3">
+                      <div
+                        class={`flex h-8 w-8 items-center justify-center rounded-full ${provider.bgClass}`}
+                      >
+                        <provider.icon />
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm text-foreground">{provider.name}</span>
+                        {connected() && (
+                          <span class="flex items-center gap-1 text-xs text-success-foreground">
+                            <svg
+                              class="h-3 w-3"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="3"
+                              aria-hidden="true"
+                            >
+                              <path d="M5 13l4 4L19 7" />
+                            </svg>
+                            Connected
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                      <span class="text-sm text-foreground">{provider.name}</span>
-                      {connected() && (
-                        <span class="flex items-center gap-1 text-xs text-success-foreground">
-                          <svg
-                            class="h-3 w-3"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="3"
-                            aria-hidden="true"
-                          >
-                            <path d="M5 13l4 4L19 7" />
-                          </svg>
-                          Connected
-                        </span>
-                      )}
-                    </div>
+                    {accountsLoading() ? (
+                      <span class="text-xs text-muted-foreground">Loading...</span>
+                    ) : connected() ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={!!unlinking()}
+                        onClick={() => handleDisconnect(provider.id)}
+                      >
+                        {isUnlinking() ? "Disconnecting..." : "Disconnect"}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={connecting()}
+                        onClick={() => handleConnect(provider.id)}
+                      >
+                        {connecting() ? "Connecting..." : "Connect"}
+                      </Button>
+                    )}
                   </div>
-                  {accountsLoading() ? (
-                    <span class="text-xs text-muted-foreground">Loading...</span>
-                  ) : connected() ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={!!unlinking()}
-                      onClick={() => handleDisconnect(provider.id)}
-                    >
-                      {isUnlinking() ? "Disconnecting..." : "Disconnect"}
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={connecting()}
-                      onClick={() => handleConnect(provider.id)}
-                    >
-                      {connecting() ? "Connecting..." : "Connect"}
-                    </Button>
-                  )}
-                </div>
-              );
-            }}
-          </For>
-        </div>
+                );
+              }}
+            </For>
+          </div>
         )}
       </div>
 

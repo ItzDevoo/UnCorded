@@ -10,10 +10,7 @@ import type { PluginErrorPayload } from "@uncorded/shared";
 import { readyData, channelCache } from "./gateway-store.js";
 import { api } from "./api.js";
 import { classifyBridgeError } from "./plugin-errors.js";
-import {
-  plugins,
-  type PluginInfo,
-} from "../stores/plugin-store.js";
+import { plugins, type PluginInfo } from "../stores/plugin-store.js";
 import { selectedServerId } from "../stores/app-store.js";
 import { showToast } from "../components/ui/toast.js";
 
@@ -51,7 +48,9 @@ export function updateAllowedOrigins(list: PluginInfo[]): void {
       if (p.tunnelUrl) {
         try {
           allowedOrigins.set(new URL(p.tunnelUrl).origin, p.id);
-        } catch { /* invalid tunnel URL — skip */ }
+        } catch {
+          /* invalid tunnel URL — skip */
+        }
       }
     }
   }
@@ -201,7 +200,9 @@ async function handleMessage(event: MessageEvent): Promise<void> {
   // Reject oversized messages (64KB limit)
   try {
     if (typeof event.data === "object" && JSON.stringify(event.data).length > 65_536) return;
-  } catch { return; }
+  } catch {
+    return;
+  }
 
   const data = event.data as PluginRequest | undefined;
   if (!data || data.type !== "uncorded:request" || !data.id || !data.method) return;
@@ -259,7 +260,11 @@ async function handleMessage(event: MessageEvent): Promise<void> {
  * Push a gateway event to all running plugin iframes that hold the required permission.
  * Call this from gateway event handlers (message-store, presence-store, etc.).
  */
-export function broadcastToPlugins(eventName: string, data: unknown, requiredPermission: string | null): void {
+export function broadcastToPlugins(
+  eventName: string,
+  data: unknown,
+  requiredPermission: string | null,
+): void {
   const iframes = document.querySelectorAll<HTMLIFrameElement>("iframe[data-plugin-id]");
 
   for (const iframe of iframes) {
@@ -278,7 +283,9 @@ export function broadcastToPlugins(eventName: string, data: unknown, requiredPer
     let origin: string;
     try {
       origin = new URL(src).origin;
-    } catch { continue; }
+    } catch {
+      continue;
+    }
 
     const msg: PluginEvent = { type: "uncorded:event", event: eventName, data };
     iframe.contentWindow?.postMessage(msg, origin);

@@ -110,9 +110,7 @@ const DeletionCountdown = () => {
           }
         >
           <DialogHeader>
-            <DialogTitle class="text-center">
-              Account Deletion in Progress
-            </DialogTitle>
+            <DialogTitle class="text-center">Account Deletion in Progress</DialogTitle>
             <DialogDescription class="text-center">
               Your account will be permanently deleted. All your data will be removed.
             </DialogDescription>
@@ -129,9 +127,7 @@ const DeletionCountdown = () => {
                 </div>
               }
             >
-              <span class="text-7xl font-bold tabular-nums text-destructive">
-                {secondsLeft()}
-              </span>
+              <span class="text-7xl font-bold tabular-nums text-destructive">{secondsLeft()}</span>
             </Show>
           </div>
 

@@ -27,10 +27,17 @@ const permissionEnum = z.enum(PLUGIN_PERMISSIONS);
 
 const manifestSchema = z.object({
   runtime: z.object({
-    image: z.string().min(1).max(200).refine(
-      (img) => !img.includes("..") && !img.includes("\\") && /^[a-z0-9][a-z0-9._/-]*[a-z0-9]$/i.test(img),
-      { message: "Invalid Docker image reference" },
-    ),
+    image: z
+      .string()
+      .min(1)
+      .max(200)
+      .refine(
+        (img) =>
+          !img.includes("..") &&
+          !img.includes("\\") &&
+          /^[a-z0-9][a-z0-9._/-]*[a-z0-9]$/i.test(img),
+        { message: "Invalid Docker image reference" },
+      ),
     port: z.number().int().min(1).max(65535),
     healthCheck: z.string().min(1),
   }),
@@ -68,7 +75,10 @@ const versionPushSchema = z.object({
 const pluginUpdateSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   description: z.string().min(10).max(500).optional(),
-  version: z.string().regex(/^\d+\.\d+\.\d+$/, "Must be semver format").optional(),
+  version: z
+    .string()
+    .regex(/^\d+\.\d+\.\d+$/, "Must be semver format")
+    .optional(),
   image: z.string().min(1).optional(),
   manifest: manifestSchema.optional(),
   tags: z.array(z.string().min(1).max(30)).max(10).optional(),
@@ -124,7 +134,12 @@ export const developerRoutes = new Elysia({ prefix: "/api/developer" })
     } catch (err) {
       if (err instanceof ValidationError) throw err;
       // Postgres unique constraint violation (23505)
-      if (typeof err === "object" && err !== null && "code" in err && (err as { code: string }).code === "23505") {
+      if (
+        typeof err === "object" &&
+        err !== null &&
+        "code" in err &&
+        (err as { code: string }).code === "23505"
+      ) {
         throw new ValidationError("Plugin with this ID already exists");
       }
       throw err;
@@ -271,9 +286,10 @@ export const developerRoutes = new Elysia({ prefix: "/api/developer" })
     const result = await db
       .update(pluginRegistry)
       .set(updates)
-      .where(and(
-        eq(pluginRegistry.id, params.pluginId),
-        sql`(
+      .where(
+        and(
+          eq(pluginRegistry.id, params.pluginId),
+          sql`(
           split_part(${pluginRegistry.version}, '.', 1)::int < ${major}
           OR (split_part(${pluginRegistry.version}, '.', 1)::int = ${major}
               AND split_part(${pluginRegistry.version}, '.', 2)::int < ${minor})
@@ -281,7 +297,8 @@ export const developerRoutes = new Elysia({ prefix: "/api/developer" })
               AND split_part(${pluginRegistry.version}, '.', 2)::int = ${minor}
               AND split_part(${pluginRegistry.version}, '.', 3)::int < ${patch})
         )`,
-      ))
+        ),
+      )
       .returning({ id: pluginRegistry.id });
 
     if (result.length === 0) {
@@ -290,7 +307,10 @@ export const developerRoutes = new Elysia({ prefix: "/api/developer" })
 
     // If image or manifest changed, require re-review
     if (data.image !== undefined || data.manifest !== undefined) {
-      await db.update(pluginRegistry).set({ published: false }).where(eq(pluginRegistry.id, params.pluginId));
+      await db
+        .update(pluginRegistry)
+        .set({ published: false })
+        .where(eq(pluginRegistry.id, params.pluginId));
       await db.insert(pluginSubmissions).values({
         pluginId: params.pluginId,
         authorUserId: sessionUser.id,

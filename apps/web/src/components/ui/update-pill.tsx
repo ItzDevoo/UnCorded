@@ -25,7 +25,10 @@ export const UpdatePill = () => {
 
   onMount(() => {
     if (!bridge()) return;
-    bridge()!.getUpdateState().then((s) => setState(s as UpdateState)).catch(() => {});
+    bridge()!
+      .getUpdateState()
+      .then((s) => setState(s as UpdateState))
+      .catch(() => {});
     const unsub = bridge()!.onUpdateState((s: unknown) => setState(s as UpdateState));
     onCleanup(unsub);
   });

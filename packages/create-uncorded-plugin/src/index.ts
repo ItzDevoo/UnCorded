@@ -16,7 +16,9 @@ const answers = await runPrompts(pluginName);
 // Validate plugin name
 const safeName = basename(answers.name);
 if (!safeName || !VALID_NAME.test(safeName)) {
-  console.error(`Invalid plugin name: "${answers.name}". Use alphanumeric characters, hyphens, underscores, or dots only.`);
+  console.error(
+    `Invalid plugin name: "${answers.name}". Use alphanumeric characters, hyphens, underscores, or dots only.`,
+  );
   process.exit(1);
 }
 
@@ -25,7 +27,9 @@ const targetDir = resolve(process.cwd(), safeName);
 // Ensure targetDir is inside cwd (prevent path traversal)
 const rel = relative(process.cwd(), targetDir);
 if (rel.startsWith("..") || resolve(targetDir) !== targetDir) {
-  console.error(`Invalid target directory: "${targetDir}" is outside the current working directory.`);
+  console.error(
+    `Invalid target directory: "${targetDir}" is outside the current working directory.`,
+  );
   process.exit(1);
 }
 

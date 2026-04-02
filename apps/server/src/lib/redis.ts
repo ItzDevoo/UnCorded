@@ -12,7 +12,9 @@ if (env.REDIS_URL) {
   redis.on("error", (err) => console.error("[redis] Command connection error:", err.message));
 
   subscriber.on("ready", () => console.log("[redis] Subscriber connection ready"));
-  subscriber.on("error", (err) => console.error("[redis] Subscriber connection error:", err.message));
+  subscriber.on("error", (err) =>
+    console.error("[redis] Subscriber connection error:", err.message),
+  );
 
   // Graceful shutdown
   const shutdown = async () => {

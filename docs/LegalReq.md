@@ -260,19 +260,19 @@ P2P Legal:
 
 ## Current App State vs Requirements
 
-| Requirement              | Status      | What Exists                        | What's Missing                                                        |
-| ------------------------ | ----------- | ---------------------------------- | --------------------------------------------------------------------- |
-| CSAM hashing             | PARTIAL     | PDQ hash scaffold + safety endpoint | Thorn API integration, auto-report to NCMEC, 1-year preservation     |
-| DMCA agent               | NOT STARTED | —                                   | Registration at copyright.gov, agent contact on site                 |
-| Age gate (13+)           | DONE        | DOB field at registration           | —                                                                    |
-| Privacy Policy page      | DONE        | /privacy with 13 sections           | Fill in placeholder contact info                                     |
-| Terms of Service page    | DONE        | /terms with 15 sections             | Fill in placeholder state/contact info                               |
-| Acceptable Use Policy    | DONE        | AUP in ToS + intimate_image reports | —                                                                    |
-| Subscription disclosures | DONE        | Auto-renewal language in ToS        | —                                                                    |
-| P2P IP warning           | DONE        | P2PNoticeDialog + privacy policy    | —                                                                    |
-| Content reporting        | DONE        | POST /api/reports + ReportDialog    | intimate_image category added                                        |
-| Account deletion         | DONE        | Settings > Account > Delete         | —                                                                    |
-| DMCA takedown process    | NOT STARTED | DMCA section in ToS                 | Notice intake UI, counter-notification, repeat infringer tracking     |
+| Requirement              | Status      | What Exists                         | What's Missing                                                    |
+| ------------------------ | ----------- | ----------------------------------- | ----------------------------------------------------------------- |
+| CSAM hashing             | PARTIAL     | PDQ hash scaffold + safety endpoint | Thorn API integration, auto-report to NCMEC, 1-year preservation  |
+| DMCA agent               | NOT STARTED | —                                   | Registration at copyright.gov, agent contact on site              |
+| Age gate (13+)           | DONE        | DOB field at registration           | —                                                                 |
+| Privacy Policy page      | DONE        | /privacy with 13 sections           | Fill in placeholder contact info                                  |
+| Terms of Service page    | DONE        | /terms with 15 sections             | Fill in placeholder state/contact info                            |
+| Acceptable Use Policy    | DONE        | AUP in ToS + intimate_image reports | —                                                                 |
+| Subscription disclosures | DONE        | Auto-renewal language in ToS        | —                                                                 |
+| P2P IP warning           | DONE        | P2PNoticeDialog + privacy policy    | —                                                                 |
+| Content reporting        | DONE        | POST /api/reports + ReportDialog    | intimate_image category added                                     |
+| Account deletion         | DONE        | Settings > Account > Delete         | —                                                                 |
+| DMCA takedown process    | NOT STARTED | DMCA section in ToS                 | Notice intake UI, counter-notification, repeat infringer tracking |
 
 ---
 

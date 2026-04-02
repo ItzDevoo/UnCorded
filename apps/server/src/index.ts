@@ -35,7 +35,11 @@ import { applyChannelEvent, applyDmMemberEvent } from "./ws/channel-cache.js";
 const app = new Elysia()
   .use(
     cors({
-      origin: [env.CORS_ORIGIN ?? env.APP_URL, env.DEV_ORIGIN, `https://admin.${new URL(env.APP_URL).host}`].filter((o): o is string => Boolean(o)),
+      origin: [
+        env.CORS_ORIGIN ?? env.APP_URL,
+        env.DEV_ORIGIN,
+        `https://admin.${new URL(env.APP_URL).host}`,
+      ].filter((o): o is string => Boolean(o)),
       credentials: true,
     }),
   )

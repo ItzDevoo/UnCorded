@@ -10,6 +10,7 @@ import {
 } from "solid-js";
 import { Portal } from "solid-js/web";
 import { cn } from "../../lib/cn.js";
+import { pushOverlay, popOverlay } from "../../lib/overlay-history.js";
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -35,6 +36,10 @@ interface DialogContextValue {
 
 const DialogContext = createContext<DialogContextValue>();
 
+// Separate context to carry onOpenChange from Dialog → DialogContent
+// (DialogContext lives inside DialogContent for aria IDs, so can't carry close)
+const DialogCloseContext = createContext<() => void>();
+
 interface DialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -50,7 +55,13 @@ const Dialog = (props: DialogProps) => {
   onMount(() => document.addEventListener("keydown", handleKeyDown));
   onCleanup(() => document.removeEventListener("keydown", handleKeyDown));
 
-  return <Show when={props.open}>{props.children}</Show>;
+  return (
+    <Show when={props.open}>
+      <DialogCloseContext.Provider value={() => props.onOpenChange(false)}>
+        {props.children}
+      </DialogCloseContext.Provider>
+    </Show>
+  );
 };
 
 const DialogOverlay = (props: JSX.HTMLAttributes<HTMLDivElement>) => {
@@ -72,6 +83,9 @@ const DialogContent = (props: DialogContentProps) => {
   const [local, rest] = splitProps(props, ["class", "children", "onClose"]);
   const titleId = createUniqueId();
   const descriptionId = createUniqueId();
+  const closeFromContext = useContext(DialogCloseContext);
+  const close = () => (local.onClose ?? closeFromContext ?? (() => {}))();
+  const overlayId = `dialog-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   // oxlint-disable-next-line eslint(no-unassigned-vars) -- SolidJS ref pattern
   let panelRef!: HTMLDivElement;
 
@@ -79,9 +93,11 @@ const DialogContent = (props: DialogContentProps) => {
     const first = panelRef.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
     first?.focus();
     lockScroll();
+    pushOverlay(overlayId, close);
   });
 
   onCleanup(() => {
+    popOverlay(overlayId);
     unlockScroll();
   });
 
@@ -106,10 +122,7 @@ const DialogContent = (props: DialogContentProps) => {
   return (
     <DialogContext.Provider value={{ titleId, descriptionId }}>
       <Portal mount={document.body}>
-        <div
-          class="fixed inset-0 z-50 flex items-center justify-center"
-          onClick={() => local.onClose?.()}
-        >
+        <div class="fixed inset-0 z-50 flex items-center justify-center" onClick={close}>
           <DialogOverlay />
           <div
             ref={panelRef}

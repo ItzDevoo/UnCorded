@@ -127,7 +127,12 @@ const VirtualMessageList = (props: { channelId: AnyChannelId }) => {
   }
 
   return (
-    <div ref={scrollRef} onScroll={handleScroll} class="min-h-0 flex-1 overflow-y-auto">
+    <div
+      ref={scrollRef}
+      onScroll={handleScroll}
+      data-slot="virtual-message-list"
+      class="min-h-0 flex-1 overflow-y-auto"
+    >
       <Show when={loading()}>
         <div class="space-y-3 py-4">
           <MessageSkeleton showHeader />

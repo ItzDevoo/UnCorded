@@ -1,6 +1,17 @@
-import { Show, onMount, onCleanup, splitProps, type JSX } from "solid-js";
+import {
+  Show,
+  onMount,
+  onCleanup,
+  splitProps,
+  createContext,
+  useContext,
+  type JSX,
+} from "solid-js";
 import { Portal } from "solid-js/web";
 import { cn } from "../../lib/cn.js";
+import { pushOverlay, popOverlay } from "../../lib/overlay-history.js";
+
+const SheetCloseContext = createContext<() => void>();
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -33,7 +44,13 @@ const Sheet = (props: SheetProps) => {
   onMount(() => document.addEventListener("keydown", handleKeyDown));
   onCleanup(() => document.removeEventListener("keydown", handleKeyDown));
 
-  return <Show when={props.open}>{props.children}</Show>;
+  return (
+    <Show when={props.open}>
+      <SheetCloseContext.Provider value={() => props.onOpenChange(false)}>
+        {props.children}
+      </SheetCloseContext.Provider>
+    </Show>
+  );
 };
 
 interface SheetContentProps extends JSX.HTMLAttributes<HTMLDivElement> {
@@ -49,14 +66,20 @@ const SheetContent = (props: SheetContentProps) => {
   // oxlint-disable-next-line eslint(no-unassigned-vars) -- SolidJS ref pattern
   let panelRef!: HTMLDivElement;
 
+  const closeFromContext = useContext(SheetCloseContext);
+  const close = () => (local.onClose ?? closeFromContext ?? (() => {}))();
+  const overlayId = `sheet-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
   onMount(() => {
     lockScroll();
     local.onPanelRef?.(panelRef);
+    pushOverlay(overlayId, close);
     const first = panelRef.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
     first?.focus();
   });
 
   onCleanup(() => {
+    popOverlay(overlayId);
     unlockScroll();
     local.onPanelRef?.(undefined);
   });
@@ -78,7 +101,7 @@ const SheetContent = (props: SheetContentProps) => {
 
   return (
     <Portal mount={document.body}>
-      <div class="fixed inset-0 z-50 flex" onClick={() => local.onClose?.()}>
+      <div class="fixed inset-0 z-50 flex" onClick={close}>
         {/* Overlay */}
         <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" />
 

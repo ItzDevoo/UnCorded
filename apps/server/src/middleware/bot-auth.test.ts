@@ -44,7 +44,12 @@ const { selectResults, mockDb, capturedUpdates, originalBun } = vi.hoisted(() =>
 vi.mock("drizzle-orm", () => ({ eq: vi.fn() }));
 vi.mock("../db/index.js", () => ({ db: mockDb }));
 vi.mock("../db/schema.js", () => ({
-  bots: { userId: "bots.userId", tokenHash: "bots.tokenHash", id: "bots.id", lastUsedAt: "bots.lastUsedAt" },
+  bots: {
+    userId: "bots.userId",
+    tokenHash: "bots.tokenHash",
+    id: "bots.id",
+    lastUsedAt: "bots.lastUsedAt",
+  },
   user: { id: "user.id" },
 }));
 

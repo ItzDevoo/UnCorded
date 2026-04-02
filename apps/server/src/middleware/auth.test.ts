@@ -93,13 +93,15 @@ describe("authResolve", () => {
         bot: { id: "bot_1" },
       });
       const resolve = authResolve({ allowBots: true });
-      const result = await resolve({ request: fakeRequest() });
+      const req = fakeRequest({ authorization: "Bearer uncrd_test" });
+      const result = await resolve({ request: req });
 
       expect(result).toEqual({
         user: { ...validUser, isBot: true },
         session: null,
       });
-      expect(mockGetBotSession).toHaveBeenCalledWith(expect.any(Headers));
+      const passedHeaders = mockGetBotSession.mock.calls[0]![0] as Headers;
+      expect(passedHeaders.get("authorization")).toBe("Bearer uncrd_test");
     });
 
     it("does not try bot auth when allowBots is false (default)", async () => {

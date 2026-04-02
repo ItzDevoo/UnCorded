@@ -16,7 +16,7 @@ import { checkUserRateLimit } from "./rate-limit.js";
 // ── Tests ──────────────────────────────────────────────────────────────────
 
 describe("checkUserRateLimit (Redis path)", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => vi.resetAllMocks());
 
   it("allows requests within limit", async () => {
     mockRedis.eval.mockResolvedValueOnce(1);

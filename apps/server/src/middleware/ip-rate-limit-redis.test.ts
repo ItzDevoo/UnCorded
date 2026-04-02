@@ -15,7 +15,7 @@ import { checkIpRateLimit } from "./ip-rate-limit.js";
 // ── Tests ──────────────────────────────────────────────────────────────────
 
 describe("checkIpRateLimit (Redis path)", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => vi.resetAllMocks());
 
   it("returns true when within limit", async () => {
     mockRedis.eval.mockResolvedValueOnce(1);

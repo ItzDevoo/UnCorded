@@ -17,6 +17,7 @@ export const RL = {
 
   // User-based (used with checkUserRateLimit)
   MESSAGE_CREATE: "messages:create",
+  MESSAGE_EDIT: "messages:edit",
   FRIEND_REQUEST: "friends:request",
   FEEDBACK_CREATE: "feedback:create",
   FEEDBACK_VOTE: "feedback:vote",

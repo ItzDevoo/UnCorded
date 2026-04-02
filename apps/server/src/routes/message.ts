@@ -229,6 +229,13 @@ export const messageRoutes = new Elysia({ prefix: "/api/channels/:channelId/mess
 
   // PATCH /:messageId — Edit message
   .patch("/:messageId", async ({ user: sessionUser, params, body }) => {
+    await checkUserRateLimit(
+      sessionUser.id,
+      RL.MESSAGE_EDIT,
+      RATE_LIMIT_MESSAGE_CREATE.limit,
+      RATE_LIMIT_MESSAGE_CREATE.windowMs,
+    );
+
     const resolution = await resolveChannel(params.channelId, sessionUser.id);
 
     const parsed = validateInput(updateMessageSchema, body);

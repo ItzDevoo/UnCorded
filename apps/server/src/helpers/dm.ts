@@ -1,4 +1,4 @@
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, sql } from "drizzle-orm";
 import { createId } from "@uncorded/shared";
 import { Opcode, dmChannelId as brandDmChannelId, userId as brandUserId } from "@uncorded/protocol";
 import { db } from "../db/index.js";
@@ -46,7 +46,7 @@ export async function ensureDmChannel(userIdA: string, userIdB: string): Promise
 
   const dmId = await db.transaction(async (tx) => {
     // Advisory lock prevents concurrent creation for the same user pair
-    await tx.execute(`SELECT pg_advisory_xact_lock(${lockKey})`);
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(${lockKey})`);
 
     const myChannels = tx
       .select({ channelId: dmMembers.channelId })

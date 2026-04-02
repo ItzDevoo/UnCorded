@@ -100,6 +100,7 @@ describe("authResolve", () => {
         user: { ...validUser, isBot: true },
         session: null,
       });
+      expect(mockGetBotSession).toHaveBeenCalledTimes(1);
       const passedHeaders = mockGetBotSession.mock.calls[0]![0] as Headers;
       expect(passedHeaders.get("authorization")).toBe("Bearer uncrd_test");
     });

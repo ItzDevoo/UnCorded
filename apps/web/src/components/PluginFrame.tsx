@@ -54,9 +54,10 @@ const PluginFrame = (props: PluginFrameProps) => {
   };
 
   const errorDescription = () => {
+    const fallback = `"${props.plugin.name}" is not responding.`;
     const payload = props.plugin.errorPayload;
-    if (payload) return payload.message;
-    return `"${props.plugin.name}" is not responding.`;
+    if (payload) return payload.message.trim() || fallback;
+    return fallback;
   };
 
   const handleRestart = () => {

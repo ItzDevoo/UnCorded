@@ -45,10 +45,14 @@ function ensureMessageListener(): void {
 // ── Publish (native PUBLISH) ────────────────────────────────────────────────
 
 export function publishCacheInvalidation(channel: PubSubChannelName, payload: object): void {
+  // Local handler already ran at the call site — publish is for other instances.
   if (!redis || isDev) return;
 
   redis.publish(channel, JSON.stringify({ ...payload, instanceId })).catch((err: Error) => {
-    console.error(`[redis-pubsub] Failed to publish to ${channel}:`, err);
+    console.error(
+      `[redis-pubsub] Failed to publish to ${channel} — other instances may serve stale data`,
+      { error: err.message, channel, payload },
+    );
   });
 }
 

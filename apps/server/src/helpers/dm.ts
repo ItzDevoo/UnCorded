@@ -38,28 +38,39 @@ function brandProfile(u: {
  *          already existed (no action taken).
  */
 export async function ensureDmChannel(userIdA: string, userIdB: string): Promise<string | null> {
-  // Check for existing DM via intersection query
-  const myChannels = db
-    .select({ channelId: dmMembers.channelId })
-    .from(dmMembers)
-    .where(eq(dmMembers.userId, userIdA));
+  // Sort IDs for deterministic advisory lock key
+  const [lo, hi] = userIdA < userIdB ? [userIdA, userIdB] : [userIdB, userIdA];
+  // Hash the pair into a 32-bit integer for pg_advisory_xact_lock
+  const lockKey =
+    [...`${lo}:${hi}`].reduce((h, c) => (Math.imul(31, h) + c.charCodeAt(0)) | 0, 0) >>> 0;
 
-  const [existingDm] = await db
-    .select({ channelId: dmMembers.channelId })
-    .from(dmMembers)
-    .where(and(eq(dmMembers.userId, userIdB), inArray(dmMembers.channelId, myChannels)))
-    .limit(1);
+  const dmId = await db.transaction(async (tx) => {
+    // Advisory lock prevents concurrent creation for the same user pair
+    await tx.execute(`SELECT pg_advisory_xact_lock(${lockKey})`);
 
-  if (existingDm) return null; // DM already exists
+    const myChannels = tx
+      .select({ channelId: dmMembers.channelId })
+      .from(dmMembers)
+      .where(eq(dmMembers.userId, userIdA));
 
-  const dmId = createId();
-  await db.transaction(async (tx) => {
-    await tx.insert(dmChannels).values({ id: dmId });
+    const [existingDm] = await tx
+      .select({ channelId: dmMembers.channelId })
+      .from(dmMembers)
+      .where(and(eq(dmMembers.userId, userIdB), inArray(dmMembers.channelId, myChannels)))
+      .limit(1);
+
+    if (existingDm) return null;
+
+    const newId = createId();
+    await tx.insert(dmChannels).values({ id: newId });
     await tx.insert(dmMembers).values([
-      { channelId: dmId, userId: userIdA },
-      { channelId: dmId, userId: userIdB },
+      { channelId: newId, userId: userIdA },
+      { channelId: newId, userId: userIdB },
     ]);
+    return newId;
   });
+
+  if (!dmId) return null;
 
   addDmChannelToCache(dmId, [userIdA, userIdB]);
 

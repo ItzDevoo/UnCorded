@@ -39,10 +39,14 @@ describe("checkRateLimit WS (Redis path)", () => {
     );
   });
 
-  it("falls back to in-memory on Redis error", async () => {
-    mockRedis.eval.mockRejectedValueOnce(new Error("timeout"));
-    // Should succeed via in-memory fallback
-    expect(await checkRateLimit("user_1", 1, 10, 60_000)).toBe(true);
+  it("falls back to in-memory on Redis error and enforces limit", async () => {
+    mockRedis.eval.mockRejectedValue(new Error("timeout"));
+
+    for (let i = 0; i < 10; i++) {
+      expect(await checkRateLimit("user_1", 1, 10, 60_000)).toBe(true);
+    }
+    // 11th call exceeds limit even via fallback
+    expect(await checkRateLimit("user_1", 1, 10, 60_000)).toBe(false);
   });
 
   it("returns true at exact limit boundary", async () => {

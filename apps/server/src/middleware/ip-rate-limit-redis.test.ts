@@ -51,8 +51,13 @@ describe("checkIpRateLimit (Redis path)", () => {
     );
   });
 
-  it("falls back to in-memory on Redis error", async () => {
-    mockRedis.eval.mockRejectedValueOnce(new Error("connection refused"));
-    expect(await checkIpRateLimit("10.0.0.1", 5, 10_000)).toBe(true);
+  it("falls back to in-memory on Redis error and enforces limit", async () => {
+    mockRedis.eval.mockRejectedValue(new Error("connection refused"));
+
+    for (let i = 0; i < 5; i++) {
+      expect(await checkIpRateLimit("10.0.0.1", 5, 10_000)).toBe(true);
+    }
+    // 6th call exceeds limit even via fallback
+    expect(await checkIpRateLimit("10.0.0.1", 5, 10_000)).toBe(false);
   });
 });

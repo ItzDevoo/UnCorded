@@ -1,5 +1,6 @@
 /* oxlint-disable eslint(no-shadow) -- vi.hoisted destructuring pattern */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { UnauthorizedError, ForbiddenError } from "@uncorded/shared";
 
 // ── Hoisted mocks ──────────────────────────────────────────────────────────
 
@@ -70,7 +71,7 @@ describe("authResolve", () => {
       mockGetSession.mockResolvedValueOnce(null);
       const resolve = authResolve();
 
-      await expect(resolve({ request: fakeRequest() })).rejects.toThrow();
+      await expect(resolve({ request: fakeRequest() })).rejects.toBeInstanceOf(UnauthorizedError);
     });
 
     it("throws ForbiddenError for banned users", async () => {
@@ -80,7 +81,7 @@ describe("authResolve", () => {
       });
       const resolve = authResolve();
 
-      await expect(resolve({ request: fakeRequest() })).rejects.toThrow();
+      await expect(resolve({ request: fakeRequest() })).rejects.toBeInstanceOf(ForbiddenError);
     });
   });
 
@@ -98,13 +99,14 @@ describe("authResolve", () => {
         user: { ...validUser, isBot: true },
         session: null,
       });
+      expect(mockGetBotSession).toHaveBeenCalledWith(expect.any(Headers));
     });
 
     it("does not try bot auth when allowBots is false (default)", async () => {
       mockGetSession.mockResolvedValueOnce(null);
       const resolve = authResolve();
 
-      await expect(resolve({ request: fakeRequest() })).rejects.toThrow();
+      await expect(resolve({ request: fakeRequest() })).rejects.toBeInstanceOf(UnauthorizedError);
       expect(mockGetBotSession).not.toHaveBeenCalled();
     });
 
@@ -116,7 +118,7 @@ describe("authResolve", () => {
       });
       const resolve = authResolve({ allowBots: true });
 
-      await expect(resolve({ request: fakeRequest() })).rejects.toThrow();
+      await expect(resolve({ request: fakeRequest() })).rejects.toBeInstanceOf(ForbiddenError);
     });
 
     it("throws UnauthorizedError when bot auth also fails", async () => {
@@ -124,7 +126,7 @@ describe("authResolve", () => {
       mockGetBotSession.mockResolvedValueOnce(null);
       const resolve = authResolve({ allowBots: true });
 
-      await expect(resolve({ request: fakeRequest() })).rejects.toThrow();
+      await expect(resolve({ request: fakeRequest() })).rejects.toBeInstanceOf(UnauthorizedError);
     });
   });
 });

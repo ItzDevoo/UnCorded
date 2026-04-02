@@ -1,10 +1,11 @@
 /* oxlint-disable eslint(no-shadow) -- vi.hoisted destructuring pattern */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { afterAll, describe, it, expect, vi, beforeEach } from "vitest";
 
 // ── Hoisted mocks ──────────────────────────────────────────────────────────
 
-const { selectResults, mockDb, capturedUpdates } = vi.hoisted(() => {
+const { selectResults, mockDb, capturedUpdates, originalBun } = vi.hoisted(() => {
   // Mock Bun.CryptoHasher (not available in Vitest's Node runtime)
+  const originalBun = globalThis.Bun;
   const mockDigest = { digest: () => "mocked_hash" };
   globalThis.Bun = {
     CryptoHasher: function () {
@@ -37,7 +38,7 @@ const { selectResults, mockDb, capturedUpdates } = vi.hoisted(() => {
     })),
   };
 
-  return { selectResults, capturedUpdates, mockDb };
+  return { selectResults, capturedUpdates, mockDb, originalBun };
 });
 
 vi.mock("drizzle-orm", () => ({ eq: vi.fn() }));
@@ -63,6 +64,10 @@ const fakeUser = { id: "user_1", name: "bot-user", banned: false };
 // ── Tests ──────────────────────────────────────────────────────────────────
 
 describe("getBotSession", () => {
+  afterAll(() => {
+    globalThis.Bun = originalBun;
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     selectResults.length = 0;

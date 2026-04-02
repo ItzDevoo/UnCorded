@@ -1,5 +1,6 @@
 /* oxlint-disable eslint(no-await-in-loop) -- sequential calls required to test rate limiting */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { RateLimitError } from "@uncorded/shared";
 
 // ── Hoisted mocks ──────────────────────────────────────────────────────────
 
@@ -24,7 +25,9 @@ describe("checkUserRateLimit (Redis path)", () => {
 
   it("throws RateLimitError when Redis count exceeds limit", async () => {
     mockRedis.eval.mockResolvedValueOnce(6);
-    await expect(checkUserRateLimit("user_1", "messages", 5, 10_000)).rejects.toThrow();
+    await expect(checkUserRateLimit("user_1", "messages", 5, 10_000)).rejects.toBeInstanceOf(
+      RateLimitError,
+    );
   });
 
   it("passes correct Redis key and TTL", async () => {
@@ -44,9 +47,16 @@ describe("checkUserRateLimit (Redis path)", () => {
     await expect(checkUserRateLimit("user_1", "messages", 5, 10_000)).resolves.toBeUndefined();
   });
 
-  it("falls back to in-memory on Redis error", async () => {
-    mockRedis.eval.mockRejectedValueOnce(new Error("Redis connection lost"));
-    // First call should succeed (in-memory fallback, count = 1)
-    await expect(checkUserRateLimit("user_1", "fallback", 5, 10_000)).resolves.toBeUndefined();
+  it("falls back to in-memory on Redis error and enforces limit", async () => {
+    // All Redis calls fail — in-memory fallback should still enforce the limit
+    mockRedis.eval.mockRejectedValue(new Error("Redis connection lost"));
+
+    for (let i = 0; i < 5; i++) {
+      await expect(checkUserRateLimit("user_1", "fallback", 5, 10_000)).resolves.toBeUndefined();
+    }
+    // 6th call exceeds limit even via fallback
+    await expect(checkUserRateLimit("user_1", "fallback", 5, 10_000)).rejects.toBeInstanceOf(
+      RateLimitError,
+    );
   });
 });

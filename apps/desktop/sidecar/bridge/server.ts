@@ -45,6 +45,7 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
         scope: p.scope,
         tunnelUrl: p.tunnelUrl,
         permissions: p.manifest.permissions,
+        errorPayload: p.errorPayload ?? null,
       }));
     })
 

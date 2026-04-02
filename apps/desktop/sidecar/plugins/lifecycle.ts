@@ -7,7 +7,9 @@ import { ResourceEnforcer } from "../docker/resources";
 import { issueToken, reregisterToken, revokePluginTokens } from "./tokens";
 import { parseManifest, type PluginManifest, type PluginScope } from "./manifest";
 import type { ResolvedScope } from "../bridge/auth";
+import type { PluginErrorPayload } from "@uncorded/shared";
 import type { TunnelManager } from "../tunnel/manager";
+import { classifyLifecycleError } from "./errors";
 
 export type PluginState = "installed" | "starting" | "running" | "stopping" | "stopped" | "crashed" | "error";
 
@@ -25,6 +27,7 @@ interface PluginRecord {
   previouslyRunning: boolean;
   installedAt: string;
   error?: string | undefined;
+  errorPayload?: PluginErrorPayload | undefined;
 }
 
 interface StateFile {
@@ -56,7 +59,7 @@ export class PluginLifecycle {
     this.dataDir = dataDir;
     this.statePath = path.join(dataDir, "plugin-data", ".state.json");
 
-    this.health.setStatusChangeHandler((pluginId, status) => {
+    this.health.setStatusChangeHandler((pluginId, status, reason) => {
       const plugin = this.plugins.get(pluginId);
       if (!plugin) return;
 
@@ -64,6 +67,8 @@ export class PluginLifecycle {
         plugin.state = "crashed";
         plugin.ready = false;
         plugin.previouslyRunning = false;
+        plugin.error = reason ?? "Plugin crashed";
+        plugin.errorPayload = classifyLifecycleError(reason ?? "Plugin crashed", pluginId);
         revokePluginTokens(pluginId);
         this.resources.release(plugin.manifest.resources ?? {});
 
@@ -190,6 +195,8 @@ export class PluginLifecycle {
 
     plugin.state = "starting";
     plugin.ready = false;
+    plugin.error = undefined;
+    plugin.errorPayload = undefined;
     this.saveState();
 
     // Token is baked into the container env at create time — re-register it in
@@ -439,8 +446,10 @@ export class PluginLifecycle {
         await this.start(plugin.pluginId);
       } catch (err) {
         console.error(`[lifecycle] Failed to resume ${plugin.pluginId}:`, err);
+        const reason = err instanceof Error ? err.message : "Failed to resume";
         plugin.state = "error";
-        plugin.error = err instanceof Error ? err.message : "Failed to resume";
+        plugin.error = reason;
+        plugin.errorPayload = classifyLifecycleError(`Failed to resume: ${reason}`, plugin.pluginId);
         this.saveState();
       }
     }

@@ -1,4 +1,5 @@
 import { createSignal, createRoot } from "solid-js";
+import type { PluginErrorPayload } from "@uncorded/shared";
 import { api } from "../lib/api.js";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -16,6 +17,7 @@ export interface PluginInfo {
   scope: "server" | "personal";
   tunnelUrl: string | null;
   permissions: string[];
+  errorPayload?: PluginErrorPayload | null;
 }
 
 export interface ServerPluginInfo {

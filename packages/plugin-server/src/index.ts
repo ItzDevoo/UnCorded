@@ -14,7 +14,10 @@ export {
   BridgeHttpError,
   BridgeNetworkError,
   BridgeNotFoundError,
+  PluginError,
 } from "./errors.js";
+export type { PluginErrorCategory } from "./errors.js";
+export { classifyServerError } from "./classify.js";
 export type {
   BridgeOptions,
   Channel,

@@ -9,6 +9,7 @@ export interface ContainerConfig {
   serverId: string;
   bridgeUrl: string;
   bridgeToken: string;
+  tunnelUrl?: string | undefined;
   env?: Record<string, string> | undefined;
   resources?: ResourceLimits | undefined;
   healthCheckPath?: string | undefined;
@@ -81,7 +82,7 @@ export class DockerManager {
     try {
       stream = await this.docker.pull(image);
     } catch (err) {
-      if (isConnectionError(err)) throw new Error(DOCKER_NOT_RUNNING);
+      if (isConnectionError(err)) throw new Error(DOCKER_NOT_RUNNING, { cause: err });
       throw err;
     }
     return new Promise((resolve, reject) => {
@@ -98,15 +99,31 @@ export class DockerManager {
     });
   }
 
+  /** Env var keys that plugins must never override — prevents clobbering system vars. */
+  private static readonly ENV_DENYLIST: ReadonlySet<string> = new Set([
+    "PATH", "HOME", "USER", "SHELL", "HOSTNAME", "LANG", "LC_ALL",
+    "LD_PRELOAD", "LD_LIBRARY_PATH", "NODE_OPTIONS", "BUN_INSTALL",
+  ]);
+
   async createContainer(config: ContainerConfig): Promise<string> {
     const pluginDataDir = path.join(this.dataDir, "plugin-data", config.pluginId);
+
+    // Filter manifest env vars against denylist to prevent system var clobbering
+    const safeEnv = Object.entries(config.env ?? {}).filter(([k]) => {
+      if (DockerManager.ENV_DENYLIST.has(k)) {
+        console.error(`[docker] Plugin ${config.pluginId}: blocked env var "${k}" (system denylist)`);
+        return false;
+      }
+      return true;
+    });
 
     const envArray = [
       `UNCORDED_BRIDGE_URL=${config.bridgeUrl}`,
       `UNCORDED_BRIDGE_TOKEN=${config.bridgeToken}`,
       `UNCORDED_SERVER_ID=${config.serverId}`,
       `UNCORDED_PLUGIN_ID=${config.pluginId}`,
-      ...Object.entries(config.env ?? {}).map(([k, v]) => `${k}=${v}`),
+      ...(config.tunnelUrl ? [`UNCORDED_TUNNEL_URL=${config.tunnelUrl}`] : []),
+      ...safeEnv.map(([k, v]) => `${k}=${v}`),
     ];
 
     const hostConfig: Dockerode.HostConfig = {
@@ -148,7 +165,7 @@ export class DockerManager {
         HostConfig: hostConfig,
       });
     } catch (err) {
-      if (isConnectionError(err)) throw new Error(DOCKER_NOT_RUNNING);
+      if (isConnectionError(err)) throw new Error(DOCKER_NOT_RUNNING, { cause: err });
       throw err;
     }
 
@@ -160,7 +177,7 @@ export class DockerManager {
     try {
       await container.start();
     } catch (err) {
-      if (isConnectionError(err)) throw new Error(DOCKER_NOT_RUNNING);
+      if (isConnectionError(err)) throw new Error(DOCKER_NOT_RUNNING, { cause: err });
       throw err;
     }
   }
@@ -169,7 +186,7 @@ export class DockerManager {
     const container = this.docker.getContainer(containerId);
     try {
       await container.stop({ t: timeoutSeconds });
-    } catch (err) {
+    } catch {
       // Container might already be stopped
       const info = await container.inspect();
       if (info.State.Running) {

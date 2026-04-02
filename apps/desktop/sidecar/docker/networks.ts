@@ -43,6 +43,7 @@ export class NetworkManager {
     for (const net of networks) {
       const network = this.docker.getNetwork(net.Id);
       try {
+        // eslint-disable-next-line no-await-in-loop
         await network.remove();
       } catch (err) {
         console.error(`[networks] Failed to remove network ${name}:`, err);

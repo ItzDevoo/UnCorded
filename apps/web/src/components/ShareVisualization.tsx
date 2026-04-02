@@ -65,6 +65,7 @@ function getBorderClass(status: ParticipantInfo["status"]): string {
 }
 
 const ShareVisualization = (props: Props) => {
+  // oxlint-disable-next-line no-unassigned-vars -- SolidJS ref assigned via JSX
   let svgRef!: SVGSVGElement;
   const [dimensions, setDimensions] = createSignal({ width: 500, height: 200 });
 
@@ -73,6 +74,7 @@ const ShareVisualization = (props: Props) => {
   });
 
   // Measure container for SVG lines
+  // oxlint-disable-next-line no-unassigned-vars -- SolidJS ref assigned via JSX
   let containerRef!: HTMLDivElement;
 
   const updateDimensions = () => {

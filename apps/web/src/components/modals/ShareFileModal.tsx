@@ -160,6 +160,7 @@ const ShareFileModal = (props: Props) => {
 
   // ── File input ref ────────────────────────────────────────────────────
 
+  // oxlint-disable-next-line no-unassigned-vars -- SolidJS ref assigned via JSX
   let fileInputRef!: HTMLInputElement;
 
   return (

@@ -35,6 +35,11 @@ function badRequestError(message: string) {
   });
 }
 
+/** Extract the PluginContext set by the derive middleware. */
+function getPlugin(ctx: unknown): PluginContext {
+  return (ctx as { plugin: PluginContext }).plugin;
+}
+
 /**
  * Check if a plugin is in personal scope (plugin.scope === "personal").
  */
@@ -63,9 +68,20 @@ export function createRoutes(deps: RouteDeps) {
 
   return new Elysia({ prefix: "/bridge" })
 
+    // --- Tunnel URL ---
+    .get("/tunnel", (ctx) => {
+      const plugin = getPlugin(ctx);
+      const record = deps.plugins.get(plugin.pluginId);
+      // Verify serverId matches to avoid returning wrong tunnel for multi-server installs
+      if (!record || record.serverId !== plugin.serverId) {
+        return { tunnelUrl: null };
+      }
+      return { tunnelUrl: record.tunnelUrl };
+    })
+
     // --- Server info ---
     .get("/server", (ctx) => {
-      const plugin = (ctx as unknown as { plugin: PluginContext }).plugin;
+      const plugin = getPlugin(ctx);
       const ready = gateway.getReadyData();
       if (!ready) throw gatewayError();
 
@@ -93,7 +109,7 @@ export function createRoutes(deps: RouteDeps) {
 
     // --- Members ---
     .get("/members", (ctx) => {
-      const plugin = (ctx as unknown as { plugin: PluginContext }).plugin;
+      const plugin = getPlugin(ctx);
       const ready = gateway.getReadyData();
       if (!ready) throw gatewayError();
 
@@ -110,7 +126,7 @@ export function createRoutes(deps: RouteDeps) {
 
     // --- Channels ---
     .get("/channels", (ctx) => {
-      const plugin = (ctx as unknown as { plugin: PluginContext }).plugin;
+      const plugin = getPlugin(ctx);
       const ready = gateway.getReadyData();
       if (!ready) throw gatewayError();
 
@@ -173,7 +189,7 @@ export function createRoutes(deps: RouteDeps) {
 
     // --- Users (restricted to caller's server) ---
     .get("/users/:userId", (ctx) => {
-      const plugin = (ctx as unknown as { plugin: PluginContext }).plugin;
+      const plugin = getPlugin(ctx);
       const { ready, server } = getPluginServer(gateway, plugin);
       if (!ready) throw gatewayError();
       if (!server) throw notFoundError("Server");
@@ -186,7 +202,7 @@ export function createRoutes(deps: RouteDeps) {
 
     // --- Presence ---
     .get("/presence", (ctx) => {
-      const plugin = (ctx as unknown as { plugin: PluginContext }).plugin;
+      const plugin = getPlugin(ctx);
       const ready = gateway.getReadyData();
       if (!ready) return { presence: [] };
 
@@ -214,7 +230,7 @@ export function createRoutes(deps: RouteDeps) {
 
     // --- Notifications ---
     .post("/notify", (ctx) => {
-      const plugin = (ctx as unknown as { plugin: PluginContext }).plugin;
+      const plugin = getPlugin(ctx);
       const body = (ctx as unknown as { body: unknown }).body as Record<string, unknown> | null;
 
       const title = body?.title;
@@ -246,14 +262,14 @@ export function createRoutes(deps: RouteDeps) {
 
     // --- Plugin config ---
     .get("/config", (ctx) => {
-      const plugin = (ctx as unknown as { plugin: PluginContext }).plugin;
+      const plugin = getPlugin(ctx);
       const config = storage.get(plugin.pluginId, "__config");
       return { config: config ?? {} };
     })
 
     // --- KV Storage ---
     .get("/storage/:key", (ctx) => {
-      const plugin = (ctx as unknown as { plugin: PluginContext }).plugin;
+      const plugin = getPlugin(ctx);
       const params = (ctx as unknown as { params: { key: string } }).params;
       const value = storage.get(plugin.pluginId, params.key);
       if (value === null) throw notFoundError("Key");
@@ -261,7 +277,7 @@ export function createRoutes(deps: RouteDeps) {
     })
 
     .put("/storage/:key", (ctx) => {
-      const plugin = (ctx as unknown as { plugin: PluginContext }).plugin;
+      const plugin = getPlugin(ctx);
       const params = (ctx as unknown as { params: { key: string } }).params;
       const query = (ctx as unknown as { query: Record<string, string | undefined> }).query;
       const body = (ctx as unknown as { body: unknown }).body;
@@ -283,7 +299,7 @@ export function createRoutes(deps: RouteDeps) {
     })
 
     .delete("/storage/:key", (ctx) => {
-      const plugin = (ctx as unknown as { plugin: PluginContext }).plugin;
+      const plugin = getPlugin(ctx);
       const params = (ctx as unknown as { params: { key: string } }).params;
       const deleted = storage.delete(plugin.pluginId, params.key);
       return { key: params.key, deleted };

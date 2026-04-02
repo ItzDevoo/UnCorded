@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 // ── Hoisted mocks ──────────────────────────────────────────────────────────
 
 const { mockSpawn, mockEnsureCloudflared, mockProcess } = vi.hoisted(() => {
-  const mockProcess = {
+  const hoistedProcess = {
     stderr: {
       on: vi.fn(),
     },
@@ -14,10 +14,10 @@ const { mockSpawn, mockEnsureCloudflared, mockProcess } = vi.hoisted(() => {
     kill: vi.fn(),
   };
 
-  const mockSpawn = vi.fn().mockReturnValue(mockProcess);
-  const mockEnsureCloudflared = vi.fn().mockResolvedValue("/usr/local/bin/cloudflared");
+  const hoistedSpawn = vi.fn().mockReturnValue(hoistedProcess);
+  const hoistedEnsureCloudflared = vi.fn().mockResolvedValue("/usr/local/bin/cloudflared");
 
-  return { mockSpawn, mockEnsureCloudflared, mockProcess };
+  return { mockSpawn: hoistedSpawn, mockEnsureCloudflared: hoistedEnsureCloudflared, mockProcess: hoistedProcess };
 });
 
 vi.mock("node:child_process", () => ({ spawn: mockSpawn }));

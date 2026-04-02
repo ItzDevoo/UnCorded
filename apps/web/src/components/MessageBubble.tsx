@@ -296,6 +296,7 @@ const MessageBubble = (props: MessageBubbleProps) => {
   };
 
   // Close mobile menu on outside click or Escape
+  // oxlint-disable-next-line no-unassigned-vars -- SolidJS ref assigned via JSX
   let mobileMenuRef!: HTMLDivElement;
   createEffect(() => {
     if (!mobileMenuOpen()) return;

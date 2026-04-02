@@ -266,6 +266,7 @@ export const gateway = new Elysia().ws("/gateway", {
           const d = parsed.data;
 
           // Sanitize file metadata
+          // eslint-disable-next-line no-control-regex
           const sanitizedFileName = d.fileName.replace(/[/\\<>:"|?*\x00-\x1F]/g, "_");
 
           const resolution = await resolveChannelMembership(ctx.userId, d.channelId);

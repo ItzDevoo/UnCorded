@@ -40,6 +40,24 @@ interface CatalogPlugin {
   installed: boolean;
 }
 
+function catalogToCardData(p: CatalogPlugin): PluginCardData {
+  return {
+    id: p.id, name: p.name, description: p.description, author: p.author,
+    icon: p.icon, category: p.category, scope: p.scope as "server" | "personal" | "both",
+    tags: p.tags, version: p.version, verified: p.verified, featured: p.featured,
+    downloads: p.downloads, installCount: p.installCount,
+  };
+}
+
+function stateStatus(state: string): { label: string; color: string } {
+  switch (state) {
+    case "active": return { label: "Running", color: "bg-success" };
+    case "stopped": return { label: "Stopped", color: "bg-muted-foreground" };
+    case "error": return { label: "Error", color: "bg-destructive" };
+    default: return { label: state, color: "bg-muted-foreground" };
+  }
+}
+
 const ServerPluginsTab = (props: ServerPluginsProps) => {
   const [installing, setInstalling] = createSignal<PluginId | null>(null);
   const [uninstalling, setUninstalling] = createSignal<PluginId | null>(null);
@@ -96,17 +114,8 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
           p.tags.some((t) => t.toLowerCase().includes(q)),
       );
     }
-    return list.sort((a, b) => (a.featured !== b.featured ? (a.featured ? -1 : 1) : 0));
+    return list.toSorted((a, b) => (a.featured !== b.featured ? (a.featured ? -1 : 1) : 0));
   };
-
-  function catalogToCardData(p: CatalogPlugin): PluginCardData {
-    return {
-      id: p.id, name: p.name, description: p.description, author: p.author,
-      icon: p.icon, category: p.category, scope: p.scope as "server" | "personal" | "both",
-      tags: p.tags, version: p.version, verified: p.verified, featured: p.featured,
-      downloads: p.downloads, installCount: p.installCount,
-    };
-  }
 
   function installedToCardData(sp: ServerPlugin): PluginCardData {
     const cat = catalogMap().get(sp.pluginId);
@@ -125,15 +134,6 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
       downloads: cat?.downloads ?? 0,
       installCount: cat?.installCount ?? 0,
     };
-  }
-
-  function stateStatus(state: string): { label: string; color: string } {
-    switch (state) {
-      case "active": return { label: "Running", color: "bg-success" };
-      case "stopped": return { label: "Stopped", color: "bg-muted-foreground" };
-      case "error": return { label: "Error", color: "bg-destructive" };
-      default: return { label: state, color: "bg-muted-foreground" };
-    }
   }
 
   async function handleInstall(pluginId: PluginId) {

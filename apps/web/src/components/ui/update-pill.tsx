@@ -17,11 +17,11 @@ interface UpdateState {
 
 const VISIBLE_STATUSES = new Set(["available", "downloading", "downloaded"]);
 
+const bridge = () => window.desktopBridge;
+
 export const UpdatePill = () => {
   const [state, setState] = createSignal<UpdateState | null>(null);
   const [acting, setActing] = createSignal(false);
-
-  const bridge = () => window.desktopBridge;
 
   onMount(() => {
     if (!bridge()) return;

@@ -43,6 +43,7 @@ export class SeedingEngine {
 
     for (const entry of index.seeds) {
       try {
+        // eslint-disable-next-line no-await-in-loop
         await this.seedFile(entry);
       } catch (err) {
         console.error(`[seeding] Failed to resume seed: ${entry.filePath}`, err);

@@ -66,7 +66,7 @@ export async function ensureCloudflared(dataDir: string): Promise<string> {
   } catch (err) {
     clearTimeout(downloadTimeout);
     if (err instanceof DOMException && err.name === "AbortError") {
-      throw new Error("Cloudflared download timed out after 120s");
+      throw new Error("Cloudflared download timed out after 120s", { cause: err });
     }
     throw err;
   }
@@ -97,7 +97,7 @@ export async function ensureCloudflared(dataDir: string): Promise<string> {
   try {
     execSync(`"${localPath}" --version`, { encoding: "utf-8", timeout: 10_000 });
   } catch (err) {
-    throw new Error(`Downloaded cloudflared binary is not working: ${err}`);
+    throw new Error("Downloaded cloudflared binary is not working", { cause: err });
   }
 
   console.error(`[tunnel] Downloaded cloudflared to ${localPath}`);

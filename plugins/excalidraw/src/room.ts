@@ -185,7 +185,7 @@ export function handleMessage(
 
       if (parsed.type === "scene-update" && Array.isArray(parsed.elements)) {
         // Version check — only accept if version >= current
-        const incomingVersion = computeSceneVersion(parsed.elements);
+        const _incomingVersion = computeSceneVersion(parsed.elements);
 
         // Merge: apply incoming elements on top of existing
         if (room.lastElements) {

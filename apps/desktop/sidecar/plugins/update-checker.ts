@@ -89,6 +89,7 @@ export async function applyAutoUpdates(
 
   for (const update of autoUpdatable) {
     try {
+      // eslint-disable-next-line no-await-in-loop
       const result = await plugins.update(update.pluginId, update.manifest);
       if (result.errors && result.errors.length > 0) {
         console.error(`[update-checker] Failed to update ${update.pluginId}:`, result.errors);

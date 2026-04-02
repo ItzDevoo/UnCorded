@@ -24,7 +24,7 @@ import { authResolve, getSession } from "./auth.js";
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function fakeRequest(headers?: Record<string, string>): Request {
-  return new Request("http://localhost/test", { headers });
+  return new Request("http://localhost/test", headers ? { headers } : {});
 }
 
 const validUser = {

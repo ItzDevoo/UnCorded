@@ -195,7 +195,11 @@ export function proxy(
             // Strip upstream base path to avoid duplication
             const upstreamBasePath = targetUrl.pathname.replace(/\/+$/, "");
             let relativePath = locUrl.pathname;
-            if (upstreamBasePath && relativePath.startsWith(upstreamBasePath)) {
+            if (
+              upstreamBasePath &&
+              (relativePath === upstreamBasePath ||
+                relativePath.startsWith(`${upstreamBasePath}/`))
+            ) {
               relativePath = relativePath.slice(upstreamBasePath.length) || "/";
             }
             resHeaders.set(
@@ -236,11 +240,22 @@ export function proxy(
       // Echo request origin instead of wildcard — supports credentialed requests.
       // Note: this is a generic SDK proxy; app-level origin restrictions are
       // enforced by the iframe sandbox and plugin bridge allowlist, not here.
+      // An allowlist at this layer would require per-plugin configuration that
+      // belongs in higher-level code, not a generic proxy primitive.
       const requestOrigin = req.headers.get("origin");
       if (requestOrigin) {
         resHeaders.set("access-control-allow-origin", requestOrigin);
         resHeaders.set("access-control-allow-credentials", "true");
-        resHeaders.set("vary", "Origin");
+        // Merge "Origin" into existing Vary header to preserve upstream values
+        const existingVary = resHeaders.get("vary");
+        if (existingVary) {
+          const tokens = existingVary.split(",").map((t) => t.trim().toLowerCase());
+          if (!tokens.includes("origin")) {
+            resHeaders.set("vary", `${existingVary}, Origin`);
+          }
+        } else {
+          resHeaders.set("vary", "Origin");
+        }
       }
 
       return new Response(upstreamRes.body, {
@@ -307,8 +322,9 @@ export function rewriteHtmlBase(
     } else {
       // Fallback: regex rewriting of href="/", src="/", action="/"
       // v1-pragmatic — known fragile for inline JS, CSS url(), dynamic HTML.
+      // Negative lookahead (?!\/) skips protocol-relative //cdn... URLs.
       html = html.replace(
-        /((?:href|src|action)\s*=\s*["'])\//gi,
+        /((?:href|src|action)\s*=\s*["'])\/(?!\/)/gi,
         `$1${normalizedPrefix}/`,
       );
     }

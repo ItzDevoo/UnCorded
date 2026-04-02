@@ -173,15 +173,11 @@ export async function getImages(boardId: string): Promise<ImageData[]> {
   const dir = imagesDir(boardId);
   try {
     const files = await readdir(dir);
-    const images: ImageData[] = [];
-    for (const file of files) {
-      if (!file.endsWith(".json")) continue;
-      const id = file.replace(".json", "");
-      // eslint-disable-next-line no-await-in-loop
-      const img = await getImage(boardId, id);
-      if (img) images.push(img);
-    }
-    return images;
+    const ids = files
+      .filter((f) => f.endsWith(".json"))
+      .map((f) => f.replace(".json", ""));
+    const results = await Promise.all(ids.map((id) => getImage(boardId, id)));
+    return results.filter((img): img is ImageData => img !== null);
   } catch {
     return [];
   }

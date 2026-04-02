@@ -24,6 +24,7 @@ Desktop.ini
 # Claude Code
 .claude/
 memory.md
+SESSION.md
 
 # IDE
 .idea/

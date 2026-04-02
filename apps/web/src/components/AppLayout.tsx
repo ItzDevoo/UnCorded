@@ -36,7 +36,6 @@ import {
   updateAllowedOrigins,
 } from "../lib/plugin-bridge.js";
 import FileReceiveModal from "./modals/FileReceiveModal.js";
-
 const AppLayout: ParentComponent = (props) => {
   const session = useSession();
   const [showConnected, setShowConnected] = createSignal(false);

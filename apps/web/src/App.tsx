@@ -1,10 +1,13 @@
 import { lazy, ErrorBoundary } from "solid-js";
 import { Router, Route } from "@solidjs/router";
 import AppLayout from "./components/AppLayout.js";
+import OfflineIndicator from "./components/OfflineIndicator.js";
+import InstallPrompt from "./components/InstallPrompt.js";
 import "./stores/theme-store.js"; // Initialize theme on app load
 
 // Public pages
 const Landing = lazy(() => import("./pages/Landing.js"));
+const Launch = lazy(() => import("./pages/Launch.js"));
 const Login = lazy(() => import("./pages/Login.js"));
 const Register = lazy(() => import("./pages/Register.js"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword.js"));
@@ -75,9 +78,12 @@ const App = () => {
         </div>
       )}
     >
+      <OfflineIndicator />
+      <InstallPrompt />
       <Router>
         {/* Public */}
         <Route path="/" component={Landing} />
+        <Route path="/launch" component={Launch} />
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
         <Route path="/forgot-password" component={ForgotPassword} />

@@ -3,7 +3,8 @@ import { canInstall, installApp } from "../stores/pwa-store.js";
 
 function isIos(): boolean {
   const ua = navigator.userAgent;
-  return /iPhone|iPad|iPod/.test(ua) && !("standalone" in navigator && (navigator as Navigator & { standalone?: boolean }).standalone);
+  const nav = navigator as Navigator & { standalone?: boolean };
+  return /iPhone|iPad|iPod/.test(ua) && !("standalone" in navigator && nav.standalone);
 }
 
 const InstallPrompt = () => {

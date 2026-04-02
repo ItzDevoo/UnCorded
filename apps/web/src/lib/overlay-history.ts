@@ -20,16 +20,24 @@ let handlingPopstate = false;
 /** Count of popstate events to suppress (triggered by our own history.back() cleanup). */
 let skipPopstateCount = 0;
 
-function onPopstate(): void {
+function onPopstate(event: Event): void {
   if (skipPopstateCount > 0) {
     skipPopstateCount--;
     return;
   }
   if (stack.length === 0) return;
 
-  const entry = stack.pop()!;
+  // Validate that the history state matches the topmost overlay
+  const top = stack[stack.length - 1]!;
+  const state = (event as PopStateEvent).state as { overlayId?: string } | null;
+  if (!state?.overlayId || state.overlayId !== top.id) return;
+
+  // Prevent SolidJS router from also handling this popstate
+  event.stopImmediatePropagation();
+
+  stack.pop();
   handlingPopstate = true;
-  entry.close();
+  top.close();
   handlingPopstate = false;
 }
 
@@ -50,11 +58,16 @@ export function pushOverlay(id: string, close: CloseCallback): void {
 export function popOverlay(id: string): void {
   const idx = stack.findIndex((e) => e.id === id);
   if (idx === -1) return;
+
+  const wasTopmost = idx === stack.length - 1;
   stack.splice(idx, 1);
 
   if (handlingPopstate) return;
 
-  // Overlay closed via Escape/click — clean up the dead history entry
-  skipPopstateCount++;
-  history.back();
+  // Only manipulate history for the topmost overlay — non-topmost entries
+  // don't have the matching history state on top of the history stack
+  if (wasTopmost) {
+    skipPopstateCount++;
+    history.back();
+  }
 }

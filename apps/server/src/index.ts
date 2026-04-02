@@ -122,7 +122,10 @@ const app = new Elysia()
     set.status = 500;
     return { code: "INTERNAL_ERROR", message: "Internal server error" };
   })
-  .listen(env.PORT);
+  .listen({
+    port: env.PORT,
+    maxRequestBodySize: 1024 * 1024 * 2, // 2 MB
+  });
 
 // ── Redis cache invalidation subscribers ─────────────────────────────────────
 

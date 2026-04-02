@@ -34,3 +34,5 @@ jobs:
       - run: bun run lint
       - run: bun run test
       - run: bun run build
+      - name: Check migrations
+        run: cd apps/server && bunx drizzle-kit check --dialect=postgresql --out=./drizzle

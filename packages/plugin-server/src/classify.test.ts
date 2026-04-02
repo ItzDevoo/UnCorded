@@ -38,7 +38,7 @@ describe("classifyServerError", () => {
     const payload = classifyServerError(err, PLUGIN_ID);
     expect(payload.category).toBe("permission");
     expect(payload.retryable).toBe(false);
-    expect(payload.code).toBe("FORBIDDEN");
+    expect(payload.causeCode).toBe("BRIDGE_HTTP_ERROR");
   });
 
   it("classifies BridgeHttpError 429 as network + retryable", () => {
@@ -46,7 +46,7 @@ describe("classifyServerError", () => {
     const payload = classifyServerError(err, PLUGIN_ID);
     expect(payload.category).toBe("network");
     expect(payload.retryable).toBe(true);
-    expect(payload.code).toBe("RATE_LIMITED");
+    expect(payload.causeCode).toBe("BRIDGE_HTTP_ERROR");
   });
 
   it("classifies BridgeHttpError 500 as internal + retryable", () => {

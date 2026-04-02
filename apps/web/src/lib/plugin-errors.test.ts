@@ -42,6 +42,15 @@ describe("classifyBridgeError", () => {
     expect(payload.retryable).toBe(true);
   });
 
+  it("classifies NETWORK_ERROR as network + retryable", () => {
+    const payload = classifyBridgeError(
+      { code: "NETWORK_ERROR", message: "Connection refused" },
+      PLUGIN_ID,
+    );
+    expect(payload.category).toBe("network");
+    expect(payload.retryable).toBe(true);
+  });
+
   it("classifies unknown code as internal", () => {
     const payload = classifyBridgeError(
       { code: "SOMETHING_NEW", message: "Unknown error" },

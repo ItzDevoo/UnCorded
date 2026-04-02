@@ -31,7 +31,7 @@ export class UnCordedPlugin {
   readonly #shellOrigin: string;
   readonly #timeoutMs: number;
   #idCounter = 0;
-  #errorHandler: ((error: Error) => void) | null = null;
+  readonly #errorHandlers = new Set<(error: Error) => void>();
 
   constructor(options?: PluginOptions) {
     this.#timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -131,7 +131,8 @@ export class UnCordedPlugin {
             handler(pluginEvent.data);
           } catch (err) {
             console.error(`[uncorded] Event handler for "${pluginEvent.event}" threw:`, err);
-            this.#errorHandler?.(err instanceof Error ? err : new Error(String(err)));
+            const wrapped = err instanceof Error ? err : new Error(String(err));
+            for (const eh of this.#errorHandlers) eh(wrapped);
           }
         }
       }
@@ -205,9 +206,9 @@ export class UnCordedPlugin {
 
   /** Register a global error handler. Returns a cleanup function. */
   onError(handler: (error: Error) => void): () => void {
-    this.#errorHandler = handler;
+    this.#errorHandlers.add(handler);
     return () => {
-      if (this.#errorHandler === handler) this.#errorHandler = null;
+      this.#errorHandlers.delete(handler);
     };
   }
 }

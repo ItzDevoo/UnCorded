@@ -149,4 +149,13 @@ describe("PluginError.isPayload()", () => {
     expect(PluginError.isPayload({ code: "X", message: "y", retryable: false })).toBe(false);
     expect(PluginError.isPayload({ code: "X", message: "y", category: "internal" })).toBe(false);
   });
+
+  it("returns false for invalid category value", () => {
+    expect(PluginError.isPayload({
+      code: "X",
+      message: "y",
+      category: "bogus",
+      retryable: false,
+    })).toBe(false);
+  });
 });

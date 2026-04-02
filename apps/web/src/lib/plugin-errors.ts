@@ -15,6 +15,7 @@ const CODE_MAP: Record<string, { category: PluginErrorCategory; retryable: boole
   UNKNOWN_METHOD: { category: "validation", retryable: false },
   NOT_FOUND: { category: "validation", retryable: false },
   RATE_LIMITED: { category: "network", retryable: true },
+  NETWORK_ERROR: { category: "network", retryable: true },
   UNAUTHORIZED: { category: "permission", retryable: false },
 };
 

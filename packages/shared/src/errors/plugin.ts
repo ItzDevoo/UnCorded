@@ -93,6 +93,7 @@ export class PluginError extends AppError {
       typeof v["code"] === "string" &&
       typeof v["message"] === "string" &&
       typeof v["category"] === "string" &&
+      v["category"] in CATEGORY_STATUS &&
       typeof v["retryable"] === "boolean"
     );
   }

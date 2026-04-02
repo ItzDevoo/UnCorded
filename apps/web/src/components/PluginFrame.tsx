@@ -61,7 +61,8 @@ const PluginFrame = (props: PluginFrameProps) => {
 
   const handleRestart = () => {
     if (!isDesktop()) return;
-    window.desktopBridge!.plugins.restart(props.plugin.id).catch(() => {
+    window.desktopBridge!.plugins.restart(props.plugin.id).catch((err: unknown) => {
+      if (import.meta.env.DEV) console.error("[PluginFrame] restart failed:", err);
       showToast("Failed to restart plugin", "error");
     });
   };

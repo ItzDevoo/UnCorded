@@ -114,16 +114,16 @@
     },
     "packages/create-uncorded-plugin": {
       "name": "create-uncorded-plugin",
-      "version": "0.0.0",
+      "version": "0.1.0",
       "bin": {
         "create-uncorded-plugin": "./src/index.ts",
       },
     },
     "packages/mock-bridge": {
       "name": "@uncorded/mock-bridge",
-      "version": "0.0.0",
+      "version": "0.1.0",
       "bin": {
-        "mock-bridge": "./src/index.ts",
+        "mock-bridge": "./dist/index.js",
       },
       "dependencies": {
         "elysia": "^1",
@@ -131,26 +131,29 @@
     },
     "packages/plugin-client": {
       "name": "@uncorded/plugin-client",
-      "version": "0.0.0",
+      "version": "0.1.0",
       "dependencies": {
-        "@uncorded/protocol": "*",
-        "@uncorded/shared": "*",
+        "@uncorded/protocol": "workspace:^",
+        "@uncorded/shared": "workspace:^",
+      },
+      "devDependencies": {
+        "vitest": "^4.0.18",
       },
     },
     "packages/plugin-server": {
       "name": "@uncorded/plugin-server",
-      "version": "0.0.0",
+      "version": "0.1.0",
       "dependencies": {
-        "@uncorded/protocol": "*",
-        "@uncorded/shared": "*",
+        "@uncorded/protocol": "workspace:^",
+        "@uncorded/shared": "workspace:^",
       },
     },
     "packages/protocol": {
       "name": "@uncorded/protocol",
-      "version": "0.0.0",
+      "version": "0.1.0",
       "dependencies": {
         "@msgpack/msgpack": "^3",
-        "@uncorded/shared": "*",
+        "@uncorded/shared": "workspace:^",
         "zod": "^3",
       },
       "devDependencies": {
@@ -159,13 +162,22 @@
     },
     "packages/shared": {
       "name": "@uncorded/shared",
-      "version": "0.0.0",
+      "version": "0.1.0",
       "dependencies": {
         "nanoid": "^5",
         "zod": "^3",
       },
       "devDependencies": {
         "vitest": "^4.0.18",
+      },
+    },
+    "packages/smoke-test": {
+      "name": "@uncorded/smoke-test",
+      "version": "0.0.0",
+      "dependencies": {
+        "@uncorded/mock-bridge": "workspace:*",
+        "@uncorded/plugin-client": "workspace:*",
+        "@uncorded/plugin-server": "workspace:*",
       },
     },
   },
@@ -1175,6 +1187,8 @@
     "@uncorded/server": ["@uncorded/server@workspace:apps/server"],
 
     "@uncorded/shared": ["@uncorded/shared@workspace:packages/shared"],
+
+    "@uncorded/smoke-test": ["@uncorded/smoke-test@workspace:packages/smoke-test"],
 
     "@uncorded/web": ["@uncorded/web@workspace:apps/web"],
 

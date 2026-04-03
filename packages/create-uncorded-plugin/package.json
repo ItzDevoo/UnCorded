@@ -1,15 +1,25 @@
 {
   "name": "create-uncorded-plugin",
-  "version": "0.0.0",
-  "private": true,
-  "bin": {
-    "create-uncorded-plugin": "./src/index.ts"
-  },
+  "version": "0.1.0",
   "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
+  "license": "MIT",
+  "author": "UnCorded",
+  "repository": { "type": "git", "url": "https://github.com/nicholascostadev/uncorded", "directory": "packages/create-uncorded-plugin" },
+  "keywords": ["uncorded", "plugin", "create", "scaffold", "cli"],
+  "bin": {
+    "create-uncorded-plugin": "./dist/index.js"
   },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "templates", "README.md"],
   "scripts": {
+    "build": "tsc",
     "typecheck": "tsc --noEmit"
   }
 }

@@ -1,18 +1,28 @@
 {
   "name": "@uncorded/protocol",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "type": "module",
+  "license": "MIT",
+  "author": "UnCorded",
+  "repository": { "type": "git", "url": "https://github.com/nicholascostadev/uncorded", "directory": "packages/protocol" },
+  "keywords": ["uncorded", "plugin", "sdk", "protocol", "messagepack"],
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "README.md"],
   "scripts": {
+    "build": "tsc",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
     "@msgpack/msgpack": "^3",
-    "@uncorded/shared": "*",
+    "@uncorded/shared": "workspace:^",
     "zod": "^3"
   },
   "devDependencies": {

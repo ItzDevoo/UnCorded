@@ -14,14 +14,19 @@ describe("browser-notifications", () => {
   });
 
   describe("initBrowserNotifications", () => {
-    it("reads Notification.permission on init", () => {
+    it("reads Notification.permission on init", async () => {
+      const mockRequest = vi.fn();
       Object.defineProperty(window, "Notification", {
-        value: { permission: "granted", requestPermission: vi.fn() },
+        value: { permission: "granted", requestPermission: mockRequest },
         writable: true,
         configurable: true,
       });
       initBrowserNotifications();
-      // After init with granted, requestPermission should return true immediately
+      // After init with "granted", requestPermission should resolve true
+      // without calling the browser's requestPermission
+      const result = await requestPermission();
+      expect(result).toBe(true);
+      expect(mockRequest).not.toHaveBeenCalled();
     });
 
     it("handles missing Notification API gracefully", () => {

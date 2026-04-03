@@ -8,7 +8,10 @@ import { requestPermission } from "../../lib/browser-notifications.js";
 function readPermission(): NotificationPermission {
   try {
     return "Notification" in window ? Notification.permission : "default";
-  } catch {
+  } catch (err) {
+    if (import.meta.env.DEV) {
+      console.error("Failed to read Notification.permission:", err);
+    }
     return "default";
   }
 }

@@ -1,5 +1,5 @@
 import { createStore } from "solid-js/store";
-import { createEffect, createMemo, createRoot } from "solid-js";
+import { createEffect, createMemo, createRoot, createSignal } from "solid-js";
 import { Opcode } from "@uncorded/protocol";
 import type { AnyChannelId, DmChannelId } from "@uncorded/protocol";
 import {
@@ -42,6 +42,38 @@ export function markRead(chId: AnyChannelId): void {
   }
 }
 
+export function getTotalDmUnread(): number {
+  const dms = readyData.data?.dmChannels;
+  if (!dms) return 0;
+  let total = 0;
+  for (const dm of dms) total += getUnreadCount(dm.id);
+  return total;
+}
+
+// ── Browser notification preference ─────────────────────────────────────────
+
+const BROWSER_NOTIF_KEY = "uncorded:browser-notifications";
+
+function readBrowserNotifPref(): boolean {
+  try {
+    return localStorage.getItem(BROWSER_NOTIF_KEY) !== "false";
+  } catch {
+    return true;
+  }
+}
+
+const [browserNotificationsEnabled, setBrowserNotificationsEnabledSignal] =
+  createSignal(readBrowserNotifPref());
+
+export function setBrowserNotifications(enabled: boolean): void {
+  setBrowserNotificationsEnabledSignal(enabled);
+  try {
+    localStorage.setItem(BROWSER_NOTIF_KEY, String(enabled));
+  } catch {}
+}
+
+export { browserNotificationsEnabled };
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function incrementUnread(chId: string): void {
@@ -76,6 +108,7 @@ function findDmChannelBySender(senderId: string): string | null {
 let permissionRequested = false;
 
 function notifyBrowser(title: string, body: string): void {
+  if (!browserNotificationsEnabled()) return;
   if (!permissionRequested) {
     permissionRequested = true;
     requestPermission().then((granted) => {

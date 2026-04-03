@@ -64,7 +64,7 @@ const Users = () => {
       if (searchQuery) params.set("search", searchQuery);
       const res = await api(`/api/admin/users?${params}`, undefined, usersResponseSchema);
       if (currentId !== fetchRequestId) return;
-      setData(res);
+      setData(res as UsersResponse);
     } catch {
       if (currentId !== fetchRequestId) return;
       showToast("Failed to load users", "error");
@@ -92,7 +92,7 @@ const Users = () => {
     setBotsCache((prev) => ({ ...prev, [userId]: "loading" }));
     try {
       const res = await api(`/api/admin/users/${userId}/bots`, undefined, userBotsResponseSchema);
-      setBotsCache((prev) => ({ ...prev, [userId]: res }));
+      setBotsCache((prev) => ({ ...prev, [userId]: res as UserBotsResponse }));
     } catch {
       setBotsCache((prev) => ({ ...prev, [userId]: "error" }));
     }

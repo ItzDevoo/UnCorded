@@ -37,7 +37,7 @@ const AdminPolls = () => {
     try {
       const res = await api(`/api/admin/polls?page=${page}`, undefined, pollsResponseSchema);
       if (id !== fetchCounter) return;
-      setData(res);
+      setData(res as PollsResponse);
     } catch {
       if (id !== fetchCounter) return;
       showToast("Failed to load polls", "error");

@@ -41,7 +41,7 @@ const AdminFeedback = () => {
     try {
       const res = await api(`/api/admin/feedback?page=${page}`, undefined, feedbackResponseSchema);
       if (id !== fetchCounter) return;
-      setData(res);
+      setData(res as FeedbackResponse);
     } catch {
       if (id !== fetchCounter) return;
       showToast("Failed to load feedback", "error");

@@ -296,6 +296,26 @@ CMD ["bun", "run", "src/server.ts"]
 - Use `bridge.storage` for persistence, not `localStorage`. localStorage is per-browser and won't persist across users or devices.
 - `env` keys in the manifest **cannot start with `UNCORDED_`** (reserved prefix).
 
+## Icons
+
+The `icon` field in the manifest can be:
+- A **relative file path** (e.g. `./icon.png`) — bundled in the Docker image
+- A **URL to a hosted image** — use a raw GitHub URL so the icon is always accessible
+
+For hosted icons, use your plugin's git repository:
+```
+https://raw.githubusercontent.com/your-org/your-plugin/main/icon.png
+```
+
+This ensures the icon is viewable in the plugin store and server settings even when the plugin container is not running. Recommended format: SVG or PNG, square, at least 128x128px.
+
+Example in manifest:
+```json
+{
+  "icon": "https://raw.githubusercontent.com/your-org/your-plugin/main/icon.svg"
+}
+```
+
 ## Local Development
 
 ### Mock Bridge
@@ -306,14 +326,212 @@ bunx @uncorded/mock-bridge --port 7070
 
 The mock bridge provides fake data: 3 users, 2 channels, and sample messages. It accepts any Bearer token for authentication.
 
-### Build & Test
+### Running Locally
 
 ```bash
-# Build Docker image
+# Terminal 1 — mock bridge
+bunx @uncorded/mock-bridge --port 7070
+
+# Terminal 2 — plugin dev server
+UNCORDED_BRIDGE_URL=http://localhost:7070 UNCORDED_BRIDGE_TOKEN=dev bun run dev
+```
+
+Your plugin runs at `http://localhost:3000`. The sidebar is at `http://localhost:3000/sidebar`.
+
+### Testing in Docker
+
+```bash
+# Build image
 docker build -t my-plugin:latest .
 
-# Sideload into UnCorded (POST manifest to sidecar)
-curl -X POST http://localhost:7071/plugins/sideload \
-  -H "Content-Type: application/json" \
-  -d @uncorded-plugin.json
+# Run standalone (for testing)
+docker run --rm -p 3000:3000 \
+  -e UNCORDED_BRIDGE_URL=http://host.docker.internal:7070 \
+  -e UNCORDED_BRIDGE_TOKEN=dev \
+  my-plugin:latest
+
+# Verify health
+curl http://localhost:3000/health
 ```
+
+## Building & Docker
+
+### Dockerfile
+
+```dockerfile
+FROM oven/bun:1-alpine
+WORKDIR /app
+COPY package.json bun.lock* ./
+RUN bun install --frozen-lockfile
+COPY . .
+EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:3000/health || exit 1
+CMD ["bun", "run", "src/server.ts"]
+```
+
+If your plugin has a frontend build step (Vite, etc.), add it before the CMD:
+
+```dockerfile
+COPY . .
+RUN bun run build
+EXPOSE 3000
+```
+
+### Image Naming
+
+Use versioned tags for production — never rely on `:latest` alone:
+```bash
+docker build -t my-plugin:1.0.0 -t my-plugin:latest .
+```
+
+## Sideloading (Testing with UnCorded)
+
+Sideloading installs a plugin directly into a running UnCorded instance without going through the plugin store.
+
+### Step 1 — Build the Docker image
+
+```bash
+docker build -t my-plugin:latest .
+```
+
+### Step 2 — Find the sidecar port
+
+In the UnCorded desktop app, open DevTools (Ctrl+Shift+I) and run:
+```js
+await window.desktopBridge.getSidecarPort()
+```
+
+### Step 3 — Install the plugin
+
+```bash
+curl -X POST http://127.0.0.1:{SIDECAR_PORT}/plugins/install \
+  -H "Content-Type: application/json" \
+  -d '{
+    "manifest": { ... your uncorded-plugin.json contents ... },
+    "scope": "server",
+    "serverId": "your-server-id"
+  }'
+```
+
+### Step 4 — Start the plugin
+
+```bash
+curl -X POST http://127.0.0.1:{SIDECAR_PORT}/plugins/{PLUGIN_ID}/start
+```
+
+### Managing sideloaded plugins
+
+```bash
+# Restart (keeps same container)
+curl -X POST http://127.0.0.1:{PORT}/plugins/{ID}/restart
+
+# Stop
+curl -X POST http://127.0.0.1:{PORT}/plugins/{ID}/stop
+
+# Uninstall (removes container)
+curl -X POST http://127.0.0.1:{PORT}/plugins/{ID}/uninstall
+```
+
+**Important:** `restart` reuses the existing Docker container. If you rebuild the image, you must `uninstall` and `install` again to pick up the new image.
+
+## Publishing to the Plugin Store
+
+### Step 1 — Submit your plugin
+
+Authenticated API call:
+```bash
+POST /api/developer/plugins
+```
+
+Required fields:
+```json
+{
+  "id": "my-plugin",
+  "name": "My Plugin",
+  "description": "What your plugin does (10-500 chars)",
+  "author": "Your Name",
+  "category": "productivity",
+  "scope": "server",
+  "image": "my-plugin:1.0.0",
+  "version": "1.0.0",
+  "manifest": {
+    "runtime": { "image": "my-plugin:1.0.0", "port": 3000, "healthCheck": "/health" },
+    "permissions": ["server.read", "storage.read", "storage.write"]
+  },
+  "tags": ["whiteboard", "collaboration"],
+  "repository": "https://github.com/you/my-plugin",
+  "screenshots": ["https://raw.githubusercontent.com/you/my-plugin/main/screenshot.png"]
+}
+```
+
+Categories: `ai`, `productivity`, `developer`, `media`, `social`, `utility`, `other`
+
+### Step 2 — Review
+
+Submitted plugins go through review. Check status:
+```bash
+GET /api/developer/plugins/{pluginId}/status
+```
+
+Statuses: `pending` → `approved` (published) or `rejected` (with reason).
+
+### Step 3 — After approval
+
+Your plugin appears in the UnCorded plugin store. Server owners can install it with one click.
+
+## Version Updates
+
+### Pushing new versions
+
+After your plugin is published, push updates:
+```bash
+PUT /api/developer/plugins/{pluginId}/version
+```
+
+```json
+{
+  "version": "1.1.0",
+  "image": "my-plugin:1.1.0",
+  "manifest": { ... updated manifest if changed ... }
+}
+```
+
+Version must be greater than the current version (semver comparison). If the image or manifest changes, the plugin goes through re-review.
+
+### Auto-updates
+
+The UnCorded desktop app checks for plugin updates automatically. When a new version is available:
+1. The sidecar calls `POST /api/plugins/check-updates` with installed plugin versions
+2. If updates are available, the desktop app shows an update notification
+3. Server owners can apply updates from the plugin settings page
+4. The sidecar pulls the new Docker image, recreates the container, and restarts
+
+Use immutable versioned image tags (e.g. `my-plugin:1.0.0`, not just `:latest`) so version comparison works correctly.
+
+## UI Styling
+
+Plugin iframes should match the UnCorded shell's dark theme. Recommended CSS variables:
+
+| Element | Color | Hex |
+|---|---|---|
+| Main content background | `bg-card` | `#111111` |
+| Sidebar background | `bg-sidebar` | `#0a0a0a` |
+| Text | `text-foreground` | `#e8e8e8` |
+| Muted text | `text-muted-foreground` | `#6b6b6b` |
+| Borders | `border-border` | `#2a2a2a` |
+| Accent / hover | `bg-accent` | `#181818` |
+
+Use these colors in your plugin's HTML/CSS to seamlessly blend with the shell. The shell uses Tailwind semantic tokens internally — these hex values are the resolved defaults.
+
+## Responsive Breakpoints
+
+The UnCorded shell uses these breakpoints:
+
+| Breakpoint | Width | Behavior |
+|---|---|---|
+| Mobile | < 768px | Left sidebar is a sheet overlay, single column |
+| Tablet | 768px - 1279px | Left sidebar fixed, plugin sidebar is sheet overlay |
+| Desktop | >= 1280px | Left sidebar fixed, plugin sidebar inline (240px) |
+
+Design your plugin UI to work at all three sizes. The sidebar iframe is 240px wide on desktop and 288px as a sheet overlay on mobile.

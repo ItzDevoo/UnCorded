@@ -57,7 +57,10 @@ const BROWSER_NOTIF_KEY = "uncorded:browser-notifications";
 function readBrowserNotifPref(): boolean {
   try {
     return localStorage.getItem(BROWSER_NOTIF_KEY) !== "false";
-  } catch {
+  } catch (err) {
+    if (import.meta.env.DEV) {
+      console.error(`Failed to read ${BROWSER_NOTIF_KEY}:`, err);
+    }
     return true;
   }
 }

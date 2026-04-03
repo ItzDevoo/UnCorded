@@ -128,7 +128,7 @@ const PluginFrame = (props: PluginFrameProps) => {
 
       {/* Loading overlay */}
       <Show when={loading() && props.plugin.status === "running" && !isWaitingForReady()}>
-        <div class="absolute inset-0 z-10 flex items-center justify-center bg-background">
+        <div class="absolute inset-0 z-10 flex items-center justify-center bg-card">
           <div class="flex animate-fade-in flex-col items-center gap-3">
             <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             <p class="text-muted-foreground">Loading {props.plugin.name}...</p>

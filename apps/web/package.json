@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@solidjs/router": "^0.15",
@@ -26,10 +27,12 @@
   },
   "devDependencies": {
     "@types/webtorrent": "^0.110.1",
+    "happy-dom": "^20.8.9",
     "solid-js": "^1",
     "vite": "^6",
     "vite-plugin-node-polyfills": "^0.25.0",
     "vite-plugin-pwa": "^1.2.0",
-    "vite-plugin-solid": "^2"
+    "vite-plugin-solid": "^2",
+    "vitest": "^4.1.2"
   }
 }

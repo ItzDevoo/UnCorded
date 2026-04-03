@@ -36,15 +36,29 @@ export class UnCordedPlugin {
   constructor(options?: PluginOptions) {
     this.#timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
-    // Derive shell origin from document.referrer if not provided
+    // Derive shell origin: explicit option > document.referrer > URL query param
     if (options?.shellOrigin) {
       this.#shellOrigin = options.shellOrigin;
     } else {
+      let origin: string | null = null;
+      // Try document.referrer first (works in browsers with referrerpolicy="origin")
       try {
-        this.#shellOrigin = new URL(document.referrer).origin;
+        if (document.referrer) origin = new URL(document.referrer).origin;
       } catch {
+        /* invalid referrer — fall through */
+      }
+      // Fallback: shell injects ?shellOrigin= on the iframe src
+      if (!origin) {
+        try {
+          origin = new URLSearchParams(window.location.search).get("shellOrigin");
+        } catch {
+          /* no search params — fall through */
+        }
+      }
+      if (!origin) {
         throw new Error("Unable to determine shell origin. Pass shellOrigin in PluginOptions.");
       }
+      this.#shellOrigin = origin;
     }
 
     window.addEventListener("message", this.#onMessage);
@@ -138,6 +152,15 @@ export class UnCordedPlugin {
       }
     }
   };
+
+  /** Whether this iframe is running in the sidebar context (/sidebar route). */
+  get isSidebar(): boolean {
+    try {
+      return new URL(window.location.href).pathname.endsWith("/sidebar");
+    } catch {
+      return false;
+    }
+  }
 
   // ── Data Methods ─────────────────────────────────────────
 

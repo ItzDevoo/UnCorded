@@ -17,6 +17,7 @@ export interface PluginInfo {
   scope: "server" | "personal";
   tunnelUrl: string | null;
   permissions: string[];
+  sidebar?: boolean;
   errorPayload?: PluginErrorPayload | null;
 }
 
@@ -134,6 +135,33 @@ function resolvePluginAssetUrl(plugin: PluginInfo, path: string): string {
   const base = (plugin.tunnelUrl ?? `http://localhost:${plugin.port}`).replace(/\/+$/, "");
   const normalized = path.startsWith("/") ? path : `/${path}`;
   return `${base}${normalized}`;
+}
+
+/**
+ * Build a full iframe URL for a plugin route, injecting shellOrigin.
+ * Used by PluginFrame (main) and sidebar iframe.
+ */
+export function buildPluginIframeUrl(
+  plugin: PluginInfo,
+  path: string,
+  tunnelUrlOverride?: string | null,
+): string | null {
+  let base: string | null = null;
+  if (tunnelUrlOverride) {
+    if (!tunnelUrlOverride.startsWith("https://")) return null;
+    base = tunnelUrlOverride;
+  } else if (plugin.scope === "server" && plugin.tunnelUrl) {
+    if (!plugin.tunnelUrl.startsWith("https://")) return null;
+    base = plugin.tunnelUrl;
+  } else if (plugin.port) {
+    base = `http://localhost:${plugin.port}`;
+  }
+  if (!base) return null;
+  const url = new URL(base);
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  url.pathname = url.pathname.replace(/\/+$/, "") + normalized;
+  url.searchParams.set("shellOrigin", window.location.origin);
+  return url.toString();
 }
 
 // ── Exports ────────────────────────────────────────────────────────────────

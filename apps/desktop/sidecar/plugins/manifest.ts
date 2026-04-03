@@ -32,6 +32,7 @@ export interface PluginManifest {
     | {
         type: "panel" | "page" | "both";
         panelWidth?: number | undefined;
+        sidebar?: boolean | undefined;
       }
     | undefined;
 
@@ -102,6 +103,7 @@ function parseUi(value: unknown): PluginManifest["ui"] {
   return {
     type,
     panelWidth: typeof obj["panelWidth"] === "number" ? obj["panelWidth"] : undefined,
+    sidebar: typeof obj["sidebar"] === "boolean" ? obj["sidebar"] : undefined,
   };
 }
 

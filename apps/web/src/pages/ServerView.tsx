@@ -13,7 +13,7 @@ import ChatArea from "../components/ChatArea.js";
 import { Empty } from "../components/ui/empty.js";
 import ContentHeader from "../components/ContentHeader.js";
 
-const PluginFrame = lazy(() => import("../components/PluginFrame.js"));
+const PluginContentArea = lazy(() => import("../components/PluginContentArea.js"));
 
 const ServerView = () => {
   const params = useParams<{ serverId: string }>();
@@ -77,6 +77,7 @@ const ServerView = () => {
       tunnelUrl: sp.tunnelUrl,
       ready: sp.state === "active",
       permissions: [],
+      sidebar: false,
     };
   };
 
@@ -134,9 +135,10 @@ const ServerView = () => {
         {(plugin) => (
           <>
             <ContentHeader title={plugin().name} breadcrumbs={[{ label: "Servers" }]} />
-            <div class="flex-1 overflow-hidden">
-              <PluginFrame plugin={plugin()} tunnelUrl={activeServerPlugin()?.tunnelUrl ?? null} />
-            </div>
+            <PluginContentArea
+              plugin={plugin()}
+              tunnelUrl={activeServerPlugin()?.tunnelUrl ?? null}
+            />
           </>
         )}
       </Show>

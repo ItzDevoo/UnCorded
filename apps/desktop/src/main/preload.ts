@@ -32,6 +32,7 @@ interface PluginInfo {
   scope: "server" | "personal";
   tunnelUrl: string | null;
   permissions: string[];
+  sidebar?: boolean;
 }
 
 interface UpdateResult {

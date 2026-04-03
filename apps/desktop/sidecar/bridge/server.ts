@@ -39,6 +39,7 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
         uiSlot: p.manifest.ui?.type ?? "content",
         header: false,
         rightPanel: false,
+        sidebar: p.manifest.ui?.sidebar ?? false,
         status: p.state === "installed" ? "stopped" : p.state,
         ready: p.ready,
         port: p.hostPort ?? 0,

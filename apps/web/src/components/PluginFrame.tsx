@@ -1,7 +1,7 @@
 import { createSignal, createEffect, Show, onCleanup } from "solid-js";
 import type { PluginErrorCategory } from "@uncorded/shared";
 import type { PluginInfo } from "../stores/plugin-store.js";
-import { isDesktop } from "../stores/plugin-store.js";
+import { isDesktop, buildPluginIframeUrl } from "../stores/plugin-store.js";
 import { showToast } from "./ui/toast.js";
 import { Empty } from "./ui/empty.js";
 
@@ -67,30 +67,7 @@ const PluginFrame = (props: PluginFrameProps) => {
     });
   };
 
-  // Determine the iframe URL based on scope
-  const iframeUrl = () => {
-    let base: string | null = null;
-    // Tunnel URL takes priority (server plugin for browser user)
-    if (props.tunnelUrl) {
-      if (!props.tunnelUrl.startsWith("https://")) return null;
-      base = props.tunnelUrl;
-    }
-    // Server plugin with tunnel URL from plugin info
-    else if (props.plugin.scope === "server" && props.plugin.tunnelUrl) {
-      if (!props.plugin.tunnelUrl.startsWith("https://")) return null;
-      base = props.plugin.tunnelUrl;
-    }
-    // Local plugin (personal or server on desktop owner)
-    else if (props.plugin.port) {
-      base = `http://localhost:${props.plugin.port}/`;
-    }
-    if (!base) return null;
-    // Append shell origin so plugins can determine the parent origin
-    // even when document.referrer is unavailable (e.g. Electron)
-    const url = new URL(base);
-    url.searchParams.set("shellOrigin", window.location.origin);
-    return url.toString();
-  };
+  const iframeUrl = () => buildPluginIframeUrl(props.plugin, "/", props.tunnelUrl);
 
   const isOffline = () => !iframeUrl();
 

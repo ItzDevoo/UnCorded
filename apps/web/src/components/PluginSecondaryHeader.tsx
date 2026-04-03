@@ -1,0 +1,41 @@
+import { Show } from "solid-js";
+
+interface PluginSecondaryHeaderProps {
+  hasSidebar: boolean;
+  showSidebar: boolean;
+  onToggle: () => void;
+}
+
+const PluginSecondaryHeader = (props: PluginSecondaryHeaderProps) => {
+  return (
+    <div class="flex h-10 shrink-0 items-center border-b border-border px-4">
+      <div class="flex-1" />
+      <Show when={props.hasSidebar}>
+        <button
+          type="button"
+          class={`rounded p-1.5 transition-colors ${
+            props.showSidebar
+              ? "bg-accent text-foreground"
+              : "text-muted-foreground hover:bg-accent hover:text-foreground"
+          }`}
+          title="Toggle sidebar"
+          aria-label="Toggle sidebar"
+          onClick={props.onToggle}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 3h12v18H9M9 3v18" />
+          </svg>
+        </button>
+      </Show>
+    </div>
+  );
+};
+
+export default PluginSecondaryHeader;

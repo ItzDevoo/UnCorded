@@ -296,6 +296,27 @@ CMD ["bun", "run", "src/server.ts"]
 - Use `bridge.storage` for persistence, not `localStorage`. localStorage is per-browser and won't persist across users or devices.
 - `env` keys in the manifest **cannot start with `UNCORDED_`** (reserved prefix).
 
+## Iframe Headers (Required)
+
+All HTML responses served to the iframe **must** include these headers, or the browser will block loading:
+
+```typescript
+headers: {
+  "content-type": "text/html; charset=utf-8",
+  "x-frame-options": "ALLOWALL",
+  "content-security-policy": "frame-ancestors *",
+}
+```
+
+This applies to every route that returns HTML — `/`, `/sidebar`, and any other page your plugin serves. Without these headers, the iframe will show a blank page or a loading error.
+
+The plugin iframe sandbox is configured as:
+```
+sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
+```
+
+`allow-same-origin` is required so the iframe can fetch its own scripts and assets (e.g. `<script src="/app.js">`). Without it, the iframe gets an opaque origin and all same-origin requests fail silently.
+
 ## Icons
 
 The `icon` field in the manifest can be:

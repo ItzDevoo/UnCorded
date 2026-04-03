@@ -92,7 +92,7 @@ const PluginFrame = (props: PluginFrameProps) => {
   });
 
   return (
-    <div class="relative flex h-full w-full flex-col bg-background">
+    <div class="relative flex h-full w-full flex-col bg-card">
       {/* Error / crashed state */}
       <Show when={isCrashed() || error()}>
         <Empty title={errorTitle()} description={errorDescription()}>

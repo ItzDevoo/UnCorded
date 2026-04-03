@@ -8,12 +8,12 @@ interface PluginSecondaryHeaderProps {
 
 const PluginSecondaryHeader = (props: PluginSecondaryHeaderProps) => {
   return (
-    <div class="flex h-10 shrink-0 items-center border-b border-border px-4">
+    <div class="flex h-14 shrink-0 items-center border-b border-border px-4">
       <div class="flex-1" />
       <Show when={props.hasSidebar}>
         <button
           type="button"
-          class={`rounded p-1.5 transition-colors ${
+          class={`inline-flex items-center justify-center rounded-md p-1.5 transition-colors ${
             props.showSidebar
               ? "bg-accent text-foreground"
               : "text-muted-foreground hover:bg-accent hover:text-foreground"
@@ -30,7 +30,7 @@ const PluginSecondaryHeader = (props: PluginSecondaryHeaderProps) => {
             stroke="currentColor"
             stroke-width="2"
           >
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 3h12v18H9M9 3v18" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 6h8m-8 6h16M3 18h8" />
           </svg>
         </button>
       </Show>

@@ -54,7 +54,7 @@ const PluginContentArea = (props: PluginContentAreaProps) => {
 
         {/* Inline sidebar — desktop (>=1280px) */}
         <Show when={!useSheet() && hasSidebar() && showSidebar() && sidebarUrl()}>
-          <div class="w-60 shrink-0 border-l border-border">
+          <div class="w-60 shrink-0 border-l border-border bg-sidebar">
             <iframe
               src={sidebarUrl()!}
               sandbox="allow-scripts allow-forms allow-popups allow-same-origin"

@@ -92,6 +92,8 @@ jobs:
         run: |
           cd apps/desktop
           bun -e "const pkg = require('./package.json'); pkg.version = '${{ needs.preflight.outputs.version }}'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+      - name: Build SDK packages
+        run: bun run build --filter=@uncorded/shared --filter=@uncorded/protocol --filter=@uncorded/plugin-server
       - name: Build and package
         run: |
           cd apps/desktop

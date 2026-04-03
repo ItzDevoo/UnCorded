@@ -113,8 +113,8 @@ const handlers: Record<string, HandlerFn> = {
   async getMembers() {
     const serverId = selectedServerId();
     if (!serverId) return [];
-    const members = await api<unknown[]>(`/api/servers/${serverId}/members`);
-    return members;
+    const res = await api<{ members: unknown[] }>(`/api/servers/${serverId}/members`);
+    return res.members;
   },
 
   async getPresence() {

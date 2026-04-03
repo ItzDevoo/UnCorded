@@ -21,6 +21,8 @@ console.log(`Running on ${server.name}`);
 await bridge.storage.set("config", { theme: "dark" });
 
 // Send a message
+const channels = await bridge.getChannels();
+const channelId = channels[0].id; // or your target channel
 await bridge.sendMessage(channelId, "Hello from my plugin!");
 ```
 

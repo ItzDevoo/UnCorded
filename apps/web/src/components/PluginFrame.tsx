@@ -170,7 +170,7 @@ const PluginFrame = (props: PluginFrameProps) => {
       >
         <iframe
           src={iframeUrl()!}
-          sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
+          sandbox="allow-scripts allow-forms allow-popups"
           allow="clipboard-write"
           referrerpolicy="origin"
           class="h-full w-full border-none"

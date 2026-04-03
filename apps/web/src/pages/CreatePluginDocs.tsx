@@ -94,8 +94,6 @@ UNCORDED_BRIDGE_URL=http://localhost:7070 UNCORDED_BRIDGE_TOKEN=dev bun run dev`
     "type": "panel",
     "panelWidth": 400
   },
-
-  // Optional fields
   "icon": "./icon.png",
   "repository": "https://github.com/you/my-plugin",
   "license": "MIT",

@@ -4,7 +4,7 @@
   "type": "module",
   "license": "MIT",
   "author": "UnCorded",
-  "repository": { "type": "git", "url": "https://github.com/nicholascostadev/uncorded", "directory": "packages/shared" },
+  "repository": { "type": "git", "url": "https://github.com/ItzDevoo/UnCorded", "directory": "packages/shared" },
   "keywords": ["uncorded", "plugin", "sdk", "shared"],
   "exports": {
     ".": {

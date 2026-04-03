@@ -4,7 +4,7 @@
   "type": "module",
   "license": "MIT",
   "author": "UnCorded",
-  "repository": { "type": "git", "url": "https://github.com/nicholascostadev/uncorded", "directory": "packages/mock-bridge" },
+  "repository": { "type": "git", "url": "https://github.com/ItzDevoo/UnCorded", "directory": "packages/mock-bridge" },
   "keywords": ["uncorded", "plugin", "sdk", "mock", "development"],
   "bin": {
     "mock-bridge": "./dist/index.js"

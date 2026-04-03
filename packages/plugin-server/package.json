@@ -35,5 +35,8 @@
   "dependencies": {
     "@uncorded/protocol": "workspace:^",
     "@uncorded/shared": "workspace:^"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
   }
 }

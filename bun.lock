@@ -153,6 +153,9 @@
         "@uncorded/protocol": "workspace:^",
         "@uncorded/shared": "workspace:^",
       },
+      "devDependencies": {
+        "bun-types": "latest",
+      },
     },
     "packages/protocol": {
       "name": "@uncorded/protocol",

@@ -72,9 +72,7 @@ const AppLayout: ParentComponent = (props) => {
 
   // Keep origin allowlist in sync with running plugins
   createEffect(() => {
-    if (isDesktop()) {
-      updateAllowedOrigins(plugins());
-    }
+    updateAllowedOrigins(plugins());
   });
 
   onMount(() => {

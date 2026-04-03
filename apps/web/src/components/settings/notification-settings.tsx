@@ -5,10 +5,16 @@ import {
 } from "../../stores/notification-store.js";
 import { requestPermission } from "../../lib/browser-notifications.js";
 
+function readPermission(): NotificationPermission {
+  try {
+    return "Notification" in window ? Notification.permission : "default";
+  } catch {
+    return "default";
+  }
+}
+
 const NotificationSettings = () => {
-  const [permissionState, setPermissionState] = createSignal(
-    "Notification" in window ? Notification.permission : "default",
-  );
+  const [permissionState, setPermissionState] = createSignal(readPermission());
 
   async function handleRequestPermission() {
     const granted = await requestPermission();

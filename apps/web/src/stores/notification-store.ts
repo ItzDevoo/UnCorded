@@ -69,7 +69,11 @@ export function setBrowserNotifications(enabled: boolean): void {
   setBrowserNotificationsEnabledSignal(enabled);
   try {
     localStorage.setItem(BROWSER_NOTIF_KEY, String(enabled));
-  } catch {}
+  } catch (err) {
+    if (import.meta.env.DEV) {
+      console.error(`Failed to persist ${BROWSER_NOTIF_KEY}:`, err);
+    }
+  }
 }
 
 export { browserNotificationsEnabled };

@@ -9,6 +9,7 @@ bun create uncorded-plugin my-plugin
 ```
 
 Interactive prompts will ask for:
+
 - Plugin name, description, author
 - Scope (server, personal, or both)
 - Permissions needed

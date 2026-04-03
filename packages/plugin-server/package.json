@@ -1,20 +1,33 @@
 {
   "name": "@uncorded/plugin-server",
   "version": "0.1.0",
-  "type": "module",
+  "keywords": [
+    "docker",
+    "plugin",
+    "sdk",
+    "server",
+    "uncorded"
+  ],
   "license": "MIT",
   "author": "UnCorded",
-  "repository": { "type": "git", "url": "https://github.com/ItzDevoo/UnCorded", "directory": "packages/plugin-server" },
-  "keywords": ["uncorded", "plugin", "sdk", "server", "docker"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ItzDevoo/UnCorded",
+    "directory": "packages/plugin-server"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
   },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "files": ["dist", "README.md"],
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit"

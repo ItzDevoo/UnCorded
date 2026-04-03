@@ -11,9 +11,7 @@ const Code = (props: { children: string; block?: boolean }) => {
     );
   }
   return (
-    <code class="rounded bg-gray-800 px-1.5 py-0.5 text-sm text-emerald-400">
-      {props.children}
-    </code>
+    <code class="rounded bg-gray-800 px-1.5 py-0.5 text-sm text-emerald-400">{props.children}</code>
   );
 };
 
@@ -43,8 +41,8 @@ const CreatePluginDocs = () => {
             <p>
               UnCorded is a self-hosted, local-first communication platform. All data lives on the
               server owner's machine — no cloud dependency. It is a plugin platform with chat built
-              in, not a Discord clone. Server owners install plugins to extend functionality. Plugins
-              run as isolated Docker containers alongside the UnCorded server.
+              in, not a Discord clone. Server owners install plugins to extend functionality.
+              Plugins run as isolated Docker containers alongside the UnCorded server.
             </p>
           </section>
 
@@ -316,7 +314,9 @@ UNCORDED_BRIDGE_URL=http://localhost:7070 UNCORDED_BRIDGE_TOKEN=dev bun run dev`
             </div>
 
             <h3 class="mb-2 mt-4 text-base font-semibold text-gray-200">UnCordedBridge API</h3>
-            <Code block>{`import { UnCordedBridge, createReadinessCheck } from "@uncorded/plugin-server";
+            <Code
+              block
+            >{`import { UnCordedBridge, createReadinessCheck } from "@uncorded/plugin-server";
 
 const bridge = new UnCordedBridge();
 
@@ -377,8 +377,8 @@ plugin.destroy();                                  // Cleanup`}</Code>
 
             <h3 class="mb-2 mt-4 text-base font-semibold text-gray-200">PostMessage Protocol</h3>
             <p>
-              Communication between the iframe and shell uses{" "}
-              <Code>window.postMessage</Code>. Three message types:
+              Communication between the iframe and shell uses <Code>window.postMessage</Code>. Three
+              message types:
             </p>
             <ul class="mt-2 list-disc space-y-1 pl-5">
               <li>
@@ -418,7 +418,9 @@ plugin.destroy();                                  // Cleanup`}</Code>
             <p class="mb-2">
               Complete minimal <Code>src/server.ts</Code>:
             </p>
-            <Code block>{`import { UnCordedBridge, createReadinessCheck } from "@uncorded/plugin-server";
+            <Code
+              block
+            >{`import { UnCordedBridge, createReadinessCheck } from "@uncorded/plugin-server";
 
 const bridge = new UnCordedBridge();
 const { markReady, isReady } = createReadinessCheck();
@@ -485,17 +487,17 @@ CMD ["bun", "run", "src/server.ts"]`}</Code>
                 scripts, installs, and runtime use Bun.
               </li>
               <li>
-                Plugin containers <strong class="text-white">cannot access the host filesystem</strong>.
-                They are sandboxed Docker containers.
+                Plugin containers{" "}
+                <strong class="text-white">cannot access the host filesystem</strong>. They are
+                sandboxed Docker containers.
               </li>
               <li>
                 Permissions are <strong class="text-white">enforced by the shell</strong> — request
                 only what you need in the manifest.
               </li>
               <li>
-                Use <Code>bridge.storage</Code> for persistence, not{" "}
-                <Code>localStorage</Code>. localStorage is per-browser and won't persist across
-                users or devices.
+                Use <Code>bridge.storage</Code> for persistence, not <Code>localStorage</Code>.
+                localStorage is per-browser and won't persist across users or devices.
               </li>
               <li>
                 <Code>env</Code> keys in the manifest{" "}

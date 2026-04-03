@@ -21,6 +21,7 @@ UNCORDED_BRIDGE_URL=http://localhost:7070 UNCORDED_BRIDGE_TOKEN=dev bun run src/
 ```
 
 The mock bridge provides:
+
 - 3 sample users, 2 channels, sample messages
 - Full storage API (in-memory)
 - Accepts any Bearer token

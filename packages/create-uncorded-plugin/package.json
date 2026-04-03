@@ -1,23 +1,37 @@
 {
   "name": "create-uncorded-plugin",
   "version": "0.1.0",
-  "type": "module",
+  "keywords": [
+    "cli",
+    "create",
+    "plugin",
+    "scaffold",
+    "uncorded"
+  ],
   "license": "MIT",
   "author": "UnCorded",
-  "repository": { "type": "git", "url": "https://github.com/ItzDevoo/UnCorded", "directory": "packages/create-uncorded-plugin" },
-  "keywords": ["uncorded", "plugin", "create", "scaffold", "cli"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ItzDevoo/UnCorded",
+    "directory": "packages/create-uncorded-plugin"
+  },
   "bin": {
     "create-uncorded-plugin": "./dist/index.js"
   },
+  "files": [
+    "dist",
+    "templates",
+    "README.md"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
   },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "files": ["dist", "templates", "README.md"],
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit"

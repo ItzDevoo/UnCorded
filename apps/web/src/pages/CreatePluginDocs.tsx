@@ -89,8 +89,8 @@ UNCORDED_BRIDGE_URL=http://localhost:7070 UNCORDED_BRIDGE_TOKEN=dev bun run dev`
     "healthCheck": "/health"
   },
   "ui": {
-    "type": "panel",
-    "panelWidth": 400
+    "type": "page",
+    "sidebar": true
   },
   "icon": "./icon.png",
   "repository": "https://github.com/you/my-plugin",
@@ -178,6 +178,11 @@ UNCORDED_BRIDGE_URL=http://localhost:7070 UNCORDED_BRIDGE_TOKEN=dev bun run dev`
                     <td class="py-1.5 pr-4 font-mono text-emerald-400">ui.panelWidth</td>
                     <td class="py-1.5 pr-4">No</td>
                     <td class="py-1.5">Panel width in pixels (default: 360)</td>
+                  </tr>
+                  <tr>
+                    <td class="py-1.5 pr-4 font-mono text-emerald-400">ui.sidebar</td>
+                    <td class="py-1.5 pr-4">No</td>
+                    <td class="py-1.5">Enable right-side sidebar panel (serves /sidebar route)</td>
                   </tr>
                   <tr>
                     <td class="py-1.5 pr-4 font-mono text-emerald-400">icon</td>
@@ -356,6 +361,9 @@ const { markReady, isReady } = createReadinessCheck();
 
 const plugin = new UnCordedPlugin();
 
+// Context
+plugin.isSidebar;                                  // true if running in sidebar iframe
+
 // Data access
 const user = await plugin.getUser();               // Current user
 const server = await plugin.getServer();           // Server info
@@ -460,7 +468,44 @@ markReady();
 console.log(\`Plugin running on port \${server.port}\`);`}</Code>
           </section>
 
-          {/* 10. Docker */}
+          {/* 10. Sidebar */}
+          <section>
+            <h2 class="mb-3 text-xl font-semibold text-white">Sidebar</h2>
+            <p class="mb-3 text-gray-300">
+              Plugins can declare a right-side sidebar panel by setting{" "}
+              <Code>ui.sidebar: true</Code> in the manifest. The shell loads a second iframe from
+              the plugin's <Code>/sidebar</Code> route.
+            </p>
+            <p class="mb-3 text-sm text-gray-400">
+              <strong>Desktop (≥1280px):</strong> Inline panel, 240px wide.{" "}
+              <strong>Mobile (&lt;1280px):</strong> Sheet overlay, 288px wide, swipe to close.
+            </p>
+            <p class="mb-3 text-sm text-gray-400">
+              Both the main iframe and sidebar iframe receive plugin events via postMessage. Use{" "}
+              <Code>plugin.isSidebar</Code> to detect which context you're running in.
+            </p>
+            <h3 class="mb-2 mt-4 text-base font-semibold text-gray-200">Sidebar Route</h3>
+            <Code block>{`// In your server.ts
+if (url.pathname === "/sidebar") {
+  return new Response(sidebarHtml, {
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "x-frame-options": "ALLOWALL",
+      "content-security-policy": "frame-ancestors *",
+    },
+  });
+}`}</Code>
+            <h3 class="mb-2 mt-4 text-base font-semibold text-gray-200">Sidebar Client</h3>
+            <Code block>{`import { UnCordedPlugin } from "@uncorded/plugin-client";
+
+const plugin = new UnCordedPlugin();
+console.log("Is sidebar:", plugin.isSidebar); // true
+
+// Full SDK access — same permissions as main iframe
+const user = await plugin.getUser();`}</Code>
+          </section>
+
+          {/* 11. Docker */}
           <section>
             <h2 class="mb-3 text-xl font-semibold text-white">Dockerfile</h2>
             <Code block>{`FROM oven/bun:1-alpine
@@ -474,7 +519,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \\
 CMD ["bun", "run", "src/server.ts"]`}</Code>
           </section>
 
-          {/* 11. Key Rules */}
+          {/* 12. Key Rules */}
           <section>
             <h2 class="mb-3 text-xl font-semibold text-white">Key Rules</h2>
             <ul class="list-disc space-y-2 pl-5">
@@ -506,7 +551,7 @@ CMD ["bun", "run", "src/server.ts"]`}</Code>
             </ul>
           </section>
 
-          {/* 12. Local Development */}
+          {/* 13. Local Development */}
           <section>
             <h2 class="mb-3 text-xl font-semibold text-white">Local Development</h2>
 

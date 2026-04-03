@@ -1,6 +1,7 @@
 import { Show } from "solid-js";
 
 interface PluginSecondaryHeaderProps {
+  pluginName?: string;
   hasSidebar: boolean;
   showSidebar: boolean;
   onToggle: () => void;
@@ -8,7 +9,10 @@ interface PluginSecondaryHeaderProps {
 
 const PluginSecondaryHeader = (props: PluginSecondaryHeaderProps) => {
   return (
-    <div class="flex h-14 shrink-0 items-center border-b border-border px-4">
+    <div class="flex h-14 shrink-0 items-center border-b border-border px-6">
+      <Show when={props.pluginName}>
+        <span class="text-lg font-semibold text-foreground">{props.pluginName}</span>
+      </Show>
       <div class="flex-1" />
       <Show when={props.hasSidebar}>
         <button

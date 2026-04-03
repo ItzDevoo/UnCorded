@@ -41,6 +41,7 @@ const PluginContentArea = (props: PluginContentAreaProps) => {
   return (
     <>
       <PluginSecondaryHeader
+        pluginName={props.plugin.name}
         hasSidebar={hasSidebar()}
         showSidebar={showSidebar()}
         onToggle={() => setShowSidebar((prev) => !prev)}

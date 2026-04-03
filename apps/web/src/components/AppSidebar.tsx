@@ -11,7 +11,7 @@ import {
   currentServer,
   currentChannels,
 } from "../stores/app-store.js";
-import { getUnreadCount } from "../stores/notification-store.js";
+import { getUnreadCount, getTotalDmUnread } from "../stores/notification-store.js";
 import {
   Sidebar,
   SidebarHeader,
@@ -458,6 +458,16 @@ const AppSidebar = () => {
                   />
                 </svg>
                 <span>Direct Messages</span>
+                {(() => {
+                  const count = getTotalDmUnread();
+                  return (
+                    <Show when={count > 0}>
+                      <span class="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+                        {count}
+                      </span>
+                    </Show>
+                  );
+                })()}
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>

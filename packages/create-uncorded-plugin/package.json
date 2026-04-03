@@ -1,15 +1,42 @@
 {
   "name": "create-uncorded-plugin",
-  "version": "0.0.0",
-  "private": true,
-  "bin": {
-    "create-uncorded-plugin": "./src/index.ts"
+  "version": "0.1.0",
+  "keywords": [
+    "cli",
+    "create",
+    "plugin",
+    "scaffold",
+    "uncorded"
+  ],
+  "license": "MIT",
+  "author": "UnCorded",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ItzDevoo/UnCorded",
+    "directory": "packages/create-uncorded-plugin"
   },
+  "bin": {
+    "create-uncorded-plugin": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "templates",
+    "README.md"
+  ],
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
   "scripts": {
+    "build": "tsc",
     "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "bun-types": "^1.3.11"
   }
 }

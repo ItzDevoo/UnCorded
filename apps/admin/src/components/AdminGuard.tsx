@@ -37,7 +37,9 @@ const AdminGuard: ParentComponent = (props) => {
         try {
           const res = await api("/api/admin/admins", undefined, adminsResponseSchema);
           if (!active) return;
-          const me = res.admins.find((a) => a.userId === userId);
+          const me = (res as { admins: { userId: string; level: string }[] }).admins.find(
+            (a) => a.userId === userId,
+          );
           setAdminLevel((me?.level as AdminLevel) ?? "admin");
         } catch {
           if (!active) return;

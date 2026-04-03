@@ -15,6 +15,7 @@ const Privacy = lazy(() => import("./pages/Privacy.js"));
 const Terms = lazy(() => import("./pages/Terms.js"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail.js"));
 const Onboarding = lazy(() => import("./pages/Onboarding.js"));
+const CreatePluginDocs = lazy(() => import("./pages/CreatePluginDocs.js"));
 
 // Authenticated pages
 const Home = lazy(() => import("./pages/Home.js"));
@@ -90,6 +91,7 @@ const App = () => {
         <Route path="/privacy" component={Privacy} />
         <Route path="/terms" component={Terms} />
         <Route path="/verify-email" component={VerifyEmail} />
+        <Route path="/create-plugin/docs" component={CreatePluginDocs} />
 
         {/* Authenticated — all under AppLayout with AuthGuard */}
         <Route path="/" component={AppLayout}>

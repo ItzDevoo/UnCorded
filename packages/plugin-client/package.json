@@ -1,16 +1,43 @@
 {
   "name": "@uncorded/plugin-client",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
+  "keywords": [
+    "client",
+    "iframe",
+    "plugin",
+    "sdk",
+    "uncorded"
+  ],
+  "license": "MIT",
+  "author": "UnCorded",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ItzDevoo/UnCorded",
+    "directory": "packages/plugin-client"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
-    "@uncorded/protocol": "*",
-    "@uncorded/shared": "*"
+    "@uncorded/protocol": "workspace:^",
+    "@uncorded/shared": "workspace:^"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.18"
   }
 }

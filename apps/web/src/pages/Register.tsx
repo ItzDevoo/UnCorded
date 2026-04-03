@@ -71,7 +71,7 @@ const Register = () => {
         password: password(),
         name: username(),
         username: username(),
-      });
+      } as any);
       if (result.error) {
         setError(result.error.message ?? "Registration failed");
       } else {

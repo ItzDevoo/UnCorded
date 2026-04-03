@@ -17,9 +17,10 @@ const AuthGuard: ParentComponent = (props) => {
     }
 
     // OAuth users without a username need onboarding
-    if (!s.data.user.username && location.pathname !== "/onboarding") {
+    const user = s.data.user as { username?: string };
+    if (!user.username && location.pathname !== "/onboarding") {
       navigate("/onboarding", { replace: true });
-    } else if (s.data.user.username && location.pathname === "/onboarding") {
+    } else if (user.username && location.pathname === "/onboarding") {
       navigate("/home", { replace: true });
     }
   });

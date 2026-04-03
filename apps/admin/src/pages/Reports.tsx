@@ -63,7 +63,7 @@ const Reports = () => {
       if (typeValue !== "all") params.set("type", typeValue);
       const res = await api(`/api/admin/reports?${params}`, undefined, reportsResponseSchema);
       if (id !== fetchCounter) return;
-      setData(res);
+      setData(res as ReportsResponse);
     } catch {
       if (id !== fetchCounter) return;
       showToast("Failed to load reports", "error");

@@ -172,7 +172,7 @@ const PluginFrame = (props: PluginFrameProps) => {
           src={iframeUrl()!}
           sandbox="allow-scripts allow-forms allow-popups"
           allow="clipboard-write"
-          referrerpolicy="no-referrer"
+          referrerpolicy="origin"
           class="h-full w-full border-none"
           data-plugin-id={props.plugin.id}
           onLoad={handleLoad}

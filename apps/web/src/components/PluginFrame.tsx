@@ -69,19 +69,27 @@ const PluginFrame = (props: PluginFrameProps) => {
 
   // Determine the iframe URL based on scope
   const iframeUrl = () => {
+    let base: string | null = null;
     // Tunnel URL takes priority (server plugin for browser user)
     if (props.tunnelUrl) {
       if (!props.tunnelUrl.startsWith("https://")) return null;
-      return props.tunnelUrl;
+      base = props.tunnelUrl;
     }
     // Server plugin with tunnel URL from plugin info
-    if (props.plugin.scope === "server" && props.plugin.tunnelUrl) {
+    else if (props.plugin.scope === "server" && props.plugin.tunnelUrl) {
       if (!props.plugin.tunnelUrl.startsWith("https://")) return null;
-      return props.plugin.tunnelUrl;
+      base = props.plugin.tunnelUrl;
     }
     // Local plugin (personal or server on desktop owner)
-    if (props.plugin.port) return `http://localhost:${props.plugin.port}/`;
-    return null;
+    else if (props.plugin.port) {
+      base = `http://localhost:${props.plugin.port}/`;
+    }
+    if (!base) return null;
+    // Append shell origin so plugins can determine the parent origin
+    // even when document.referrer is unavailable (e.g. Electron)
+    const url = new URL(base);
+    url.searchParams.set("shellOrigin", window.location.origin);
+    return url.toString();
   };
 
   const isOffline = () => !iframeUrl();
@@ -170,7 +178,7 @@ const PluginFrame = (props: PluginFrameProps) => {
       >
         <iframe
           src={iframeUrl()!}
-          sandbox="allow-scripts allow-forms allow-popups"
+          sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
           allow="clipboard-write"
           referrerpolicy="origin"
           class="h-full w-full border-none"

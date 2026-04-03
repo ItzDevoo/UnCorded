@@ -35,5 +35,8 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
   }
 }

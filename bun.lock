@@ -118,6 +118,9 @@
       "bin": {
         "create-uncorded-plugin": "./dist/index.js",
       },
+      "devDependencies": {
+        "bun-types": "latest",
+      },
     },
     "packages/mock-bridge": {
       "name": "@uncorded/mock-bridge",
@@ -127,6 +130,9 @@
       },
       "dependencies": {
         "elysia": "^1",
+      },
+      "devDependencies": {
+        "bun-types": "latest",
       },
     },
     "packages/plugin-client": {

@@ -38,5 +38,8 @@
   },
   "dependencies": {
     "elysia": "^1"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
   }
 }

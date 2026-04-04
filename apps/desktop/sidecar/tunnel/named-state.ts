@@ -6,6 +6,7 @@ export interface NamedTunnelRecord {
   tunnelId: string;
   tunnelName: string;
   url: string;
+  accountId: string;
 }
 
 export class NamedTunnelState {
@@ -30,7 +31,8 @@ export class NamedTunnelState {
             typeof r.pluginId === "string" &&
             typeof r.tunnelId === "string" &&
             typeof r.tunnelName === "string" &&
-            typeof r.url === "string"
+            typeof r.url === "string" &&
+            typeof r.accountId === "string"
           ) {
             this.records.set(r.pluginId, r as NamedTunnelRecord);
           } else {
@@ -61,6 +63,19 @@ export class NamedTunnelState {
   remove(pluginId: string): void {
     this.records.delete(pluginId);
     this.saveToDisk();
+  }
+
+  /** Remove all records that don't belong to the given account. */
+  clearOtherAccounts(accountId: string): void {
+    let changed = false;
+    for (const [id, record] of this.records) {
+      if (record.accountId !== accountId) {
+        this.records.delete(id);
+        changed = true;
+        console.warn(`[named-state] Dropped stale record for ${id} (different account)`);
+      }
+    }
+    if (changed) this.saveToDisk();
   }
 
   getAll(): NamedTunnelRecord[] {

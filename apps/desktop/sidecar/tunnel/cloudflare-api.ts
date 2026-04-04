@@ -11,7 +11,7 @@ export interface CloudflareTunnel {
 
 export class CloudflareApi {
   private apiToken: string;
-  private accountId: string;
+  readonly accountId: string;
 
   constructor(apiToken: string, accountId: string) {
     this.apiToken = apiToken;

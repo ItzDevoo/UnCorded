@@ -102,7 +102,15 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
     const probe = () => {
       window
         .desktopBridge!.cloudflare.getStatus()
-        .then((s) => setCfConfigured(s.configured))
+        .then((s) => {
+          if (s.configured) {
+            setCfConfigured(true);
+          } else if (++attempts < maxAttempts) {
+            setTimeout(probe, 2000);
+          } else {
+            setCfConfigured(false);
+          }
+        })
         .catch(() => {
           if (++attempts < maxAttempts) setTimeout(probe, 2000);
         });
@@ -377,6 +385,9 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
               </button>
             </Show>
           </div>
+          <Show when={cfError()}>
+            <p class="mt-1 text-xs text-destructive">{cfError()}</p>
+          </Show>
           <p class="mt-1 text-xs text-muted-foreground">
             Named tunnels provide stable URLs for your server plugins. Without this, plugins use
             temporary random URLs.
@@ -384,14 +395,22 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
 
           <Show when={cfExpanded() && !cfConfigured()}>
             <div class="mt-3 space-y-2">
+              <label for="cf-account-id" class="sr-only">
+                Cloudflare Account ID
+              </label>
               <input
+                id="cf-account-id"
                 type="text"
                 placeholder="Cloudflare Account ID"
                 value={cfAccountId()}
                 onInput={(e) => setCfAccountId(e.currentTarget.value)}
                 class="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
               />
+              <label for="cf-api-token" class="sr-only">
+                API Token
+              </label>
               <input
+                id="cf-api-token"
                 type="password"
                 placeholder="API Token"
                 value={cfToken()}

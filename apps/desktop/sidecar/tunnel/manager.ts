@@ -50,15 +50,26 @@ export class TunnelManager {
     if (!canRead) return false;
 
     // Verify write access by creating and immediately deleting a test tunnel
+    const testName = `uncorded-write-test-${Date.now()}`;
+    let testTunnelId: string | null = null;
     try {
-      const testTunnel = await api.createTunnel("uncorded-write-test");
-      await api.deleteTunnel(testTunnel.id).catch(() => {});
-    } catch {
-      console.error(
-        "[tunnel] Cloudflare token lacks write permissions (Tunnel Edit scope required)",
-      );
+      const testTunnel = await api.createTunnel(testName);
+      testTunnelId = testTunnel.id;
+      await api.deleteTunnel(testTunnel.id);
+    } catch (err) {
+      // Best-effort cleanup if create succeeded but delete failed
+      if (testTunnelId) {
+        console.error(`[tunnel] Write test tunnel ${testName} leaked (delete failed):`, err);
+      } else {
+        console.error(
+          "[tunnel] Cloudflare token lacks write permissions (Tunnel Edit scope required)",
+        );
+      }
       return false;
     }
+
+    // Clear named tunnel records from a different account
+    this.cfState.clearOtherAccounts(accountId);
 
     this.credStore.save({ apiToken, accountId });
     this.cfApi = api;
@@ -67,6 +78,7 @@ export class TunnelManager {
   }
 
   setCloudflareCredentials(creds: CloudflareCredentials): void {
+    this.cfState.clearOtherAccounts(creds.accountId);
     this.credStore.save(creds);
     this.cfApi = new CloudflareApi(creds.apiToken, creds.accountId);
   }
@@ -117,7 +129,7 @@ export class TunnelManager {
       const tunnelName = `uncorded-${pluginId}`;
       const tunnel = await this.cfApi!.createTunnel(tunnelName);
       const url = `https://${tunnel.id}.cfargotunnel.com`;
-      record = { pluginId, tunnelId: tunnel.id, tunnelName, url };
+      record = { pluginId, tunnelId: tunnel.id, tunnelName, url, accountId: this.cfApi!.accountId };
       this.cfState.save(record);
       console.error(`[tunnel] Created named tunnel ${tunnelName} (${tunnel.id}) for ${pluginId}`);
     } else {
@@ -136,7 +148,13 @@ export class TunnelManager {
         const tunnelName = `uncorded-${pluginId}`;
         const tunnel = await this.cfApi!.createTunnel(tunnelName);
         const url = `https://${tunnel.id}.cfargotunnel.com`;
-        record = { pluginId, tunnelId: tunnel.id, tunnelName, url };
+        record = {
+          pluginId,
+          tunnelId: tunnel.id,
+          tunnelName,
+          url,
+          accountId: this.cfApi!.accountId,
+        };
         this.cfState.save(record);
         token = await this.cfApi!.getTunnelToken(record.tunnelId);
       } else {

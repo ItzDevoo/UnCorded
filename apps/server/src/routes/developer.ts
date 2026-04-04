@@ -42,6 +42,13 @@ const manifestSchema = z.object({
     healthCheck: z.string().min(1),
   }),
   permissions: z.array(permissionEnum).min(1),
+  ui: z
+    .object({
+      type: z.enum(["panel", "page", "both"]),
+      panelWidth: z.number().int().min(100).max(800).optional(),
+      sidebar: z.boolean().optional(),
+    })
+    .optional(),
 });
 
 const pluginSubmitSchema = z.object({

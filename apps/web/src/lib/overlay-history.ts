@@ -68,8 +68,11 @@ export function popOverlay(id: string): void {
 
   if (handlingPopstate) return;
 
-  // When the last overlay closes via Escape/click, clean up the single history entry
-  if (stack.length === 0) {
+  // When the last overlay closes via Escape/click, clean up the single history entry.
+  // Only call history.back() if our overlay state is still on top — a navigate() may
+  // have already pushed a new route entry, in which case back() would undo that navigation.
+  const state = history.state as { overlay?: boolean } | null;
+  if (stack.length === 0 && state?.overlay) {
     skipPopstateCount++;
     history.back();
   }

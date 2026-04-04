@@ -35,7 +35,7 @@ const manifestSchema = z.object({
         (img) =>
           !img.includes("..") &&
           !img.includes("\\") &&
-          /^[a-z0-9][a-z0-9._/-]*[a-z0-9]$/i.test(img),
+          /^[a-z0-9][a-z0-9._/:-]*[a-z0-9]$/i.test(img),
         { message: "Invalid Docker image reference" },
       ),
     port: z.number().int().min(1).max(65535),

@@ -53,7 +53,7 @@ export class PluginLifecycle {
   private statePath: string;
   private plugins = new Map<string, PluginRecord>();
   private bridgePort = 0;
-  private static readonly MAX_RETRIES = 3;
+  private static readonly MAX_RETRIES = 4;
   private static readonly RETRY_BASE_MS = 1_000;
   private reauthRequired = false;
 
@@ -507,6 +507,7 @@ export class PluginLifecycle {
 
   setApiToken(token: string): void {
     this.apiToken = token;
+    this.reauthRequired = false;
     if (!this.apiBaseUrl) return;
 
     for (const plugin of this.plugins.values()) {
@@ -524,9 +525,11 @@ export class PluginLifecycle {
   }
 
   isReauthRequired(): boolean {
-    const needed = this.reauthRequired;
+    return this.reauthRequired;
+  }
+
+  clearReauthRequired(): void {
     this.reauthRequired = false;
-    return needed;
   }
 
   // --- Queries ---

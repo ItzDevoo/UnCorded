@@ -91,17 +91,28 @@ async function logAudit(
   });
 }
 
+const ALLOWED_REGISTRIES = new Set(["registry-1.docker.io", "ghcr.io", "docker.io"]);
+
+function isAllowedRegistryHost(hostname: string): boolean {
+  return ALLOWED_REGISTRIES.has(hostname);
+}
+
 async function checkRegistryImage(imageRef: string): Promise<string | null> {
   const parts = imageRef.split(":");
   const imagePath = parts[0]!;
   const tag = parts[1] ?? "latest";
   const isHub = !imagePath.includes(".");
-  const registryHost = isHub ? "registry-1.docker.io" : imagePath.split("/")[0];
+  const registryHost = isHub ? "registry-1.docker.io" : imagePath.split("/")[0]!;
   const repo = isHub
     ? imagePath.includes("/")
       ? imagePath
       : `library/${imagePath}`
     : imagePath.split("/").slice(1).join("/");
+
+  if (!isAllowedRegistryHost(registryHost)) {
+    return `Image "${imageRef}": registry "${registryHost}" is not in the allowlist`;
+  }
+
   const manifestUrl = `https://${registryHost}/v2/${repo}/manifests/${tag}`;
   const accept =
     "application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json";
@@ -124,17 +135,25 @@ async function checkRegistryImage(imageRef: string): Promise<string | null> {
       if (!realm) return `Image "${imageRef}": registry requires auth but no realm provided`;
 
       const tokenUrl = new URL(realm);
+      if (!isAllowedRegistryHost(tokenUrl.hostname)) {
+        return `Image "${imageRef}": token service host "${tokenUrl.hostname}" is not allowed`;
+      }
       if (service) tokenUrl.searchParams.set("service", service);
       tokenUrl.searchParams.set("scope", scope);
       const tokenRes = await fetch(tokenUrl.toString(), {
         signal: controller.signal,
       });
       if (!tokenRes.ok) return `Image "${imageRef}": token service returned ${tokenRes.status}`;
-      const { token } = (await tokenRes.json()) as { token: string };
+      const { token, access_token } = (await tokenRes.json()) as {
+        token?: string;
+        access_token?: string;
+      };
+      const authToken = token ?? access_token;
+      if (!authToken) return `Image "${imageRef}": token service returned no token`;
 
       res = await fetch(manifestUrl, {
         method: "HEAD",
-        headers: { Accept: accept, Authorization: `Bearer ${token}` },
+        headers: { Accept: accept, Authorization: `Bearer ${authToken}` },
         signal: controller.signal,
       });
     }

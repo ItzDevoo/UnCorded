@@ -7,6 +7,7 @@ const {
   mockRequireMember,
   mockRequireOwner,
   mockComputeEffectiveTier,
+  mockBroadcastToServer,
   selectResults,
   mockDb,
   deletedRows,
@@ -15,6 +16,7 @@ const {
   const mockRequireMember = vi.fn().mockResolvedValue({});
   const mockRequireOwner = vi.fn().mockResolvedValue({ ownerId: "owner1" });
   const mockComputeEffectiveTier = vi.fn().mockResolvedValue("server_owner");
+  const mockBroadcastToServer = vi.fn();
 
   const selectResults: unknown[][] = [];
   const deletedRows: unknown[][] = [];
@@ -68,6 +70,7 @@ const {
     mockRequireMember,
     mockRequireOwner,
     mockComputeEffectiveTier,
+    mockBroadcastToServer,
     selectResults,
     mockDb,
     deletedRows,
@@ -103,7 +106,7 @@ vi.mock("../../helpers/resolve-tier.js", () => ({
   computeEffectiveTier: mockComputeEffectiveTier,
 }));
 vi.mock("../../ws/connections.js", () => ({
-  broadcastToServer: vi.fn(),
+  broadcastToServer: mockBroadcastToServer,
 }));
 vi.mock("@uncorded/protocol", () => ({
   Opcode: { SERVER_PLUGIN_STATE_UPDATE: 95 },
@@ -280,7 +283,7 @@ describe("server plugin routes", () => {
       expect(mockRequireOwner).toHaveBeenCalledWith("user1", "server1");
     });
 
-    it("updates state successfully", async () => {
+    it("updates state successfully and broadcasts", async () => {
       selectResults.push([
         { id: "sp1", pluginId: "claude-code", state: "active", tunnelUrl: null },
       ]);
@@ -290,6 +293,18 @@ describe("server plugin routes", () => {
         state: "stopped",
       });
       expect(res.status).toBe(200);
+
+      // Wait for fire-and-forget broadcast
+      await new Promise((r) => setTimeout(r, 10));
+      expect(mockBroadcastToServer).toHaveBeenCalledWith("server1", {
+        op: 95,
+        d: expect.objectContaining({
+          serverId: "server1",
+          pluginId: "claude-code",
+          state: "active",
+          name: "Claude Code",
+        }),
+      });
     });
 
     it("rejects empty update", async () => {
@@ -339,7 +354,7 @@ describe("server plugin routes", () => {
   // ── PUT /api/servers/:serverId/plugins/:pluginId/tunnel ─────────────────
 
   describe("PUT /api/servers/:serverId/plugins/:pluginId/tunnel", () => {
-    it("updates tunnel URL for the owner", async () => {
+    it("updates tunnel URL for the owner and broadcasts", async () => {
       selectResults.push([
         { id: "sp1", tunnelUrl: "https://new.trycloudflare.com", state: "active" },
       ]);
@@ -354,6 +369,19 @@ describe("server plugin routes", () => {
       const data = await res.json();
       expect(data.success).toBe(true);
       expect(mockRequireOwner).toHaveBeenCalledWith("user1", "server1");
+
+      // Wait for fire-and-forget broadcast
+      await new Promise((r) => setTimeout(r, 10));
+      expect(mockBroadcastToServer).toHaveBeenCalledWith("server1", {
+        op: 95,
+        d: expect.objectContaining({
+          serverId: "server1",
+          pluginId: "claude-code",
+          state: "active",
+          tunnelUrl: "https://new.trycloudflare.com",
+          name: "Claude Code",
+        }),
+      });
     });
   });
 });

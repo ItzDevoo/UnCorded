@@ -594,7 +594,7 @@ const AppSidebar = () => {
               <For each={visibleServerPlugins()}>
                 {(plugin) => {
                   const isPluginActive = () => activeServerPluginId() === plugin.pluginId;
-                  // Format pluginId as display name: "claude-code" → "Claude Code"
+                  const [iconError, setIconError] = createSignal(false);
                   const displayName = () =>
                     plugin.name ||
                     plugin.pluginId
@@ -616,7 +616,7 @@ const AppSidebar = () => {
                       >
                         <span class="relative flex h-4 w-4 shrink-0 items-center justify-center">
                           <Show
-                            when={plugin.iconUrl}
+                            when={plugin.iconUrl && !iconError()}
                             fallback={
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -635,7 +635,12 @@ const AppSidebar = () => {
                               </svg>
                             }
                           >
-                            <img src={plugin.iconUrl!} alt="" class="h-4 w-4 rounded" />
+                            <img
+                              src={plugin.iconUrl!}
+                              alt=""
+                              class="h-4 w-4 rounded"
+                              onError={() => setIconError(true)}
+                            />
                           </Show>
                           <span
                             class="absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-success"

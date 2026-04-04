@@ -3,6 +3,7 @@ import type { PluginErrorPayload } from "@uncorded/shared";
 import { Opcode, serverPluginStateUpdateEventSchema } from "@uncorded/protocol";
 import { api } from "../lib/api.js";
 import { onGatewayEvent } from "../lib/gateway.js";
+import { selectedServerId } from "../stores/app-store.js";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -105,6 +106,9 @@ export function setupPluginStore(): void {
     const parsed = serverPluginStateUpdateEventSchema.safeParse(data);
     if (!parsed.success) return;
     const d = parsed.data;
+
+    // Ignore updates for servers we're not currently viewing
+    if (d.serverId !== selectedServerId()) return;
 
     setServerPlugins((prev) => {
       const idx = prev.findIndex((p) => p.pluginId === d.pluginId);

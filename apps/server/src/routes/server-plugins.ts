@@ -90,7 +90,12 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
   .resolve(authResolve())
 
   // ── GET / — list installed server plugins (any member) ──────────────────
-  .get("/", async ({ user: sessionUser, params }) => {
+  .get("/", async ({ user: sessionUser, params, request }) => {
+    const ip = getClientIp(request);
+    if (!(await checkIpRateLimit(ip, 30, 60_000, RL.SERVER_PLUGIN_LIST))) {
+      throw new RateLimitError("Too many requests, try again later");
+    }
+
     await requireMember(sessionUser.id, params.serverId);
 
     const rows = await db
@@ -238,7 +243,17 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
       throw new NotFoundError("Server plugin");
     }
 
-    await broadcastPluginState(params.serverId, params.pluginId, updated.state, updated.tunnelUrl);
+    void broadcastPluginState(
+      params.serverId,
+      params.pluginId,
+      updated.state,
+      updated.tunnelUrl,
+    ).catch((err) =>
+      console.error(
+        `[server-plugins] broadcast failed for ${params.serverId}/${params.pluginId}:`,
+        err,
+      ),
+    );
 
     return { success: true, serverPlugin: updated };
   })
@@ -303,7 +318,17 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
       throw new NotFoundError("Server plugin");
     }
 
-    await broadcastPluginState(params.serverId, params.pluginId, updated.state, updated.tunnelUrl);
+    void broadcastPluginState(
+      params.serverId,
+      params.pluginId,
+      updated.state,
+      updated.tunnelUrl,
+    ).catch((err) =>
+      console.error(
+        `[server-plugins] broadcast failed for ${params.serverId}/${params.pluginId}:`,
+        err,
+      ),
+    );
 
     return { success: true, tunnelUrl: updated.tunnelUrl };
   });

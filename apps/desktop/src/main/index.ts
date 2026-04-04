@@ -415,6 +415,7 @@ function startPluginPolling(): void {
           if (needed) {
             console.log("[auth] Sidecar requested reauth");
             await syncAuthToSidecar();
+            await fetch(`http://localhost:${port}/reauth-ack`, { method: "POST" }).catch(() => {});
           }
         }
       }

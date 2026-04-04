@@ -18,7 +18,10 @@ let listening = false;
 /** True while the popstate listener is closing an overlay via user back press. */
 let handlingPopstate = false;
 
-/** Count of popstate events to suppress (triggered by our own history.back() cleanup). */
+/**
+ * Count of popstate events to suppress (triggered by our own history.back() cleanup).
+ * Only used when the back button closes the last overlay and we clean up via back().
+ */
 let skipPopstateCount = 0;
 
 const HISTORY_STATE = { overlay: true } as const;
@@ -68,18 +71,13 @@ export function popOverlay(id: string): void {
 
   if (handlingPopstate) return;
 
-  // When the last overlay closes via Escape/click, clean up the single history entry.
-  // Only call history.back() if our overlay state is still on top — a navigate() may
-  // have already pushed a new route entry, in which case back() would undo that navigation.
-  // Use queueMicrotask to let any pending navigate() calls settle first, so we don't
-  // race against programmatic route changes from sidebar click handlers.
+  // When the last overlay closes via Escape/click (not back button), neutralize
+  // the overlay history entry by replacing its state. This avoids history.back()
+  // which races with programmatic navigate() calls from sidebar click handlers.
   if (stack.length === 0) {
-    queueMicrotask(() => {
-      const state = history.state as { overlay?: boolean } | null;
-      if (state?.overlay) {
-        skipPopstateCount++;
-        history.back();
-      }
-    });
+    const state = history.state as { overlay?: boolean } | null;
+    if (state?.overlay) {
+      history.replaceState(null, "");
+    }
   }
 }

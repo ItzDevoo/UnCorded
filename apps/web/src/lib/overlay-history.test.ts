@@ -38,6 +38,9 @@ describe("overlay-history", () => {
     backSpy = vi.spyOn(history, "back").mockImplementation(() => {
       Object.defineProperty(history, "state", { value: null, writable: true, configurable: true });
     });
+    vi.spyOn(history, "replaceState").mockImplementation((state) => {
+      Object.defineProperty(history, "state", { value: state, writable: true, configurable: true });
+    });
 
     closers.a = vi.fn();
     closers.b = vi.fn();
@@ -51,9 +54,6 @@ describe("overlay-history", () => {
     }
     vi.restoreAllMocks();
   });
-
-  /** Flush queued microtasks (used by popOverlay's deferred history.back) */
-  const flushMicrotasks = () => new Promise<void>((r) => queueMicrotask(r));
 
   /** Simulate a browser back-button popstate event */
   function firePopstate() {
@@ -76,11 +76,11 @@ describe("overlay-history", () => {
     expect(pushStateSpy).toHaveBeenCalledTimes(1);
   });
 
-  it("calls history.back when the last overlay is popped via Escape/click", async () => {
+  it("neutralizes overlay entry via replaceState when last overlay closes", () => {
     pushOverlay("a", closers.a!);
     popOverlay("a");
-    await flushMicrotasks();
-    expect(backSpy).toHaveBeenCalledTimes(1);
+    expect(history.replaceState).toHaveBeenCalledWith(null, "");
+    expect(backSpy).not.toHaveBeenCalled();
   });
 
   it("does not call history.back when non-last overlay is popped", () => {
@@ -90,13 +90,14 @@ describe("overlay-history", () => {
     expect(backSpy).not.toHaveBeenCalled();
   });
 
-  it("calls history.back only when the final overlay is popped", async () => {
+  it("calls replaceState only when the final overlay is popped", () => {
     pushOverlay("a", closers.a!);
     pushOverlay("b", closers.b!);
-    popOverlay("a"); // non-topmost, no history.back
-    popOverlay("b"); // last one, should call history.back
-    await flushMicrotasks();
-    expect(backSpy).toHaveBeenCalledTimes(1);
+    popOverlay("a"); // non-topmost, no cleanup
+    expect(history.replaceState).not.toHaveBeenCalled();
+    popOverlay("b"); // last one, should neutralize
+    expect(history.replaceState).toHaveBeenCalledWith(null, "");
+    expect(backSpy).not.toHaveBeenCalled();
   });
 
   it("ignores popOverlay for unknown ids", () => {
@@ -141,20 +142,17 @@ describe("overlay-history", () => {
     expect(closers.a).not.toHaveBeenCalled();
   });
 
-  it("suppresses popstate triggered by our own history.back cleanup", async () => {
+  it("does not trigger popstate suppression when closing via click/Escape", () => {
     pushOverlay("a", closers.a!);
 
-    // Pop "a" via Escape — last overlay, so it calls history.back()
+    // Pop "a" via Escape — uses replaceState, not back()
     popOverlay("a");
-    await flushMicrotasks();
-    expect(backSpy).toHaveBeenCalledTimes(1);
+    expect(history.replaceState).toHaveBeenCalledWith(null, "");
+    expect(backSpy).not.toHaveBeenCalled();
 
-    // Simulate the popstate that history.back() would trigger
-    // skipPopstateCount should suppress this — no overlay should close
-    // (stack is already empty anyway, but the suppression prevents side effects)
+    // A subsequent popstate should NOT be suppressed (no skipPopstateCount)
+    // Stack is empty so handler is a no-op anyway
     firePopstate();
-
-    // Verify the suppression counter consumed the event
     expect(closers.a).not.toHaveBeenCalled();
   });
 
@@ -171,7 +169,7 @@ describe("overlay-history", () => {
     expect(closers.a).toHaveBeenCalledTimes(1);
   });
 
-  it("handles three stacked overlays correctly", async () => {
+  it("handles three stacked overlays correctly", () => {
     pushOverlay("a", closers.a!);
     pushOverlay("b", closers.b!);
     pushOverlay("c", closers.c!);
@@ -180,8 +178,7 @@ describe("overlay-history", () => {
 
     // Close middle one via Escape
     popOverlay("b");
-    await flushMicrotasks();
-    expect(backSpy).not.toHaveBeenCalled(); // not last
+    expect(history.replaceState).not.toHaveBeenCalled(); // not last
 
     // Close top via back button
     firePopstate();
@@ -190,9 +187,9 @@ describe("overlay-history", () => {
     // "a" still open — popstate handler should have re-pushed
     expect(pushStateSpy).toHaveBeenCalledTimes(2);
 
-    // Close "a" via Escape — last one
+    // Close "a" via Escape — last one, uses replaceState
     popOverlay("a");
-    await flushMicrotasks();
-    expect(backSpy).toHaveBeenCalledTimes(1);
+    expect(history.replaceState).toHaveBeenCalledWith(null, "");
+    expect(backSpy).not.toHaveBeenCalled();
   });
 });

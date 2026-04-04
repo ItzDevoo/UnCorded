@@ -63,12 +63,9 @@ const ServerView = () => {
     if (!sp) return null;
     return {
       id: sp.pluginId,
-      name: sp.pluginId
-        .split(/[-_]/)
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(" "),
-      icon: null,
-      uiSlot: "content",
+      name: sp.name || sp.pluginId,
+      icon: sp.iconUrl,
+      uiSlot: (sp.uiSlot as "content" | "panel") ?? "content",
       header: false,
       rightPanel: false,
       status: sp.state === "active" ? "running" : sp.state === "error" ? "crashed" : "stopped",
@@ -77,7 +74,7 @@ const ServerView = () => {
       tunnelUrl: sp.tunnelUrl,
       ready: sp.state === "active",
       permissions: [],
-      sidebar: false,
+      sidebar: sp.sidebar ?? false,
     };
   };
 

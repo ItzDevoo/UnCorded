@@ -33,6 +33,8 @@ export interface ServerPluginInfo {
   installedAt: string;
   name: string;
   iconUrl: string | null;
+  uiSlot: string;
+  sidebar: boolean;
 }
 
 // ── Desktop detection ──────────────────────────────────────────────────────
@@ -124,6 +126,8 @@ export function setupPluginStore(): void {
             installedAt: new Date().toISOString(),
             name: d.name,
             iconUrl: d.iconUrl,
+            uiSlot: "content",
+            sidebar: false,
           },
         ];
       }

@@ -109,23 +109,29 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
         config: serverPlugins.config,
         name: pluginRegistry.name,
         iconUrl: pluginRegistry.iconUrl,
+        manifest: pluginRegistry.manifest,
       })
       .from(serverPlugins)
       .leftJoin(pluginRegistry, eq(serverPlugins.pluginId, pluginRegistry.id))
       .where(eq(serverPlugins.serverId, params.serverId));
 
     return {
-      plugins: rows.map((r) => ({
-        id: r.id,
-        pluginId: r.pluginId,
-        state: r.state,
-        tunnelUrl: r.tunnelUrl,
-        installedBy: r.installedBy,
-        installedAt: r.installedAt!.toISOString(),
-        config: safeJsonParse(r.config),
-        name: r.name ?? r.pluginId,
-        iconUrl: r.iconUrl ?? null,
-      })),
+      plugins: rows.map((r) => {
+        const manifest = r.manifest as { ui?: { type?: string; sidebar?: boolean } } | null;
+        return {
+          id: r.id,
+          pluginId: r.pluginId,
+          state: r.state,
+          tunnelUrl: r.tunnelUrl,
+          installedBy: r.installedBy,
+          installedAt: r.installedAt!.toISOString(),
+          config: safeJsonParse(r.config),
+          name: r.name ?? r.pluginId,
+          iconUrl: r.iconUrl ?? null,
+          uiSlot: manifest?.ui?.type ?? "content",
+          sidebar: manifest?.ui?.sidebar ?? false,
+        };
+      }),
     };
   })
 

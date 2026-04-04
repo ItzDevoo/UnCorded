@@ -114,7 +114,7 @@ const AppSidebar = () => {
     const connected = gatewayStatus() === "connected";
     if (sId && connected) {
       fetchServerPlugins(sId);
-    } else if (!sId) {
+    } else {
       clearServerPlugins();
     }
   });

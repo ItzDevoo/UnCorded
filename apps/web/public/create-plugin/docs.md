@@ -60,42 +60,42 @@ UNCORDED_BRIDGE_URL=http://localhost:7070 UNCORDED_BRIDGE_TOKEN=dev bun run dev
 
 ### Field Reference
 
-| Field | Required | Description |
-|---|---|---|
-| `id` | Yes | Reverse-domain unique identifier |
-| `name` | Yes | Human-readable display name |
-| `version` | Yes | Semver version string |
-| `description` | Yes | Short description |
-| `author` | Yes | Author name or org |
-| `scope` | Yes | `server` \| `personal` \| `both` |
-| `permissions` | Yes | Array of permission strings (see Permissions table) |
-| `runtime.image` | Yes | Docker image name |
-| `runtime.port` | Yes | Port the plugin listens on |
-| `runtime.healthCheck` | Yes | Health check endpoint path |
-| `ui.type` | Yes | `panel` \| `page` \| `both` |
-| `ui.panelWidth` | No | Panel width in pixels (default: 360) |
-| `ui.sidebar` | No | Enable right-side sidebar panel (serves /sidebar route) |
-| `icon` | No | Path to plugin icon |
-| `repository` | No | Source repository URL |
-| `license` | No | SPDX license identifier |
-| `env` | No | Environment variable declarations (keys cannot start with `UNCORDED_`) |
-| `resources` | No | CPU and memory limits for the container |
+| Field                 | Required | Description                                                            |
+| --------------------- | -------- | ---------------------------------------------------------------------- |
+| `id`                  | Yes      | Reverse-domain unique identifier                                       |
+| `name`                | Yes      | Human-readable display name                                            |
+| `version`             | Yes      | Semver version string                                                  |
+| `description`         | Yes      | Short description                                                      |
+| `author`              | Yes      | Author name or org                                                     |
+| `scope`               | Yes      | `server` \| `personal` \| `both`                                       |
+| `permissions`         | Yes      | Array of permission strings (see Permissions table)                    |
+| `runtime.image`       | Yes      | Docker image name                                                      |
+| `runtime.port`        | Yes      | Port the plugin listens on                                             |
+| `runtime.healthCheck` | Yes      | Health check endpoint path                                             |
+| `ui.type`             | Yes      | `panel` \| `page` \| `both`                                            |
+| `ui.panelWidth`       | No       | Panel width in pixels (default: 360)                                   |
+| `ui.sidebar`          | No       | Enable right-side sidebar panel (serves /sidebar route)                |
+| `icon`                | No       | Path to plugin icon                                                    |
+| `repository`          | No       | Source repository URL                                                  |
+| `license`             | No       | SPDX license identifier                                                |
+| `env`                 | No       | Environment variable declarations (keys cannot start with `UNCORDED_`) |
+| `resources`           | No       | CPU and memory limits for the container                                |
 
 ## Permissions
 
-| Permission | Description |
-|---|---|
-| `server.read` | Read server name, icon, and metadata |
-| `members.read` | List server members and their roles |
-| `channels.read` | List channels and read channel metadata |
-| `messages.read` | Read messages in channels |
-| `messages.send` | Send messages to channels |
-| `users.read` | Read user profiles by ID |
-| `presence.read` | Read online/offline status of members |
-| `notifications.send` | Send notifications to the server owner |
-| `config.read` | Read plugin configuration set by the server owner |
-| `storage.read` | Read from plugin key-value storage |
-| `storage.write` | Write to plugin key-value storage |
+| Permission           | Description                                       |
+| -------------------- | ------------------------------------------------- |
+| `server.read`        | Read server name, icon, and metadata              |
+| `members.read`       | List server members and their roles               |
+| `channels.read`      | List channels and read channel metadata           |
+| `messages.read`      | Read messages in channels                         |
+| `messages.send`      | Send messages to channels                         |
+| `users.read`         | Read user profiles by ID                          |
+| `presence.read`      | Read online/offline status of members             |
+| `notifications.send` | Send notifications to the server owner            |
+| `config.read`        | Read plugin configuration set by the server owner |
+| `storage.read`       | Read from plugin key-value storage                |
+| `storage.write`      | Write to plugin key-value storage                 |
 
 ## Server SDK (`@uncorded/plugin-server`)
 
@@ -105,13 +105,13 @@ bun add @uncorded/plugin-server
 
 ### Environment Variables
 
-| Variable | Description |
-|---|---|
-| `UNCORDED_BRIDGE_URL` | Bridge API base URL (e.g. http://bridge:7070) |
-| `UNCORDED_BRIDGE_TOKEN` | Auth token for bridge API requests |
-| `UNCORDED_TUNNEL_URL` | Public tunnel URL for this plugin (if exposed) |
-| `UNCORDED_SERVER_ID` | ID of the server this plugin is installed on |
-| `UNCORDED_PLUGIN_ID` | This plugin's unique ID |
+| Variable                | Description                                    |
+| ----------------------- | ---------------------------------------------- |
+| `UNCORDED_BRIDGE_URL`   | Bridge API base URL (e.g. http://bridge:7070)  |
+| `UNCORDED_BRIDGE_TOKEN` | Auth token for bridge API requests             |
+| `UNCORDED_TUNNEL_URL`   | Public tunnel URL for this plugin (if exposed) |
+| `UNCORDED_SERVER_ID`    | ID of the server this plugin is installed on   |
+| `UNCORDED_PLUGIN_ID`    | This plugin's unique ID                        |
 
 ### UnCordedBridge API
 
@@ -121,23 +121,23 @@ import { UnCordedBridge, createReadinessCheck } from "@uncorded/plugin-server";
 const bridge = new UnCordedBridge();
 
 // Server & member data
-await bridge.getServer();                          // Server info
-await bridge.getMembers();                         // All server members
-await bridge.getChannels();                        // All channels
+await bridge.getServer(); // Server info
+await bridge.getMembers(); // All server members
+await bridge.getChannels(); // All channels
 await bridge.getMessages(channelId, { limit: 50 }); // Channel messages
 
 // Actions
-await bridge.sendMessage(channelId, content);      // Send a message
-await bridge.getUser(userId);                      // Get user by ID
-await bridge.getPresence();                        // Online/offline map
-await bridge.notify({ title, body });              // Send notification
-await bridge.getConfig();                          // Plugin config
-await bridge.getTunnelUrl();                       // Public tunnel URL
+await bridge.sendMessage(channelId, content); // Send a message
+await bridge.getUser(userId); // Get user by ID
+await bridge.getPresence(); // Online/offline map
+await bridge.notify({ title, body }); // Send notification
+await bridge.getConfig(); // Plugin config
+await bridge.getTunnelUrl(); // Public tunnel URL
 
 // Key-value storage
-await bridge.storage.get(key);                     // Read value
+await bridge.storage.get(key); // Read value
 await bridge.storage.set(key, value, { encrypt: true }); // Write (optionally encrypted)
-await bridge.storage.delete(key);                  // Delete key
+await bridge.storage.delete(key); // Delete key
 
 // Readiness check helper
 const { markReady, isReady } = createReadinessCheck();
@@ -158,26 +158,32 @@ import { UnCordedPlugin } from "@uncorded/plugin-client";
 const plugin = new UnCordedPlugin();
 
 // Context
-plugin.isSidebar;                                  // true if running in sidebar iframe
+plugin.isSidebar; // true if running in sidebar iframe
 
 // Data access
-const user = await plugin.getUser();               // Current user
-const server = await plugin.getServer();           // Server info
-const channels = await plugin.getChannels();       // Channel list
-const members = await plugin.getMembers();         // Member list
-const presence = await plugin.getPresence();       // Presence map
+const user = await plugin.getUser(); // Current user
+const server = await plugin.getServer(); // Server info
+const channels = await plugin.getChannels(); // Channel list
+const members = await plugin.getMembers(); // Member list
+const presence = await plugin.getPresence(); // Presence map
 
 // Actions
-await plugin.sendMessage(channelId, content);      // Send message
-plugin.showToast("Saved!", "success");             // Show toast (success|error|info)
-plugin.navigate("channel", channelId);             // Navigate shell to channel
+await plugin.sendMessage(channelId, content); // Send message
+plugin.showToast("Saved!", "success"); // Show toast (success|error|info)
+plugin.navigate("channel", channelId); // Navigate shell to channel
 
 // Events
-plugin.on("message", (msg) => { /* new message */ });
-plugin.on("presence", (data) => { /* presence change */ });
-plugin.on("navigate", (data) => { /* shell navigation */ });
-plugin.off("message", handler);                    // Remove listener
-plugin.destroy();                                  // Cleanup
+plugin.on("message", (msg) => {
+  /* new message */
+});
+plugin.on("presence", (data) => {
+  /* presence change */
+});
+plugin.on("navigate", (data) => {
+  /* shell navigation */
+});
+plugin.off("message", handler); // Remove listener
+plugin.destroy(); // Cleanup
 ```
 
 ### PostMessage Protocol
@@ -211,9 +217,7 @@ const server = Bun.serve({
     // Health & readiness
     if (url.pathname === "/health") return new Response("OK");
     if (url.pathname === "/ready") {
-      return isReady()
-        ? new Response("OK")
-        : new Response("Not ready", { status: 503 });
+      return isReady() ? new Response("OK") : new Response("Not ready", { status: 503 });
     }
 
     // API example: list members
@@ -311,6 +315,7 @@ headers: {
 This applies to every route that returns HTML — `/`, `/sidebar`, and any other page your plugin serves. Without these headers, the iframe will show a blank page or a loading error.
 
 The plugin iframe sandbox is configured as:
+
 ```
 sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
 ```
@@ -320,10 +325,12 @@ sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
 ## Icons
 
 The `icon` field in the manifest can be:
+
 - A **relative file path** (e.g. `./icon.png`) — bundled in the Docker image
 - A **URL to a hosted image** — use a raw GitHub URL so the icon is always accessible
 
 For hosted icons, use your plugin's git repository:
+
 ```
 https://raw.githubusercontent.com/your-org/your-plugin/main/icon.png
 ```
@@ -331,6 +338,7 @@ https://raw.githubusercontent.com/your-org/your-plugin/main/icon.png
 This ensures the icon is viewable in the plugin store and server settings even when the plugin container is not running. Recommended format: SVG or PNG, square, at least 128x128px.
 
 Example in manifest:
+
 ```json
 {
   "icon": "https://raw.githubusercontent.com/your-org/your-plugin/main/icon.svg"
@@ -402,6 +410,7 @@ EXPOSE 3000
 ### Image Naming
 
 Use versioned tags for production — never rely on `:latest` alone:
+
 ```bash
 docker build -t my-plugin:1.0.0 -t my-plugin:latest .
 ```
@@ -419,8 +428,9 @@ docker build -t my-plugin:latest .
 ### Step 2 — Find the sidecar port
 
 In the UnCorded desktop app, open DevTools (Ctrl+Shift+I) and run:
+
 ```js
-await window.desktopBridge.getSidecarPort()
+await window.desktopBridge.getSidecarPort();
 ```
 
 ### Step 3 — Install the plugin
@@ -461,11 +471,13 @@ curl -X POST http://127.0.0.1:{PORT}/plugins/{ID}/uninstall
 ### Step 1 — Submit your plugin
 
 Authenticated API call:
+
 ```bash
 POST /api/developer/plugins
 ```
 
 Required fields:
+
 ```json
 {
   "id": "my-plugin",
@@ -491,6 +503,7 @@ Categories: `ai`, `productivity`, `developer`, `media`, `social`, `utility`, `ot
 ### Step 2 — Review
 
 Submitted plugins go through review. Check status:
+
 ```bash
 GET /api/developer/plugins/{pluginId}/status
 ```
@@ -506,6 +519,7 @@ Your plugin appears in the UnCorded plugin store. Server owners can install it w
 ### Pushing new versions
 
 After your plugin is published, push updates:
+
 ```bash
 PUT /api/developer/plugins/{pluginId}/version
 ```
@@ -523,6 +537,7 @@ Version must be greater than the current version (semver comparison). If the ima
 ### Auto-updates
 
 The UnCorded desktop app checks for plugin updates automatically. When a new version is available:
+
 1. The sidecar calls `POST /api/plugins/check-updates` with installed plugin versions
 2. If updates are available, the desktop app shows an update notification
 3. Server owners can apply updates from the plugin settings page
@@ -534,14 +549,14 @@ Use immutable versioned image tags (e.g. `my-plugin:1.0.0`, not just `:latest`) 
 
 Plugin iframes should match the UnCorded shell's dark theme. Recommended CSS variables:
 
-| Element | Color | Hex |
-|---|---|---|
-| Main content background | `bg-card` | `#111111` |
-| Sidebar background | `bg-sidebar` | `#0a0a0a` |
-| Text | `text-foreground` | `#e8e8e8` |
-| Muted text | `text-muted-foreground` | `#6b6b6b` |
-| Borders | `border-border` | `#2a2a2a` |
-| Accent / hover | `bg-accent` | `#181818` |
+| Element                 | Color                   | Hex       |
+| ----------------------- | ----------------------- | --------- |
+| Main content background | `bg-card`               | `#111111` |
+| Sidebar background      | `bg-sidebar`            | `#0a0a0a` |
+| Text                    | `text-foreground`       | `#e8e8e8` |
+| Muted text              | `text-muted-foreground` | `#6b6b6b` |
+| Borders                 | `border-border`         | `#2a2a2a` |
+| Accent / hover          | `bg-accent`             | `#181818` |
 
 Use these colors in your plugin's HTML/CSS to seamlessly blend with the shell. The shell uses Tailwind semantic tokens internally — these hex values are the resolved defaults.
 
@@ -549,10 +564,10 @@ Use these colors in your plugin's HTML/CSS to seamlessly blend with the shell. T
 
 The UnCorded shell uses these breakpoints:
 
-| Breakpoint | Width | Behavior |
-|---|---|---|
-| Mobile | < 768px | Left sidebar is a sheet overlay, single column |
-| Tablet | 768px - 1279px | Left sidebar fixed, plugin sidebar is sheet overlay |
-| Desktop | >= 1280px | Left sidebar fixed, plugin sidebar inline (240px) |
+| Breakpoint | Width          | Behavior                                            |
+| ---------- | -------------- | --------------------------------------------------- |
+| Mobile     | < 768px        | Left sidebar is a sheet overlay, single column      |
+| Tablet     | 768px - 1279px | Left sidebar fixed, plugin sidebar is sheet overlay |
+| Desktop    | >= 1280px      | Left sidebar fixed, plugin sidebar inline (240px)   |
 
 Design your plugin UI to work at all three sizes. The sidebar iframe is 240px wide on desktop and 288px as a sheet overlay on mobile.

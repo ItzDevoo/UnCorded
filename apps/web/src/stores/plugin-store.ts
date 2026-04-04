@@ -66,7 +66,7 @@ async function fetchServerPlugins(serverId: string): Promise<void> {
     const res = await api<{ plugins: ServerPluginInfo[] }>(`/api/servers/${serverId}/plugins`);
     setServerPlugins(res.plugins);
   } catch (err) {
-    console.error("[plugin-store] fetchServerPlugins failed:", err);
+    if (import.meta.env.DEV) console.error("[plugin-store] fetchServerPlugins failed:", err);
     setServerPlugins([]);
   } finally {
     setServerPluginsLoading(false);

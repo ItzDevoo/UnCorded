@@ -1,6 +1,9 @@
 import { createSignal, createRoot } from "solid-js";
 import type { PluginErrorPayload } from "@uncorded/shared";
+import { Opcode, serverPluginStateUpdateEventSchema } from "@uncorded/protocol";
 import { api } from "../lib/api.js";
+import { onGatewayEvent } from "../lib/gateway.js";
+import { selectedServerId } from "../stores/app-store.js";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -28,6 +31,8 @@ export interface ServerPluginInfo {
   tunnelUrl: string | null;
   installedBy: string;
   installedAt: string;
+  name: string;
+  iconUrl: string | null;
 }
 
 // ── Desktop detection ──────────────────────────────────────────────────────
@@ -81,17 +86,58 @@ function clearServerPlugins() {
 // ── Lifecycle ──────────────────────────────────────────────────────────────
 
 let unsubStateChange: (() => void) | null = null;
+let unsubServerPluginUpdate: (() => void) | null = null;
 let disposeRoot: (() => void) | null = null;
 
 function teardown() {
   unsubStateChange?.();
   unsubStateChange = null;
+  unsubServerPluginUpdate?.();
+  unsubServerPluginUpdate = null;
   disposeRoot?.();
   disposeRoot = null;
 }
 
 export function setupPluginStore(): void {
   teardown();
+
+  // Server plugin state updates — applies to all clients (web + desktop)
+  unsubServerPluginUpdate = onGatewayEvent(Opcode.SERVER_PLUGIN_STATE_UPDATE, (data) => {
+    const parsed = serverPluginStateUpdateEventSchema.safeParse(data);
+    if (!parsed.success) return;
+    const d = parsed.data;
+
+    // Ignore updates for servers we're not currently viewing
+    if (d.serverId !== selectedServerId()) return;
+
+    setServerPlugins((prev) => {
+      const idx = prev.findIndex((p) => p.pluginId === d.pluginId);
+      if (idx === -1) {
+        return [
+          ...prev,
+          {
+            id: "",
+            pluginId: d.pluginId,
+            state: d.state,
+            tunnelUrl: d.tunnelUrl,
+            installedBy: "",
+            installedAt: new Date().toISOString(),
+            name: d.name,
+            iconUrl: d.iconUrl,
+          },
+        ];
+      }
+      const updated = [...prev];
+      updated[idx] = {
+        ...prev[idx]!,
+        state: d.state,
+        tunnelUrl: d.tunnelUrl,
+        name: d.name,
+        iconUrl: d.iconUrl,
+      };
+      return updated;
+    });
+  });
 
   if (!isDesktop()) return; // No plugin UI in browser
 

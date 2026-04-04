@@ -91,6 +91,88 @@ async function logAudit(
   });
 }
 
+const ALLOWED_REGISTRIES = new Set(["registry-1.docker.io", "ghcr.io", "docker.io"]);
+const ALLOWED_TOKEN_HOSTS = new Set(["auth.docker.io", "ghcr.io"]);
+
+function isAllowedRegistryHost(hostname: string): boolean {
+  return ALLOWED_REGISTRIES.has(hostname);
+}
+
+function isAllowedTokenServiceHost(hostname: string): boolean {
+  return ALLOWED_TOKEN_HOSTS.has(hostname);
+}
+
+async function checkRegistryImage(imageRef: string): Promise<string | null> {
+  const parts = imageRef.split(":");
+  const imagePath = parts[0]!;
+  const tag = parts[1] ?? "latest";
+  const isHub = !imagePath.includes(".");
+  const registryHost = isHub ? "registry-1.docker.io" : imagePath.split("/")[0]!;
+  const repo = isHub
+    ? imagePath.includes("/")
+      ? imagePath
+      : `library/${imagePath}`
+    : imagePath.split("/").slice(1).join("/");
+
+  if (!isAllowedRegistryHost(registryHost)) {
+    return `Image "${imageRef}": registry "${registryHost}" is not in the allowlist`;
+  }
+
+  const manifestUrl = `https://${registryHost}/v2/${repo}/manifests/${tag}`;
+  const accept =
+    "application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json";
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8_000);
+  try {
+    let res = await fetch(manifestUrl, {
+      method: "HEAD",
+      headers: { Accept: accept },
+      signal: controller.signal,
+    });
+
+    // OCI token handshake: 401 → fetch anonymous token → retry
+    if (res.status === 401) {
+      const wwwAuth = res.headers.get("www-authenticate") ?? "";
+      const realm = wwwAuth.match(/realm="([^"]+)"/)?.[1];
+      const service = wwwAuth.match(/service="([^"]+)"/)?.[1];
+      const scope = wwwAuth.match(/scope="([^"]+)"/)?.[1] ?? `repository:${repo}:pull`;
+      if (!realm) return `Image "${imageRef}": registry requires auth but no realm provided`;
+
+      const tokenUrl = new URL(realm);
+      if (!isAllowedTokenServiceHost(tokenUrl.hostname)) {
+        return `Image "${imageRef}": token service host "${tokenUrl.hostname}" is not allowed`;
+      }
+      if (service) tokenUrl.searchParams.set("service", service);
+      tokenUrl.searchParams.set("scope", scope);
+      const tokenRes = await fetch(tokenUrl.toString(), {
+        signal: controller.signal,
+      });
+      if (!tokenRes.ok) return `Image "${imageRef}": token service returned ${tokenRes.status}`;
+      const { token, access_token } = (await tokenRes.json()) as {
+        token?: string;
+        access_token?: string;
+      };
+      const authToken = token ?? access_token;
+      if (!authToken) return `Image "${imageRef}": token service returned no token`;
+
+      res = await fetch(manifestUrl, {
+        method: "HEAD",
+        headers: { Accept: accept, Authorization: `Bearer ${authToken}` },
+        signal: controller.signal,
+      });
+    }
+
+    if (res.status === 404) return `Image "${imageRef}" not found in registry`;
+    if (!res.ok) return `Image "${imageRef}" returned ${res.status}`;
+    return null;
+  } catch {
+    return `Image "${imageRef}": registry unreachable or timed out`;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export const adminRoutes = new Elysia({ prefix: "/api/admin" })
   .resolve(adminResolve())
 
@@ -1257,7 +1339,21 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
       });
     });
 
-    return { success: true };
+    // Best-effort Docker image validation (non-blocking)
+    let imageWarning: string | null = null;
+    try {
+      const [reg] = await db
+        .select({ image: pluginRegistry.image })
+        .from(pluginRegistry)
+        .where(eq(pluginRegistry.id, submission.pluginId))
+        .limit(1);
+      if (reg?.image) imageWarning = await checkRegistryImage(reg.image);
+    } catch (err) {
+      console.error(`[admin] Image validation failed for plugin ${submission.pluginId}:`, err);
+      imageWarning = "Image validation skipped due to error";
+    }
+
+    return { success: true, ...(imageWarning ? { warning: imageWarning } : {}) };
   })
 
   .patch("/plugins/submissions/:id/reject", async ({ params, body, user: sessionUser }) => {

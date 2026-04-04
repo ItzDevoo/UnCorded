@@ -29,6 +29,11 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
   const app = new Elysia()
     // Health check (unauthenticated)
     .get("/health", () => ({ status: "ok", timestamp: new Date().toISOString() }))
+    .get("/reauth-needed", () => ({ needed: options.plugins.isReauthRequired() }))
+    .post("/reauth-ack", () => {
+      options.plugins.clearReauthRequired();
+      return { cleared: true };
+    })
 
     // --- Plugin management (called by Electron main process, no auth) ---
     .get("/plugins", () => {

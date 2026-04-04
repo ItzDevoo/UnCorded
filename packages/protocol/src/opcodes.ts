@@ -70,6 +70,9 @@ export enum Opcode {
   /** Server -> Client: account deletion was cancelled */
   ACCOUNT_DELETION_CANCELLED = 91,
 
+  /** Server -> Client: server plugin state changed (tunnel URL, active/stopped) */
+  SERVER_PLUGIN_STATE_UPDATE = 95,
+
   /** Server -> Client: error notification (e.g., tier restriction) */
   ERROR = 99,
 

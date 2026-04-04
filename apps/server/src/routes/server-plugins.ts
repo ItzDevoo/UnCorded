@@ -11,6 +11,8 @@ import { computeEffectiveTier } from "../helpers/resolve-tier.js";
 import { checkIpRateLimit } from "../middleware/ip-rate-limit.js";
 import { getClientIp } from "../helpers/request.js";
 import { RL } from "../helpers/rate-limit-keys.js";
+import { broadcastToServer } from "../ws/connections.js";
+import { Opcode } from "@uncorded/protocol";
 
 // ── Schemas ────────────────────────────────────────────────────────────────────
 
@@ -57,18 +59,59 @@ function safeJsonParse(value: string | null): Record<string, unknown> {
   }
 }
 
+async function broadcastPluginState(
+  serverId: string,
+  pluginId: string,
+  state: string,
+  tunnelUrl: string | null,
+): Promise<void> {
+  const [reg] = await db
+    .select({ name: pluginRegistry.name, iconUrl: pluginRegistry.iconUrl })
+    .from(pluginRegistry)
+    .where(eq(pluginRegistry.id, pluginId))
+    .limit(1);
+
+  broadcastToServer(serverId, {
+    op: Opcode.SERVER_PLUGIN_STATE_UPDATE,
+    d: {
+      serverId,
+      pluginId,
+      state,
+      tunnelUrl,
+      name: reg?.name ?? pluginId,
+      iconUrl: reg?.iconUrl ?? null,
+    },
+  });
+}
+
 // ── Routes ──────────────────────────────────────────────────────────────────
 
 export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/plugins" })
   .resolve(authResolve())
 
   // ── GET / — list installed server plugins (any member) ──────────────────
-  .get("/", async ({ user: sessionUser, params }) => {
+  .get("/", async ({ user: sessionUser, params, request }) => {
+    const ip = getClientIp(request);
+    if (!(await checkIpRateLimit(ip, 30, 60_000, RL.SERVER_PLUGIN_LIST))) {
+      throw new RateLimitError("Too many requests, try again later");
+    }
+
     await requireMember(sessionUser.id, params.serverId);
 
     const rows = await db
-      .select()
+      .select({
+        id: serverPlugins.id,
+        pluginId: serverPlugins.pluginId,
+        state: serverPlugins.state,
+        tunnelUrl: serverPlugins.tunnelUrl,
+        installedBy: serverPlugins.installedBy,
+        installedAt: serverPlugins.installedAt,
+        config: serverPlugins.config,
+        name: pluginRegistry.name,
+        iconUrl: pluginRegistry.iconUrl,
+      })
       .from(serverPlugins)
+      .leftJoin(pluginRegistry, eq(serverPlugins.pluginId, pluginRegistry.id))
       .where(eq(serverPlugins.serverId, params.serverId));
 
     return {
@@ -78,8 +121,10 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
         state: r.state,
         tunnelUrl: r.tunnelUrl,
         installedBy: r.installedBy,
-        installedAt: r.installedAt.toISOString(),
+        installedAt: r.installedAt!.toISOString(),
         config: safeJsonParse(r.config),
+        name: r.name ?? r.pluginId,
+        iconUrl: r.iconUrl ?? null,
       })),
     };
   })
@@ -198,6 +243,18 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
       throw new NotFoundError("Server plugin");
     }
 
+    void broadcastPluginState(
+      params.serverId,
+      params.pluginId,
+      updated.state,
+      updated.tunnelUrl,
+    ).catch((err) =>
+      console.error(
+        `[server-plugins] broadcast failed for ${params.serverId}/${params.pluginId}:`,
+        err,
+      ),
+    );
+
     return { success: true, serverPlugin: updated };
   })
 
@@ -260,6 +317,18 @@ export const serverPluginRoutes = new Elysia({ prefix: "/api/servers/:serverId/p
     if (!updated) {
       throw new NotFoundError("Server plugin");
     }
+
+    void broadcastPluginState(
+      params.serverId,
+      params.pluginId,
+      updated.state,
+      updated.tunnelUrl,
+    ).catch((err) =>
+      console.error(
+        `[server-plugins] broadcast failed for ${params.serverId}/${params.pluginId}:`,
+        err,
+      ),
+    );
 
     return { success: true, tunnelUrl: updated.tunnelUrl };
   });

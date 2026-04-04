@@ -276,6 +276,18 @@ export const presenceUpdateEventSchema = z.object({
   status: z.enum(["online", "idle", "offline"]),
 });
 
+// ── Server Plugin Events ─────────────────────────────────────────────────────
+
+/** Server → Client: server plugin state changed. */
+export const serverPluginStateUpdateEventSchema = z.object({
+  serverId: z.string(),
+  pluginId: z.string(),
+  state: z.enum(["active", "stopped", "error"]),
+  tunnelUrl: z.string().nullable(),
+  name: z.string(),
+  iconUrl: z.string().nullable(),
+});
+
 // ── File Share Session Schemas ──────────────────────────────────────────────
 
 /** Branded session ID — reused across all file-session event schemas. */

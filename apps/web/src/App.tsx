@@ -94,7 +94,7 @@ const App = () => {
         <Route path="/create-plugin/docs" component={CreatePluginDocs} />
 
         {/* Authenticated — all under AppLayout with AuthGuard */}
-        <Route path="/" component={AppLayout}>
+        <Route path="" component={AppLayout}>
           <Route path="/home" component={Home} />
           <Route path="/friends" component={Friends} />
           <Route path="/messages" component={Messages} />

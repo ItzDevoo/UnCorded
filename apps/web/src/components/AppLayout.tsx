@@ -148,7 +148,7 @@ const AppLayout: ParentComponent = (props) => {
       <Show when={activeReceiverSessionId()}>
         <FileReceiveModal />
       </Show>
-      <SidebarProvider class="h-screen !min-h-0">
+      <SidebarProvider class="h-full flex-1 !min-h-0">
         <AppSidebar />
         <SidebarInset>
           <VerificationBanner />

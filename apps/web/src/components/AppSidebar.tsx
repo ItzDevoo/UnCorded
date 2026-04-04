@@ -2,7 +2,7 @@ import { createSignal, createEffect, For, Show, onCleanup } from "solid-js";
 import { useNavigate, useLocation } from "@solidjs/router";
 import { Portal } from "solid-js/web";
 import { useSession, signOut } from "../lib/auth.js";
-import { readyData, channelCacheLoading } from "../lib/gateway-store.js";
+import { readyData, channelCacheLoading, gatewayStatus } from "../lib/gateway-store.js";
 import {
   selectedServerId,
   selectedChannelId,
@@ -108,10 +108,11 @@ const AppSidebar = () => {
     readyData.data?.user.subscriptionTier !== undefined &&
     readyData.data?.user.subscriptionTier !== "free";
 
-  // Fetch server plugins when switching servers
+  // Fetch server plugins when switching servers (only after gateway connects)
   createEffect(() => {
     const sId = selectedServerId();
-    if (sId) {
+    const connected = gatewayStatus() === "connected";
+    if (sId && connected) {
       fetchServerPlugins(sId);
     } else {
       clearServerPlugins();

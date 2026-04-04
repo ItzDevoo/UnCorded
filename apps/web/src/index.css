@@ -273,6 +273,9 @@ body::after {
 
 /* Safe area insets — notch, home indicator, punch-hole cameras */
 #app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);

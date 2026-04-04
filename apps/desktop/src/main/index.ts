@@ -180,6 +180,47 @@ function setupSidecarIpc(): void {
   });
 }
 
+// --- IPC: Cloudflare Tunnels ---
+
+function setupCloudflareIpc(): void {
+  ipcMain.handle("cloudflare:configure", async (_event, apiToken: string, accountId: string) => {
+    const port = sidecar.getPort();
+    if (!port) return { success: false, error: "Sidecar not running" };
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/cloudflare/configure`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiToken, accountId }),
+      });
+      return (await res.json()) as { success: boolean; error?: string };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    }
+  });
+
+  ipcMain.handle("cloudflare:status", async () => {
+    const port = sidecar.getPort();
+    if (!port) return { configured: false };
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/cloudflare/status`);
+      return (await res.json()) as { configured: boolean };
+    } catch {
+      return { configured: false };
+    }
+  });
+
+  ipcMain.handle("cloudflare:clear", async () => {
+    const port = sidecar.getPort();
+    if (!port) return { success: false, error: "Sidecar not running" };
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/cloudflare/clear`, { method: "POST" });
+      return (await res.json()) as { success: boolean };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    }
+  });
+}
+
 // --- IPC: Plugins ---
 // Plugin state is managed by the sidecar's Bridge Server.
 // These handlers forward requests to the sidecar HTTP API
@@ -506,6 +547,7 @@ app.on("ready", async () => {
 
   setupSidecarIpc();
   setupPluginIpc();
+  setupCloudflareIpc();
   setupAutoUpdater();
   setupAutoUpdateIpc(() => sidecar.stop());
 

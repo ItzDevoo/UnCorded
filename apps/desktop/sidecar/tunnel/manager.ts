@@ -1,5 +1,8 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { ensureCloudflared } from "./binary";
+import { CloudflareApi } from "./cloudflare-api";
+import { CloudflareCredentialStore, type CloudflareCredentials } from "./credentials";
+import { NamedTunnelState } from "./named-state";
 
 interface TunnelInstance {
   pluginId: string;
@@ -9,20 +12,62 @@ interface TunnelInstance {
 }
 
 const TUNNEL_URL_REGEX = /https:\/\/[a-z0-9-]+\.trycloudflare\.com/;
+const NAMED_CONN_REGEX = /Registered tunnel connection/;
 const STARTUP_TIMEOUT_MS = 30_000;
 
 export class TunnelManager {
   private tunnels = new Map<string, TunnelInstance>();
   private cloudflaredPath: string | null = null;
   private dataDir: string;
+  private cfApi: CloudflareApi | null = null;
+  private cfState: NamedTunnelState;
+  private credStore: CloudflareCredentialStore;
 
   constructor(dataDir: string) {
     this.dataDir = dataDir;
+    this.credStore = new CloudflareCredentialStore(dataDir);
+    this.cfState = new NamedTunnelState(dataDir);
+
+    // Load Cloudflare credentials if previously configured
+    const creds = this.credStore.load();
+    if (creds) {
+      this.cfApi = new CloudflareApi(creds.apiToken, creds.accountId);
+      console.error("[tunnel] Cloudflare named tunnel credentials loaded");
+    }
+  }
+
+  // --- Cloudflare credential management ---
+
+  isCloudflareConfigured(): boolean {
+    return this.credStore.isConfigured() && this.cfApi !== null;
+  }
+
+  async validateAndSetCredentials(apiToken: string, accountId: string): Promise<boolean> {
+    const api = new CloudflareApi(apiToken, accountId);
+    const valid = await api.validateCredentials();
+    if (!valid) return false;
+
+    this.credStore.save({ apiToken, accountId });
+    this.cfApi = api;
+    console.error("[tunnel] Cloudflare credentials saved and validated");
+    return true;
+  }
+
+  setCloudflareCredentials(creds: CloudflareCredentials): void {
+    this.credStore.save(creds);
+    this.cfApi = new CloudflareApi(creds.apiToken, creds.accountId);
+  }
+
+  clearCloudflareCredentials(): void {
+    this.credStore.clear();
+    this.cfApi = null;
+    console.error("[tunnel] Cloudflare credentials cleared");
   }
 
   /**
-   * Create a Cloudflare quick tunnel pointing at localhost:{port}.
-   * Returns the public HTTPS URL (e.g. https://xxx.trycloudflare.com).
+   * Create a Cloudflare tunnel pointing at localhost:{port}.
+   * Tries named tunnel first (if configured), falls back to quick tunnel.
+   * Returns the public HTTPS URL.
    */
   async create(pluginId: string, localPort: number): Promise<string> {
     // Destroy any existing tunnel for this plugin
@@ -32,6 +77,114 @@ export class TunnelManager {
       this.cloudflaredPath = await ensureCloudflared(this.dataDir);
     }
 
+    // Try named tunnel first if Cloudflare credentials are configured
+    if (this.cfApi) {
+      try {
+        return await this.createNamedTunnel(pluginId, localPort);
+      } catch (err) {
+        console.error(
+          `[tunnel] Named tunnel failed for ${pluginId}, falling back to quick tunnel:`,
+          err,
+        );
+      }
+    }
+
+    return this.createQuickTunnel(pluginId, localPort);
+  }
+
+  /**
+   * Create a named tunnel via Cloudflare API with a stable URL.
+   */
+  private async createNamedTunnel(pluginId: string, localPort: number): Promise<string> {
+    // Check if we already have a tunnel record for this plugin (reuse for stable URL)
+    let record = this.cfState.get(pluginId);
+
+    if (!record) {
+      // Create a new tunnel via API
+      const tunnelName = `uncorded-${pluginId}`;
+      const tunnel = await this.cfApi!.createTunnel(tunnelName);
+      const url = `https://${tunnel.id}.cfargotunnel.com`;
+      record = { pluginId, tunnelId: tunnel.id, tunnelName, url };
+      this.cfState.save(record);
+      console.error(`[tunnel] Created named tunnel ${tunnelName} (${tunnel.id}) for ${pluginId}`);
+    } else {
+      console.error(`[tunnel] Reusing named tunnel ${record.tunnelName} for ${pluginId}`);
+    }
+
+    // Get a fresh run token
+    const token = await this.cfApi!.getTunnelToken(record.tunnelId);
+
+    // Spawn cloudflared with the run token
+    const url = record.url;
+    await new Promise<void>((resolve, reject) => {
+      const child = spawn(
+        this.cloudflaredPath!,
+        [
+          "tunnel",
+          "run",
+          "--token",
+          token,
+          "--url",
+          `http://localhost:${localPort}`,
+          "--no-autoupdate",
+        ],
+        {
+          stdio: ["ignore", "pipe", "pipe"],
+        },
+      );
+
+      let resolved = false;
+
+      const timeout = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          child.kill();
+          reject(new Error(`Named tunnel startup timed out after ${STARTUP_TIMEOUT_MS}ms`));
+        }
+      }, STARTUP_TIMEOUT_MS);
+
+      const handleData = (data: Buffer) => {
+        const line = data.toString();
+        if (resolved) return;
+
+        if (NAMED_CONN_REGEX.test(line)) {
+          resolved = true;
+          clearTimeout(timeout);
+
+          this.tunnels.set(pluginId, { pluginId, localPort, url, process: child });
+          console.error(`[tunnel] Named tunnel connected for ${pluginId}: ${url}`);
+          resolve();
+        }
+      };
+
+      child.stderr?.on("data", handleData);
+      child.stdout?.on("data", handleData);
+
+      child.on("error", (err) => {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timeout);
+          reject(err);
+        }
+      });
+
+      child.on("exit", (code) => {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timeout);
+          reject(new Error(`cloudflared exited with code ${code} before named tunnel was ready`));
+        }
+        this.tunnels.delete(pluginId);
+      });
+    });
+
+    return url;
+  }
+
+  /**
+   * Create a quick tunnel (anonymous, ephemeral URL).
+   */
+  private createQuickTunnel(pluginId: string, localPort: number): Promise<string> {
     return new Promise<string>((resolve, reject) => {
       const child = spawn(
         this.cloudflaredPath!,
@@ -120,6 +273,25 @@ export class TunnelManager {
 
     this.tunnels.delete(pluginId);
     console.error(`[tunnel] Destroyed tunnel for ${pluginId}`);
+  }
+
+  /**
+   * Delete a named tunnel from Cloudflare and remove local state.
+   */
+  async deleteNamedTunnel(pluginId: string): Promise<void> {
+    const record = this.cfState.get(pluginId);
+    if (!record) return;
+
+    if (this.cfApi) {
+      try {
+        await this.cfApi.deleteTunnel(record.tunnelId);
+        console.error(`[tunnel] Deleted named tunnel ${record.tunnelName} from Cloudflare`);
+      } catch (err) {
+        console.error(`[tunnel] Failed to delete named tunnel ${record.tunnelName}:`, err);
+      }
+    }
+
+    this.cfState.remove(pluginId);
   }
 
   /**

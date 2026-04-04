@@ -1,4 +1,12 @@
-import { createSignal, createResource, For, Show, onMount, onCleanup } from "solid-js";
+import {
+  createSignal,
+  createEffect,
+  createResource,
+  For,
+  Show,
+  onMount,
+  onCleanup,
+} from "solid-js";
 import type { ServerId, PluginId, UserId } from "@uncorded/protocol";
 import { api } from "../../lib/api.js";
 import { showToast } from "../ui/toast.js";
@@ -78,6 +86,45 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
   const [updating, setUpdating] = createSignal<PluginId | null>(null);
   const [search, setSearch] = createSignal("");
   const [pluginUpdates, setPluginUpdates] = createSignal<PluginUpdateInfo[]>([]);
+
+  // Cloudflare tunnel configuration (desktop only)
+  const [cfConfigured, setCfConfigured] = createSignal(false);
+  const [cfLoading, setCfLoading] = createSignal(false);
+  const [cfToken, setCfToken] = createSignal("");
+  const [cfAccountId, setCfAccountId] = createSignal("");
+  const [cfError, setCfError] = createSignal("");
+  const [cfExpanded, setCfExpanded] = createSignal(false);
+
+  createEffect(() => {
+    if (isDesktop()) {
+      window.desktopBridge!.cloudflare.getStatus().then((s) => setCfConfigured(s.configured));
+    }
+  });
+
+  const handleCfSave = async () => {
+    setCfLoading(true);
+    setCfError("");
+    try {
+      const result = await window.desktopBridge!.cloudflare.configure(cfToken(), cfAccountId());
+      if (result.success) {
+        setCfConfigured(true);
+        setCfToken("");
+        setCfAccountId("");
+        setCfExpanded(false);
+      } else {
+        setCfError(result.error ?? "Failed to configure");
+      }
+    } catch (err) {
+      setCfError(err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      setCfLoading(false);
+    }
+  };
+
+  const handleCfClear = async () => {
+    await window.desktopBridge!.cloudflare.clear();
+    setCfConfigured(false);
+  };
 
   onMount(() => {
     if (!isDesktop()) return;
@@ -267,6 +314,83 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
           <p class="mt-1 text-sm text-muted-foreground">
             Upgrade to the Server Owner plan to install and manage server plugins.
           </p>
+        </div>
+      </Show>
+
+      {/* Cloudflare tunnel configuration (desktop only) */}
+      <Show when={isDesktop()}>
+        <div class="rounded-lg border border-border p-4 mb-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <h3 class="text-sm font-medium">Cloudflare Tunnels</h3>
+              <Show when={cfConfigured()}>
+                <span class="rounded-full bg-success/20 px-2 py-0.5 text-xs text-success">
+                  Active
+                </span>
+              </Show>
+            </div>
+            <Show
+              when={cfConfigured()}
+              fallback={
+                <button
+                  class="text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => setCfExpanded(!cfExpanded())}
+                >
+                  {cfExpanded() ? "Cancel" : "Configure"}
+                </button>
+              }
+            >
+              <button
+                class="text-xs text-destructive hover:text-destructive/80"
+                onClick={handleCfClear}
+              >
+                Remove
+              </button>
+            </Show>
+          </div>
+          <p class="mt-1 text-xs text-muted-foreground">
+            Named tunnels provide stable URLs for your server plugins. Without this, plugins use
+            temporary random URLs.
+          </p>
+
+          <Show when={cfExpanded() && !cfConfigured()}>
+            <div class="mt-3 space-y-2">
+              <input
+                type="text"
+                placeholder="Cloudflare Account ID"
+                value={cfAccountId()}
+                onInput={(e) => setCfAccountId(e.currentTarget.value)}
+                class="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+              />
+              <input
+                type="password"
+                placeholder="API Token"
+                value={cfToken()}
+                onInput={(e) => setCfToken(e.currentTarget.value)}
+                class="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+              />
+              <Show when={cfError()}>
+                <p class="text-xs text-destructive">{cfError()}</p>
+              </Show>
+              <div class="flex items-center gap-2">
+                <button
+                  class="rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground disabled:opacity-50"
+                  onClick={handleCfSave}
+                  disabled={cfLoading() || !cfToken() || !cfAccountId()}
+                >
+                  {cfLoading() ? "Validating..." : "Save"}
+                </button>
+                <a
+                  href="https://developers.cloudflare.com/fundamentals/api/get-started/create-token/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-xs text-muted-foreground hover:text-foreground underline"
+                >
+                  How to create an API token
+                </a>
+              </div>
+            </div>
+          </Show>
         </div>
       </Show>
 

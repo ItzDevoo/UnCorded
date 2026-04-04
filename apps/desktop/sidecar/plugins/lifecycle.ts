@@ -373,6 +373,15 @@ export class PluginLifecycle {
 
     if (!plugin) return;
 
+    // Delete named tunnel from Cloudflare if one exists
+    if (this.tunnelManager) {
+      await this.tunnelManager
+        .deleteNamedTunnel(pluginId)
+        .catch((err) =>
+          console.error(`[lifecycle] Failed to delete named tunnel for ${pluginId}:`, err),
+        );
+    }
+
     // Remove container
     if (plugin.containerId) {
       await this.docker.removeContainer(plugin.containerId, true);

@@ -44,12 +44,25 @@ export class TunnelManager {
 
   async validateAndSetCredentials(apiToken: string, accountId: string): Promise<boolean> {
     const api = new CloudflareApi(apiToken, accountId);
-    const valid = await api.validateCredentials();
-    if (!valid) return false;
+
+    // Verify read access
+    const canRead = await api.validateCredentials();
+    if (!canRead) return false;
+
+    // Verify write access by creating and immediately deleting a test tunnel
+    try {
+      const testTunnel = await api.createTunnel("uncorded-write-test");
+      await api.deleteTunnel(testTunnel.id).catch(() => {});
+    } catch {
+      console.error(
+        "[tunnel] Cloudflare token lacks write permissions (Tunnel Edit scope required)",
+      );
+      return false;
+    }
 
     this.credStore.save({ apiToken, accountId });
     this.cfApi = api;
-    console.error("[tunnel] Cloudflare credentials saved and validated");
+    console.error("[tunnel] Cloudflare credentials saved and validated (read + write)");
     return true;
   }
 
@@ -299,16 +312,31 @@ export class TunnelManager {
     const record = this.cfState.get(pluginId);
     if (!record) return;
 
-    if (this.cfApi) {
-      try {
-        await this.cfApi.deleteTunnel(record.tunnelId);
-        console.error(`[tunnel] Deleted named tunnel ${record.tunnelName} from Cloudflare`);
-      } catch (err) {
-        console.error(`[tunnel] Failed to delete named tunnel ${record.tunnelName}:`, err);
-      }
+    if (!this.cfApi) {
+      console.error(
+        `[tunnel] Cannot delete named tunnel ${record.tunnelName}: no Cloudflare API configured`,
+      );
+      return;
     }
 
-    this.cfState.remove(pluginId);
+    try {
+      await this.cfApi.deleteTunnel(record.tunnelId);
+      this.cfState.remove(pluginId);
+      console.error(`[tunnel] Deleted named tunnel ${record.tunnelName} from Cloudflare`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("not found") || msg.includes("404")) {
+        this.cfState.remove(pluginId);
+        console.error(
+          `[tunnel] Named tunnel ${record.tunnelName} already deleted remotely, cleaned local state`,
+        );
+      } else {
+        console.error(
+          `[tunnel] Failed to delete named tunnel ${record.tunnelName}, keeping record for retry:`,
+          err,
+        );
+      }
+    }
   }
 
   /**

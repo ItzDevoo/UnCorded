@@ -41,7 +41,7 @@ interface DesktopBridgePlugins {
 interface DesktopBridgeCloudflare {
   configure(apiToken: string, accountId: string): Promise<{ success: boolean; error?: string }>;
   getStatus(): Promise<{ configured: boolean }>;
-  clear(): Promise<{ success: boolean }>;
+  clear(): Promise<{ success: boolean; error?: string }>;
 }
 
 interface DesktopBridge {

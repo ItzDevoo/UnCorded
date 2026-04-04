@@ -96,9 +96,25 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
   const [cfExpanded, setCfExpanded] = createSignal(false);
 
   createEffect(() => {
-    if (isDesktop()) {
-      window.desktopBridge!.cloudflare.getStatus().then((s) => setCfConfigured(s.configured));
-    }
+    if (!isDesktop()) return;
+    let attempts = 0;
+    const maxAttempts = 5;
+    const probe = () => {
+      window
+        .desktopBridge!.cloudflare.getStatus()
+        .then((s) => setCfConfigured(s.configured))
+        .catch(() => {
+          if (++attempts < maxAttempts) setTimeout(probe, 2000);
+        });
+    };
+    probe();
+
+    // Re-probe when sidecar becomes ready
+    const unsub = window.desktopBridge!.onSidecarReady(() => {
+      attempts = 0;
+      probe();
+    });
+    onCleanup(unsub);
   });
 
   const handleCfSave = async () => {
@@ -127,9 +143,13 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
     )
       return;
     try {
-      await window.desktopBridge!.cloudflare.clear();
-      setCfConfigured(false);
-      setCfError("");
+      const result = await window.desktopBridge!.cloudflare.clear();
+      if (result.success) {
+        setCfConfigured(false);
+        setCfError("");
+      } else {
+        setCfError(result.error ?? "Failed to clear Cloudflare credentials");
+      }
     } catch (err) {
       setCfError(err instanceof Error ? err.message : "Failed to clear credentials");
     }

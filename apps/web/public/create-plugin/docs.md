@@ -331,7 +331,7 @@ The `icon` field in the manifest can be:
 
 For hosted icons, use your plugin's git repository:
 
-```
+```text
 https://raw.githubusercontent.com/your-org/your-plugin/main/icon.png
 ```
 

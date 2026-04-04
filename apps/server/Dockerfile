@@ -10,8 +10,8 @@ COPY apps/server/ apps/server/
 COPY apps/web/package.json apps/web/package.json
 COPY apps/admin/package.json apps/admin/package.json
 
-# Install dependencies
-RUN bun install
+# Clean host symlinks that Docker may copy from Windows, then install fresh
+RUN find . -path '*/node_modules' -type d -exec rm -rf {} + 2>/dev/null; bun install
 
 # Non-root user
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser \

@@ -53,6 +53,9 @@ export class PluginLifecycle {
   private statePath: string;
   private plugins = new Map<string, PluginRecord>();
   private bridgePort = 0;
+  private static readonly MAX_RETRIES = 3;
+  private static readonly RETRY_BASE_MS = 1_000;
+  private reauthRequired = false;
 
   constructor(docker: DockerManager, dataDir: string, tunnelManager?: TunnelManager) {
     this.docker = docker;
@@ -504,16 +507,26 @@ export class PluginLifecycle {
 
   setApiToken(token: string): void {
     this.apiToken = token;
-    // Re-report tunnel URLs for all running server plugins now that auth is available
-    if (this.apiBaseUrl) {
-      for (const plugin of this.plugins.values()) {
-        if (plugin.scope === "server" && plugin.state === "running" && plugin.tunnelUrl) {
-          this.reportTunnelUrl(plugin.serverId, plugin.pluginId, plugin.tunnelUrl, "active").catch(
-            (err) => console.error(`[lifecycle] Re-report failed for ${plugin.pluginId}:`, err),
-          );
-        }
+    if (!this.apiBaseUrl) return;
+
+    for (const plugin of this.plugins.values()) {
+      if (plugin.scope !== "server") continue;
+      if (plugin.state === "running" && plugin.tunnelUrl) {
+        this.reportTunnelUrl(plugin.serverId, plugin.pluginId, plugin.tunnelUrl, "active").catch(
+          (err) => console.error(`[lifecycle] Re-report failed for ${plugin.pluginId}:`, err),
+        );
+      } else if (plugin.state !== "running") {
+        this.reportTunnelUrl(plugin.serverId, plugin.pluginId, null, "stopped").catch((err) =>
+          console.error(`[lifecycle] Stale cleanup failed for ${plugin.pluginId}:`, err),
+        );
       }
     }
+  }
+
+  isReauthRequired(): boolean {
+    const needed = this.reauthRequired;
+    this.reauthRequired = false;
+    return needed;
   }
 
   // --- Queries ---
@@ -538,6 +551,27 @@ export class PluginLifecycle {
 
   private static readonly REPORT_TIMEOUT_MS = 5_000;
 
+  private async retryFetch(url: string, init: RequestInit): Promise<Response> {
+    let lastError: unknown;
+    for (let attempt = 0; attempt < PluginLifecycle.MAX_RETRIES; attempt++) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), PluginLifecycle.REPORT_TIMEOUT_MS);
+      try {
+        const res = await fetch(url, { ...init, signal: controller.signal });
+        clearTimeout(timeout);
+        if (res.ok || (res.status >= 400 && res.status < 500 && res.status !== 429)) return res;
+        lastError = new Error(`HTTP ${res.status}`);
+      } catch (err) {
+        clearTimeout(timeout);
+        lastError = err;
+      }
+      if (attempt < PluginLifecycle.MAX_RETRIES - 1) {
+        await new Promise((r) => setTimeout(r, PluginLifecycle.RETRY_BASE_MS * 2 ** attempt));
+      }
+    }
+    throw lastError;
+  }
+
   private async reportTunnelUrl(
     serverId: string,
     pluginId: string,
@@ -549,11 +583,8 @@ export class PluginLifecycle {
       return;
     }
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), PluginLifecycle.REPORT_TIMEOUT_MS);
-
     try {
-      const res = await fetch(
+      const res = await this.retryFetch(
         `${this.apiBaseUrl}/api/servers/${encodeURIComponent(serverId)}/plugins/${encodeURIComponent(pluginId)}/tunnel`,
         {
           method: "PUT",
@@ -562,21 +593,25 @@ export class PluginLifecycle {
             Cookie: `__Secure-uncorded.session_token=${this.apiToken}`,
           },
           body: JSON.stringify({ tunnelUrl, state }),
-          signal: controller.signal,
         },
       );
 
       if (!res.ok) {
+        if (res.status === 401) {
+          this.reauthRequired = true;
+          console.error("[lifecycle] Tunnel report auth failed (401)");
+          return;
+        }
         console.error(`[lifecycle] Failed to report tunnel URL: ${res.status}`);
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
-        console.error("[lifecycle] Tunnel URL report timed out");
+        console.error(
+          `[lifecycle] Tunnel URL report timed out after ${PluginLifecycle.MAX_RETRIES} attempts`,
+        );
       } else {
         console.error("[lifecycle] Error reporting tunnel URL:", err);
       }
-    } finally {
-      clearTimeout(timeout);
     }
   }
 

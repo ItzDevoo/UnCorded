@@ -405,6 +405,23 @@ function startPluginPolling(): void {
       broadcastPluginState();
     }
 
+    // Check if sidecar needs reauth
+    try {
+      const port = sidecar.getPort();
+      if (port) {
+        const reauthRes = await fetch(`http://localhost:${port}/reauth-needed`);
+        if (reauthRes.ok) {
+          const { needed } = (await reauthRes.json()) as { needed: boolean };
+          if (needed) {
+            console.log("[auth] Sidecar requested reauth");
+            await syncAuthToSidecar();
+          }
+        }
+      }
+    } catch {
+      /* sidecar not ready */
+    }
+
     // Check for plugin updates every ~60s (every 20th poll)
     updatePollCounter++;
     if (updatePollCounter >= 20) {

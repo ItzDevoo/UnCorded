@@ -35,6 +35,9 @@ const {
     select: vi.fn().mockImplementation(() => ({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockImplementation(() => makeWhereResult()),
+        leftJoin: vi.fn().mockReturnValue({
+          where: vi.fn().mockImplementation(() => makeWhereResult()),
+        }),
       }),
     })),
     insert: vi.fn().mockImplementation(() => ({
@@ -88,6 +91,8 @@ vi.mock("../../db/schema.js", () => ({
   pluginRegistry: {
     id: "plugin_registry.id",
     published: "plugin_registry.published",
+    name: "plugin_registry.name",
+    iconUrl: "plugin_registry.icon_url",
   },
 }));
 vi.mock("../../helpers/permissions.js", () => ({
@@ -96,6 +101,12 @@ vi.mock("../../helpers/permissions.js", () => ({
 }));
 vi.mock("../../helpers/resolve-tier.js", () => ({
   computeEffectiveTier: mockComputeEffectiveTier,
+}));
+vi.mock("../../ws/connections.js", () => ({
+  broadcastToServer: vi.fn(),
+}));
+vi.mock("@uncorded/protocol", () => ({
+  Opcode: { SERVER_PLUGIN_STATE_UPDATE: 95 },
 }));
 vi.mock("../../middleware/auth.js", () => ({
   authResolve: () => () => ({ user: { id: "user1" }, session: {} }),
@@ -157,6 +168,8 @@ describe("server plugin routes", () => {
           installedBy: "owner1",
           installedAt: new Date("2026-01-01"),
           config: null,
+          name: "Claude Code",
+          iconUrl: null,
         },
       ]);
 
@@ -247,8 +260,15 @@ describe("server plugin routes", () => {
   describe("PATCH /api/servers/:serverId/plugins/:pluginId", () => {
     it("updates config successfully", async () => {
       selectResults.push([
-        { id: "sp1", pluginId: "claude-code", state: "stopped", config: '{"key":"val"}' },
+        {
+          id: "sp1",
+          pluginId: "claude-code",
+          state: "stopped",
+          config: '{"key":"val"}',
+          tunnelUrl: null,
+        },
       ]);
+      selectResults.push([{ name: "Claude Code", iconUrl: null }]); // broadcast registry lookup
 
       const res = await makeRequest("PATCH", "/api/servers/server1/plugins/claude-code", {
         config: { key: "new-val" },
@@ -261,7 +281,10 @@ describe("server plugin routes", () => {
     });
 
     it("updates state successfully", async () => {
-      selectResults.push([{ id: "sp1", pluginId: "claude-code", state: "active" }]);
+      selectResults.push([
+        { id: "sp1", pluginId: "claude-code", state: "active", tunnelUrl: null },
+      ]);
+      selectResults.push([{ name: "Claude Code", iconUrl: null }]); // broadcast registry lookup
 
       const res = await makeRequest("PATCH", "/api/servers/server1/plugins/claude-code", {
         state: "stopped",
@@ -317,7 +340,10 @@ describe("server plugin routes", () => {
 
   describe("PUT /api/servers/:serverId/plugins/:pluginId/tunnel", () => {
     it("updates tunnel URL for the owner", async () => {
-      selectResults.push([{ id: "sp1", tunnelUrl: "https://new.trycloudflare.com" }]);
+      selectResults.push([
+        { id: "sp1", tunnelUrl: "https://new.trycloudflare.com", state: "active" },
+      ]);
+      selectResults.push([{ name: "Claude Code", iconUrl: null }]); // broadcast registry lookup
 
       const res = await makeRequest("PUT", "/api/servers/server1/plugins/claude-code/tunnel", {
         tunnelUrl: "https://new.trycloudflare.com",

@@ -92,9 +92,14 @@ async function logAudit(
 }
 
 const ALLOWED_REGISTRIES = new Set(["registry-1.docker.io", "ghcr.io", "docker.io"]);
+const ALLOWED_TOKEN_HOSTS = new Set(["auth.docker.io", "ghcr.io"]);
 
 function isAllowedRegistryHost(hostname: string): boolean {
   return ALLOWED_REGISTRIES.has(hostname);
+}
+
+function isAllowedTokenServiceHost(hostname: string): boolean {
+  return ALLOWED_TOKEN_HOSTS.has(hostname);
 }
 
 async function checkRegistryImage(imageRef: string): Promise<string | null> {
@@ -135,7 +140,7 @@ async function checkRegistryImage(imageRef: string): Promise<string | null> {
       if (!realm) return `Image "${imageRef}": registry requires auth but no realm provided`;
 
       const tokenUrl = new URL(realm);
-      if (!isAllowedRegistryHost(tokenUrl.hostname)) {
+      if (!isAllowedTokenServiceHost(tokenUrl.hostname)) {
         return `Image "${imageRef}": token service host "${tokenUrl.hostname}" is not allowed`;
       }
       if (service) tokenUrl.searchParams.set("service", service);
@@ -1343,7 +1348,8 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
         .where(eq(pluginRegistry.id, submission.pluginId))
         .limit(1);
       if (reg?.image) imageWarning = await checkRegistryImage(reg.image);
-    } catch {
+    } catch (err) {
+      console.error(`[admin] Image validation failed for plugin ${submission.pluginId}:`, err);
       imageWarning = "Image validation skipped due to error";
     }
 

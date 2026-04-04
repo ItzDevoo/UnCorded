@@ -205,18 +205,29 @@ export class DockerManager {
     const container = this.docker.getContainer(containerId);
     try {
       await container.stop({ t: timeoutSeconds });
-    } catch {
-      // Container might already be stopped
-      const info = await container.inspect();
-      if (info.State.Running) {
-        await container.kill();
+    } catch (err: unknown) {
+      const status = (err as { statusCode?: number }).statusCode;
+      if (status === 404) return; // Container already removed
+      if (status === 304) return; // Container already stopped
+      // Try inspect — container might just be stopped already
+      try {
+        const info = await container.inspect();
+        if (info.State.Running) await container.kill();
+      } catch {
+        // Container gone — nothing to stop
       }
     }
   }
 
   async removeContainer(containerId: string, force = false): Promise<void> {
     const container = this.docker.getContainer(containerId);
-    await container.remove({ force, v: true });
+    try {
+      await container.remove({ force, v: true });
+    } catch (err: unknown) {
+      const status = (err as { statusCode?: number }).statusCode;
+      if (status === 404) return; // Container already removed
+      throw err;
+    }
   }
 
   async getStatus(containerId: string): Promise<ContainerStatus> {

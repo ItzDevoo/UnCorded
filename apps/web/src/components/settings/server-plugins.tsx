@@ -122,8 +122,17 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
   };
 
   const handleCfClear = async () => {
-    await window.desktopBridge!.cloudflare.clear();
-    setCfConfigured(false);
+    if (
+      !window.confirm("Remove Cloudflare credentials? Plugins will fall back to temporary tunnels.")
+    )
+      return;
+    try {
+      await window.desktopBridge!.cloudflare.clear();
+      setCfConfigured(false);
+      setCfError("");
+    } catch (err) {
+      setCfError(err instanceof Error ? err.message : "Failed to clear credentials");
+    }
   };
 
   onMount(() => {

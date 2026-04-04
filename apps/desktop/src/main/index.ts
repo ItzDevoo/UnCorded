@@ -182,12 +182,20 @@ function setupSidecarIpc(): void {
 
 // --- IPC: Cloudflare Tunnels ---
 
+function sidecarFetch(port: number, path: string, init?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+  return fetch(`http://127.0.0.1:${port}${path}`, { ...init, signal: controller.signal }).finally(
+    () => clearTimeout(timeout),
+  );
+}
+
 function setupCloudflareIpc(): void {
   ipcMain.handle("cloudflare:configure", async (_event, apiToken: string, accountId: string) => {
     const port = sidecar.getPort();
     if (!port) return { success: false, error: "Sidecar not running" };
     try {
-      const res = await fetch(`http://127.0.0.1:${port}/cloudflare/configure`, {
+      const res = await sidecarFetch(port, "/cloudflare/configure", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ apiToken, accountId }),
@@ -202,7 +210,7 @@ function setupCloudflareIpc(): void {
     const port = sidecar.getPort();
     if (!port) return { configured: false };
     try {
-      const res = await fetch(`http://127.0.0.1:${port}/cloudflare/status`);
+      const res = await sidecarFetch(port, "/cloudflare/status");
       return (await res.json()) as { configured: boolean };
     } catch {
       return { configured: false };
@@ -213,7 +221,7 @@ function setupCloudflareIpc(): void {
     const port = sidecar.getPort();
     if (!port) return { success: false, error: "Sidecar not running" };
     try {
-      const res = await fetch(`http://127.0.0.1:${port}/cloudflare/clear`, { method: "POST" });
+      const res = await sidecarFetch(port, "/cloudflare/clear", { method: "POST" });
       return (await res.json()) as { success: boolean };
     } catch (err) {
       return { success: false, error: err instanceof Error ? err.message : "Unknown error" };

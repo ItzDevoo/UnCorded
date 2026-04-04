@@ -21,9 +21,21 @@ export class NamedTunnelState {
   private loadFromDisk(): void {
     try {
       if (fs.existsSync(this.filePath)) {
-        const data = JSON.parse(fs.readFileSync(this.filePath, "utf-8")) as NamedTunnelRecord[];
-        for (const r of data) {
-          this.records.set(r.pluginId, r);
+        const raw = JSON.parse(fs.readFileSync(this.filePath, "utf-8")) as unknown;
+        if (!Array.isArray(raw)) return;
+        for (const r of raw) {
+          if (
+            typeof r === "object" &&
+            r !== null &&
+            typeof r.pluginId === "string" &&
+            typeof r.tunnelId === "string" &&
+            typeof r.tunnelName === "string" &&
+            typeof r.url === "string"
+          ) {
+            this.records.set(r.pluginId, r as NamedTunnelRecord);
+          } else {
+            console.warn("[named-state] Skipping malformed record:", r);
+          }
         }
       }
     } catch (err) {

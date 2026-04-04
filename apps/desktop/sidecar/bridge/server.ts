@@ -43,8 +43,16 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
     }))
 
     .post("/cloudflare/configure", async ({ body }) => {
-      const parsed = body as { apiToken?: string; accountId?: string } | null;
-      if (!parsed?.apiToken || !parsed?.accountId) {
+      if (typeof body !== "object" || body === null || Array.isArray(body)) {
+        return { success: false, error: "apiToken and accountId required" };
+      }
+      const parsed = body as Record<string, unknown>;
+      if (
+        typeof parsed.apiToken !== "string" ||
+        !parsed.apiToken ||
+        typeof parsed.accountId !== "string" ||
+        !parsed.accountId
+      ) {
         return { success: false, error: "apiToken and accountId required" };
       }
       if (!options.tunnelManager) {
@@ -52,8 +60,8 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
       }
       try {
         const valid = await options.tunnelManager.validateAndSetCredentials(
-          parsed.apiToken,
-          parsed.accountId,
+          parsed.apiToken as string,
+          parsed.accountId as string,
         );
         if (!valid) return { success: false, error: "Invalid Cloudflare credentials" };
         return { success: true };

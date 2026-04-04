@@ -111,8 +111,25 @@ export class TunnelManager {
       console.error(`[tunnel] Reusing named tunnel ${record.tunnelName} for ${pluginId}`);
     }
 
-    // Get a fresh run token
-    const token = await this.cfApi!.getTunnelToken(record.tunnelId);
+    // Get a fresh run token — if the remote tunnel was deleted, recreate it
+    let token: string;
+    try {
+      token = await this.cfApi!.getTunnelToken(record.tunnelId);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("not found") || msg.includes("404")) {
+        console.error(`[tunnel] Remote tunnel ${record.tunnelId} was deleted, recreating...`);
+        this.cfState.remove(pluginId);
+        const tunnelName = `uncorded-${pluginId}`;
+        const tunnel = await this.cfApi!.createTunnel(tunnelName);
+        const url = `https://${tunnel.id}.cfargotunnel.com`;
+        record = { pluginId, tunnelId: tunnel.id, tunnelName, url };
+        this.cfState.save(record);
+        token = await this.cfApi!.getTunnelToken(record.tunnelId);
+      } else {
+        throw err;
+      }
+    }
 
     // Spawn cloudflared with the run token
     const url = record.url;

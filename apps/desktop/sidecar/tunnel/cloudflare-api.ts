@@ -1,3 +1,5 @@
+import { randomBytes } from "node:crypto";
+
 const CF_API_BASE = "https://api.cloudflare.com/client/v4";
 const REQUEST_TIMEOUT_MS = 15_000;
 
@@ -54,10 +56,7 @@ export class CloudflareApi {
   }
 
   async createTunnel(name: string): Promise<CloudflareTunnel> {
-    // Generate random tunnel secret
-    const secretBytes = new Uint8Array(32);
-    crypto.getRandomValues(secretBytes);
-    const tunnelSecret = Buffer.from(secretBytes).toString("base64");
+    const tunnelSecret = randomBytes(32).toString("base64");
 
     return this.request<CloudflareTunnel>("POST", `/accounts/${this.accountId}/cfd_tunnel`, {
       name,

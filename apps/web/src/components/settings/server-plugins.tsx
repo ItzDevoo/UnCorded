@@ -99,6 +99,8 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
     if (!isDesktop()) return;
     let attempts = 0;
     const maxAttempts = 5;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+
     const probe = () => {
       window
         .desktopBridge!.cloudflare.getStatus()
@@ -106,23 +108,29 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
           if (s.configured) {
             setCfConfigured(true);
           } else if (++attempts < maxAttempts) {
-            setTimeout(probe, 2000);
+            retryTimer = setTimeout(probe, 2000);
           } else {
             setCfConfigured(false);
           }
         })
         .catch(() => {
-          if (++attempts < maxAttempts) setTimeout(probe, 2000);
+          if (++attempts < maxAttempts) {
+            retryTimer = setTimeout(probe, 2000);
+          }
         });
     };
     probe();
 
     // Re-probe when sidecar becomes ready
     const unsub = window.desktopBridge!.onSidecarReady(() => {
+      clearTimeout(retryTimer);
       attempts = 0;
       probe();
     });
-    onCleanup(unsub);
+    onCleanup(() => {
+      clearTimeout(retryTimer);
+      unsub();
+    });
   });
 
   const handleCfSave = async () => {
@@ -417,9 +425,6 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
                 onInput={(e) => setCfToken(e.currentTarget.value)}
                 class="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
               />
-              <Show when={cfError()}>
-                <p class="text-xs text-destructive">{cfError()}</p>
-              </Show>
               <div class="flex items-center gap-2">
                 <button
                   class="rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground disabled:opacity-50"

@@ -121,15 +121,19 @@ export class TunnelManager {
    * Create a named tunnel via Cloudflare API with a stable URL.
    */
   private async createNamedTunnel(pluginId: string, localPort: number): Promise<string> {
+    // Capture client once to prevent credential changes mid-flight
+    const cfApi = this.cfApi;
+    if (!cfApi) throw new Error("Cloudflare API not configured");
+
     // Check if we already have a tunnel record for this plugin (reuse for stable URL)
     let record = this.cfState.get(pluginId);
 
     if (!record) {
       // Create a new tunnel via API
       const tunnelName = `uncorded-${pluginId}`;
-      const tunnel = await this.cfApi!.createTunnel(tunnelName);
+      const tunnel = await cfApi.createTunnel(tunnelName);
       const url = `https://${tunnel.id}.cfargotunnel.com`;
-      record = { pluginId, tunnelId: tunnel.id, tunnelName, url, accountId: this.cfApi!.accountId };
+      record = { pluginId, tunnelId: tunnel.id, tunnelName, url, accountId: cfApi.accountId };
       this.cfState.save(record);
       console.error(`[tunnel] Created named tunnel ${tunnelName} (${tunnel.id}) for ${pluginId}`);
     } else {
@@ -139,24 +143,24 @@ export class TunnelManager {
     // Get a fresh run token — if the remote tunnel was deleted, recreate it
     let token: string;
     try {
-      token = await this.cfApi!.getTunnelToken(record.tunnelId);
+      token = await cfApi.getTunnelToken(record.tunnelId);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes("not found") || msg.includes("404")) {
         console.error(`[tunnel] Remote tunnel ${record.tunnelId} was deleted, recreating...`);
         this.cfState.remove(pluginId);
         const tunnelName = `uncorded-${pluginId}`;
-        const tunnel = await this.cfApi!.createTunnel(tunnelName);
+        const tunnel = await cfApi.createTunnel(tunnelName);
         const url = `https://${tunnel.id}.cfargotunnel.com`;
         record = {
           pluginId,
           tunnelId: tunnel.id,
           tunnelName,
           url,
-          accountId: this.cfApi!.accountId,
+          accountId: cfApi.accountId,
         };
         this.cfState.save(record);
-        token = await this.cfApi!.getTunnelToken(record.tunnelId);
+        token = await cfApi.getTunnelToken(record.tunnelId);
       } else {
         throw err;
       }
@@ -167,17 +171,10 @@ export class TunnelManager {
     await new Promise<void>((resolve, reject) => {
       const child = spawn(
         this.cloudflaredPath!,
-        [
-          "tunnel",
-          "run",
-          "--token",
-          token,
-          "--url",
-          `http://localhost:${localPort}`,
-          "--no-autoupdate",
-        ],
+        ["tunnel", "run", "--url", `http://localhost:${localPort}`, "--no-autoupdate"],
         {
           stdio: ["ignore", "pipe", "pipe"],
+          env: { ...process.env, TUNNEL_TOKEN: token },
         },
       );
 

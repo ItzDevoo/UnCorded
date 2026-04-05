@@ -1,4 +1,12 @@
-import { createSignal, createResource, For, Show, onMount, onCleanup } from "solid-js";
+import {
+  createSignal,
+  createEffect,
+  createResource,
+  For,
+  Show,
+  onMount,
+  onCleanup,
+} from "solid-js";
 import type { ServerId, PluginId, UserId } from "@uncorded/protocol";
 import { api } from "../../lib/api.js";
 import { showToast } from "../ui/toast.js";
@@ -78,6 +86,95 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
   const [updating, setUpdating] = createSignal<PluginId | null>(null);
   const [search, setSearch] = createSignal("");
   const [pluginUpdates, setPluginUpdates] = createSignal<PluginUpdateInfo[]>([]);
+
+  // Cloudflare tunnel configuration (desktop only)
+  const [cfConfigured, setCfConfigured] = createSignal(false);
+  const [cfLoading, setCfLoading] = createSignal(false);
+  const [cfToken, setCfToken] = createSignal("");
+  const [cfAccountId, setCfAccountId] = createSignal("");
+  const [cfError, setCfError] = createSignal("");
+  const [cfExpanded, setCfExpanded] = createSignal(false);
+
+  createEffect(() => {
+    if (!isDesktop()) return;
+    let attempts = 0;
+    const maxAttempts = 5;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let disposed = false;
+
+    const probe = () => {
+      if (disposed) return;
+      window
+        .desktopBridge!.cloudflare.getStatus()
+        .then((s) => {
+          if (disposed) return;
+          if (s.configured) {
+            setCfConfigured(true);
+          } else if (++attempts < maxAttempts) {
+            retryTimer = setTimeout(probe, 2000);
+          } else {
+            setCfConfigured(false);
+          }
+        })
+        .catch(() => {
+          if (disposed) return;
+          if (++attempts < maxAttempts) {
+            retryTimer = setTimeout(probe, 2000);
+          }
+        });
+    };
+    probe();
+
+    const unsub = window.desktopBridge!.onSidecarReady(() => {
+      if (disposed) return;
+      clearTimeout(retryTimer);
+      attempts = 0;
+      probe();
+    });
+    onCleanup(() => {
+      disposed = true;
+      clearTimeout(retryTimer);
+      unsub();
+    });
+  });
+
+  const handleCfSave = async () => {
+    setCfLoading(true);
+    setCfError("");
+    try {
+      const result = await window.desktopBridge!.cloudflare.configure(cfToken(), cfAccountId());
+      if (result.success) {
+        setCfConfigured(true);
+        setCfToken("");
+        setCfAccountId("");
+        setCfExpanded(false);
+      } else {
+        setCfError(result.error ?? "Failed to configure");
+      }
+    } catch (err) {
+      setCfError(err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      setCfLoading(false);
+    }
+  };
+
+  const handleCfClear = async () => {
+    if (
+      !window.confirm("Remove Cloudflare credentials? Plugins will fall back to temporary tunnels.")
+    )
+      return;
+    try {
+      const result = await window.desktopBridge!.cloudflare.clear();
+      if (result.success) {
+        setCfConfigured(false);
+        setCfError("");
+      } else {
+        setCfError(result.error ?? "Failed to clear Cloudflare credentials");
+      }
+    } catch (err) {
+      setCfError(err instanceof Error ? err.message : "Failed to clear credentials");
+    }
+  };
 
   onMount(() => {
     if (!isDesktop()) return;
@@ -267,6 +364,91 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
           <p class="mt-1 text-sm text-muted-foreground">
             Upgrade to the Server Owner plan to install and manage server plugins.
           </p>
+        </div>
+      </Show>
+
+      {/* Cloudflare tunnel configuration (desktop only) */}
+      <Show when={isDesktop()}>
+        <div class="rounded-lg border border-border p-4 mb-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <h3 class="text-sm font-medium">Cloudflare Tunnels</h3>
+              <Show when={cfConfigured()}>
+                <span class="rounded-full bg-success/20 px-2 py-0.5 text-xs text-success">
+                  Active
+                </span>
+              </Show>
+            </div>
+            <Show
+              when={cfConfigured()}
+              fallback={
+                <button
+                  class="text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => setCfExpanded(!cfExpanded())}
+                >
+                  {cfExpanded() ? "Cancel" : "Configure"}
+                </button>
+              }
+            >
+              <button
+                class="text-xs text-destructive hover:text-destructive/80"
+                onClick={handleCfClear}
+              >
+                Remove
+              </button>
+            </Show>
+          </div>
+          <Show when={cfError()}>
+            <p class="mt-1 text-xs text-destructive">{cfError()}</p>
+          </Show>
+          <p class="mt-1 text-xs text-muted-foreground">
+            Named tunnels provide stable URLs for your server plugins. Without this, plugins use
+            temporary random URLs.
+          </p>
+
+          <Show when={cfExpanded() && !cfConfigured()}>
+            <div class="mt-3 space-y-2">
+              <label for="cf-account-id" class="sr-only">
+                Cloudflare Account ID
+              </label>
+              <input
+                id="cf-account-id"
+                type="text"
+                placeholder="Cloudflare Account ID"
+                value={cfAccountId()}
+                onInput={(e) => setCfAccountId(e.currentTarget.value)}
+                class="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+              />
+              <label for="cf-api-token" class="sr-only">
+                API Token
+              </label>
+              <input
+                id="cf-api-token"
+                type="password"
+                placeholder="API Token"
+                value={cfToken()}
+                onInput={(e) => setCfToken(e.currentTarget.value)}
+                class="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+              />
+              <div class="flex items-center gap-2">
+                <button
+                  class="rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground disabled:opacity-50"
+                  onClick={handleCfSave}
+                  disabled={cfLoading() || !cfToken() || !cfAccountId()}
+                >
+                  {cfLoading() ? "Validating..." : "Save"}
+                </button>
+                <a
+                  href="https://developers.cloudflare.com/fundamentals/api/get-started/create-token/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-xs text-muted-foreground hover:text-foreground underline"
+                >
+                  How to create an API token
+                </a>
+              </div>
+            </div>
+          </Show>
         </div>
       </Show>
 

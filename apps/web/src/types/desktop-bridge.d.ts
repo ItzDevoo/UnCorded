@@ -38,11 +38,18 @@ interface DesktopBridgePlugins {
   update(pluginId: string): Promise<void>;
 }
 
+interface DesktopBridgeCloudflare {
+  configure(apiToken: string, accountId: string): Promise<{ success: boolean; error?: string }>;
+  getStatus(): Promise<{ configured: boolean }>;
+  clear(): Promise<{ success: boolean; error?: string }>;
+}
+
 interface DesktopBridge {
   getSidecarStatus(): Promise<{ running: boolean; port: number | null }>;
   getSidecarPort(): Promise<number | null>;
   getDockerStatus(): Promise<{ available: boolean; bridgePort?: number }>;
   plugins: DesktopBridgePlugins;
+  cloudflare: DesktopBridgeCloudflare;
   getUpdateState(): Promise<UpdateState>;
   checkForUpdates(): Promise<UpdateState>;
   downloadUpdate(): Promise<UpdateResult>;

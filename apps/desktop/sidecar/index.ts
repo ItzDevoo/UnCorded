@@ -23,7 +23,7 @@ const plugins = new PluginLifecycle(docker, DATA_DIR, tunnelManager);
 
 // --- Start Bridge Server ---
 
-const bridge = await startBridgeServer({ docker, gateway, plugins, port: 0 });
+const bridge = await startBridgeServer({ docker, gateway, plugins, tunnelManager, port: 0 });
 
 // Tell lifecycle manager what port the bridge is on
 plugins.setBridgePort(bridge.port);

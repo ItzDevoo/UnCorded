@@ -90,6 +90,17 @@ const desktopBridge = {
     update: (pluginId: string): Promise<void> => ipcRenderer.invoke("plugins:update", pluginId),
   },
 
+  // --- Cloudflare Tunnels ---
+  cloudflare: {
+    configure: (
+      apiToken: string,
+      accountId: string,
+    ): Promise<{ success: boolean; error?: string }> =>
+      ipcRenderer.invoke("cloudflare:configure", apiToken, accountId),
+    getStatus: (): Promise<{ configured: boolean }> => ipcRenderer.invoke("cloudflare:status"),
+    clear: (): Promise<{ success: boolean }> => ipcRenderer.invoke("cloudflare:clear"),
+  },
+
   // --- Auto-update ---
   getUpdateState: (): Promise<UpdateState> => ipcRenderer.invoke("desktop:update-get-state"),
 

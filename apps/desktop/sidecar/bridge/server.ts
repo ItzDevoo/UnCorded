@@ -7,11 +7,13 @@ import { notificationQueue } from "./notifications";
 import type { DockerManager } from "../docker/manager";
 import type { GatewayClient } from "../gateway/client";
 import type { PluginLifecycle } from "../plugins/lifecycle";
+import type { TunnelManager } from "../tunnel/manager";
 
 interface BridgeServerOptions {
   docker: DockerManager;
   gateway: GatewayClient;
   plugins: PluginLifecycle;
+  tunnelManager?: TunnelManager;
   port?: number;
   dataDir?: string;
 }
@@ -33,6 +35,44 @@ export async function startBridgeServer(options: BridgeServerOptions): Promise<B
     .post("/reauth-ack", () => {
       options.plugins.clearReauthRequired();
       return { cleared: true };
+    })
+
+    // --- Cloudflare named tunnel configuration ---
+    .get("/cloudflare/status", () => ({
+      configured: options.tunnelManager?.isCloudflareConfigured() ?? false,
+    }))
+
+    .post("/cloudflare/configure", async ({ body }) => {
+      if (typeof body !== "object" || body === null || Array.isArray(body)) {
+        return { success: false, error: "apiToken and accountId required" };
+      }
+      const parsed = body as Record<string, unknown>;
+      if (
+        typeof parsed.apiToken !== "string" ||
+        !parsed.apiToken ||
+        typeof parsed.accountId !== "string" ||
+        !parsed.accountId
+      ) {
+        return { success: false, error: "apiToken and accountId required" };
+      }
+      if (!options.tunnelManager) {
+        return { success: false, error: "Tunnel manager not available" };
+      }
+      try {
+        const valid = await options.tunnelManager.validateAndSetCredentials(
+          parsed.apiToken as string,
+          parsed.accountId as string,
+        );
+        if (!valid) return { success: false, error: "Invalid Cloudflare credentials" };
+        return { success: true };
+      } catch (err) {
+        return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+      }
+    })
+
+    .post("/cloudflare/clear", () => {
+      options.tunnelManager?.clearCloudflareCredentials();
+      return { success: true };
     })
 
     // --- Plugin management (called by Electron main process, no auth) ---

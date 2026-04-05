@@ -166,7 +166,10 @@ export class TunnelManager {
       }
     }
 
-    // Spawn cloudflared with the run token
+    // Spawn cloudflared with the run token.
+    // --url acts as a local catch-all ingress rule, routing all traffic to the plugin port.
+    // This works for API-created tunnels without dashboard-configured ingress rules.
+    // The <tunnelId>.cfargotunnel.com URL is routable while this process is running.
     const url = record.url;
     await new Promise<void>((resolve, reject) => {
       const child = spawn(

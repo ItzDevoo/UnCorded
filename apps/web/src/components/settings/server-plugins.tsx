@@ -100,11 +100,14 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
     let attempts = 0;
     const maxAttempts = 5;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let disposed = false;
 
     const probe = () => {
+      if (disposed) return;
       window
         .desktopBridge!.cloudflare.getStatus()
         .then((s) => {
+          if (disposed) return;
           if (s.configured) {
             setCfConfigured(true);
           } else if (++attempts < maxAttempts) {
@@ -114,6 +117,7 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
           }
         })
         .catch(() => {
+          if (disposed) return;
           if (++attempts < maxAttempts) {
             retryTimer = setTimeout(probe, 2000);
           }
@@ -121,13 +125,14 @@ const ServerPluginsTab = (props: ServerPluginsProps) => {
     };
     probe();
 
-    // Re-probe when sidecar becomes ready
     const unsub = window.desktopBridge!.onSidecarReady(() => {
+      if (disposed) return;
       clearTimeout(retryTimer);
       attempts = 0;
       probe();
     });
     onCleanup(() => {
+      disposed = true;
       clearTimeout(retryTimer);
       unsub();
     });
